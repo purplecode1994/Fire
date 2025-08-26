@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>上下班 + 水電簡報 + 巡檢</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1em;
+      background-color: #000;
+      color: #000;
+    }
+    .section {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+      margin-bottom: 24px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .form-row {
+      margin-bottom: 12px;
+    }
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .label-row label {
+      font-weight: bold;
+    }
+    .time-label {
+      font-weight: normal;
+      font-size: 0.9em;
+    }
+    .time-display {
+      margin-left: 6px;
+      color: #333;
+    }
+    textarea.autosize, input[type="text"], select {
+      width: 100%;
+      font-size: 1em;
+      padding: 6px;
+      resize: none;
+      overflow: hidden;
+      min-height: 30px;
+      box-sizing: border-box;
+    }
+    input[type="number"] {
+      width: 100%;
+      font-size: 1.2em;
+      padding: 6px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      font-size: 1em;
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+    }
+    textarea.result {
+  height: 200px;
+  margin-top: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 14px;   /* ← 字體放大 */
+}
+
+/* 只針對最底下的「巡檢內容」結果框放大高度 */
+#resultWater {
+  height: 550px;   /* 原本200px，加30% */
+}
+
+  </style>
+</head>
+<body>
+
+<!-- 上下班交接 -->
+<div class="section">
+  <h2>上下班交接</h2>
+  <div class="form-row">
+    <label>班別</label>
+    <select id="shiftName">
+      <option value="A班">A班</option>
+      <option value="B班">B班</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label>類型</label>
+    <select id="shiftType">
+      <option value="上班">上班</option>
+      <option value="下班">下班</option>
+    </select>
+  </div>
+<div class="form-row">
+  <label>人員</label>
+  <input type="text" id="handoverPerson" placeholder="請輸入人員">
+</div>
+
+  <div class="form-row">
+    <label>交接物品</label>
+    <input type="text" id="handoverItem" value="正常">
+  </div>
+  <div class="form-row">
+    <label>交接事項</label>
+    <textarea class="autosize" id="handoverNote">正常</textarea>
+  </div>
+  <div class="form-row">
+    <label>補充說明</label>
+    <textarea class="autosize" id="handoverExtra"></textarea>
+  </div>
+  <button onclick="copyShift()">複製交接內容</button>
+  <textarea id="resultShift" class="result" readonly></textarea>
+</div>
+
+<!-- 水電簡報 -->
+<div class="section">
+  <h2>水電簡報</h2>
+  <div class="form-row">
+    <label>水</label>
+    <input type="number" inputmode="numeric" id="waterStatus" placeholder="請輸入數值">
+  </div>
+  <div class="form-row">
+    <label>電</label>
+    <input type="number" inputmode="numeric" id="powerStatus" placeholder="請輸入數值">
+  </div>
+  <div class="form-row">
+    <label>機房</label>
+    <input type="text" id="roomStatus" value="正常">
+  </div>
+  <button onclick="copyBrief()">複製水電簡報</button>
+  <textarea id="resultBrief" class="result" readonly></textarea>
+</div>
+
+<!-- 水電巡檢 -->
+<div id="section-inspection" class="section">
+  <h2>水電管制巡檢</h2>
+  <p id="date"></p>
+  <div id="form-inspection"></div>
+  <button onclick="copyWater()">複製巡檢內容</button>
+  <textarea id="resultWater" class="result" readonly></textarea>
+</div>
+
+<script>
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const dateStr = `${mm}/${dd}`;
+  document.getElementById("date").textContent = `日期：${dateStr}`;
+
+  const labels = [
+    "接待中心", "北醫中午", "北醫休診", "社區廚房", "溫泉區", "娛樂室", "樣品房",
+    "3F祈禱室", "4F書畫室", "5F宗教室", "7F棋藝室", "泳池", "足湯"
+  ];
+  const form = document.getElementById("form-inspection");
+  labels.forEach(label => {
+    const html = `
+      <div class="form-row">
+        <div class="label-row">
+          <label>${label}</label>
+          <label class="time-label">
+            <input type="checkbox" class="time-toggle">記錄時間
+            <span class="time-display"></span>
+          </label>
+        </div>
+        <textarea class="autosize" data-label="${label}">正常</textarea>
+      </div>`;
+    form.insertAdjacentHTML('beforeend', html);
+  });
+
+  document.addEventListener("input", (e) => {
+    if (e.target.classList.contains("autosize")) {
+      e.target.style.height = "auto";
+      e.target.style.height = e.target.scrollHeight + "px";
+    }
+  });
+
+  document.addEventListener("change", (e) => {
+    if (e.target.classList.contains("time-toggle")) {
+      const row = e.target.closest(".form-row");
+      const timeSpan = row.querySelector(".time-display");
+
+      if (e.target.checked) {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, "0");
+        const mi = String(now.getMinutes()).padStart(2, "0");
+        timeSpan.textContent = `（${hh}:${mi}）`;
+        timeSpan.dataset.timestamp = `${hh}:${mi}`;
+      } else {
+        timeSpan.textContent = "";
+        delete timeSpan.dataset.timestamp;
+      }
+    }
+  });
+
+  function copyWater() {
+    const rows = document.querySelectorAll("#form-inspection .form-row");
+    let result = [`一品、四季(${dateStr})`, "水電管制巡檢"];
+    rows.forEach(row => {
+      const textarea = row.querySelector("textarea");
+      const label = textarea.dataset.label;
+      const timeSpan = row.querySelector(".time-display");
+      const time = timeSpan?.textContent || "";
+      let value = textarea.value.trim();
+
+      if (value === "正常") {
+        result.push(`${label}：正常`);
+      } else {
+        const title = time ? `${label}${time}` : label;
+        const content = value.split('\n').map(line => line.trim()).filter(Boolean).join('，');
+        result.push(title);
+        if (content) result.push(content);
+      }
+    });
+    const output = result.join('\n').trim();
+    const box = document.getElementById("resultWater");
+    box.value = output;
+    box.select();
+    document.execCommand("copy");
+    alert("巡檢內容已複製！");
+  }
+
+function copyShift() {
+  const shift = document.getElementById("shiftName").value.trim();
+  const type = document.getElementById("shiftType").value.trim();
+  const person = document.getElementById("handoverPerson").value.trim();  
+  const item = document.getElementById("handoverItem").value.trim();
+  const note = document.getElementById("handoverNote").value.trim();
+  const extra = document.getElementById("handoverExtra").value.trim();
+
+  // 第一行 → 班別+上下班 + 人員（無括號）
+  let result = `${shift}${type}`;
+  if (person) {
+    result += `：${person}`;
+  } else {
+    result += `：`;
+  }
+
+  // 下面才是物品、事項、補充
+  result += `\n交接物品：${item}`;
+  result += `\n交接事項：${note}`;
+  if (extra) result += `\n${extra}`;
+
+  const box = document.getElementById("resultShift");
+  box.value = result;
+  box.select();
+  document.execCommand("copy");
+  alert("交接內容已複製！");
+}
+
+  function copyBrief() {
+    const w = document.getElementById("waterStatus").value.trim();
+    const p = document.getElementById("powerStatus").value.trim();
+    const r = document.getElementById("roomStatus").value.trim();
+    const result = `水：${w}\n電：${p}\n機房：${r}`;
+    const box = document.getElementById("resultBrief");
+    box.value = result;
+    box.select();
+    document.execCommand("copy");
+    alert("水電簡報已複製！");
+  }
+</script>
+
+</body>
+</html>
+
+
+
+
