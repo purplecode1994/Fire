@@ -1,0 +1,673 @@
+
+
+
+
+<!DOCTYPE html>
+
+
+
+
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Panasonic 空調集中控制與設備清單</title>
+<style>
+ body {
+    font-family: "Segoe UI", sans-serif;
+    margin: 0;
+    padding: 15px;
+    background-color: #f9f9f9;
+    color: #333;
+  }
+
+
+  h1 {
+    text-align: center;
+    color: #0a3d62;
+    margin-bottom: 20px;
+  }
+
+
+  h2 {
+    text-align: center;
+    color: #003366;
+  }
+
+
+  .step {
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin-bottom: 15px;
+    margin-left: 10px;
+  }
+
+
+  .step h2 {
+    font-size: 18px;
+    color: #1e6091;
+    margin-bottom: 8px;
+  }
+
+
+  .step p,
+  .step ul {
+    margin: 6px 0;
+    line-height: 1.6;
+  }
+
+
+  .section {
+    background: white;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 0 4px rgba(0,0,0,0.1);
+  }
+
+
+  .section-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #005BAC;
+  }
+
+
+code {
+  display: inline-block;
+  background: linear-gradient(to bottom, #ffffff,#f1f1f1, #bbbbbb);
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid #aaa;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.6),
+    0 1px 3px rgba(0, 0, 0, 0.15);
+  font-size: 90%;
+  color: #333;
+  font-family: monospace;
+  vertical-align: middle;
+
+
+}
+
+
+  .dark-code {
+    display: inline-block;
+    background: #222;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 90%;
+  }
+
+
+  .icon-button,
+  .orange-tag,
+  .blue-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    background: white;
+    cursor: default;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+     margin-bottom: 6px;  /* 或 margin: 6px 0; */
+     font-weight: 600; /* 中等粗 */
+
+
+  }
+
+
+  .icon-button {
+    border: 2px solid #f15b2a;
+  }
+
+
+  .icon-button .emoji {
+    font-size: 14px;
+  }
+
+
+.orange-tag {
+  display: inline-block;
+  background-color: hwb(24 22% 0%);
+  color: #000;
+  border: 1px solid hwb(24 22% 0%);
+  font-family: monospace;
+  font-size: 90%;
+  line-height: 1.8;       /* ⬅️ 高度影響之一 */
+  padding: 0px 6px;       /* ⬅️ 高度影響之二 */
+  border-radius: 6px;
+  vertical-align: middle;
+
+
+  /* 有立體感但去掉字體白邊 */
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.6),
+    0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+
+  .blue-tag {
+    border: 2px solid #3a82f7;
+  }
+
+
+.checkbox {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #666;
+  border-radius: 4px;
+  position: relative;
+  margin-right: 6px;
+  vertical-align: middle;
+  transform: translateY(0px); /* ⬅️ 精準微調位置 */
+}
+
+
+  .checkbox::after {
+    content: '\2713';
+    font-size: 14px;
+    color: #1e6091;
+    position: absolute;
+    top: -2px;
+    left: 2px;
+  }
+
+
+  .back-arrow {
+    display: inline-flex;
+    align-items: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #0a3d62;
+    margin-top: 8px;
+  }
+
+
+  .search-box {
+     width: 100%;
+     padding: 0 16px;         /* 左右內間距 */
+  box-sizing: border-box;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+
+  .search-box input {
+    padding: 6px;
+    width: 90%;
+    max-width: 400px;
+    font-size: 16px;
+  }
+
+
+  button {
+    margin: 5px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007ACC;
+    color: white;
+    cursor: pointer;
+  }
+
+
+  button:hover {
+    background-color: #005f99;
+  }
+
+
+  .table-container {
+    display: none;
+    margin-top: 15px;
+  }
+
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+
+
+  th, td {
+    padding: 8px;
+    border: 1px solid #ccc;
+    text-align: left;
+    font-size: 14px;
+  }
+
+
+  th {
+    background-color: #f0f0f0;
+  }
+
+
+  tr.hidden {
+    display: none;
+  }
+@media screen and (max-width: 600px) {
+    .section { padding: 8px; }
+    .section-title { font-size: 16px; }
+    .step { font-size: 14px; }
+    table { font-size: 12px; width: 100%; word-break: break-word; }
+    th, td { padding: 4px; }
+    input[type="text"] { width: 100%; font-size: 14px; padding: 6px; }
+    button { font-size: 14px; margin-top: 4px; }
+}
+
+
+.fake-input {
+  display: inline-block;
+  font-size: 17px;
+  font-family: monospace;
+  background-color: #fff;
+  border: 2px solid #555;         /* 粗框 */
+  border-radius: 4px;             /* 微圓角（幾乎是銳角） */
+  color: #333;
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,0.5),
+    0 1px 2px rgba(0,0,0,0.1);
+  vertical-align: middle;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+
+
+  padding: 1px 15px;              /* ✅ 左右加寬，上下微加，視覺平衡 */
+  width: fit-content;
+  line-height: 1.4;              /* ✅ 字體垂直居中好看 */
+  text-align: center;            /* ✅ 字水平置中 */
+}
+
+
+
+
+.emoji-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+  background-color: #333;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 4px;
+  user-select: none;
+  transform: translateY(-1px);  /* ⬅️ 微調向上 1px，視覺居中 */
+}
+
+
+</style>
+</head>
+<body>
+  <h1>Panasonic 空調排程完整操作教學</h1>
+
+
+  <div class="step">
+    <h2>步驟 1 - 進入系統設定</h2>
+    <p>從主畫面點選右上方 <span class="icon-button"><span class="emoji">🔧</span> Settings</span>，再點選 <span class="icon-button"><span class="emoji">⚙️</span> System Settings</span></p>
+  </div>
+
+
+  <div class="step">
+    <h2>步驟 2 - 新增排程群組名稱</h2>
+    <p>點選 <code>Schedule group name settings</code></p>
+    <p>輸入密碼 <code class="dark-code">int2</code> 並送出</p>
+    <p>選擇一筆群組  <span class="checkbox"></span><code>Select</code>，按下 <span class="orange-tag">Sttng</span> 編輯</p>
+    <p>可修改名稱 <span class="fake-input">Name</span>，右側的 <code>Display </code> 建議保留為 256 不變更</p>
+    <p>記得打勾 <span class="checkbox"></span><code>Valid</code> 並按 <code>Register</code></p>
+    <p>按下 <span class="back-arrow">↩</span> 返回上一頁</p>
+  </div>
+
+
+  <div class="step">
+    <h2>步驟 3 - 指定室內機到群組</h2>
+    <p>返回 <span class="icon-button"><span class="emoji">⚙️</span> System Settings</span> → 點選 <code>I/D unit settings</code></p>
+    <p>輸入密碼 <code class="dark-code">int2</code> → 點選 <code>Line No.</code> → 選擇 <code>Adaptor</code></p>
+    <p>再點選 <code>Link</code> → 選擇你需要設定的 LINK（例如：2-LINK1）</p>
+    <p>勾選室內機   <span class="checkbox"></span><code>Select</code>，按下 <span class="orange-tag">Setng</span>，選擇 <code>ScheduleGroup</code> → 指派排程群組(如果沒有顯示則該室內機為獨立控制)
+    <p>後按下 <code>Register</code> 儲存</p>
+  </div>
+
+
+  <div class="step">
+    <h2>步驟 4 - 設定排程時間</h2>
+    <p>回到主畫面 → 點選 <span class="blue-tag"><span class="emoji">📊</span> Oper./Status</span> → 再點選 <span class="blue-tag"><span class="emoji">📅</span> Set schedule</span></p>
+    <p>選擇 <code>Schedule setting</code> → 勾選群組 → 點 <span class="orange-tag">Edit</span></p>
+    <p>設定開關時間、溫度、模式、風速等內容</p>
+<p>
+  可按 <code><span class="emoji-plus">+</span>New data</code> 新增時段，完成後按 <code>Register</code> 儲存
+</p>
+  </div>
+
+
+  <div class="step">
+    <h2>步驟 5 - 套用年曆排程</h2>
+    <p>從 <span class="blue-tag"><span class="emoji">📅</span> Set schedule</span> → 點選 <code>Calendar</code></p>
+    <p>你可以：</p>
+    <ul>
+      <li>手動點選日期 → 點選右側 <code>Mode1</code>
+ 指定排程模式</li>
+<li>可以按住 <span class="fake-input">Sche Pt1</span> 2秒後可以重新命名</li>
+
+
+      <li>或點下方 <code style="display: inline-block; margin: 4px 6px;">By day of the week</code>
+ → 選擇某週期範圍 → 套用週一至週日排程</li>
+    </ul>
+    <p>完成後按 <code>Register</code> 儲存</p>
+  </div>
+
+
+  <h2>📋 Panasonic 空調集中控制代號與設備查詢🔍</h2>
+<div class="search-box">
+     <input id="searchInput" oninput="filterTables()" placeholder="輸入關鍵字查詢設備（如代碼、空間、類別等）..." type="text"/>
+</div>
+<div style="text-align:center;">
+<button onclick="toggleTable('aTable')">一品官邸 (A 區)</button>
+<button onclick="toggleTable('bTable')">四季官邸 (B 區)</button>
+</div>
+<div class="table-container" id="aTable">
+<table id="aTableData">
+<thead>
+<tr>
+<th>編號</th>
+<th>區域類別</th>
+<th>室內機編碼</th>
+<th>品項</th>
+<th>使用空間</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>Adp1-1</td><td>In01, 1-1</td><td>室內機</td><td>自如清安</td></tr>
+<tr><td>2</td><td>Adp1-1</td><td>In02, 1-2</td><td>室內機</td><td>自如清安</td></tr>
+<tr><td>3</td><td>Adp1-1</td><td>In03, 2-1</td><td>室內機</td><td>自如清安</td></tr>
+<tr><td>4</td><td>Adp1-1</td><td>In04, 2-2</td><td>室內機</td><td>自如清安</td></tr>
+<tr><td>5</td><td>Adp1-1</td><td>In05, 2-3</td><td>室內機</td><td>自如清安</td></tr>
+<tr><td>6</td><td>Adp1-1</td><td>In06, 3-1</td><td>室內機</td><td>電梯區通道</td></tr>
+<tr><td>7</td><td>Adp1-1</td><td>In07, 3-2</td><td>室內機</td><td>電梯梯廳</td></tr>
+<tr><td>8</td><td>Adp1-1</td><td>In08, 3-3</td><td>室內機</td><td>1F公廁</td></tr>
+<tr><td>9</td><td>Adp1-1</td><td>In09, 4-1</td><td>室內機</td><td>大廳(櫃檯區)</td></tr>
+<tr><td>10</td><td>Adp1-1</td><td>In10, 4-2</td><td>室內機</td><td>大廳(電動門前)</td></tr>
+<tr><td>11</td><td>Adp1-1</td><td>In11, 4-3</td><td>室內機</td><td>大廳(酒吧)</td></tr>
+<tr><td>12</td><td>Adp1-1</td><td>In12, 4-4</td><td>室內機</td><td>大廳(櫃檯區)</td></tr>
+<tr><td>13</td><td>Adp1-1</td><td>In13, 4-5</td><td>室內機</td><td>大廳(咖啡吧)</td></tr>
+<tr><td>14</td><td>Adp1-1</td><td>In14, 4-6</td><td>室內機</td><td>大廳(酒吧)</td></tr>
+<tr><td>15</td><td>Adp1-1</td><td>In15, 4-7</td><td>室內機</td><td>大廳(電動門前)</td></tr>
+<tr><td>16</td><td>Adp1-1</td><td>In16, 4-8</td><td>室內機</td><td>大廳(咖啡吧)</td></tr>
+<tr><td>17</td><td>Adp1-1</td><td>In17, 4-9</td><td>室內機</td><td>自如清安(廁所)</td></tr>
+<tr><td>18</td><td>Adp1-1</td><td>In18, 31-52</td><td>全熱</td><td>自如清安</td></tr>
+<tr><td>19</td><td>Adp1-1</td><td>In19, 31-53</td><td>全熱</td><td>大廳(咖啡區)</td></tr>
+<tr><td>20</td><td>Adp1-1</td><td>In20, 31-54</td><td>全熱</td><td>大廳(櫃台區)</td></tr>
+<tr><td>21</td><td>Adp1-2</td><td>In01, 9-1</td><td>室內機</td><td>湯屋廊道</td></tr>
+<tr><td>22</td><td>Adp1-2</td><td>In02, 9-2</td><td>室內機</td><td>湯屋廊道</td></tr>
+<tr><td>23</td><td>Adp1-2</td><td>In03, 9-3</td><td>室內機</td><td>女大眾湯</td></tr>
+<tr><td>24</td><td>Adp1-2</td><td>In04, 9-4</td><td>室內機</td><td>女大眾湯</td></tr>
+<tr><td>25</td><td>Adp1-2</td><td>In05, 9-5</td><td>室內機</td><td>女大眾湯</td></tr>
+<tr><td>26</td><td>Adp1-2</td><td>In06, 9-6</td><td>室內機</td><td>男大眾湯</td></tr>
+<tr><td>27</td><td>Adp1-2</td><td>In07, 9-7</td><td>室內機</td><td>男大眾湯</td></tr>
+<tr><td>28</td><td>Adp1-2</td><td>In08, 9-8</td><td>室內機</td><td>男大眾湯</td></tr>
+<tr><td>29</td><td>Adp1-2</td><td>In09, 9-9</td><td>室內機</td><td>美容中心</td></tr>
+<tr><td>30</td><td>Adp1-2</td><td>In10, 9-10</td><td>室內機</td><td>湯屋廊道</td></tr>
+<tr><td>31</td><td>Adp1-2</td><td>In11, 9-11</td><td>室內機</td><td>棋藝間</td></tr>
+<tr><td>32</td><td>Adp1-2</td><td>In12, 9-12</td><td>室內機</td><td>中央樓梯梯廳</td></tr>
+<tr><td>33</td><td>Adp1-2</td><td>In13, 9-13</td><td>室內機</td><td>美容中心</td></tr>
+<tr><td>34</td><td>Adp1-2</td><td>In14, 9-14</td><td>室內機</td><td>電梯梯廳</td></tr>
+<tr><td>35</td><td>Adp1-2</td><td>In15, 9-15</td><td>室內機</td><td>湯屋廊道</td></tr>
+<tr><td>36</td><td>Adp1-2</td><td>In16, 9-16</td><td>室內機</td><td>美容中心</td></tr>
+<tr><td>37</td><td>Adp1-2</td><td>In17, 9-17</td><td>室內機</td><td>2F公廁</td></tr>
+<tr><td>38</td><td>Adp1-2</td><td>In18, 9-18</td><td>室內機</td><td>中央樓梯梯廳</td></tr>
+<tr><td>39</td><td>Adp1-2</td><td>In19, 9-19</td><td>室內機</td><td>美容中心</td></tr>
+<tr><td>40</td><td>Adp1-2</td><td>In20, 9-20</td><td>室內機</td><td>電梯梯廳</td></tr>
+<tr><td>41</td><td>Adp1-2</td><td>In21, 10-1</td><td>室內機</td><td>湯屋備品室</td></tr>
+<tr><td>42</td><td>Adp1-2</td><td>In22, 10-2</td><td>室內機</td><td>湯屋接待區</td></tr>
+<tr><td>43</td><td>Adp1-2</td><td>In23, 10-3</td><td>室內機</td><td>湯屋接待區</td></tr>
+<tr><td>44</td><td>Adp1-2</td><td>In24, 10-4</td><td>室內機</td><td>福衫湯屋</td></tr>
+<tr><td>45</td><td>Adp1-2</td><td>In25, 10-5</td><td>室內機</td><td>肖楠湯屋</td></tr>
+<tr><td>46</td><td>Adp1-2</td><td>In26, 10-6</td><td>室內機</td><td>紅檜湯屋</td></tr>
+<tr><td>47</td><td>Adp1-2</td><td>In27, 10-7</td><td>室內機</td><td>木湯屋</td></tr>
+<tr><td>48</td><td>Adp1-2</td><td>In28, 10-8</td><td>室內機</td><td>香杉湯屋</td></tr>
+<tr><td>49</td><td>Adp1-2</td><td>In29, 31-50</td><td>全熱</td><td>美容中心</td></tr>
+<tr><td>50</td><td>Adp2-1</td><td>In01, 11-1</td><td>室內機</td><td>3F廊道</td></tr>
+<tr><td>51</td><td>Adp2-1</td><td>In02, 11-2</td><td>室內機</td><td>3F廊道</td></tr>
+<tr><td>52</td><td>Adp2-1</td><td>In03, 11-3</td><td>室內機</td><td>3F廊道</td></tr>
+<tr><td>53</td><td>Adp2-1</td><td>In04, 11-4</td><td>室內機</td><td>3F廊道</td></tr>
+<tr><td>54</td><td>Adp2-1</td><td>In05, 11-5</td><td>室內機</td><td>3F廊道</td></tr>
+<tr><td>55</td><td>Adp2-1</td><td>In06, 11-6</td><td>室內機</td><td>3F電梯梯廳</td></tr>
+<tr><td>56</td><td>Adp2-1</td><td>In07, 11-7</td><td>室內機</td><td>3F廊道</td></tr>
+<tr><td>57</td><td>Adp2-1</td><td>In08, 12-1</td><td>室內機</td><td>4F廊道</td></tr>
+<tr><td>58</td><td>Adp2-1</td><td>In09, 12-2</td><td>室內機</td><td>4F廊道</td></tr>
+<tr><td>59</td><td>Adp2-1</td><td>In10, 12-3</td><td>室內機</td><td>4F廊道</td></tr>
+<tr><td>60</td><td>Adp2-1</td><td>In11, 12-4</td><td>室內機</td><td>4F廊道</td></tr>
+<tr><td>61</td><td>Adp2-1</td><td>In12, 12-5</td><td>室內機</td><td>4F廊道</td></tr>
+<tr><td>62</td><td>Adp2-1</td><td>In13, 12-6</td><td>室內機</td><td>4F廊道</td></tr>
+<tr><td>63</td><td>Adp2-1</td><td>In14, 12-7</td><td>室內機</td><td>4F電梯梯廳</td></tr>
+<tr><td>64</td><td>Adp2-1</td><td>In15, 13-1</td><td>室內機</td><td>5F廊道</td></tr>
+<tr><td>65</td><td>Adp2-1</td><td>In16, 13-2</td><td>室內機</td><td>5F廊道</td></tr>
+<tr><td>66</td><td>Adp2-1</td><td>In17, 13-3</td><td>室內機</td><td>5F廊道</td></tr>
+<tr><td>67</td><td>Adp2-1</td><td>In18, 13-4</td><td>室內機</td><td>5F廊道</td></tr>
+<tr><td>68</td><td>Adp2-1</td><td>In19, 13-5</td><td>室內機</td><td>5F電梯梯廳</td></tr>
+<tr><td>69</td><td>Adp2-1</td><td>In20, 13-6</td><td>室內機</td><td>5F廊道</td></tr>
+<tr><td>70</td><td>Adp2-1</td><td>In21, 13-7</td><td>室內機</td><td>5F廊道</td></tr>
+<tr><td>71</td><td>Adp2-1</td><td>In22, 14-1</td><td>室內機</td><td>6F廊道</td></tr>
+<tr><td>72</td><td>Adp2-1</td><td>In23, 14-2</td><td>室內機</td><td>6F電梯梯廳</td></tr>
+<tr><td>73</td><td>Adp2-1</td><td>In24, 14-3</td><td>室內機</td><td>6F廊道</td></tr>
+<tr><td>74</td><td>Adp2-1</td><td>In25, 14-4</td><td>室內機</td><td>6F廊道</td></tr>
+<tr><td>75</td><td>Adp2-1</td><td>In26, 14-5</td><td>室內機</td><td>6F廊道</td></tr>
+<tr><td>76</td><td>Adp2-1</td><td>In27, 14-6</td><td>室內機</td><td>6F廊道</td></tr>
+<tr><td>77</td><td>Adp2-1</td><td>In28, 14-7</td><td>室內機</td><td>6F廊道</td></tr>
+<tr><td>78</td><td>Adp2-1</td><td>In29, 15-1</td><td>室內機</td><td>7F電梯梯廳</td></tr>
+<tr><td>79</td><td>Adp2-1</td><td>In30, 15-2</td><td>室內機</td><td>7F廊道</td></tr>
+<tr><td>80</td><td>Adp2-1</td><td>In31, 15-3</td><td>室內機</td><td>7F廊道</td></tr>
+<tr><td>81</td><td>Adp2-1</td><td>In32, 15-4</td><td>室內機</td><td>7F鄉道</td></tr>
+<tr><td>82</td><td>Adp2-1</td><td>In33, 15-5</td><td>室內機</td><td>7F廊道</td></tr>
+<tr><td>83</td><td>Adp2-1</td><td>In34, 15-6</td><td>室內機</td><td>7F廊道</td></tr>
+<tr><td>84</td><td>Adp2-1</td><td>In35, 15-7</td><td>室內機</td><td>7F廊道</td></tr>
+<tr><td>85</td><td>Adp2-1</td><td>In36, 31-46</td><td>全熱</td><td>3F廊道</td></tr>
+<tr><td>86</td><td>Adp2-1</td><td>In37, 31-45</td><td>全熱</td><td>4F廊道</td></tr>
+<tr><td>87</td><td>Adp2-1</td><td>In38, 31-44</td><td>全熱</td><td>5F廊道</td></tr>
+<tr><td>88</td><td>Adp2-1</td><td>In39, 31-43</td><td>全熱</td><td>6F廊道</td></tr>
+<tr><td>89</td><td>Adp2-1</td><td>In40, 31-42</td><td>全熱</td><td>7F廊道</td></tr>
+<tr><td>90</td><td>Adp3-1</td><td>In01, 7-1</td><td>室內機</td><td>男廁</td></tr>
+<tr><td>91</td><td>Adp3-1</td><td>In02, 7-2</td><td>室內機</td><td>泳池斜坡區</td></tr>
+<tr><td>92</td><td>Adp3-1</td><td>In03, 7-3</td><td>室內機</td><td>泳池儲藏室</td></tr>
+<tr><td>93</td><td>Adp3-1</td><td>In04, 7-4</td><td>室內機</td><td>泳池區</td></tr>
+<tr><td>94</td><td>Adp3-1</td><td>In05, 7-5</td><td>室內機</td><td>男沐浴</td></tr>
+<tr><td>95</td><td>Adp3-1</td><td>In06, 7-6</td><td>室內機</td><td>8字池</td></tr>
+<tr><td>96</td><td>Adp3-1</td><td>In07, 7-7</td><td>室內機</td><td>泳池區</td></tr>
+<tr><td>97</td><td>Adp3-1</td><td>In08, 7-8</td><td>室內機</td><td>泳池區</td></tr>
+<tr><td>98</td><td>Adp3-1</td><td>In09, 7-9</td><td>室內機</td><td>女沐浴</td></tr>
+<tr><td>99</td><td>Adp3-1</td><td>In10, 7-10</td><td>室內機</td><td>泳池區</td></tr>
+<tr><td>100</td><td>Adp3-1</td><td>In11, 7-11</td><td>室內機</td><td>泳池櫃台</td></tr>
+<tr><td>101</td><td>Adp3-1</td><td>In12, 7-12</td><td>室內機</td><td>泳池區</td></tr>
+<tr><td>102</td><td>Adp3-1</td><td>In13, 7-13</td><td>室內機</td><td>泳池區</td></tr>
+<tr><td>103</td><td>Adp3-1</td><td>In14, 7-14</td><td>室內機</td><td>泳池區</td></tr>
+<tr><td>104</td><td>Adp3-1</td><td>In15, 7-15</td><td>室內機</td><td>垃圾儲藏室</td></tr>
+<tr><td>105</td><td>Adp3-1</td><td>In16, 7-16</td><td>室內機</td><td>泳池區</td></tr>
+<tr><td>106</td><td>Adp3-1</td><td>In17, 7-17</td><td>室內機</td><td>8字池</td></tr>
+<tr><td>107</td><td>Adp3-1</td><td>In18, 7-18</td><td>室內機</td><td>8字池</td></tr>
+<tr><td>108</td><td>Adp3-1</td><td>In19, 8-1</td><td>室內機</td><td>B1F電梯梯廳</td></tr>
+<tr><td>109</td><td>Adp3-1</td><td>In20, 8-2</td><td>室內機</td><td>KTV室</td></tr>
+<tr><td>110</td><td>Adp3-1</td><td>In21, 8-3</td><td>室內機</td><td>中央樓梯</td></tr>
+<tr><td>111</td><td>Adp3-1</td><td>In22, 8-4</td><td>室內機</td><td>交誼區</td></tr>
+<tr><td>112</td><td>Adp3-1</td><td>In23, 8-5</td><td>室內機</td><td>中央樓梯</td></tr>
+<tr><td>113</td><td>Adp3-1</td><td>In24, 8-6</td><td>室內機</td><td>B3F電梯梯廳</td></tr>
+<tr><td>114</td><td>Adp3-1</td><td>In25, 8-7</td><td>室內機</td><td>B2F電梯梯廳</td></tr>
+<tr><td>115</td><td>Adp3-1</td><td>In26, 31-51</td><td>全熱</td><td>交誼區</td></tr>
+<tr><td>116</td><td>Adp4-1</td><td>In01, 5-1</td><td>室內機</td><td>2F用餐區</td></tr>
+<tr><td>117</td><td>Adp4-1</td><td>In02, 5-2</td><td>室內機</td><td>2F用餐區</td></tr>
+<tr><td>118</td><td>Adp4-1</td><td>In03, 5-3</td><td>室內機</td><td>2F用餐區</td></tr>
+<tr><td>119</td><td>Adp4-1</td><td>In04, 5-4</td><td>室內機</td><td>2F用餐區</td></tr>
+<tr><td>120</td><td>Adp4-1</td><td>In05, 5-5</td><td>室內機</td><td>2F廚房區</td></tr>
+<tr><td>121</td><td>Adp4-1</td><td>In06, 5-6</td><td>室內機</td><td>2F廚房區</td></tr>
+<tr><td>122</td><td>Adp4-1</td><td>In07, 5-7</td><td>室內機</td><td>2F用餐區</td></tr>
+<tr><td>123</td><td>Adp4-1</td><td>In08, 5-8</td><td>室內機</td><td>2F廚房區</td></tr>
+<tr><td>124</td><td>Adp4-1</td><td>In09, 5-9</td><td>室內機</td><td>2F用餐區</td></tr>
+<tr><td>125</td><td>Adp4-1</td><td>In10, 5-10</td><td>室內機</td><td>2F用餐區</td></tr>
+<tr><td>126</td><td>Adp4-1</td><td>In11, 5-11</td><td>室內機</td><td>2F健身房</td></tr>
+<tr><td>127</td><td>Adp4-1</td><td>In12, 5-12</td><td>室內機</td><td>2F健身房</td></tr>
+<tr><td>128</td><td>Adp4-1</td><td>In13, 6-1</td><td>室內機</td><td>北醫斜坡門處</td></tr>
+<tr><td>129</td><td>Adp4-1</td><td>In14, 6-2</td><td>室內機</td><td>北醫隔間</td></tr>
+<tr><td>130</td><td>Adp4-1</td><td>In15, 6-3</td><td>室內機</td><td>北醫斜坡門後梯廳</td></tr>
+<tr><td>131</td><td>Adp4-1</td><td>In16, 6-4</td><td>室內機</td><td>候診區</td></tr>
+<tr><td>132</td><td>Adp4-1</td><td>In17, 6-5</td><td>室內機</td><td>北醫隔間</td></tr>
+<tr><td>133</td><td>Adp4-1</td><td>In18, 6-6</td><td>室內機</td><td>復健區</td></tr>
+<tr><td>134</td><td>Adp4-1</td><td>In19, 6-7</td><td>室內機</td><td>復健區</td></tr>
+<tr><td>135</td><td>Adp4-1</td><td>In20, 6-8</td><td>室內機</td><td>北醫隔間</td></tr>
+<tr><td>136</td><td>Adp4-1</td><td>In21, 6-9</td><td>室內機</td><td>北醫隔間</td></tr>
+<tr><td>137</td><td>Adp4-1</td><td>In22, 6-10</td><td>室內機</td><td>候診區</td></tr>
+<tr><td>138</td><td>Adp4-1</td><td>In23, 6-11</td><td>室內機</td><td>北醫隔間</td></tr>
+<tr><td>139</td><td>Adp4-1</td><td>In24, 6-12</td><td>室內機</td><td>公廁</td></tr>
+<tr><td>140</td><td>Adp4-1</td><td>In25, 6-13</td><td>室內機</td><td>北醫隔間</td></tr>
+<tr><td>141</td><td>Adp4-1</td><td>In26, 6-14</td><td>室內機</td><td>北醫隔間</td></tr>
+<tr><td>142</td><td>Adp4-1</td><td>In27, 6-15</td><td>室內機</td><td>藥局</td></tr>
+<tr><td>143</td><td>Adp4-1</td><td>In28, 6-16</td><td>室內機</td><td>候診區</td></tr>
+<tr><td>144</td><td>Adp4-1</td><td>In29, 6-17</td><td>室內機</td><td>候診區</td></tr>
+<tr><td>145</td><td>Adp4-1</td><td>In30, 31-47</td><td>全熱</td><td>廚房區</td></tr>
+<tr><td>146</td><td>Adp4-1</td><td>In31, 31-48</td><td>全熱</td><td>用餐區</td></tr>
+<tr><td>147</td><td>Adp4-1</td><td>In32, 31-49</td><td>全熱</td><td>健身房</td></tr>
+<tr><td>148</td><td>Adp4-1</td><td>In33, 31-55</td><td>全熱</td><td>北醫斜坡門處</td></tr>
+<tr><td>149</td><td>Adp4-1</td><td>In34, 31-56</td><td>全熱</td><td>復健區</td></tr>
+<tr><td>150</td><td>Adp4-1</td><td>In35, 31-57</td><td>全熱</td><td>北醫隔間</td></tr>
+<tr><td>151</td><td>Adp4-1</td><td>In36, 31-58</td><td>全熱</td><td>北醫隔間</td></tr>
+<tr><td>152</td><td>Adp4-1</td><td>In37, 31-59</td><td>全熱</td><td>北醫隔間</td></tr>
+<tr><td>153</td><td>Adp4-1</td><td>In38, 31-60</td><td>全熱</td><td>北醫隔間</td></tr>
+<tr><td>154</td><td>Adp4-1</td><td>In39, 31-61</td><td>全熱</td><td>北醫隔間</td></tr>
+<tr><td>155</td><td>Adp4-1</td><td>In40, 31-62</td><td>全熱</td><td>北醫隔間</td></tr>
+<tr><td>156</td><td>Adp4-1</td><td>In41, 31-63</td><td>全熱</td><td>北醫隔間</td></tr>
+<tr><td>157</td><td>Adp4-1</td><td>In42, 31-64</td><td>全熱</td><td>藥局</td></tr>
+</tbody>
+</table>
+</div>
+<div class="table-container" id="bTable">
+<table id="bTableData">
+<thead>
+<tr>
+<th>編號</th>
+<th>區域類別</th>
+<th>室內機編碼</th>
+<th>品項</th>
+<th>使用空間</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>Adp1-1</td><td>In01, 1-1</td><td>室內機</td><td>大廳櫃台</td></tr>
+<tr><td>2</td><td>Adp1-1</td><td>In02, 1-2</td><td>室內機</td><td>大廳</td></tr>
+<tr><td>3</td><td>Adp1-1</td><td>In03, 1-3</td><td>室內機</td><td>廚房</td></tr>
+<tr><td>4</td><td>Adp1-1</td><td>In04, 1-4</td><td>室內機</td><td>涮涮鍋</td></tr>
+<tr><td>5</td><td>Adp1-1</td><td>In05, 1-5</td><td>室內機</td><td>住戶進出門</td></tr>
+<tr><td>6</td><td>Adp1-1</td><td>In06, 1-6</td><td>室內機</td><td>中控室</td></tr>
+<tr><td>7</td><td>Adp1-1</td><td>In07, 1-7</td><td>室內機</td><td>涮涮鍋</td></tr>
+<tr><td>8</td><td>Adp1-1</td><td>In08, 1-8</td><td>室內機</td><td>大廳</td></tr>
+<tr><td>9</td><td>Adp1-1</td><td>In09, 2-1</td><td>室內機</td><td>一樓梯廳</td></tr>
+<tr><td>10</td><td>Adp1-1</td><td>In10, 2-2</td><td>室內機</td><td>廊道交誼區</td></tr>
+<tr><td>11</td><td>Adp1-1</td><td>In11, 2-3</td><td>室內機</td><td>住戶廊道</td></tr>
+<tr><td>12</td><td>Adp1-1</td><td>In12, 2-4</td><td>室內機</td><td>公設廊道</td></tr>
+<tr><td>13</td><td>Adp1-1</td><td>In13, 2-5</td><td>室內機</td><td>公設廁所</td></tr>
+<tr><td>14</td><td>Adp1-1</td><td>In14, 2-6</td><td>室內機</td><td>B2F洗衣房</td></tr>
+<tr><td>15</td><td>Adp1-1</td><td>In15, 2-7</td><td>室內機</td><td>B2F梯廳</td></tr>
+<tr><td>16</td><td>Adp1-1</td><td>In16, 2-8</td><td>室內機</td><td>B1F梯廳</td></tr>
+<tr><td>17</td><td>Adp1-1</td><td>In17, 2-9</td><td>室內機</td><td>B1F垃圾儲藏室</td></tr>
+<tr><td>18</td><td>Adp1-1</td><td>In18, 31-51</td><td>全熟</td><td>大廳</td></tr>
+<tr><td>19</td><td>Adp1-1</td><td>In19, 31-52</td><td>全熟</td><td>涮涮鍋</td></tr>
+<tr><td>20</td><td>Adp2-1</td><td>In01, 3-1</td><td>室內機</td><td>湯屋廊道</td></tr>
+<tr><td>21</td><td>Adp2-1</td><td>In02, 3-2</td><td>室內機</td><td>男湯</td></tr>
+<tr><td>22</td><td>Adp2-1</td><td>In03, 3-3</td><td>室內機</td><td>女湯</td></tr>
+<tr><td>23</td><td>Adp2-1</td><td>In04, 3-4</td><td>室內機</td><td>湯屋廁所</td></tr>
+<tr><td>24</td><td>Adp2-1</td><td>In05, 3-5</td><td>室內機</td><td>住戶廊道</td></tr>
+<tr><td>25</td><td>Adp2-1</td><td>In06, 31-50</td><td>全熱</td><td>湯屋廁所</td></tr>
+<tr><td>26</td><td>Adp2-2</td><td>In01, 4-1</td><td>室內機</td><td>2F廊道</td></tr>
+<tr><td>27</td><td>Adp2-2</td><td>In02, 4-2</td><td>室內機</td><td>2F電梯梯廳</td></tr>
+<tr><td>28</td><td>Adp2-2</td><td>In03, 4-3</td><td>室內機</td><td>2F廊道</td></tr>
+<tr><td>29</td><td>Adp2-2</td><td>In04, 4-4</td><td>室內機</td><td>2F交誼廳</td></tr>
+<tr><td>30</td><td>Adp2-2</td><td>In05, 4-5</td><td>室內機</td><td>2F廊道</td></tr>
+<tr><td>31</td><td>Adp2-2</td><td>In06, 5-1</td><td>室內機</td><td>3F廊道</td></tr>
+<tr><td>32</td><td>Adp2-2</td><td>In07, 5-2</td><td>室內機</td><td>3F廊道</td></tr>
+<tr><td>33</td><td>Adp2-2</td><td>In08, 5-3</td><td>室內機</td><td>3F交誼廳</td></tr>
+<tr><td>34</td><td>Adp2-2</td><td>In09, 5-4</td><td>室內機</td><td>3F廊道</td></tr>
+<tr><td>35</td><td>Adp2-2</td><td>In10, 5-5</td><td>室內機</td><td>3F電梯梯廳</td></tr>
+<tr><td>36</td><td>Adp2-2</td><td>In11, 6-1</td><td>室內機</td><td>4F廊道</td></tr>
+<tr><td>37</td><td>Adp2-2</td><td>In12, 6-2</td><td>室內機</td><td>4F廊道</td></tr>
+<tr><td>38</td><td>Adp2-2</td><td>In13, 6-3</td><td>室內機</td><td>4F廊道</td></tr>
+<tr><td>39</td><td>Adp2-2</td><td>In14, 6-4</td><td>室內機</td><td>4F交誼廳</td></tr>
+<tr><td>40</td><td>Adp2-2</td><td>In15, 6-5</td><td>室內機</td><td>4F電梯梯廳</td></tr>
+<tr><td>41</td><td>Adp2-2</td><td>In16, 7-1</td><td>室內機</td><td>5F廊道</td></tr>
+<tr><td>42</td><td>Adp2-2</td><td>In17, 7-2</td><td>室內機</td><td>5F廊道</td></tr>
+<tr><td>43</td><td>Adp2-2</td><td>In18, 7-3</td><td>室內機</td><td>5F廊道</td></tr>
+<tr><td>44</td><td>Adp2-2</td><td>In19, 7-4</td><td>室內機</td><td>5F交誼廳</td></tr>
+<tr><td>45</td><td>Adp2-2</td><td>In20, 7-5</td><td>室內機</td><td>5F電梯梯廳</td></tr>
+<tr><td>46</td><td>Adp2-2</td><td>In21, 8-1</td><td>室內機</td><td>6F廊道</td></tr>
+<tr><td>47</td><td>Adp2-2</td><td>In22, 8-2</td><td>室內機</td><td>6F交誼廳</td></tr>
+<tr><td>48</td><td>Adp2-2</td><td>In23, 8-3</td><td>室內機</td><td>6F廊道</td></tr>
+<tr><td>49</td><td>Adp2-2</td><td>In24, 8-4</td><td>室內機</td><td>6F廊道</td></tr>
+<tr><td>50</td><td>Adp2-2</td><td>In25, 8-5</td><td>室內機</td><td>6F電梯梯廳</td></tr>
+<tr><td>51</td><td>Adp2-2</td><td>In26, 9-1</td><td>室內機</td><td>7F廊道</td></tr>
+<tr><td>52</td><td>Adp2-2</td><td>In27, 9-2</td><td>室內機</td><td>7F電梯梯廳</td></tr>
+<tr><td>53</td><td>Adp2-2</td><td>In28, 9-3</td><td>室內機</td><td>7F交誼廳</td></tr>
+<tr><td>54</td><td>Adp2-2</td><td>In29, 9-4</td><td>室內機</td><td>7F廊道</td></tr>
+<tr><td>55</td><td>Adp2-2</td><td>In30, 9-5</td><td>室內機</td><td>7F廊道</td></tr>
+<tr><td>56</td><td>Adp2-2</td><td>In31, 31-53</td><td>全熱</td><td>2F廊道</td></tr>
+<tr><td>57</td><td>Adp2-2</td><td>In32, 31-54</td><td>全熱</td><td>2F廊道</td></tr>
+<tr><td>58</td><td>Adp2-2</td><td>In33, 31-55</td><td>全熱</td><td>3F廊道</td></tr>
+<tr><td>59</td><td>Adp2-2</td><td>In34, 31-56</td><td>全熱</td><td>3F廊道</td></tr>
+<tr><td>60</td><td>Adp2-2</td><td>In35, 31-57</td><td>全熱</td><td>4F廊道</td></tr>
+<tr><td>61</td><td>Adp2-2</td><td>In36, 31-58</td><td>全熱</td><td>4F廊道</td></tr>
+<tr><td>62</td><td>Adp2-2</td><td>In37, 31-59</td><td>全熱</td><td>5F廊道</td></tr>
+<tr><td>63</td><td>Adp2-2</td><td>In38, 31-60</td><td>全熱</td><td>5F廊道</td></tr>
+<tr><td>64</td><td>Adp2-2</td><td>In39, 31-61</td><td>全熱</td><td>6F廊道</td></tr>
+<tr><td>65</td><td>Adp2-2</td><td>In40, 31-62</td><td>全熱</td><td>6F廊道</td></tr>
+<tr><td>66</td><td>Adp2-2</td><td>In41, 31-63</td><td>全熱</td><td>7F廊道</td></tr>
+<tr><td>67</td><td>Adp2-2</td><td>In42, 31-64</td><td>全熱</td><td>7F廊道</td></tr>
+</tbody>
+</table>
+</div>
+<script>
+    function toggleTable(id) {
+      const tables = document.querySelectorAll(".table-container");
+      tables.forEach(table => {
+        table.style.display = table.id === id ? "block" : "none";
+      });
+    }
+
+
+
+
+    function filterTables() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      const tables = ["aTableData", "bTableData"];
+
+
+
+
+      tables.forEach(tableId => {
+        const rows = document.querySelectorAll("#" + tableId + " tbody tr");
+        rows.forEach(row => {
+          const rowText = row.innerText.toLowerCase();
+          row.classList.toggle("hidden", !rowText.includes(query));
+        });
+      });
+    }
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
