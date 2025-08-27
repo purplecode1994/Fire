@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>下拉選單高度展示</title>
+  <style>
+    body { font-family:"Microsoft JhengHei",sans-serif; background:#f5f5f5; padding:20px; }
+    h2 { margin-top:30px; }
+
+    .demo-box {
+      background:#fff; padding:20px; margin:20px auto; border-radius:10px;
+      box-shadow:0 3px 8px rgba(0,0,0,.15); max-width:400px;
+    }
+    label { display:block; margin-bottom:8px; font-weight:bold; }
+
+    select {
+      width:100%; padding:10px; font-size:16px;
+      border-radius:6px; border:1px solid #ccc;
+    }
+
+    /* 樣式 B：固定高度可捲動 */
+    .scrollable {
+      height:150px;       /* 固定高度 */
+      overflow-y:auto;    /* 超出時捲動 */
+    }
+
+    /* 樣式 C：模擬 dropdown，限制展開選項高度 */
+    .custom-dropdown {
+      position: relative;
+    }
+    .custom-dropdown select {
+      appearance: none;   /* 隱藏原生箭頭 */
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      padding-right: 30px;
+    }
+    .custom-dropdown::after {
+      content: "▼";
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color:#555;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>下拉選單高度展示</h1>
+
+  <div class="demo-box">
+    <h2>樣式 A：原生下拉（瀏覽器預設 ~10 筆）</h2>
+    <label>選單 A</label>
+    <select>
+      <option>管理部</option>
+      <option>財務中心</option>
+      <option>採購部</option>
+      <option>租賃事業部</option>
+      <option>營運部</option>
+      <option>清潔部</option>
+      <option>護理中心</option>
+      <option>護理中心-行政</option>
+      <option>護理中心-照服員</option>
+      <option>建築管理中心</option>
+      <option>售後服務中心</option>
+      <option>車輛管理部</option>
+      <option>環境維護中心</option>
+      <option>社區咖啡</option>
+      <option>自如</option>
+    </select>
+    <p style="color:gray">👉 這是「你現在用的模式」，會展開到螢幕底。</p>
+  </div>
+
+  <div class="demo-box">
+    <h2>樣式 B：固定高度清單 (size)</h2>
+    <label>選單 B</label>
+    <select size="6">
+      <option>管理部</option>
+      <option>財務中心</option>
+      <option>採購部</option>
+      <option>租賃事業部</option>
+      <option>營運部</option>
+      <option>清潔部</option>
+      <option>護理中心</option>
+      <option>護理中心-行政</option>
+      <option>護理中心-照服員</option>
+      <option>建築管理中心</option>
+      <option>售後服務中心</option>
+      <option>車輛管理部</option>
+      <option>環境維護中心</option>
+      <option>社區咖啡</option>
+      <option>自如</option>
+    </select>
+    <p style="color:gray">👉 不再是下拉，而是「固定 6 行可捲動清單」。</p>
+  </div>
+
+  <div class="demo-box custom-dropdown">
+    <h2>樣式 C：自訂外觀 (仍是下拉)</h2>
+    <label>選單 C</label>
+    <select>
+      <option>管理部</option>
+      <option>財務中心</option>
+      <option>採購部</option>
+      <option>租賃事業部</option>
+      <option>營運部</option>
+      <option>清潔部</option>
+      <option>護理中心</option>
+      <option>護理中心-行政</option>
+      <option>護理中心-照服員</option>
+      <option>建築管理中心</option>
+      <option>售後服務中心</option>
+      <option>車輛管理部</option>
+      <option>環境維護中心</option>
+      <option>社區咖啡</option>
+      <option>自如</option>
+    </select>
+    <p style="color:gray">👉 下拉還是系統控制，但外觀更漂亮（加了自訂箭頭）。</p>
+  </div>
+
+</body>
+</html>

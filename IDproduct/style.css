@@ -1,0 +1,121 @@
+/* === 全域設定 === */
+body {
+  font-family: "Microsoft JhengHei", sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: linear-gradient(180deg, #f0f2f5, #e9ecef);
+}
+
+/* 標題 */
+h1, h2, h3 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* 白色卡片容器 */
+.box, .form-box, .confirm-box, .result-box {
+  background: #fff;
+  padding: 25px;
+  margin: auto;
+  margin-top: 30px;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,.2);
+  max-width: 480px;
+}
+
+/* 表單標籤 */
+label {
+  display: block;
+  margin-top: 12px;
+  font-weight: bold;
+}
+
+/* 必填星號 */
+label span.required {
+  color: red;
+  margin-left: 4px;
+}
+
+/* 輸入框 */
+input, textarea, select {
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-size: 15px;
+  background: #fff;
+}
+
+/* textarea 特別處理 */
+textarea {
+  resize: none;     /* 禁止拉動 */
+  height: 100px;    /* 固定高度 */
+}
+
+/* 下拉選單：限制展開高度避免太長 */
+select {
+  max-height: 220px;     /* 展開最大高度 */
+  overflow-y: auto;      /* 出現滾動條 */
+}
+
+/* 按鈕樣式 */
+button {
+  margin-top: 15px;
+  padding: 14px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform .2s, background .2s;
+}
+
+/* 按鈕配色 */
+.btn-query { background: #007bff; color: #fff; }
+.btn-query:hover { background: #0056b3; transform: scale(1.03); }
+
+.btn-apply { background: #28a745; color: #fff; }
+.btn-apply:hover { background: #1e7e34; transform: scale(1.03); }
+
+.btn-next { background: #28a745; color: #fff; }
+.btn-next:hover { background: #1e7e34; transform: scale(1.03); }
+
+.btn-back { background: #6c757d; color: #fff; }
+.btn-back:hover { background: #565e64; transform: scale(1.03); }
+
+.btn-submit { background: #007bff; color: #fff; }
+.btn-submit:hover { background: #0056b3; transform: scale(1.03); }
+
+/* 返回連結 */
+.back {
+  margin-top: 15px;
+  text-align: center;
+}
+.back a {
+  color: #007bff;
+  text-decoration: none;
+}
+.back a:hover {
+  text-decoration: underline;
+}
+
+/* 查詢結果顏色 */
+#queryResult {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 16px;
+  font-weight: bold;
+  opacity: 0;
+  transition: opacity .3s ease-in;
+}
+#queryResult.show { opacity: 1; }
+
+.status-pending { color: orange; }
+.status-approved { color: green; }
+.status-error { color: red; }
+
+/* 隱藏元素 */
+.hidden { display: none; }

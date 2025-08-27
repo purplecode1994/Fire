@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>申請料號</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    textarea {
+      resize: none;          /* 禁止拉伸 */
+      height: 100px;         /* 比一般輸入框高 */
+    }
+    label span.required {
+      color: red;
+      margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-box" id="applyFormBox">
+    <h2>申請料號</h2>
+    <form id="applyForm">
+      <!-- 申請單位下拉 -->
+      <label>申請單位 <span class="required">*</span>
+        <select name="unit" required>
+          <option value="">請選擇部門</option>
+          <option>管理部</option>
+          <option>財務中心</option>
+          <option>採購部</option>
+          <option>租賃事業部</option>
+          <option>營運部</option>
+          <option>清潔部</option>
+          <option>ESG+品牌服務中心</option>
+          <option>公共關係室</option>
+          <option>行政部-大廳</option>
+          <option>行政部-溫泉</option>
+          <option>行政部-泳池</option>
+          <option>護理中心</option>
+          <option>護理中心-行政</option>
+          <option>護理中心-照服員</option>
+          <option>貴賓室(支援温泉)</option>
+          <option>貴賓室(支援泳池)</option>
+          <option>社區廚房</option>
+          <option>建築管理中心</option>
+          <option>售後服務中心</option>
+          <option>售後服務(夜)</option>
+          <option>車輛管理部</option>
+          <option>環境維護中心</option>
+          <option>社區咖啡</option>
+          <option>自如清庵</option>
+        </select>
+      </label>
+
+      <!-- 必填欄位都有 * -->
+      <label>申請日期 <span class="required">*</span>
+        <input type="date" name="date" required>
+      </label>
+
+      <label>申請人 <span class="required">*</span>
+        <input type="text" name="applicant" required>
+      </label>
+
+      <!-- 品牌可留白，不加 required -->
+      <label>品牌
+        <input type="text" name="brand">
+      </label>
+
+      <label>品項內容 <span class="required">*</span>
+        <textarea name="item" required></textarea>
+      </label>
+
+      <label>規格 <span class="required">*</span>
+        <input type="text" name="spec" required>
+      </label>
+
+      <label>單位 <span class="required">*</span>
+        <input type="text" name="unitType" required>
+      </label>
+
+      <button type="submit" class="btn-next">下一步</button>
+    </form>
+    <div class="back"><a href="index.html">← 返回入口</a></div>
+  </div>
+
+  <div id="confirmBox" class="confirm-box hidden">
+    <h3>確認申請內容</h3>
+    <div id="confirmData"></div>
+    <button class="btn-back" onclick="editForm()">返回修改</button>
+    <button class="btn-submit" onclick="finalSubmit()">確認送出</button>
+  </div>
+
+  <div id="resultBox" class="result-box hidden">
+    <h3>已送出 ✅</h3>
+    <p>您的序列號：<span id="serialShow"></span></p>
+    <div class="back"><a href="index.html">← 返回入口</a></div>
+  </div>
+
+<script>
+  // 自動填入今天日期
+  document.querySelector("input[name='date']").value = new Date().toISOString().slice(0,10);
+
+  let formDataCache = {};
+
+  document.getElementById("applyForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    const fd = new FormData(this);
+    formDataCache = {};
+    fd.forEach((v,k)=> formDataCache[k]=v);
+
+    document.getElementById("applyFormBox").classList.add("hidden");
+    document.getElementById("confirmBox").classList.remove("hidden");
+
+    let html = "";
+    for(let k in formDataCache){
+      html += `<p><b>${k}：</b> ${formDataCache[k]}</p>`;
+    }
+    document.getElementById("confirmData").innerHTML = html;
+  });
+
+  function editForm(){
+    document.getElementById("confirmBox").classList.add("hidden");
+    document.getElementById("applyFormBox").classList.remove("hidden");
+  }
+
+  function finalSubmit(){
+    fetch("YOUR_SCRIPT_URL", {
+      method:"POST",
+      body: JSON.stringify(formDataCache),
+      headers:{ "Content-Type":"application/json" }
+    })
+    .then(res=>res.json())
+    .then(r=>{
+      document.getElementById("confirmBox").classList.add("hidden");
+      document.getElementById("resultBox").classList.remove("hidden");
+      document.getElementById("serialShow").innerText = r.serial;
+    });
+  }
+</script>
+</body>
+</html>
