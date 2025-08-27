@@ -3,56 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>序號查詢</title>
+  <title>進度查詢</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    #queryResult {
-      margin-top: 20px;
-      font-size: 18px;
-      font-weight: bold;
-      text-align: center;
-      opacity: 0;
-      transition: opacity .3s ease-in;
-    }
-    #queryResult.show { opacity: 1; }
-    .status-pending { color: orange; }
-    .status-approved { color: green; }
-    .status-error { color: red; }
-  </style>
 </head>
 <body>
   <div class="box">
-    <h2>序號查詢</h2>
-    <input type="text" id="querySerial" placeholder="輸入序列號 (例如 A250827213009)">
-    <button class="btn-query" onclick="queryProgress()">查詢進度</button>
+    <h2>序列號進度查詢</h2>
+    <label>輸入序列號
+      <input type="text" id="serialInput" placeholder="例如：A250827213045">
+    </label>
+    <button class="btn-query" onclick="checkSerial()">查詢進度</button>
     <div id="queryResult"></div>
     <div class="back"><a href="index.html">← 返回入口</a></div>
   </div>
 
 <script>
-  function queryProgress(){
-    const serial = document.getElementById("querySerial").value.trim();
-    if(!serial) return;
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz4_RUp_EPCuHN39ujVCNGNjE2BCpbqGUWsqemGWojHQEJ9DL_X_xon7sQIpZwA9bTD/exec";
 
-fetch("https://script.google.com/macros/s/AKfycbxGgOP4neFYdQy67Me_EJba2YMnGsiABOKRDp-bHx7yGuV5-WwoqRvMijRRllFJN4dmhw/exec?serial=" + serial)
-    .then(res=>res.json())
-    .then(r=>{
-      const resultBox = document.getElementById("queryResult");
-      resultBox.classList.remove("show"); // reset
-      setTimeout(()=>{
-        if(!r.status){
-          resultBox.innerHTML = "<span class='status-error'>查無資料</span>";
-        } else if(r.status === "已核准"){
-          resultBox.innerHTML = "<span class='status-approved'>進度："+r.status+"</span>";
+  function checkSerial(){
+    const serial = document.getElementById("serialInput").value.trim();
+    const resultBox = document.getElementById("queryResult");
+    if(!serial){
+      resultBox.textContent = "請輸入序列號";
+      resultBox.className = "status-error show";
+      return;
+    }
+
+    fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
+      .then(res => res.json())
+      .then(data => {
+        if(data.status === "申請中"){
+          resultBox.textContent = "⏳ 申請中";
+          resultBox.className = "status-pending show";
+        } else if(data.status === "已核准"){
+          resultBox.textContent = "✅ 已核准";
+          resultBox.className = "status-approved show";
         } else {
-          resultBox.innerHTML = "<span class='status-pending'>進度："+r.status+"</span>";
+          resultBox.textContent = "❌ 查無資料";
+          resultBox.className = "status-error show";
         }
-        resultBox.classList.add("show");
-      },100);
-    })
-    .catch(err=>{
-      document.getElementById("queryResult").innerHTML = "<span class='status-error'>系統錯誤，請稍後再試</span>";
-    });
+      })
+      .catch(err => {
+        resultBox.textContent = "錯誤：" + err;
+        resultBox.className = "status-error show";
+      });
   }
 </script>
 </body>
