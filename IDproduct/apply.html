@@ -32,10 +32,7 @@
   <h2>料號申請單</h2>
 
   <!-- 表單 -->
-  <form id="applyForm" class="form-box"
-    action="https://script.google.com/macros/s/AKfycbz4_RUp_EPCuHN39ujVCNGNjE2BCpbqGUWsqemGWojHQEJ9DL_X_xon7sQIpZwA9bTD/exec"
-    method="POST" target="hidden_iframe" onsubmit="return showConfirm(event)">
-    
+  <form id="applyForm" class="form-box">
     <label>申請單位<span class="required">*</span>
       <select name="申請單位" required>
         <option value="">請選擇部門</option>
@@ -90,10 +87,9 @@
     <a href="index.html" class="btn-link">← 返回入口</a>
   </div>
 
-  <!-- 隱藏 iframe 接收回應 -->
-  <iframe name="hidden_iframe" style="display:none"></iframe>
-
 <script>
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz4_RUp_EPCuHN39ujVCNGNjE2BCpbqGUWsqemGWojHQEJ9DL_X_xon7sQIpZwA9bTD/exec";
+
   // 自動填今天日期
   document.querySelector("input[name='申請日期']").value = new Date().toISOString().slice(0,10);
 
@@ -101,15 +97,15 @@
   let formDataCache = {};
   let lastSerial = "";
 
-  // 中文標籤對照
+  // 欄位名稱對照（確保不會缺中文表頭）
   const fieldMap = {
-    "unit":"申請單位",
-    "date":"申請日期",
-    "applicant":"申請人",
-    "brand":"品牌",
-    "item":"品項內容",
-    "spec":"規格",
-    "unitType":"單位"
+    "申請單位":"申請單位",
+    "申請日期":"申請日期",
+    "申請人":"申請人",
+    "品牌":"品牌",
+    "品項內容":"品項內容",
+    "規格":"規格",
+    "單位":"單位"
   };
 
   function showConfirm(event){
@@ -120,8 +116,8 @@
 
     let html = "";
     for(let k in formDataCache){
-      const label = fieldMap[k] || k; // 沒對應就顯示原本的 key
-      html += `<p><b>${fieldMap[k]}：</b> ${formDataCache[k]}</p>`;
+      const label = fieldMap[k] || k; // 沒對應就顯示原始 key
+      html += `<p><b>${label}：</b> ${formDataCache[k]}</p>`;
     }
     document.getElementById("confirmData").innerHTML = html;
 
@@ -130,30 +126,37 @@
     return false;
   }
 
+  formElement.addEventListener("submit", showConfirm);
+
   function editForm(){
     document.getElementById("confirmBox").classList.add("hidden");
     formElement.classList.remove("hidden");
   }
 
-  // 送出後 → 顯示結果頁
+  // 送出後 → fetch 到 GAS
   function finalSubmit(){
-    document.getElementById("confirmBox").classList.add("hidden");
-    document.getElementById("resultBox").classList.remove("hidden");
-    formElement.submit();
-  }
+    const fd = new FormData();
+    for(let k in formDataCache){ fd.append(k, formDataCache[k]); }
 
-  // iframe 回應攔截
-  window.addEventListener("message", function(e){
-    try {
-      const data = JSON.parse(e.data);
+    fetch(GAS_URL, {
+      method:"POST",
+      body: fd
+    })
+    .then(res=>res.json())
+    .then(data=>{
+      document.getElementById("confirmBox").classList.add("hidden");
+      document.getElementById("resultBox").classList.remove("hidden");
       if(data.serial){
         lastSerial = data.serial;
         const box = document.getElementById("serialBox");
         box.textContent = data.serial;
         box.style.display = "block";
       }
-    } catch(err){}
-  });
+    })
+    .catch(err=>{
+      alert("送出時發生錯誤：" + err);
+    });
+  }
 
   // 前往查詢 + 自動複製序列號
   function goToQuery(){
@@ -168,5 +171,3 @@
 </script>
 </body>
 </html>
-
-
