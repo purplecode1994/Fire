@@ -3,144 +3,129 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>申請料號</title>
+  <title>料號申請單</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    textarea {
-      resize: none;          /* 禁止拉伸 */
-      height: 100px;         /* 比一般輸入框高 */
-    }
-    label span.required {
-      color: red;
-      margin-left: 4px;
+    .hidden { display: none; }
+    .confirm-box, .result-box {
+      background:#fff; padding:20px; margin:20px auto; border-radius:8px; 
+      box-shadow:0 2px 6px rgba(0,0,0,.2); max-width:480px;
     }
   </style>
 </head>
 <body>
-  <div class="form-box" id="applyFormBox">
-    <h2>申請料號</h2>
-    <form id="applyForm">
-      <!-- 申請單位下拉 -->
-      <label>申請單位 <span class="required">*</span>
-        <select name="unit" required>
-          <option value="">請選擇部門</option>
-          <option>管理部</option>
-          <option>財務中心</option>
-          <option>採購部</option>
-          <option>租賃事業部</option>
-          <option>營運部</option>
-          <option>清潔部</option>
-          <option>ESG+品牌服務中心</option>
-          <option>公共關係室</option>
-          <option>行政部-大廳</option>
-          <option>行政部-溫泉</option>
-          <option>行政部-泳池</option>
-          <option>護理中心</option>
-          <option>護理中心-行政</option>
-          <option>護理中心-照服員</option>
-          <option>貴賓室(支援温泉)</option>
-          <option>貴賓室(支援泳池)</option>
-          <option>社區廚房</option>
-          <option>建築管理中心</option>
-          <option>售後服務中心</option>
-          <option>售後服務(夜)</option>
-          <option>車輛管理部</option>
-          <option>環境維護中心</option>
-          <option>社區咖啡</option>
-          <option>自如清庵</option>
-        </select>
-      </label>
+  <h2>料號申請單</h2>
 
-      <!-- 必填欄位都有 * -->
-      <label>申請日期 <span class="required">*</span>
-        <input type="date" name="date" required>
-      </label>
+  <!-- 表單 -->
+  <form id="applyForm" class="form-box" 
+    action="https://script.google.com/macros/s/AKfycbxGgOP4neFYdQy67Me_EJba2YMnGsiABOKRDp-bHx7yGuV5-WwoqRvMijRRllFJN4dmhw/exec" 
+    method="POST" target="hidden_iframe" onsubmit="return showConfirm(event)">
+    
+    <label>申請單位<span class="required">*</span>
+      <select name="unit" required>
+        <option value="">請選擇部門</option>
+        <option>管理部</option>
+        <option>財務中心</option>
+        <option>採購部</option>
+        <option>租賃事業部</option>
+        <option>營運部</option>
+        <option>清潔部</option>
+        <option>ESG+品牌服務中心</option>
+        <option>公共關係室</option>
+        <option>行政部-大廳</option>
+        <option>行政部-溫泉</option>
+        <option>行政部-泳池</option>
+        <option>護理中心</option>
+        <option>護理中心-行政</option>
+        <option>護理中心-照服員</option>
+        <option>貴賓室(支援温泉)</option>
+        <option>貴賓室(支援泳池)</option>
+        <option>社區廚房</option>
+        <option>建築管理中心</option>
+        <option>售後服務中心</option>
+        <option>售後服務(夜)</option>
+        <option>車輛管理部</option>
+        <option>環境維護中心</option>
+        <option>社區咖啡</option>
+        <option>自如</option>
+      </select>
+    </label>
 
-      <label>申請人 <span class="required">*</span>
-        <input type="text" name="applicant" required>
-      </label>
+    <label>申請日期<span class="required">*</span>
+      <input type="date" name="date" required>
+    </label>
+    <label>申請人<span class="required">*</span>
+      <input type="text" name="applicant" required>
+    </label>
+    <label>品牌
+      <input type="text" name="brand">
+    </label>
+    <label>品項內容<span class="required">*</span>
+      <textarea name="item" required></textarea>
+    </label>
+    <label>規格<span class="required">*</span>
+      <input type="text" name="spec" required>
+    </label>
+    <label>單位<span class="required">*</span>
+      <input type="text" name="unitType" required>
+    </label>
+    <button type="submit">下一步</button>
+  </form>
 
-      <!-- 品牌可留白，不加 required -->
-      <label>品牌
-        <input type="text" name="brand">
-      </label>
-
-      <label>品項內容 <span class="required">*</span>
-        <textarea name="item" required></textarea>
-      </label>
-
-      <label>規格 <span class="required">*</span>
-        <input type="text" name="spec" required>
-      </label>
-
-      <label>單位 <span class="required">*</span>
-        <input type="text" name="unitType" required>
-      </label>
-
-      <button type="submit" class="btn-next">下一步</button>
-    </form>
-    <div class="back"><a href="index.html">← 返回入口</a></div>
-  </div>
-
+  <!-- 確認頁 -->
   <div id="confirmBox" class="confirm-box hidden">
     <h3>確認申請內容</h3>
     <div id="confirmData"></div>
-    <button class="btn-back" onclick="editForm()">返回修改</button>
-    <button class="btn-submit" onclick="finalSubmit()">確認送出</button>
+    <button onclick="editForm()">返回修改</button>
+    <button onclick="finalSubmit()">確認送出</button>
   </div>
 
+  <!-- 結果頁 -->
   <div id="resultBox" class="result-box hidden">
     <h3>已送出 ✅</h3>
-    <p>您的序列號：<span id="serialShow"></span></p>
+    <p>您的申請已提交，請記錄序列號以查詢進度。</p>
     <div class="back"><a href="index.html">← 返回入口</a></div>
   </div>
 
+  <iframe name="hidden_iframe" style="display:none"></iframe>
+
 <script>
-  // 自動填入今天日期
+  // 自動填今天日期
   document.querySelector("input[name='date']").value = new Date().toISOString().slice(0,10);
 
+  let formElement = document.getElementById("applyForm");
   let formDataCache = {};
 
-  document.getElementById("applyForm").addEventListener("submit", function(e){
-    e.preventDefault();
-    const fd = new FormData(this);
+  // 第一次送出 → 攔截，顯示確認頁
+  function showConfirm(event){
+    event.preventDefault();
     formDataCache = {};
+    const fd = new FormData(formElement);
     fd.forEach((v,k)=> formDataCache[k]=v);
-
-    document.getElementById("applyFormBox").classList.add("hidden");
-    document.getElementById("confirmBox").classList.remove("hidden");
 
     let html = "";
     for(let k in formDataCache){
       html += `<p><b>${k}：</b> ${formDataCache[k]}</p>`;
     }
     document.getElementById("confirmData").innerHTML = html;
-  });
 
-  function editForm(){
-    document.getElementById("confirmBox").classList.add("hidden");
-    document.getElementById("applyFormBox").classList.remove("hidden");
+    formElement.classList.add("hidden");
+    document.getElementById("confirmBox").classList.remove("hidden");
+    return false;
   }
 
+  // 返回修改
+  function editForm(){
+    document.getElementById("confirmBox").classList.add("hidden");
+    formElement.classList.remove("hidden");
+  }
+
+  // 確認送出 → 真正送表單
   function finalSubmit(){
-  fetch("https://script.google.com/macros/s/AKfycbxGgOP4neFYdQy67Me_EJba2YMnGsiABOKRDp-bHx7yGuV5-WwoqRvMijRRllFJN4dmhw/exec", {
-    method:"POST",
-    body: JSON.stringify(formDataCache),
-    headers:{ "Content-Type":"application/json" }
-  })
-  .then(res=>res.json())
-  .then(r=>{
     document.getElementById("confirmBox").classList.add("hidden");
     document.getElementById("resultBox").classList.remove("hidden");
-    document.getElementById("serialShow").innerText = r.serial;
-  })
-  .catch(err=>{
-    alert("送出失敗，請稍後再試");
-    console.error(err);
-  });
-}
-
+    formElement.submit(); // 用表單方式送出，不會被 CORS 擋
+  }
 </script>
 </body>
 </html>
-
