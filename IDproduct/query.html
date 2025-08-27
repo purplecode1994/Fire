@@ -34,7 +34,7 @@
     const serial = document.getElementById("querySerial").value.trim();
     if(!serial) return;
 
-    fetch("https://script.google.com/macros/s/AKfycbxGgOP4neFYdQy67Me_EJba2YMnGsiABOKRDp-bHx7yGuV5-WwoqRvMijRRllFJN4dmhw/exec"+serial)
+fetch("https://script.google.com/macros/s/AKfycbxGgOP4neFYdQy67Me_EJba2YMnGsiABOKRDp-bHx7yGuV5-WwoqRvMijRRllFJN4dmhw/exec?serial=" + serial)
     .then(res=>res.json())
     .then(r=>{
       const resultBox = document.getElementById("queryResult");
