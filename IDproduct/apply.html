@@ -101,6 +101,17 @@
   let formDataCache = {};
   let lastSerial = "";
 
+  // 中文標籤對照
+  const fieldMap = {
+    "申請單位":"申請單位",
+    "申請日期":"申請日期",
+    "申請人":"申請人",
+    "品牌":"品牌",
+    "品項內容":"品項內容",
+    "規格":"規格",
+    "單位":"單位"
+  };
+
   function showConfirm(event){
     event.preventDefault();
     formDataCache = {};
@@ -109,7 +120,7 @@
 
     let html = "";
     for(let k in formDataCache){
-      html += `<p><b>${k}：</b> ${formDataCache[k]}</p>`;
+      html += `<p><b>${fieldMap[k]}：</b> ${formDataCache[k]}</p>`;
     }
     document.getElementById("confirmData").innerHTML = html;
 
