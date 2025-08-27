@@ -15,8 +15,17 @@
       border-radius: 6px;
       font-weight: bold;
       color: #0056b3;
+      font-size: 18px;
       display: none;
+      text-align: center;
     }
+    .btn-link {
+      display:inline-block;
+      margin-top:10px;
+      color:#007bff;
+      text-decoration:none;
+    }
+    .btn-link:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
@@ -28,7 +37,7 @@
     method="POST" target="hidden_iframe" onsubmit="return showConfirm(event)">
     
     <label>申請單位<span class="required">*</span>
-      <select name="unit" required>
+      <select name="申請單位" required>
         <option value="">請選擇部門</option>
         <option>管理部</option><option>財務中心</option><option>採購部</option>
         <option>租賃事業部</option><option>營運部</option><option>清潔部</option>
@@ -43,22 +52,22 @@
     </label>
 
     <label>申請日期<span class="required">*</span>
-      <input type="date" name="date" required>
+      <input type="date" name="申請日期" required>
     </label>
     <label>申請人<span class="required">*</span>
-      <input type="text" name="applicant" required>
+      <input type="text" name="申請人" required>
     </label>
     <label>品牌
-      <input type="text" name="brand">
+      <input type="text" name="品牌">
     </label>
     <label>品項內容<span class="required">*</span>
-      <textarea name="item" required></textarea>
+      <textarea name="品項內容" required></textarea>
     </label>
     <label>規格<span class="required">*</span>
-      <input type="text" name="spec" required>
+      <input type="text" name="規格" required>
     </label>
     <label>單位<span class="required">*</span>
-      <input type="text" name="unitType" required>
+      <input type="text" name="單位" required>
     </label>
 
     <button type="submit" class="btn-next">送出申請</button>
@@ -77,8 +86,8 @@
     <h3>已送出 ✅</h3>
     <p>您的申請已提交，序列號如下：</p>
     <div id="serialBox" class="serial-box"></div>
-    <div class="back"><a href="query.html">→ 前往查詢進度</a></div>
-    <div class="back"><a href="index.html">← 返回入口</a></div>
+    <a href="#" class="btn-link" onclick="goToQuery()">→ 前往查詢進度（會自動複製序列號）</a><br>
+    <a href="index.html" class="btn-link">← 返回入口</a>
   </div>
 
   <!-- 隱藏 iframe 接收回應 -->
@@ -86,10 +95,11 @@
 
 <script>
   // 自動填今天日期
-  document.querySelector("input[name='date']").value = new Date().toISOString().slice(0,10);
+  document.querySelector("input[name='申請日期']").value = new Date().toISOString().slice(0,10);
 
   let formElement = document.getElementById("applyForm");
   let formDataCache = {};
+  let lastSerial = "";
 
   function showConfirm(event){
     event.preventDefault();
@@ -125,11 +135,24 @@
     try {
       const data = JSON.parse(e.data);
       if(data.serial){
-        document.getElementById("serialBox").textContent = data.serial;
-        document.getElementById("serialBox").style.display = "block";
+        lastSerial = data.serial;
+        const box = document.getElementById("serialBox");
+        box.textContent = data.serial;
+        box.style.display = "block";
       }
     } catch(err){}
   });
+
+  // 前往查詢 + 自動複製序列號
+  function goToQuery(){
+    if(lastSerial){
+      navigator.clipboard.writeText(lastSerial).then(()=>{
+        window.location.href = "query.html";
+      });
+    } else {
+      window.location.href = "query.html";
+    }
+  }
 </script>
 </body>
 </html>
