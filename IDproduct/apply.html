@@ -5,22 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>料號申請單</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    .hidden { display: none; }
-    .confirm-box, .result-box {
-      background:#fff; padding:20px; margin:20px auto; border-radius:8px; 
-      box-shadow:0 2px 6px rgba(0,0,0,.2); max-width:480px;
-    }
-  </style>
 </head>
 <body>
   <h2>料號申請單</h2>
 
   <!-- 表單 -->
-  <form id="applyForm" class="form-box" 
-    action="https://script.google.com/macros/s/AKfycbxGgOP4neFYdQy67Me_EJba2YMnGsiABOKRDp-bHx7yGuV5-WwoqRvMijRRllFJN4dmhw/exec" 
+  <form id="applyForm" class="form-box"
+    action="https://script.google.com/macros/s/AKfycbz4_RUp_EPCuHN39ujVCNGNjE2BCpbqGUWsqemGWojHQEJ9DL_X_xon7sQIpZwA9bTD/exec"
     method="POST" target="hidden_iframe" onsubmit="return showConfirm(event)">
-    
+
     <label>申請單位<span class="required">*</span>
       <select name="unit" required>
         <option value="">請選擇部門</option>
@@ -69,15 +62,15 @@
     <label>單位<span class="required">*</span>
       <input type="text" name="unitType" required>
     </label>
-    <button type="submit">下一步</button>
+    <button type="submit" class="btn-next">下一步</button>
   </form>
 
   <!-- 確認頁 -->
   <div id="confirmBox" class="confirm-box hidden">
     <h3>確認申請內容</h3>
     <div id="confirmData"></div>
-    <button onclick="editForm()">返回修改</button>
-    <button onclick="finalSubmit()">確認送出</button>
+    <button class="btn-back" onclick="editForm()">返回修改</button>
+    <button class="btn-submit" onclick="finalSubmit()">確認送出</button>
   </div>
 
   <!-- 結果頁 -->
@@ -96,7 +89,6 @@
   let formElement = document.getElementById("applyForm");
   let formDataCache = {};
 
-  // 第一次送出 → 攔截，顯示確認頁
   function showConfirm(event){
     event.preventDefault();
     formDataCache = {};
@@ -114,17 +106,15 @@
     return false;
   }
 
-  // 返回修改
   function editForm(){
     document.getElementById("confirmBox").classList.add("hidden");
     formElement.classList.remove("hidden");
   }
 
-  // 確認送出 → 真正送表單
   function finalSubmit(){
     document.getElementById("confirmBox").classList.add("hidden");
     document.getElementById("resultBox").classList.remove("hidden");
-    formElement.submit(); // 用表單方式送出，不會被 CORS 擋
+    formElement.submit(); // 用表單提交，不會被 CORS 擋
   }
 </script>
 </body>
