@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GAS doGet 查詢測試</title>
+  <style>
+    body { font-family: sans-serif; background:#f5f5f5; padding:20px; }
+    .box { background:#fff; padding:20px; border-radius:8px; max-width:400px; margin:auto; box-shadow:0 2px 6px rgba(0,0,0,.2); }
+    label { display:block; margin-top:10px; font-weight:bold; }
+    input { width:100%; padding:8px; margin-top:5px; }
+    button { margin-top:15px; padding:10px; width:100%; border:none; border-radius:5px; background:#007bff; color:#fff; font-size:16px; }
+    button:hover { background:#0056b3; cursor:pointer; }
+    pre { background:#eee; padding:10px; margin-top:15px; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>doGet 查詢測試</h2>
+    <label>輸入序列號 <input type="text" id="serialInput" placeholder="例如：A250827213045"></label>
+    <button onclick="checkSerial()">查詢進度</button>
+    <pre id="result">結果會顯示在這裡</pre>
+  </div>
+
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbz4_RUp_EPCuHN39ujVCNGNjE2BCpbqGUWsqemGWojHQEJ9DL_X_xon7sQIpZwA9bTD/exec";
+
+    function checkSerial(){
+      const serial = document.getElementById("serialInput").value.trim();
+      if(!serial){
+        document.getElementById("result").textContent = "請輸入序列號";
+        return;
+      }
+
+      fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(err => {
+          document.getElementById("result").textContent = "錯誤：" + err;
+        });
+    }
+  </script>
+</body>
+</html>
