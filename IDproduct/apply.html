@@ -120,6 +120,7 @@
 
     let html = "";
     for(let k in formDataCache){
+      const label = fieldMap[k] || k; // 沒對應就顯示原本的 key
       html += `<p><b>${fieldMap[k]}：</b> ${formDataCache[k]}</p>`;
     }
     document.getElementById("confirmData").innerHTML = html;
@@ -167,4 +168,5 @@
 </script>
 </body>
 </html>
+
 
