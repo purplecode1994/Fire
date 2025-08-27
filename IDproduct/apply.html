@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>料號申請單</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .hidden { display:none; }
+    .serial-box {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f0f9ff;
+      border: 1px solid #007bff;
+      border-radius: 6px;
+      font-weight: bold;
+      color: #0056b3;
+      display: none;
+    }
+  </style>
 </head>
 <body>
   <h2>料號申請單</h2>
@@ -13,34 +26,19 @@
   <form id="applyForm" class="form-box"
     action="https://script.google.com/macros/s/AKfycbz4_RUp_EPCuHN39ujVCNGNjE2BCpbqGUWsqemGWojHQEJ9DL_X_xon7sQIpZwA9bTD/exec"
     method="POST" target="hidden_iframe" onsubmit="return showConfirm(event)">
-
+    
     <label>申請單位<span class="required">*</span>
       <select name="unit" required>
         <option value="">請選擇部門</option>
-        <option>管理部</option>
-        <option>財務中心</option>
-        <option>採購部</option>
-        <option>租賃事業部</option>
-        <option>營運部</option>
-        <option>清潔部</option>
-        <option>ESG+品牌服務中心</option>
-        <option>公共關係室</option>
-        <option>行政部-大廳</option>
-        <option>行政部-溫泉</option>
-        <option>行政部-泳池</option>
-        <option>護理中心</option>
-        <option>護理中心-行政</option>
-        <option>護理中心-照服員</option>
-        <option>貴賓室(支援温泉)</option>
-        <option>貴賓室(支援泳池)</option>
-        <option>社區廚房</option>
-        <option>建築管理中心</option>
-        <option>售後服務中心</option>
-        <option>售後服務(夜)</option>
-        <option>車輛管理部</option>
-        <option>環境維護中心</option>
-        <option>社區咖啡</option>
-        <option>自如</option>
+        <option>管理部</option><option>財務中心</option><option>採購部</option>
+        <option>租賃事業部</option><option>營運部</option><option>清潔部</option>
+        <option>ESG+品牌服務中心</option><option>公共關係室</option>
+        <option>行政部-大廳</option><option>行政部-溫泉</option><option>行政部-泳池</option>
+        <option>護理中心</option><option>護理中心-行政</option><option>護理中心-照服員</option>
+        <option>貴賓室(支援温泉)</option><option>貴賓室(支援泳池)</option>
+        <option>社區廚房</option><option>建築管理中心</option><option>售後服務中心</option>
+        <option>售後服務(夜)</option><option>車輛管理部</option><option>環境維護中心</option>
+        <option>社區咖啡</option><option>自如</option>
       </select>
     </label>
 
@@ -62,7 +60,8 @@
     <label>單位<span class="required">*</span>
       <input type="text" name="unitType" required>
     </label>
-    <button type="submit" class="btn-next">下一步</button>
+
+    <button type="submit" class="btn-next">送出申請</button>
   </form>
 
   <!-- 確認頁 -->
@@ -76,10 +75,13 @@
   <!-- 結果頁 -->
   <div id="resultBox" class="result-box hidden">
     <h3>已送出 ✅</h3>
-    <p>您的申請已提交，請記錄序列號以查詢進度。</p>
+    <p>您的申請已提交，序列號如下：</p>
+    <div id="serialBox" class="serial-box"></div>
+    <div class="back"><a href="query.html">→ 前往查詢進度</a></div>
     <div class="back"><a href="index.html">← 返回入口</a></div>
   </div>
 
+  <!-- 隱藏 iframe 接收回應 -->
   <iframe name="hidden_iframe" style="display:none"></iframe>
 
 <script>
@@ -111,11 +113,23 @@
     formElement.classList.remove("hidden");
   }
 
+  // 送出後 → 顯示結果頁
   function finalSubmit(){
     document.getElementById("confirmBox").classList.add("hidden");
     document.getElementById("resultBox").classList.remove("hidden");
-    formElement.submit(); // 用表單提交，不會被 CORS 擋
+    formElement.submit();
   }
+
+  // iframe 回應攔截
+  window.addEventListener("message", function(e){
+    try {
+      const data = JSON.parse(e.data);
+      if(data.serial){
+        document.getElementById("serialBox").textContent = data.serial;
+        document.getElementById("serialBox").style.display = "block";
+      }
+    } catch(err){}
+  });
 </script>
 </body>
 </html>
