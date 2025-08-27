@@ -123,18 +123,24 @@
   }
 
   function finalSubmit(){
-    fetch("YOUR_SCRIPT_URL", {
-      method:"POST",
-      body: JSON.stringify(formDataCache),
-      headers:{ "Content-Type":"application/json" }
-    })
-    .then(res=>res.json())
-    .then(r=>{
-      document.getElementById("confirmBox").classList.add("hidden");
-      document.getElementById("resultBox").classList.remove("hidden");
-      document.getElementById("serialShow").innerText = r.serial;
-    });
-  }
+  fetch("https://script.google.com/macros/s/AKfycbxGgOP4neFYdQy67Me_EJba2YMnGsiABOKRDp-bHx7yGuV5-WwoqRvMijRRllFJN4dmhw/exec", {
+    method:"POST",
+    body: JSON.stringify(formDataCache),
+    headers:{ "Content-Type":"application/json" }
+  })
+  .then(res=>res.json())
+  .then(r=>{
+    document.getElementById("confirmBox").classList.add("hidden");
+    document.getElementById("resultBox").classList.remove("hidden");
+    document.getElementById("serialShow").innerText = r.serial;
+  })
+  .catch(err=>{
+    alert("送出失敗，請稍後再試");
+    console.error(err);
+  });
+}
+
 </script>
 </body>
 </html>
+
