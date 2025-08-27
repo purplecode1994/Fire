@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GAS doPost 測試頁</title>
+  <style>
+    body { font-family: sans-serif; background:#f5f5f5; padding:20px; }
+    .box { background:#fff; padding:20px; border-radius:8px; max-width:400px; margin:auto; box-shadow:0 2px 6px rgba(0,0,0,.2); }
+    label { display:block; margin-top:10px; font-weight:bold; }
+    input { width:100%; padding:8px; margin-top:5px; }
+    button { margin-top:15px; padding:10px; width:100%; border:none; border-radius:5px; background:#007bff; color:#fff; font-size:16px; }
+    button:hover { background:#0056b3; cursor:pointer; }
+    pre { background:#eee; padding:10px; margin-top:15px; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>doPost 測試</h2>
+    <form id="testForm">
+      <label>申請單位 <input type="text" name="unit" value="管理部"></label>
+      <label>申請日期 <input type="date" name="date" value="2025-08-27"></label>
+      <label>申請人 <input type="text" name="applicant" value="小明"></label>
+      <label>品牌 <input type="text" name="brand" value="測試品牌"></label>
+      <label>品項內容 <input type="text" name="item" value="測試品項"></label>
+      <label>規格 <input type="text" name="spec" value="測試規格"></label>
+      <label>單位 <input type="text" name="unitType" value="個"></label>
+      <button type="submit">送出測試</button>
+    </form>
+    <pre id="result">結果會顯示在這裡</pre>
+  </div>
+
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbz4_RUp_EPCuHN39ujVCNGNjE2BCpbqGUWsqemGWojHQEJ9DL_X_xon7sQIpZwA9bTD/exec";
+
+    document.getElementById("testForm").addEventListener("submit", function(e){
+      e.preventDefault();
+      const fd = new FormData(this);
+      const params = new URLSearchParams(fd);
+
+      fetch(GAS_URL, {
+        method:"POST",
+        body: params
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        document.getElementById("result").textContent = "錯誤：" + err;
+      });
+    });
+  </script>
+</body>
+</html>
