@@ -16,12 +16,11 @@
       line-height: 1.6;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .detail-card p {
-      margin: 8px 0;
-    }
-    .detail-card b {
-      color: #333;
-    }
+    .detail-card p { margin: 8px 0; }
+    .detail-card b { color: #333; }
+
+    /* 隱藏 JSON Debug */
+    #debugJson { display:none; }
   </style>
 </head>
 <body>
@@ -35,8 +34,11 @@
     <!-- 狀態提示 -->
     <div id="queryResult"></div>
 
-    <!-- 詳細資訊 -->
+    <!-- 轉換後的人類可讀文字 -->
     <div id="detailBox" class="detail-card" style="display:none;"></div>
+
+    <!-- 隱藏 JSON Debug -->
+    <pre id="debugJson"></pre>
 
     <div class="back"><a href="index.html">← 返回入口</a></div>
   </div>
@@ -49,23 +51,27 @@
     const serial = document.getElementById("serialInput").value.trim();
     const box = document.getElementById("queryResult");
     const detailBox = document.getElementById("detailBox");
+    const debugBox = document.getElementById("debugJson");
 
     if(!serial){
       box.textContent = "請輸入序列號";
       box.className = "status-error show";
       detailBox.style.display = "none";
+      debugBox.textContent = "";
       return;
     }
 
     fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
       .then(res => res.json())
       .then(data => {
-        // 預設隱藏詳細卡片
+        // 保留 JSON（隱藏）
+        debugBox.textContent = JSON.stringify(data, null, 2);
+
+        // 預設不顯示詳細卡片
         detailBox.style.display = "none";
         detailBox.innerHTML = "";
 
         if(data.success && data.serial){
-          // 狀態提示
           if(data.status === "申請中"){
             box.textContent = "⏳ 申請中";
             box.className = "status-pending show";
@@ -74,17 +80,17 @@
             box.className = "status-approved show";
           }
 
-          // 顯示資訊卡片
+          // 轉換成易讀文字
           let html = `<p><b>📌 序列號：</b> ${data.serial}</p>`;
           html += `<p><b>🔎 狀態：</b> ${data.status}</p>`;
           if(data.message){
             html += `<p><b>ℹ️ 說明：</b> ${data.message}</p>`;
           }
+
           detailBox.innerHTML = html;
           detailBox.style.display = "block";
 
         } else {
-          // 查無資料
           box.textContent = "❌ 查無此序列號";
           box.className = "status-error show";
         }
@@ -93,6 +99,7 @@
         box.textContent = "⚠️ 系統發生錯誤";
         box.className = "status-error show";
         detailBox.style.display = "none";
+        debugBox.textContent = "";
       });
   }
 </script>
