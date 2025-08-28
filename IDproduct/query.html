@@ -15,10 +15,7 @@
     <button class="btn-query" onclick="checkSerial()">查詢進度</button>
     <div id="queryResult"></div>
 
-    <!-- Debug JSON -->
-    <div class="debug-toggle">
-      <button onclick="toggleDebug()">切換 JSON 顯示</button>
-    </div>
+    <!-- Debug JSON 直接顯示 -->
     <pre id="debugJson" class="json-box"></pre>
 
     <div class="back"><a href="index.html">← 返回入口</a></div>
@@ -56,6 +53,7 @@
     if(!serial){
       box.textContent = "請輸入序列號";
       box.className = "status-error show";
+      debugBox.textContent = "";
       return;
     }
 
@@ -78,24 +76,15 @@
           box.className = "status-error show";
         }
 
-        // 美化 JSON 顯示
+        // 直接顯示 JSON
         debugBox.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
-        debugBox.style.display = "none"; // 預設隱藏
+        debugBox.style.display = "block";
       })
       .catch(err => {
         box.textContent = "錯誤：" + err;
         box.className = "status-error show";
+        debugBox.textContent = "";
       });
-  }
-
-  // 切換 Debug JSON 顯示
-  function toggleDebug(){
-    const debugBox = document.getElementById("debugJson");
-    if(debugBox.style.display === "none"){
-      debugBox.style.display = "block";
-    } else {
-      debugBox.style.display = "none";
-    }
   }
 </script>
 </body>
