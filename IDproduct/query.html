@@ -117,11 +117,12 @@ function formatDate(dateStr) {
             <p>📅 <b>申請日期：</b>${formatDate(data.date)}</p>
             <p>🛒 <b>品項內容：</b>${displayItem}</p>
             <details>
-              <summary>🔽 展開細項</summary>
-              <p>• 品項內容：${data.item}</p>
-              <p>• 規格：${data.spec}</p>
-              <p>• 單位：${data.unitType}</p>
-            </details>
+  <summary>🔽 展開細項</summary>
+  <p>• 品項內容：${data.item}</p>
+  <p>• 規格：${data.spec}</p>
+  <p>• 單位：${data.unitType}</p>
+</details>
+
           `;
 
           detailBox.innerHTML = html;
