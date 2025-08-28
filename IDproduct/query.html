@@ -5,6 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>進度查詢</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* 額外卡片美化 */
+    .detail-card {
+      background: #fdfdfd;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 15px;
+      font-size: 15px;
+      line-height: 1.6;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .detail-card p {
+      margin: 8px 0;
+    }
+    .detail-card b {
+      color: #333;
+    }
+  </style>
 </head>
 <body>
   <div class="box">
@@ -13,10 +32,12 @@
       <input type="text" id="serialInput" placeholder="例如：A250828145933123">
     </label>
     <button class="btn-query" onclick="checkSerial()">查詢進度</button>
+
+    <!-- 狀態提示 -->
     <div id="queryResult"></div>
 
-    <!-- Debug JSON 直接顯示 -->
-    <pre id="debugJson" class="json-box"></pre>
+    <!-- 詳細內容 -->
+    <div id="detailBox" class="detail-card" style="display:none;"></div>
 
     <div class="back"><a href="index.html">← 返回入口</a></div>
   </div>
@@ -25,65 +46,58 @@
   // ⚠️ 改成你最新部署的 GAS doGet exec URL
   const GAS_URL = "https://script.google.com/macros/s/AKfycbwgM8kJhScg79NL3EQCoooAjpyB4UjrTzcAN5rMnqCvnPQJWzY-2VREABWnI_e8dr3C_w/exec";
 
-  // JSON 語法上色
-  function syntaxHighlight(json) {
-    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-      let cls = 'number';
-      if (/^"/.test(match)) {
-        if (/:$/.test(match)) {
-          cls = 'key';
-        } else {
-          cls = 'string';
-        }
-      } else if (/true|false/.test(match)) {
-        cls = 'bool';
-      } else if (/null/.test(match)) {
-        cls = 'null';
-      }
-      return '<span class="' + cls + '">' + match + '</span>';
-    });
-  }
-
   function checkSerial(){
     const serial = document.getElementById("serialInput").value.trim();
     const box = document.getElementById("queryResult");
-    const debugBox = document.getElementById("debugJson");
+    const detailBox = document.getElementById("detailBox");
 
     if(!serial){
       box.textContent = "請輸入序列號";
       box.className = "status-error show";
-      debugBox.textContent = "";
+      detailBox.style.display = "none";
       return;
     }
 
     fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
       .then(res => res.json())
       .then(data => {
+        let prettyHtml = "";
         if(data.success){
           if(data.status === "申請中"){
-            box.textContent = "⏳ " + data.serial + " → " + data.message;
+            box.textContent = "⏳ 申請中";
             box.className = "status-pending show";
           } else if(data.status === "已核准"){
-            box.textContent = "✅ " + data.serial + " → " + data.message;
+            box.textContent = "✅ 已核准";
             box.className = "status-approved show";
           } else {
-            box.textContent = "❌ " + data.serial + " → " + data.message;
+            box.textContent = "❌ 查無此序列號";
             box.className = "status-error show";
           }
+
+          // 美化輸出
+          prettyHtml += `<p><b>📌 序列號：</b> ${data.serial}</p>`;
+          if(data.status){
+            const statusIcon = data.status === "已核准" ? "✅" : (data.status === "申請中" ? "⏳" : "❌");
+            prettyHtml += `<p><b>${statusIcon} 狀態：</b> ${data.status}</p>`;
+          }
+          if(data.message){
+            prettyHtml += `<p><b>ℹ️ 說明：</b> ${data.message}</p>`;
+          }
+
         } else {
-          box.textContent = "⚠️ " + (data.message || "查詢失敗");
+          box.textContent = "❌ 查無此序列號";
           box.className = "status-error show";
+          prettyHtml = "";
         }
 
-        // 直接顯示 JSON
-        debugBox.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
-        debugBox.style.display = "block";
+        // 更新內容區
+        detailBox.innerHTML = prettyHtml;
+        detailBox.style.display = prettyHtml ? "block" : "none";
       })
       .catch(err => {
-        box.textContent = "錯誤：" + err;
+        box.textContent = "⚠️ 系統發生錯誤";
         box.className = "status-error show";
-        debugBox.textContent = "";
+        detailBox.style.display = "none";
       });
   }
 </script>
