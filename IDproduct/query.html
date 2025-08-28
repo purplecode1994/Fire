@@ -69,76 +69,86 @@ function formatDate(dateStr) {
          String(d.getDate()).padStart(2, "0");
 }
 
-  
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbxK_4aX7MS9m6vJKiX8xLvJFGf5DMMG6oVydnbaM-HZBD2DzwAa3ULd-JlSgrabWzY2LA/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxK_4aX7MS9m6vJKiX8xLvJFGf5DMMG6oVydnbaM-HZBD2DzwAa3ULd-JlSgrabWzY2LA/exec";
 
-  function checkSerial(){
-    const serial = document.getElementById("serialInput").value.trim();
-    const box = document.getElementById("queryResult");
-    const detailBox = document.getElementById("detailBox");
-    const debugBox = document.getElementById("debugJson");
+function checkSerial(){
+  const serial = document.getElementById("serialInput").value.trim();
+  const box = document.getElementById("queryResult");
+  const detailBox = document.getElementById("detailBox");
+  const debugBox = document.getElementById("debugJson");
 
-    if(!serial){
-      box.textContent = "請輸入序列號";
+  if(!serial){
+    box.textContent = "請輸入序列號";
+    box.className = "status-error show";
+    detailBox.style.display = "none";
+    debugBox.textContent = "{}";
+    return;
+  }
+
+  fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
+    .then(res => res.json())
+    .then(data => {
+      // JSON Debug
+      debugBox.textContent = JSON.stringify(data, null, 2);
+
+      // 預設不顯示卡片
+      detailBox.style.display = "none";
+      detailBox.innerHTML = "";
+
+      if(data.success){
+        // 狀態提示
+        if(data.status === "申請中"){
+          box.textContent = "⏳ 申請中";
+          box.className = "status-pending show";
+        } else if(data.status === "已核准"){
+          box.textContent = "✅ 已核准";
+          box.className = "status-approved show";
+        }
+
+        // 品項內容（截斷 8 字）
+        let shortItem = data.item.length > 8 ? data.item.slice(0,8) + "…" : data.item;
+        let displayItem = data.brand ? `${data.brand} ${shortItem}` : shortItem;
+
+        // 主要顯示卡片
+        let html = `
+          <p>📌 <b>序列號：</b>${data.serial}</p>
+          <p>🏢 <b>申請單位：</b>${data.unit}</p>
+          <p>📅 <b>申請日期：</b>${formatDate(data.date)}</p>
+          <p>🛒 <b>品項內容：</b>${displayItem}</p>
+          <button class="btn-toggle" onclick="toggleDetail(this)">🔽 展開細項</button>
+          <div class="detail-content">
+            <p>• 品項內容：${data.item}</p>
+            <p>• 規格：${data.spec}</p>
+            <p>• 單位：${data.unitType}</p>
+          </div>
+        `;
+
+        detailBox.innerHTML = html;
+        detailBox.style.display = "block";
+      } else {
+        box.textContent = data.display || "❌ 查無此序列號";
+        box.className = "status-error show";
+      }
+    })
+    .catch(err => {
+      box.textContent = "⚠️ 系統發生錯誤";
       box.className = "status-error show";
       detailBox.style.display = "none";
       debugBox.textContent = "{}";
-      return;
-    }
+    });
+}
 
-    fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
-      .then(res => res.json())
-      .then(data => {
-        // JSON Debug
-        debugBox.textContent = JSON.stringify(data, null, 2);
-
-        // 預設不顯示卡片
-        detailBox.style.display = "none";
-        detailBox.innerHTML = "";
-
-        if(data.success){
-          // 狀態提示
-          if(data.status === "申請中"){
-            box.textContent = "⏳ 申請中";
-            box.className = "status-pending show";
-          } else if(data.status === "已核准"){
-            box.textContent = "✅ 已核准";
-            box.className = "status-approved show";
-          }
-
-          // 品項內容（截斷 8 字）
-          let shortItem = data.item.length > 8 ? data.item.slice(0,8) + "…" : data.item;
-          let displayItem = data.brand ? `${data.brand} ${shortItem}` : shortItem;
-
-          // 主要顯示卡片
-          let html = `
-            <p>📌 <b>序列號：</b>${data.serial}</p>
-            <p>🏢 <b>申請單位：</b>${data.unit}</p>
-            <p>📅 <b>申請日期：</b>${formatDate(data.date)}</p>
-            <p>🛒 <b>品項內容：</b>${displayItem}</p>
-            <details>
-  <summary>🔽 展開細項</summary>
-  <p>• 品項內容：${data.item}</p>
-  <p>• 規格：${data.spec}</p>
-  <p>• 單位：${data.unitType}</p>
-</details>
-
-          `;
-
-          detailBox.innerHTML = html;
-          detailBox.style.display = "block";
-        } else {
-          box.textContent = data.display || "❌ 查無此序列號";
-          box.className = "status-error show";
-        }
-      })
-      .catch(err => {
-        box.textContent = "⚠️ 系統發生錯誤";
-        box.className = "status-error show";
-        detailBox.style.display = "none";
-        debugBox.textContent = "{}";
-      });
+// 🔽 新增這個函數（在 checkSerial 外面）
+function toggleDetail(btn){
+  const detail = btn.nextElementSibling;
+  if(detail.style.display === "block"){
+    detail.style.display = "none";
+    btn.textContent = "🔽 展開細項";
+  } else {
+    detail.style.display = "block";
+    btn.textContent = "▲ 收起細項";
   }
+}
 </script>
 </body>
 </html>
