@@ -19,8 +19,21 @@
     .detail-card p { margin: 8px 0; }
     .detail-card b { color: #333; }
 
-    /* 隱藏 JSON Debug */
-    #debugJson { display:none; }
+    /* JSON 區塊 */
+    #debugJson {
+      background:#1e1e1e;
+      color:#d4d4d4;
+      padding:15px;
+      margin-top:15px;
+      border-radius:6px;
+      font-family: "Courier New", monospace;
+      font-size:14px;
+      line-height:1.5;
+      overflow-x:auto;
+      white-space:pre-wrap;
+      box-shadow:inset 0 0 5px rgba(0,0,0,0.3);
+      text-align:left;
+    }
   </style>
 </head>
 <body>
@@ -34,11 +47,11 @@
     <!-- 狀態提示 -->
     <div id="queryResult"></div>
 
-    <!-- 轉換後的人類可讀文字 -->
+    <!-- 可讀的詳細卡片 -->
     <div id="detailBox" class="detail-card" style="display:none;"></div>
 
-    <!-- 隱藏 JSON Debug -->
-    <pre id="debugJson"></pre>
+    <!-- JSON 原始內容 -->
+    <pre id="debugJson">{}</pre>
 
     <div class="back"><a href="index.html">← 返回入口</a></div>
   </div>
@@ -57,14 +70,14 @@
       box.textContent = "請輸入序列號";
       box.className = "status-error show";
       detailBox.style.display = "none";
-      debugBox.textContent = "";
+      debugBox.textContent = "{}";
       return;
     }
 
     fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
       .then(res => res.json())
       .then(data => {
-        // 保留 JSON（隱藏）
+        // 更新 JSON 區塊（直接顯示）
         debugBox.textContent = JSON.stringify(data, null, 2);
 
         // 預設不顯示詳細卡片
@@ -80,7 +93,7 @@
             box.className = "status-approved show";
           }
 
-          // 轉換成易讀文字
+          // 轉換成人類可讀資訊
           let html = `<p><b>📌 序列號：</b> ${data.serial}</p>`;
           html += `<p><b>🔎 狀態：</b> ${data.status}</p>`;
           if(data.message){
@@ -99,7 +112,7 @@
         box.textContent = "⚠️ 系統發生錯誤";
         box.className = "status-error show";
         detailBox.style.display = "none";
-        debugBox.textContent = "";
+        debugBox.textContent = "{}";
       });
   }
 </script>
