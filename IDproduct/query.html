@@ -6,7 +6,6 @@
   <title>進度查詢</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* 額外卡片美化 */
     .detail-card {
       background: #fdfdfd;
       border: 1px solid #ddd;
@@ -36,7 +35,7 @@
     <!-- 狀態提示 -->
     <div id="queryResult"></div>
 
-    <!-- 詳細內容 -->
+    <!-- 詳細資訊 -->
     <div id="detailBox" class="detail-card" style="display:none;"></div>
 
     <div class="back"><a href="index.html">← 返回入口</a></div>
@@ -61,38 +60,34 @@
     fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
       .then(res => res.json())
       .then(data => {
-        let prettyHtml = "";
-        if(data.success){
+        // 預設隱藏詳細卡片
+        detailBox.style.display = "none";
+        detailBox.innerHTML = "";
+
+        if(data.success && data.serial){
+          // 狀態提示
           if(data.status === "申請中"){
             box.textContent = "⏳ 申請中";
             box.className = "status-pending show";
           } else if(data.status === "已核准"){
             box.textContent = "✅ 已核准";
             box.className = "status-approved show";
-          } else {
-            box.textContent = "❌ 查無此序列號";
-            box.className = "status-error show";
           }
 
-          // 美化輸出
-          prettyHtml += `<p><b>📌 序列號：</b> ${data.serial}</p>`;
-          if(data.status){
-            const statusIcon = data.status === "已核准" ? "✅" : (data.status === "申請中" ? "⏳" : "❌");
-            prettyHtml += `<p><b>${statusIcon} 狀態：</b> ${data.status}</p>`;
-          }
+          // 顯示資訊卡片
+          let html = `<p><b>📌 序列號：</b> ${data.serial}</p>`;
+          html += `<p><b>🔎 狀態：</b> ${data.status}</p>`;
           if(data.message){
-            prettyHtml += `<p><b>ℹ️ 說明：</b> ${data.message}</p>`;
+            html += `<p><b>ℹ️ 說明：</b> ${data.message}</p>`;
           }
+          detailBox.innerHTML = html;
+          detailBox.style.display = "block";
 
         } else {
+          // 查無資料
           box.textContent = "❌ 查無此序列號";
           box.className = "status-error show";
-          prettyHtml = "";
         }
-
-        // 更新內容區
-        detailBox.innerHTML = prettyHtml;
-        detailBox.style.display = prettyHtml ? "block" : "none";
       })
       .catch(err => {
         box.textContent = "⚠️ 系統發生錯誤";
