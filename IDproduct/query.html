@@ -5,40 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>進度查詢</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    body { font-family: sans-serif; background:#f5f5f5; padding:20px; }
-    .box { background:#fff; padding:20px; border-radius:8px; max-width:400px; margin:auto; box-shadow:0 2px 6px rgba(0,0,0,.2); }
-    h2 { margin-top:0; text-align:center; }
-    label { display:block; margin-top:10px; font-weight:bold; }
-    input { width:100%; padding:8px; margin-top:5px; }
-    .btn-query { margin-top:15px; padding:10px; width:100%; border:none; border-radius:5px; background:#007bff; color:#fff; font-size:16px; }
-    .btn-query:hover { background:#0056b3; cursor:pointer; }
-
-    .status-box {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 6px;
-      font-weight: bold;
-      text-align: center;
-      display: none;
-    }
-    .pending { background:#fff3cd; color:#856404; }
-    .approved { background:#d4edda; color:#155724; }
-    .error { background:#f8d7da; color:#721c24; }
-
-    .debug-toggle { margin-top:10px; text-align:center; }
-    .debug-toggle button { padding:5px 10px; font-size:14px; }
-
-    pre {
-      background:#eee; padding:10px; margin-top:15px;
-      white-space:pre-wrap; display:none;
-      border-radius:5px; font-size:14px;
-    }
-
-    .back { margin-top:15px; text-align:center; }
-    .back a { color:#007bff; text-decoration:none; }
-    .back a:hover { text-decoration:underline; }
-  </style>
 </head>
 <body>
   <div class="box">
@@ -47,18 +13,40 @@
       <input type="text" id="serialInput" placeholder="例如：A250828145933123">
     </label>
     <button class="btn-query" onclick="checkSerial()">查詢進度</button>
-    <div id="queryResult" class="status-box"></div>
+    <div id="queryResult"></div>
 
     <!-- Debug JSON -->
-    <div class="debug-toggle"><button onclick="toggleDebug()">切換 JSON 顯示</button></div>
-    <pre id="debugJson"></pre>
+    <div class="debug-toggle">
+      <button onclick="toggleDebug()">切換 JSON 顯示</button>
+    </div>
+    <pre id="debugJson" class="json-box"></pre>
 
     <div class="back"><a href="index.html">← 返回入口</a></div>
   </div>
 
 <script>
-  // ⚠️ 記得替換成你最新的 GAS 部署 exec URL
+  // ⚠️ 改成你最新部署的 GAS doGet exec URL
   const GAS_URL = "https://script.google.com/macros/s/AKfycbwgM8kJhScg79NL3EQCoooAjpyB4UjrTzcAN5rMnqCvnPQJWzY-2VREABWnI_e8dr3C_w/exec";
+
+  // JSON 語法上色
+  function syntaxHighlight(json) {
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+      let cls = 'number';
+      if (/^"/.test(match)) {
+        if (/:$/.test(match)) {
+          cls = 'key';
+        } else {
+          cls = 'string';
+        }
+      } else if (/true|false/.test(match)) {
+        cls = 'bool';
+      } else if (/null/.test(match)) {
+        cls = 'null';
+      }
+      return '<span class="' + cls + '">' + match + '</span>';
+    });
+  }
 
   function checkSerial(){
     const serial = document.getElementById("serialInput").value.trim();
@@ -67,9 +55,7 @@
 
     if(!serial){
       box.textContent = "請輸入序列號";
-      box.className = "status-box error";
-      box.style.display = "block";
-      debugBox.style.display = "none";
+      box.className = "status-error show";
       return;
     }
 
@@ -79,28 +65,26 @@
         if(data.success){
           if(data.status === "申請中"){
             box.textContent = "⏳ " + data.serial + " → " + data.message;
-            box.className = "status-box pending";
+            box.className = "status-pending show";
           } else if(data.status === "已核准"){
             box.textContent = "✅ " + data.serial + " → " + data.message;
-            box.className = "status-box approved";
+            box.className = "status-approved show";
           } else {
             box.textContent = "❌ " + data.serial + " → " + data.message;
-            box.className = "status-box error";
+            box.className = "status-error show";
           }
         } else {
           box.textContent = "⚠️ " + (data.message || "查詢失敗");
-          box.className = "status-box error";
+          box.className = "status-error show";
         }
-        box.style.display = "block";
 
-        // Debug JSON 顯示完整回傳
-        debugBox.textContent = JSON.stringify(data, null, 2);
+        // 美化 JSON 顯示
+        debugBox.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
         debugBox.style.display = "none"; // 預設隱藏
       })
       .catch(err => {
         box.textContent = "錯誤：" + err;
-        box.className = "status-box error";
-        box.style.display = "block";
+        box.className = "status-error show";
       });
   }
 
@@ -113,19 +97,6 @@
       debugBox.style.display = "none";
     }
   }
-
-  // 載入時自動讀取剪貼簿
-  window.addEventListener("load", async ()=>{
-    try {
-      const text = await navigator.clipboard.readText();
-      if(text && text.startsWith("A") && text.length >= 12){
-        document.getElementById("serialInput").value = text;
-        checkSerial();
-      }
-    } catch(err){
-      console.log("無法讀取剪貼簿：", err);
-    }
-  });
 </script>
 </body>
 </html>
