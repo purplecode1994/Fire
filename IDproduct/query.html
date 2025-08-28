@@ -19,7 +19,7 @@
     .detail-card p { margin: 8px 0; }
     .detail-card b { color: #333; }
 
-    /* JSON 區塊 */
+    /* JSON 區塊（Debug） */
     #debugJson {
       background:#1e1e1e;
       color:#d4d4d4;
@@ -57,8 +57,7 @@
   </div>
 
 <script>
-  // ⚠️ 改成你最新部署的 GAS doGet exec URL
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbzPeOMRSdMTsz5KJy7GC6LMcEsjv-hQ9viMMdjhoMgeRaSlQ0EtAe2On2OmV3e-Zk_oGg/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxK_4aX7MS9m6vJKiX8xLvJFGf5DMMG6oVydnbaM-HZBD2DzwAa3ULd-JlSgrabWzY2LA/exec";
 
   function checkSerial(){
     const serial = document.getElementById("serialInput").value.trim();
@@ -77,25 +76,45 @@
     fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
       .then(res => res.json())
       .then(data => {
-        // 更新 JSON 區塊（完整原始回傳）
+        // JSON Debug
         debugBox.textContent = JSON.stringify(data, null, 2);
 
         // 預設不顯示卡片
         detailBox.style.display = "none";
         detailBox.innerHTML = "";
 
-        if(data.display){
-          // 使用 display 作為主要呈現文字
-          box.textContent = data.status === "已核准" ? "✅ 已核准"
-                        : data.status === "申請中" ? "⏳ 申請中"
-                        : data.display;
+        if(data.success){
+          // 狀態提示
+          if(data.status === "申請中"){
+            box.textContent = "⏳ 申請中";
+            box.className = "status-pending show";
+          } else if(data.status === "已核准"){
+            box.textContent = "✅ 已核准";
+            box.className = "status-approved show";
+          }
 
-          // 顯示卡片
-          let html = data.display.replace(/\n/g, "<br>");
+          // 品項內容（截斷 8 字）
+          let shortItem = data.item.length > 8 ? data.item.slice(0,8) + "…" : data.item;
+          let displayItem = data.brand ? `${data.brand} ${shortItem}` : shortItem;
+
+          // 主要顯示卡片
+          let html = `
+            <p>📌 <b>序列號：</b>${data.serial}</p>
+            <p>🏢 <b>申請單位：</b>${data.unit}</p>
+            <p>📅 <b>申請日期：</b>${data.date}</p>
+            <p>🛒 <b>品項內容：</b>${displayItem}</p>
+            <details>
+              <summary>🔽 展開細項</summary>
+              <p>• 品項內容：${data.item}</p>
+              <p>• 規格：${data.spec}</p>
+              <p>• 單位：${data.unitType}</p>
+            </details>
+          `;
+
           detailBox.innerHTML = html;
           detailBox.style.display = "block";
         } else {
-          box.textContent = "❌ 查無此序列號";
+          box.textContent = data.display || "❌ 查無此序列號";
           box.className = "status-error show";
         }
       })
