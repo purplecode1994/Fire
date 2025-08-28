@@ -19,8 +19,9 @@
     .detail-card p { margin: 8px 0; }
     .detail-card b { color: #333; }
 
-    /* JSON 區塊 */
+    /* JSON 區塊 (Debug 用，可隱藏) */
     #debugJson {
+      display:none; /* ← 上線時直接隱藏 */
       background:#1e1e1e;
       color:#d4d4d4;
       padding:15px;
@@ -50,7 +51,7 @@
     <!-- 可讀資訊（給使用者看） -->
     <div id="detailBox" class="detail-card" style="display:none;"></div>
 
-    <!-- JSON 原始內容（給 Debug） -->
+    <!-- JSON 原始內容（Debug 用，可移除） -->
     <pre id="debugJson">{}</pre>
 
     <div class="back"><a href="index.html">← 返回入口</a></div>
@@ -77,23 +78,25 @@
     fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
       .then(res => res.json())
       .then(data => {
-        // 更新 JSON 區塊（完整原始回傳）
+        // 🔍 Debug 時看完整 JSON
         debugBox.textContent = JSON.stringify(data, null, 2);
 
-        // 預設不顯示卡片
+        // 清空卡片
         detailBox.style.display = "none";
         detailBox.innerHTML = "";
 
-        if(data.display){
-          // 使用 display 作為主要呈現文字
+        if(data.status){
+          // ✅ 只顯示主要狀態
           box.textContent = data.status === "已核准" ? "✅ 已核准"
                         : data.status === "申請中" ? "⏳ 申請中"
-                        : data.display;
+                        : data.status;
 
-          // 顯示卡片
-          let html = data.display.replace(/\n/g, "<br>");
-          detailBox.innerHTML = html;
-          detailBox.style.display = "block";
+          // 如果有更詳細的描述才顯示卡片
+          if(data.display){
+            let html = data.display.replace(/\n/g, "<br>");
+            detailBox.innerHTML = html;
+            detailBox.style.display = "block";
+          }
         } else {
           box.textContent = "❌ 查無此序列號";
           box.className = "status-error show";
