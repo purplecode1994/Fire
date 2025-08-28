@@ -57,7 +57,19 @@
     <div class="back"><a href="index.html">← 返回入口</a></div>
   </div>
 
+
+  
 <script>
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr; // 如果不是合法日期就原樣顯示
+  return d.getFullYear() + "-" +
+         String(d.getMonth() + 1).padStart(2, "0") + "-" +
+         String(d.getDate()).padStart(2, "0");
+}
+
+  
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxK_4aX7MS9m6vJKiX8xLvJFGf5DMMG6oVydnbaM-HZBD2DzwAa3ULd-JlSgrabWzY2LA/exec";
 
   function checkSerial(){
@@ -102,7 +114,7 @@
           let html = `
             <p>📌 <b>序列號：</b>${data.serial}</p>
             <p>🏢 <b>申請單位：</b>${data.unit}</p>
-            <p>📅 <b>申請日期：</b>${data.date}</p>
+            <p>📅 <b>申請日期：</b>${formatDate(data.date)}</p>
             <p>🛒 <b>品項內容：</b>${displayItem}</p>
             <details>
               <summary>🔽 展開細項</summary>
