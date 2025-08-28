@@ -162,4 +162,28 @@ button {
   display: none;   /* 預設隱藏 */
 }
 
+.btn-toggle {
+  margin-top: 10px;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background: #007bff;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.btn-toggle:hover {
+  background: #0056b3;
+}
+.detail-content {
+  display: none;
+  margin-top: 10px;
+  padding-left: 10px;
+  border-left: 3px solid #ddd;
+  font-size: 14px;
+  color: #333;
+}
+
 
