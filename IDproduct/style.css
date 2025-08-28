@@ -158,4 +158,8 @@ button {
 .json-box .bool  { color:#569cd6; }
 .json-box .null  { color:#569cd6; font-style:italic; }
 
+#debugJson {
+  display: none;   /* 預設隱藏 */
+}
+
 
