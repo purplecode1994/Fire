@@ -47,10 +47,10 @@
     <!-- 狀態提示 -->
     <div id="queryResult"></div>
 
-    <!-- 可讀的詳細卡片 -->
+    <!-- 可讀資訊（給使用者看） -->
     <div id="detailBox" class="detail-card" style="display:none;"></div>
 
-    <!-- JSON 原始內容 -->
+    <!-- JSON 原始內容（給 Debug） -->
     <pre id="debugJson">{}</pre>
 
     <div class="back"><a href="index.html">← 返回入口</a></div>
@@ -77,32 +77,23 @@
     fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
       .then(res => res.json())
       .then(data => {
-        // 更新 JSON 區塊（直接顯示）
+        // 更新 JSON 區塊（完整原始回傳）
         debugBox.textContent = JSON.stringify(data, null, 2);
 
-        // 預設不顯示詳細卡片
+        // 預設不顯示卡片
         detailBox.style.display = "none";
         detailBox.innerHTML = "";
 
-        if(data.success && data.serial){
-          if(data.status === "申請中"){
-            box.textContent = "⏳ 申請中";
-            box.className = "status-pending show";
-          } else if(data.status === "已核准"){
-            box.textContent = "✅ 已核准";
-            box.className = "status-approved show";
-          }
+        if(data.display){
+          // 使用 display 作為主要呈現文字
+          box.textContent = data.status === "已核准" ? "✅ 已核准"
+                        : data.status === "申請中" ? "⏳ 申請中"
+                        : data.display;
 
-          // 轉換成人類可讀資訊
-          let html = `<p><b>📌 序列號：</b> ${data.serial}</p>`;
-          html += `<p><b>🔎 狀態：</b> ${data.status}</p>`;
-          if(data.message){
-            html += `<p><b>ℹ️ 說明：</b> ${data.message}</p>`;
-          }
-
+          // 顯示卡片
+          let html = data.display.replace(/\n/g, "<br>");
           detailBox.innerHTML = html;
           detailBox.style.display = "block";
-
         } else {
           box.textContent = "❌ 查無此序列號";
           box.className = "status-error show";
