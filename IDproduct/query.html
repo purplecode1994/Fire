@@ -43,7 +43,7 @@
   </div>
 
 <script>
-  // ⚠️ 這裡填你的最新 GAS doGet 部署 URL（exec）
+  // ⚠️ 這裡填最新的 GAS exec URL
   const GAS_URL = "https://script.google.com/macros/s/AKfycbwgM8kJhScg79NL3EQCoooAjpyB4UjrTzcAN5rMnqCvnPQJWzY-2VREABWnI_e8dr3C_w/exec";
 
   function checkSerial(){
@@ -60,20 +60,19 @@
     fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
       .then(res => res.json())
       .then(data => {
-        if(data.status === "申請中"){
-          box.textContent = "⏳ " + serial + " → 申請中";
-          box.className = "status-box pending";
-        } else if(data.status === "已核准"){
-          box.textContent = "✅ " + serial + " → 已核准";
-          box.className = "status-box approved";
-        } else if(data.status === null){
-          box.textContent = "❌ " + serial + " → 查無資料";
-          box.className = "status-box error";
-        } else if(data.error){
-          box.textContent = "⚠️ 錯誤：" + data.error;
-          box.className = "status-box error";
+        if(data.success){
+          if(data.status === "申請中"){
+            box.textContent = "⏳ " + data.serial + " → " + data.message;
+            box.className = "status-box pending";
+          } else if(data.status === "已核准"){
+            box.textContent = "✅ " + data.serial + " → " + data.message;
+            box.className = "status-box approved";
+          } else {
+            box.textContent = "❌ " + data.serial + " → " + data.message;
+            box.className = "status-box error";
+          }
         } else {
-          box.textContent = "❌ " + serial + " → 未知回應";
+          box.textContent = "⚠️ " + (data.message || "查詢失敗");
           box.className = "status-box error";
         }
         box.style.display = "block";
