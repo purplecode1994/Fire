@@ -95,57 +95,18 @@ th, td {
 <body>
   <!-- 月份切換按鈕 -->
   <div class="month-switch">
-    <button class="active" data-target="m8">8月</button>
-    <button data-target="m9">9月</button>
+ <button class="active" data-target="m9">9月</button>
   </div>
 
   <!-- 顯示今天 -->
   <div class="banner" id="nowText">今天：YYYY/MM/DD 星期_</div>
 
-  <!-- 8月班表 -->
-  <div class="month active" id="m8">
-    <h2>八月份班表 (1–31)</h2>
-    <div class="frame">
-      <table id="schedule8" data-month="8">
-        <thead>
-          <tr>
-            <th>日</th>
-            <!-- 1~31 -->
-            <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
-            <th>6</th><th>7</th><th>8</th><th>9</th><th>10</th>
-            <th>11</th><th>12</th><th>13</th><th>14</th><th>15</th>
-            <th>16</th><th>17</th><th>18</th><th>19</th><th>20</th>
-            <th>21</th><th>22</th><th>23</th><th>24</th><th>25</th>
-            <th>26</th><th>27</th><th>28</th><th>29</th><th>30</th><th>31</th>
-          </tr>
-          <tr id="weekRow8"><th>週</th></tr>
-        </thead>
-<tbody>
-  <tr><th>賢</th>
-    <td>B</td>    <td class="休">休</td>    <td>A</td>    <td>B</td>    <td class="休">休</td>    <td class="休">休</td>    <td>B</td>    <td>A</td>    <td class="休">休</td>    <td class="休">休</td>    <td class="休">休</td>    <td>B</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td>B</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td class="休">休</td>    <td>A</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>A</td>    <td>A</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>
-  </tr>
-  <tr><th>杰</th>
-    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td class="休">休</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>
-  </tr>
-  <tr><th>宇</th>
-    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>A</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>A</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>A</td>    <td class="休">休</td>    <td class="休">休</td>
-  </tr>
-  <tr><th>強</th>
-    <td class="特">特</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>
-  </tr>
-  <tr><th>璍</th>
-    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="特">特</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td class="休">休</td>    <td>夜</td>
-  </tr>
-</tbody>      </table>
-    </div>
-  </div>
 
   <!-- 9月班表 -->
-  <div class="month" id="m9">
-    <h2>九月份班表 (1–30)</h2>
-    <div class="frame">
-      <table id="schedule9" data-month="9">
-        <thead>
+<div class="month active" id="m9">
+  <h2>九月份班表 </h2>
+  <div class="frame">
+    <table id="schedule9" data-month="9">        <thead>
           <tr>
             <th>日</th>
             <!-- 1~30 -->
@@ -201,8 +162,8 @@ th, td {
       weekRow.appendChild(th);
     }
   }
-  makeWeekRow("weekRow8",31,5); // 2025/8/1 是星期五 → start=5
-  makeWeekRow("weekRow9",30,1); // 2025/9/1 是星期一 → start=1
+makeWeekRow("weekRow9",30,1); // 例如 2025/9/1 是星期一 → start=1
+highlightToday("schedule9");
 
   // 高亮今天號碼（僅在該月）
   function highlightToday(tableId){
