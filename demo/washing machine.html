@@ -158,11 +158,13 @@
     overflow: hidden;
     transition: max-height 0.45s cubic-bezier(.4,.8,.4,1), opacity 0.3s;
   }
-  .status-indicators.open {
-    max-height: 200px; /* 根據內容高度調整 */
-    opacity: 1;
-    overflow: visible;
-  }
+.status-indicators.open {
+  max-height: 240px; /* 保持展開高度 */
+  opacity: 1;
+  overflow: visible;
+  margin-bottom: 40px; /* ⬅ 增加底部間距，避免碰到功能按鈕 */
+}
+
   .indicator {
     display: flex;
     flex-direction: column;
