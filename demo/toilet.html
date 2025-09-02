@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>智慧馬桶遙控器設定與配對｜AFC213(H)・AFC214(H)</title>
+  <style>
+    :root{
+      --bg:#f7f7f8; 
+      --card:#ffffff; 
+      --ink:#111827; 
+      --muted:#6b7280; 
+      --line:#e5e7eb;
+      --brand:#2563eb; /* 藍 */
+      --brand-ink:#1d4ed8;
+      --ok:#059669; /* 綠 */
+      --warn:#b45309; /* 褐橘 */
+      --radius:16px;
+    }
+    html,body{margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "Noto Sans", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;}
+    .wrap{max-width:900px; margin:24px auto; padding:0 16px 56px;}
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px;
+    }
+    .title{
+      display:flex; align-items:center; gap:12px;
+    }
+    .title .badge{font-size:12px; color:#fff; background:var(--brand); padding:4px 10px; border-radius:999px; letter-spacing:.5px}
+    h1{font-size:22px; margin:4px 0 0 0; line-height:1.35}
+
+    .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 6px 18px rgba(0,0,0,.04); overflow:hidden}
+    .card .hd{display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--line)}
+    .card .hd h2{font-size:18px; margin:0}
+    .index{display:inline-grid; place-items:center; width:28px; height:28px; border-radius:999px; background:#eef2ff; color:#4338ca; font-weight:700; font-size:13px}
+
+    .section{padding:14px 16px}
+
+    .steps{margin:0; padding-left:0; list-style:none}
+    .step{padding:12px 0; border-bottom:1px dashed var(--line)}
+    .step:last-child{border-bottom:none}
+    .step .body b{font-weight:700}
+
+    .key{display:inline-block; border:1px solid var(--line); background:#fff; padding:2px 8px; border-radius:10px; font-weight:600; box-shadow:inset 0 -1px 0 rgba(0,0,0,.03)}
+    .muted{color:var(--muted)}
+    .hint{margin-top:8px; font-size:13px; color:var(--muted)}
+
+    .note{display:flex; gap:10px; padding:10px 12px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; border-radius:12px; font-size:14px}
+
+    footer{margin-top:16px; color:var(--muted); font-size:12px}
+
+    /* 分隔群組 */
+    .group{margin-top:16px}
+
+    /* 列印樣式 */
+    @media print{
+      body{background:#fff}
+      .card{box-shadow:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <span class="badge">AFC213(H)・AFC214(H)</span>
+        <div>
+          <h1>智慧馬桶｜遙控器設定與配對</h1>
+          <div class="muted" style="font-size:13px">適用型號：AFC213(H)、AFC214(H)</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 1-1 設定時間 -->
+    <article class="card group" id="sec-time">
+      <div class="hd">
+        <span class="index">1-1</span>
+        <h2>設定時間</h2>
+      </div>
+      <div class="section">
+        <ol class="steps">
+          <li class="step">
+            <div class="body">
+              <b>遙控器：</b>長按 <span class="key">停止</span> → 螢幕上的時間開始閃爍。
+            </div>
+          </li>
+          <li class="step">
+            <div class="body">
+              <b>遙控器：</b>按 <span class="key">水量上</span> 調整「小時」，按 <span class="key">水量下</span> 調整「分鐘」。
+              <div class="hint">提示：每按一次微調一格，連續按可快速調整。</div>
+            </div>
+          </li>
+          <li class="step">
+            <div class="body">
+              <b>等待 5 秒</b> 不操作，時間設定會自動儲存。
+            </div>
+          </li>
+        </ol>
+      </div>
+    </article>
+
+    <!-- 2-1 設遙控器ID(進階) -->
+    <article class="card group" id="sec-id">
+      <div class="hd">
+        <span class="index">2-1</span>
+        <h2>設定遙控器 ID（進階）</h2>
+      </div>
+      <div class="section">
+        <ol class="steps">
+          <li class="step">
+            <div class="body"><b>遙控器：</b>長按 <span class="key">停止</span> → 時間閃爍。</div>
+          </li>
+          <li class="step">
+            <div class="body"><b>遙控器：</b>在時間閃爍時，再長按 <span class="key">水溫</span> → 進入 <b>ID 模式</b>（顯示 <span class="key">ID01…</span>）。</div>
+          </li>
+          <li class="step">
+            <div class="body"><b>遙控器：</b>按 <span class="key">按摩</span> 以切換不同 <b>ID</b> 值。</div>
+          </li>
+        </ol>
+        <div class="note" role="note" aria-label="注意">
+          <div>⚠️</div>
+          <div>
+            若同場有多台座機或多支遙控器，請為每組配對設定 <b>不同 ID</b>，以避免互相干擾。
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 2-2 與馬桶本體配對 -->
+    <article class="card group" id="sec-pair">
+      <div class="hd">
+        <span class="index">2-2</span>
+        <h2>與馬桶本體配對</h2>
+      </div>
+      <div class="section">
+        <ol class="steps">
+          <li class="step">
+            <div class="body"><b>馬桶本體：</b>按一下 <span class="key">停止鍵</span>。</div>
+          </li>
+          <li class="step">
+            <div class="body"><b>馬桶本體：</b>長按 <span class="key">屁屁清洗鍵</span> → <b>電源燈閃爍</b>（進入「準備接收」）。</div>
+          </li>
+          <li class="step">
+            <div class="body"><b>遙控器：</b>按 <span class="key">停止鍵</span> → 聽到 <b>B 一聲</b>，表示完成配對。</div>
+          </li>
+          <li class="step">
+            <div class="body"><b>馬桶本體：</b>再次按 <span class="key">停止鍵</span>，將電源打開即可使用。</div>
+          </li>
+        </ol>
+      </div>
+    </article>
+
+    <footer>
+      版本：v1.0 · 本頁僅整理實際操作步驟以便現場使用。
+    </footer>
+  </div>
+</body>
+</html>

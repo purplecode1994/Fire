@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LG WD-S90VDW 洗程速查</title>
+<style>
+  body{margin:0;font-family:-apple-system,"Microsoft JhengHei",sans-serif;background:#fff;color:#111}
+  header{position:sticky;top:0;background:#fff;padding:12px;border-bottom:1px solid #ddd;
+    font-size:18px;font-weight:700;text-align:center}
+  .wrap{padding:14px;max-width:900px;margin:auto}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .accordion{
+    width:100%;padding:14px;font-size:16px;font-weight:600;text-align:left;
+    border:1px solid #ccc;border-radius:8px;background:#f9f9f9;cursor:pointer;
+    transition:background .2s,color .2s;
+  }
+  .accordion.open {grid-column:span 2;
+    background:#dbeafe;color:#1e3a8a;border-color:#93c5fd;border-radius:8px 8px 0 0;}
+  .panel{
+    grid-column:span 2;overflow:hidden;max-height:0;
+    border:1px solid #eee;border-radius:0 0 8px 8px;background:#fafafa;font-size:14px;
+    transition:max-height .4s ease;
+  }
+  .panel.open{background:#eff6ff;border-color:#93c5fd;color:#1e3a8a;padding:14px}
+  .panel p{margin:6px 0}
+  .opt{
+    display:inline-block;
+    padding:2px 6px;
+    margin:4px 2px; /* 上下4px，左右2px，原本是0 2px */
+    border-radius:6px;
+    font-size:13px;
+    font-weight:600
+  }
+  .cold{border:1px solid #0284c7;background:#e0f2fe;color:#075985}
+  .warm{border:1px solid #f97316;background:#ffedd5;color:#9a3412}
+  .rpm {border:1px solid #3b82f6;background:#eff6ff;color:#1e40af}
+
+  .ai-dd-btn {
+    display:inline-block;
+    margin:8px 0 0 0;
+    padding:6px 18px;
+    background:#2563eb;
+    color:#fff;
+    border:none;
+    border-radius:6px;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .2s;
+  }
+  .ai-dd-btn:hover { background:#1d4ed8; }
+
+  .ai-dd-modal-bg {
+    display:none;
+    position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;
+    background:rgba(0,0,0,0.25);
+  }
+  .ai-dd-modal-bg.open { display:block; }
+  .ai-dd-modal {
+    position:fixed;z-index:1001;left:50%;top:50%;transform:translate(-50%,-50%);
+    background:#fff;border-radius:12px;box-shadow:0 4px 24px #0002;
+    max-width:90vw;width:400px;padding:28px 22px 18px 22px;
+    font-size:15px;color:#222;
+    animation:fadeIn .2s;
+  }
+  .ai-dd-modal h3 {margin:0 0 12px 0;font-size:18px;color:#1e40af;}
+  .ai-dd-modal ul {padding-left:20px;margin:0;}
+  .ai-dd-modal li {margin-bottom:10px;}
+  .ai-dd-modal .close-btn {
+    position:absolute;right:18px;top:12px;
+    background:none;border:none;font-size:20px;cursor:pointer;color:#888;
+  }
+  @keyframes fadeIn {from{opacity:0;transform:translate(-50%,-60%);}to{opacity:1;transform:translate(-50%,-50%);}}
+
+  .main-actions {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin: 38px auto 0 auto;
+    max-width: 600px;
+    padding-bottom: 80px; /* 保留底部空間 */
+  }
+  .main-action-box {
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 14px;
+    width: 140px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    box-shadow: 0 2px 8px #0001;
+    margin: 0;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .main-action-btn {
+    flex: none;
+    width: 120px;
+    height: 36px;
+    padding: 0;
+    background: #f1f5f9;
+    color: #1e293b;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s;
+    min-width: 0;
+    box-shadow: none;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .main-action-btn:hover {
+    background: #2563eb;
+    color: #fff;
+  }
+
+  .main-modal-bg {
+    display: none;
+    position: fixed; z-index: 1100; left: 0; top: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.18);
+  }
+  .main-modal-bg.open { display: block; }
+  .main-modal {
+    position: fixed; z-index: 1101; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    background: #fff; border-radius: 12px; box-shadow: 0 4px 24px #0002;
+    max-width: 92vw; width: 370px; padding: 26px 20px 18px 20px;
+    font-size: 15px; color: #222;
+    animation: fadeIn .2s;
+  }
+  .main-modal h3 {margin:0 0 12px 0;font-size:17px;color:#1e40af;}
+  .main-modal ul {padding-left:20px;margin:0;}
+  .main-modal li {margin-bottom:8px;}
+  .main-modal .close-btn {
+    position:absolute;right:16px;top:10px;
+    background:none;border:none;font-size:20px;cursor:pointer;color:#888;
+  }
+
+  /* 新增狀態指示燈樣式 */
+  .status-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 18px;
+    align-items: flex-start;
+  }
+  .indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 62px;
+    min-width: 0;
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 16px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 8px #0001;
+    padding: 8px 0 6px 0;
+    margin: 0;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .indicator:hover {
+    border-color: #2563eb;
+  }
+  .indicator img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    display: block;
+  }
+  /* 隱藏說明文字 */
+  .indicator div { display: none; }
+  /* modal 樣式共用 */
+  .indicator-modal-bg {
+    display: none;
+    position: fixed; z-index: 1200; left: 0; top: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.18);
+  }
+  .indicator-modal-bg.open { display: block; }
+  .indicator-modal {
+    position: fixed; z-index: 1201; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    background: #fff; border-radius: 14px; box-shadow: 0 4px 24px #0002;
+    max-width: 90vw; width: 320px; padding: 26px 20px 18px 20px;
+    font-size: 15px; color: #222;
+    animation: fadeIn .2s;
+    text-align: center;
+  }
+  .indicator-modal .close-btn {
+    position:absolute;right:16px;top:10px;
+    background:none;border:none;font-size:20px;cursor:pointer;color:#888;
+  }
+  .indicator-modal h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #1e40af;
+  }
+  .indicator-modal p {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    color: #334155;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<header>LG WD-S90VDW 洗程速查</header>
+<div class="wrap">
+
+  <!-- 狀態指示燈區塊 -->
+  <div class="status-indicators">
+    <div class="indicator" data-indicator="1">
+      <img src="./icon/1.png" alt="流程" />
+    </div>
+    <div class="indicator" data-indicator="2">
+      <img src="./icon/2.png" alt="AI DD" />
+    </div>
+    <div class="indicator" data-indicator="3">
+      <img src="./icon/3.png" alt="剩餘時間" />
+    </div>
+    <div class="indicator" data-indicator="4">
+      <img src="./icon/4.png" alt="提示音關閉" />
+    </div>
+    <div class="indicator" data-indicator="5">
+      <img src="./icon/5.png" alt="預洗" />
+    </div>
+    <div class="indicator" data-indicator="6">
+      <img src="./icon/6.png" alt="童鎖" />
+    </div>
+    <div class="indicator" data-indicator="7">
+      <img src="./icon/7.png" alt="Wi-Fi" />
+    </div>
+    <div class="indicator" data-indicator="8">
+      <img src="./icon/8.png" alt="遠端" />
+    </div>
+    <div class="indicator" data-indicator="9">
+      <img src="./icon/9.png" alt="門鎖" />
+    </div>
+      <div class="indicator" data-indicator="10">
+      <img src="./icon/10.png" alt="衣物類型" />
+    </div>
+  </div>
+
+
+  <div class="grid">
+
+    <!-- 棉麻衣物 -->
+    <div>
+      <button class="accordion">棉麻衣物</button>
+      <div class="panel">
+        <p style="color:#2563eb;font-weight:600;">支援 AI DD</p>
+        <p>水溫：<span class="opt cold">冷水</span><span class="opt cold">20℃</span><span class="opt cold">30℃</span><span class="opt warm">40℃</span><span class="opt warm">50℃</span><span class="opt warm">60℃</span></p>
+        <p>轉速：<span class="opt rpm">800</span><span class="opt rpm">1000</span><span class="opt rpm">1200</span><span class="opt rpm">1400 rpm</span></p>
+        <p>最大量：9 kg</p>
+        <p>說明：標準程式，適合一般棉麻衣物。</p>
+      </div>
+    </div>
+
+    <!-- 精緻衣物 -->
+    <div>
+      <button class="accordion">精緻衣物</button>
+      <div class="panel">
+        <p>水溫：<span class="opt cold">冷水</span><span class="opt cold">20℃</span><span class="opt cold">30℃</span><span class="opt warm">40℃</span></p>
+        <p>轉速：<span class="opt rpm">400</span><span class="opt rpm">600</span><span class="opt rpm">800 rpm</span></p>
+        <p>最大量：3 kg</p>
+        <p>說明：柔和洗滌，保護絲質、蕾絲、內衣。</p>
+      </div>
+    </div>
+
+    <!-- 大量衣物 -->
+    <div>
+      <button class="accordion">大量衣物</button>
+      <div class="panel">
+        <p>水溫：<span class="opt cold">冷水</span><span class="opt cold">20℃</span><span class="opt cold">30℃</span><span class="opt warm">40℃</span><span class="opt warm">50℃</span><span class="opt warm">60℃</span></p>
+        <p>轉速：<span class="opt rpm">800</span><span class="opt rpm">1000</span><span class="opt rpm">1200</span><span class="opt rpm">1400 rpm</span></p>
+        <p>最大量：9 kg</p>
+        <p>說明：床單、被套、毛巾等大件衣物。</p>
+      </div>
+    </div>
+
+    <!-- 羊毛／柔洗 -->
+    <div>
+      <button class="accordion">羊毛／柔洗</button>
+      <div class="panel">
+        <p>水溫：<span class="opt cold">冷水</span><span class="opt cold">20℃</span><span class="opt cold">30℃</span><span class="opt warm">40℃</span></p>
+        <p>轉速：<span class="opt rpm">400</span><span class="opt rpm">600</span><span class="opt rpm">800 rpm</span></p>
+        <p>最大量：2 kg</p>
+        <p>說明：低速擺動避免縮絨，建議羊毛專用洗劑。</p>
+      </div>
+    </div>
+
+    <!-- 高溫去污 -->
+    <div>
+      <button class="accordion">高溫去污</button>
+      <div class="panel">
+        <p style="color:#2563eb;font-weight:600;">支援 AI DD</p>
+        <p>水溫：<span class="opt warm">40℃</span><span class="opt warm">50℃</span><span class="opt warm">60℃</span></p>
+        <p>轉速：<span class="opt rpm">800</span><span class="opt rpm">1000 rpm</span></p>
+        <p>最大量：4 kg</p>
+        <p>說明：高溫強效，分解頑固污漬。</p>
+      </div>
+    </div>
+
+    <!-- 快洗 30 -->
+    <div>
+      <button class="accordion">快洗 30</button>
+      <div class="panel">
+        <p>水溫：<span class="opt cold">冷水</span><span class="opt cold">20℃</span><span class="opt cold">30℃</span><span class="opt warm">40℃</span></p>
+<p>轉速：
+  <span class="opt rpm">800</span>
+  <span class="opt rpm">1000</span>
+  <span class="opt rpm">1200</span>
+  <span class="opt rpm">1400 rpm</span>
+</p>
+        <p>最大量：2 kg</p>
+        <p>說明：30 分鐘快速清洗少量輕污衣物。</p>
+      </div>
+    </div>
+
+    <!-- 化學纖維 -->
+    <div>
+      <button class="accordion">化學纖維</button>
+      <div class="panel">
+        <p style="color:#2563eb;font-weight:600;">支援 AI DD</p>
+        <p>水溫：<span class="opt cold">冷水</span><span class="opt cold">20℃</span><span class="opt cold">30℃</span><span class="opt warm">40℃</span><span class="opt warm">50℃</span><span class="opt warm">60℃</span></p>
+        <p>轉速：<span class="opt rpm">800</span><span class="opt rpm">1000</span><span class="opt rpm">1200</span><span class="opt rpm">1400 rpm</span></p>
+        <p>最大量：4 kg</p>
+        <p>說明：適合合成纖維與混紡，減少靜電。</p>
+      </div>
+    </div>
+
+    <!-- 烘乾 -->
+    <div>
+      <button class="accordion">烘乾</button>
+      <div class="panel">
+        <p>水溫：—</p>
+        <p>轉速：<span class="opt rpm">1000</span><span class="opt rpm">1200</span><span class="opt rpm">1400 rpm</span></p>
+        <p>最大量：6 kg</p>
+        <p>說明：電子感應控制烘乾，防止過熱。</p>
+      </div>
+    </div>
+    <!-- 靜音洗滌 -->
+    <div>
+      <button class="accordion">靜音洗滌</button>
+      <div class="panel">
+        <p>水溫：<span class="opt cold">冷水</span><span class="opt cold">20℃</span><span class="opt cold">30℃</span><span class="opt warm">40℃</span><span class="opt warm">50℃</span><span class="opt warm">60℃</span></p>
+        <p>轉速：<span class="opt rpm">800</span><span class="opt rpm">1000 rpm</span></p>
+        <p>最大量：5 kg</p>
+        <p>說明：低噪音、低震動設計，適合夜間使用。</p>
+      </div>
+    </div>
+
+    <!-- 洗衣+烘乾 -->
+    <div>
+      <button class="accordion">洗衣+烘乾</button>
+      <div class="panel">
+        <p>水溫：<span class="opt cold">冷水</span><span class="opt warm">40℃</span><span class="opt warm">60℃</span></p>
+        <p>轉速：<span class="opt rpm">1000</span><span class="opt rpm">1200</span><span class="opt rpm">1400 rpm</span></p>
+        <p>最大量：洗 9 kg ➜ 烘 6 kg</p>
+        <p>說明：一鍵完成洗滌與烘乾，省時省力。</p>
+      </div>
+    </div>
+
+    <!-- 過敏防護 -->
+    <div>
+      <button class="accordion">過敏防護</button>
+      <div class="panel">
+        <p>水溫：固定 <span class="opt warm">60℃</span></p>
+        <p>轉速：<span class="opt rpm">800</span><span class="opt rpm">1000</span><span class="opt rpm">1200</span><span class="opt rpm">1400 rpm</span></p>
+        <p>最大量：4 kg</p>
+        <p>說明：高溫長時間洗滌，有效去除塵蟎與過敏原。</p>
+      </div>
+    </div>
+
+    <!-- 筒槽殺菌 -->
+    <div>
+      <button class="accordion">筒槽殺菌</button>
+      <div class="panel">
+        <p>水溫：—</p>
+        <p>轉速：—</p>
+        <p>最大量：—</p>
+        <p>說明：高溫水流清潔筒槽內壁，抑制霉菌異味。</p>
+      </div>
+    </div>
+
+    <!-- 寶貝蒸氣洗 -->
+    <div>
+      <button class="accordion">寶貝蒸氣洗</button>
+      <div class="panel">
+        <p>水溫：固定 <span class="opt warm">60℃</span></p>
+        <p>轉速：<span class="opt rpm">800</span><span class="opt rpm">1000 rpm</span></p>
+        <p>最大量：4 kg</p>
+        <p>說明：蒸氣滲透纖維，深層去污，適合嬰幼兒衣物。</p>
+      </div>
+    </div>
+
+    <!-- 雲端客製 -->
+    <div>
+      <button class="accordion">雲端客製</button>
+      <div class="panel">
+        <p>水溫：依下載程式</p>
+        <p>轉速：依程式</p>
+        <p>最大量：依程式</p>
+        <p>說明：透過 LG ThinQ App 下載專用洗程。</p>
+      </div>
+    </div>
+
+  </div><!-- /.grid -->
+</div><!-- /.wrap -->
+</div>
+
+<!-- 底部三大功能按鈕 -->
+<div class="main-actions">
+  <div class="main-action-box">
+    <button class="main-action-btn" data-main-modal="detergent">洗劑盒</button>
+  </div>
+  <div class="main-action-box">
+    <button class="main-action-btn" data-main-modal="spin">執行脫水</button>
+  </div>
+  <div class="main-action-box">
+    <button class="main-action-btn" data-main-modal="dry">烘乾行程</button>
+  </div>
+</div>
+
+<!-- 洗劑盒 Modal -->
+<div class="main-modal-bg" id="modalDetergent">
+  <div class="main-modal">
+    <button class="close-btn" data-close-main-modal title="關閉">&times;</button>
+    <h3>洗劑盒分格說明</h3>
+    <ul>
+      <li><b>大格 (Main Wash / II 槽)</b><br>
+        放主洗洗劑（粉狀或液體皆可）。<br>
+        一般日常洗衣使用。<br>
+        即使選「預洗」，主洗洗劑仍放這格。
+      </li>
+      <li><b>中格 (Pre-Wash / I 槽)</b><br>
+        放預洗用洗劑。<br>
+        只在啟動「預洗」選項時才會進水。<br>
+        若沒預洗，這格不會用到。
+      </li>
+      <li><b>小格 (Softener / ✿ 槽)</b><br>
+        放柔軟精 / 衣物護理劑。<br>
+        在最後一次漂洗時自動加入。<br>
+        請勿超過 MAX 線，避免過早流入。
+      </li>
+    </ul>
+  </div>
+</div>
+<!-- 烘乾行程 Modal -->
+<div class="main-modal-bg" id="modalDry">
+  <div class="main-modal">
+    <button class="close-btn" data-close-main-modal title="關閉">&times;</button>
+    <h3>烘乾行程說明</h3>
+    <ul>
+      <li>
+        <img src="./icon/1h.png" alt="一般烘乾" style="height:20px;vertical-align:middle;margin-right:6px;">
+        <b>一般</b><br>
+        用途：縮短烘乾時間，減少電力消耗。<br>
+        材質類型：棉、亞麻（毛巾、T 恤、床單）。<br>
+        最大衣物量：額定容量。<br>
+        時間選擇：30 / 60 / 120 分鐘<br>
+        30 分鐘 → 1 公斤<br>
+        60 分鐘 → 2 公斤<br>
+        120 分鐘 → 4 公斤
+      </li>
+
+      <li>
+        <img src="./icon/2h.png" alt="熨燙衣服" style="height:20px;vertical-align:middle;margin-right:6px;">
+        <b>熨燙衣服</b><br>
+        用途：衣物保持微濕，方便後續熨燙。<br>
+        材質類型：棉、亞麻。<br>
+        最大衣物量：額定容量。
+      </li>
+
+      <li>
+        <img src="./icon/3h.png" alt="低溫烘乾" style="height:20px;vertical-align:middle;margin-right:6px;">
+        <b>低溫</b><br>
+        用途：低溫烘乾，減少衣物損壞。<br>
+        材質類型：精緻衣物。<br>
+        最大衣物量：3.5 公斤。
+      </li>
+
+      <li>
+        <img src="./icon/4h.png" alt="標準節能" style="height:20px;vertical-align:middle;margin-right:6px;">
+        <b>標準節能</b><br>
+        用途：節能乾衣行程。<br>
+        材質類型：棉、亞麻（毛巾、T 恤、床單）。<br>
+        最大衣物量：額定容量。
+      </li>
+    </ul>
+  </div>
+</div>
+<!-- 預先清洗 Modal -->
+<div class="main-modal-bg" id="modalPrewash">
+  <div class="main-modal">
+    <button class="close-btn" data-close-main-modal title="關閉">&times;</button>
+    <h3>預洗 (Pre-Wash) 的意思</h3>
+    <ul>
+      <li>在主洗前，先用清水或少量洗劑沖洗衣物，去除大部分灰塵、泥土。</li>
+      <li>適合特別髒的衣物（運動服、工作服、兒童衣物）。</li>
+      <li>預洗結束後，自動排水 ➝ 進入主洗行程。</li>
+    </ul>
+  </div>
+</div>
+<!-- 執行脫水 Modal -->
+<div class="main-modal-bg" id="modalSpin">
+  <div class="main-modal">
+    <button class="close-btn" data-close-main-modal title="關閉">&times;</button>
+    <h3>只脫水操作（觸控面板）</h3>
+    <ul>
+      <li>開機 → 按下電源鍵。</li>
+      <li>觸控「脫水 (Spin)」鍵 → 顯示可選轉速（400 / 800 / 1000 / 1200 / 1400 rpm）。</li>
+      <li>選擇轉速。</li>
+      <li>按下「開始/暫停」 → 直接執行脫水程序。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- AI DD Modal -->
+<div class="ai-dd-modal-bg" id="aiDdModalBg">
+  <div class="ai-dd-modal">
+    <button class="close-btn" id="aiDdCloseBtn" title="關閉">&times;</button>
+    <h3>AI DD 智慧直驅六大動作</h3>
+    <ul>
+      <li><b>Stepping（踏步）</b><br>➝ 主要是「拍打 / 拍落」衣物，幫助去除頑固污漬。</li>
+      <li><b>Filtration（過濾水流 / 滲透）</b><br>➝ 水流快速穿透布料，讓洗劑均勻滲入衣物纖維。</li>
+      <li><b>Scrubbing（搓揉）</b><br>➝ 模擬手洗時的搓揉，加強洗淨力。</li>
+      <li><b>Tumbling（翻滾）</b><br>➝ 最基本的滾筒轉動，適合一般日常清洗。</li>
+      <li><b>Rolling（滾壓 / 攤平滾動）</b><br>➝ 衣物貼著內槽緩慢滾動，降低衣物纏繞與皺褶。</li>
+      <li><b>Swing（搖擺 / 擺動）</b><br>➝ 輕柔搖動，適合絲質、羊毛等精緻布料。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 9個指示燈 modal -->
+<div class="indicator-modal-bg" id="indicatorModal1">
+    <div class="indicator-modal">
+      <button class="close-btn" data-close-indicator-modal>&times;</button>
+      <h3>流程指示燈</h3>
+      <!-- ↓ 這裡可以自行調整圖片路徑、檔名、寬高等屬性 -->
+      <img src="./icon/1-2.png" alt="流程圖示" style="width:100px;height:30px;display:block;margin:8px auto 8px auto;">
+      <p>顯示流程：洗滌 → 脫水 → 烘乾。</p>
+    </div>
+  </div>
+  <div class="indicator-modal-bg" id="indicatorModal2">
+    <div class="indicator-modal">
+      <button class="close-btn" data-close-indicator-modal>&times;</button>
+      <h3>AI DD 指示燈</h3>
+      <p>當程式為「棉麻衣物 / 高溫去汙 / 化學纖維」時會亮起，表示系統正在自動感測重量與布料，決定 6 Motion 洗滌方式。</p>
+      <button id="aiDdDetailToggle" style="margin:12px auto 0 auto;display:block;background:#e0e7ff;color:#1e40af;border:none;border-radius:6px;padding:4px 14px;font-size:14px;cursor:pointer;">顯示 AI DD 智慧直驅六大動作</button>
+      <div id="aiDdDetail" style="display:none;margin-top:10px;text-align:left;">
+        <p><b>Stepping（踏步）</b><br>➝ 主要是「拍打 / 拍落」衣物，幫助去除頑固污漬。</p>
+        <p><b>Filtration（過濾水流 / 滲透）</b><br>➝ 水流快速穿透布料，讓洗劑均勻滲入衣物纖維。</p>
+        <p><b>Scrubbing（搓揉）</b><br>➝ 模擬手洗時的搓揉，加強洗淨力。</p>
+        <p><b>Tumbling（翻滾）</b><br>➝ 最基本的滾筒轉動，適合一般日常清洗。</p>
+        <p><b>Rolling（滾壓 / 攤平滾動）</b><br>➝ 衣物貼著內槽緩慢滾動，降低衣物纏繞與皺褶。</p>
+        <p><b>Swing（搖擺 / 擺動）</b><br>➝ 輕柔搖動，適合絲質、羊毛等精緻布料。</p>
+      </div>
+    </div>
+  </div>
+  <div class="indicator-modal-bg" id="indicatorModal3">
+    <div class="indicator-modal">
+      <button class="close-btn" data-close-indicator-modal>&times;</button>
+      <h3>估計時間顯示</h3>
+      <p>顯示當前行程的剩餘時間。</p>
+    </div>
+  </div>
+  <div class="indicator-modal-bg" id="indicatorModal4">
+    <div class="indicator-modal">
+      <button class="close-btn" data-close-indicator-modal>&times;</button>
+      <h3>提示音關閉指示燈</h3>
+      <p>提示音關閉時，亮起。</p>
+    </div>
+  </div>
+  <div class="indicator-modal-bg" id="indicatorModal5">
+    <div class="indicator-modal">
+      <button class="close-btn" data-close-indicator-modal>&times;</button>
+      <h3>預洗指示燈</h3>
+      <p>啟用「預洗」時亮起。</p>
+      <button id="prewashDetailToggle" style="margin:12px auto 0 auto;display:block;background:#e0e7ff;color:#1e40af;border:none;border-radius:6px;padding:4px 14px;font-size:14px;cursor:pointer;">顯示預洗 (Pre-Wash) 的意思</button>
+      <div id="prewashDetail" style="display:none;margin-top:10px;text-align:left;">
+        <p><b>預洗 (Pre-Wash) 的意思</b></p>
+        <p>在主洗前，先用清水或少量洗劑沖洗衣物，去除大部分灰塵、泥土。</p>
+        <p>適合特別髒的衣物（運動服、工作服、兒童衣物）。</p>
+        <p>預洗結束後，自動排水 ➝ 進入主洗行程。</p>
+      </div>
+    </div>
+  </div>
+  <div class="indicator-modal-bg" id="indicatorModal6">
+    <div class="indicator-modal">
+      <button class="close-btn" data-close-indicator-modal>&times;</button>
+      <h3>控制面板鎖定指示燈 (Child Lock)</h3>
+      <p>童鎖功能啟動時亮起，防止誤觸。</p>
+    </div>
+  </div>
+  <div class="indicator-modal-bg" id="indicatorModal7">
+    <div class="indicator-modal">
+      <button class="close-btn" data-close-indicator-modal>&times;</button>
+      <h3>Wi-Fi 指示燈</h3>
+      <p>當電器連接到家中 Wi-Fi 時亮起。</p>
+    </div>
+  </div>
+  <div class="indicator-modal-bg" id="indicatorModal8">
+    <div class="indicator-modal">
+      <button class="close-btn" data-close-indicator-modal>&times;</button>
+      <h3>遠端功能指示燈 (Remote Start)</h3>
+      <p>啟用遠端控制時亮起，可透過 LG ThinQ App 操作。</p>
+    </div>
+  </div>
+  <div class="indicator-modal-bg" id="indicatorModal9">
+    <div class="indicator-modal">
+      <button class="close-btn" data-close-indicator-modal>&times;</button>
+      <h3>門鎖指示燈 (Door Lock)</h3>
+      <p>行程開始且門已經關上時亮起。</p>
+    </div>
+  </div>
+
+<div class="indicator-modal-bg" id="indicatorModa11">
+  <div class="indicator-modal">
+    <button class="close-btn" data-close-indicator-modal>&times;</button>
+    <h3>衣物洗滌標示說明</h3>
+
+    <div>
+      <img src="./icon/1s.png" alt="標準機洗"
+           style="width:30px;height:30px;vertical-align:middle;margin-right:6px;">
+      <b>標準機洗</b><br>
+      適合棉質、混紡等常見衣物。
+    </div>
+    <hr>
+
+    <div>
+      <img src="./icon/2s.png" alt="人造纖維"
+           style="width:30px;height:30px;vertical-align:middle;margin-right:6px;">
+      <b>人造纖維</b><br>
+      合成纖維或混紡織物，需低溫或溫和洗程。
+    </div>
+    <hr>
+
+    <div>
+      <img src="./icon/3s.png" alt="精緻衣物"
+           style="width:30px;height:30px;vertical-align:middle;margin-right:6px;">
+      <b>精緻衣物</b><br>
+      特殊材質，需柔洗，避免高溫。
+    </div>
+    <hr>
+
+    <div>
+      <img src="./icon/4s.png" alt="僅用手洗"
+           style="width:30px;height:30px;vertical-align:middle;margin-right:6px;">
+      <b>僅用手洗</b><br>
+      羊毛、絲綢等，建議手洗避免損壞。
+    </div>
+    <hr>
+
+    <div>
+      <img src="./icon/5s.png" alt="不可水洗"
+           style="width:30px;height:30px;vertical-align:middle;margin-right:6px;">
+      <b>不可水洗</b><br>
+      只能乾洗或特殊處理，不可放入洗衣機。
+    </div>
+
+  </div>
+</div>
+
+
+
+<script>
+  const acc = document.querySelectorAll(".accordion");
+  acc.forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const panel=btn.nextElementSibling;
+      const isOpen=btn.classList.contains("open");
+
+      // 先收合全部
+      document.querySelectorAll(".accordion").forEach(b=>b.classList.remove("open"));
+      document.querySelectorAll(".panel").forEach(p=>{
+        p.style.maxHeight=null;
+        p.classList.remove("open");
+      });
+
+      // 如果當前是關閉的，就打開
+      if(!isOpen){
+        btn.classList.add("open");
+        panel.classList.add("open");
+        panel.style.maxHeight=panel.scrollHeight+"px";
+      }
+    });
+  });
+
+  // AI DD modal 控制
+  const aiDdBtns = document.querySelectorAll('[data-ai-dd]');
+  const aiDdModalBg = document.getElementById('aiDdModalBg');
+  const aiDdCloseBtn = document.getElementById('aiDdCloseBtn');
+  aiDdBtns.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      aiDdModalBg.classList.add('open');
+    });
+  });
+  aiDdCloseBtn.addEventListener('click',()=>{
+    aiDdModalBg.classList.remove('open');
+  });
+  aiDdModalBg.addEventListener('click', e=>{
+    if(e.target===aiDdModalBg) aiDdModalBg.classList.remove('open');
+  });
+
+  // 底部三大功能 modal 控制
+  const mainModalBtns = document.querySelectorAll('[data-main-modal]');
+  const mainModals = {
+    detergent: document.getElementById('modalDetergent'),
+    prewash: document.getElementById('modalPrewash'),
+    spin: document.getElementById('modalSpin'),
+    dry: document.getElementById('modalDry')
+  };
+  mainModalBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      Object.values(mainModals).forEach(m => m.classList.remove('open'));
+      const key = btn.getAttribute('data-main-modal');
+      if (mainModals[key]) mainModals[key].classList.add('open');
+    });
+  });
+  document.querySelectorAll('[data-close-main-modal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      Object.values(mainModals).forEach(m => m.classList.remove('open'));
+    });
+  });
+  // 點擊 modal 背景關閉
+  Object.values(mainModals).forEach(m => {
+    m.addEventListener('click', e => {
+      if (e.target === m) m.classList.remove('open');
+    });
+  });
+
+  // 狀態指示燈 modal 控制
+  document.querySelectorAll('.indicator').forEach(ind => {
+    ind.addEventListener('click', () => {
+      const idx = ind.getAttribute('data-indicator');
+      // 特殊處理10號
+      let modal;
+      if (idx === '10') {
+        modal = document.getElementById('indicatorModa11');
+      } else {
+        modal = document.getElementById('indicatorModal' + idx);
+      }
+      if (modal) modal.classList.add('open');
+    });
+  });
+  document.querySelectorAll('[data-close-indicator-modal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.closest('.indicator-modal-bg').classList.remove('open');
+    });
+  });
+  document.querySelectorAll('.indicator-modal-bg').forEach(bg => {
+    bg.addEventListener('click', e => {
+      if (e.target === bg) bg.classList.remove('open');
+    });
+  });
+
+  // AI DD 六大動作展開/收合
+  const aiDdDetailToggle = document.getElementById('aiDdDetailToggle');
+  const aiDdDetail = document.getElementById('aiDdDetail');
+  if(aiDdDetailToggle && aiDdDetail){
+    aiDdDetailToggle.addEventListener('click',()=>{
+      const open = aiDdDetail.style.display === 'block';
+      aiDdDetail.style.display = open ? 'none' : 'block';
+      aiDdDetailToggle.textContent = open ? '顯示 AI DD 智慧直驅六大動作' : '隱藏 AI DD 智慧直驅六大動作';
+    });
+  }
+
+  // 預洗展開/收合
+  const prewashDetailToggle = document.getElementById('prewashDetailToggle');
+  const prewashDetail = document.getElementById('prewashDetail');
+  if(prewashDetailToggle && prewashDetail){
+    prewashDetailToggle.addEventListener('click',()=>{
+      const open = prewashDetail.style.display === 'block';
+      prewashDetail.style.display = open ? 'none' : 'block';
+      prewashDetailToggle.textContent = open ? '顯示預洗 (Pre-Wash) 的意思' : '隱藏預洗 (Pre-Wash) 的意思';
+    });
+  }
+</script>
+</body>
+</html>
