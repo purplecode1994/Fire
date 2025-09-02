@@ -40,8 +40,17 @@
     .step:last-child{border-bottom:none}
     .step .body b{font-weight:700}
 
-    .key{display:inline-block; border:1px solid var(--line); background:#fff; padding:2px 8px; border-radius:10px; font-weight:600; box-shadow:inset 0 -1px 0 rgba(0,0,0,.03)}
-    .muted{color:var(--muted)}
+.key {
+  display:inline-block;
+  border:1px solid var(--line);   /* 灰色邊框 */
+  background:#fff;               /* 白底 */
+  padding:1px 8px;               /* 上下 2px、左右 8px，決定膠囊大小 */
+  border-radius:10px;            /* 圓角 → 膠囊形狀 */
+  font-weight:600;               /* 粗體 */
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.03); /* 微凹效果 */
+  margin:4px;            /* 外距，避免膠囊之間太靠近 */
+} 
+   .muted{color:var(--muted)}
     .hint{margin-top:8px; font-size:13px; color:var(--muted)}
 
     .note{display:flex; gap:10px; padding:10px 12px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; border-radius:12px; font-size:14px}
