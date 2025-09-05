@@ -6,6 +6,7 @@
   <title>進度查詢</title>
   <link rel="stylesheet" href="style.css">
   <style>
+    /* 額外卡片樣式 */
     .detail-card {
       background: #fdfdfd;
       border: 1px solid #ddd;
@@ -34,6 +35,20 @@
       box-shadow:inset 0 0 5px rgba(0,0,0,0.3);
       text-align:left;
     }
+
+    /* === 展開細項動畫 === */
+    .detail-content {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      margin-top: 0;
+      transition: max-height .5s ease, opacity .4s ease, margin-top .4s ease;
+    }
+    .detail-content.show {
+      max-height: 500px; /* 足夠大的值以容納內容 */
+      opacity: 1;
+      margin-top: 12px;  /* 留白，避免太突兀 */
+    }
   </style>
 </head>
 <body>
@@ -48,22 +63,18 @@
     <div id="queryResult"></div>
 
     <!-- 可讀資訊（給使用者看） -->
-    <div id="detailBox" class="detail-card" style="display:none;"></div>
+    <div id="detailBox" class="detail-card hidden"></div>
 
     <!-- JSON 原始內容（給 Debug） -->
-   <pre id="debugJson" style="display:none;">{}</pre>
-
+    <pre id="debugJson" class="hidden">{}</pre>
 
     <div class="back"><a href="index.html">← 返回入口</a></div>
   </div>
-
-
-  
 <script>
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr; // 如果不是合法日期就原樣顯示
+  if (isNaN(d)) return dateStr;
   return d.getFullYear() + "-" +
          String(d.getMonth() + 1).padStart(2, "0") + "-" +
          String(d.getDate()).padStart(2, "0");
@@ -80,7 +91,7 @@ function checkSerial(){
   if(!serial){
     box.textContent = "請輸入序列號";
     box.className = "status-error show";
-    detailBox.style.display = "none";
+    detailBox.classList.add("hidden");
     debugBox.textContent = "{}";
     return;
   }
@@ -88,15 +99,11 @@ function checkSerial(){
   fetch(GAS_URL + "?serial=" + encodeURIComponent(serial))
     .then(res => res.json())
     .then(data => {
-      // JSON Debug
       debugBox.textContent = JSON.stringify(data, null, 2);
-
-      // 預設不顯示卡片
-      detailBox.style.display = "none";
+      detailBox.classList.add("hidden");
       detailBox.innerHTML = "";
 
       if(data.success){
-        // 狀態提示
         if(data.status === "申請中"){
           box.textContent = "⏳ 申請中";
           box.className = "status-pending show";
@@ -105,17 +112,15 @@ function checkSerial(){
           box.className = "status-approved show";
         }
 
-        // 品項內容（截斷 8 字）
         let shortItem = data.item.length > 8 ? data.item.slice(0,8) + "…" : data.item;
         let displayItem = data.brand ? `${data.brand} ${shortItem}` : shortItem;
 
-        // 主要顯示卡片
         let html = `
           <p>📌 <b>序列號：</b>${data.serial}</p>
           <p>🏢 <b>申請單位：</b>${data.unit}</p>
           <p>📅 <b>申請日期：</b>${formatDate(data.date)}</p>
           <p>🛒 <b>品項內容：</b>${displayItem}</p>
-          <button class="btn-toggle" onclick="toggleDetail(this)">🔽 展開細項</button>
+          <button class="btn-query" onclick="toggleDetail(this)">🔽 展開細項</button>
           <div class="detail-content">
             <p>• 品項內容：${data.item}</p>
             <p>• 規格：${data.spec}</p>
@@ -123,8 +128,25 @@ function checkSerial(){
           </div>
         `;
 
-        detailBox.innerHTML = html;
-        detailBox.style.display = "block";
+        // 🔽 如果是已核准，加上前往請購按鈕
+if(data.status === "已核准"){
+  html += `
+    <button id="btnPurchase" class="btn-apply">
+      ➡ 前往請購申請
+    </button>
+  `;
+}
+
+detailBox.innerHTML = html;
+detailBox.classList.remove("hidden");
+
+// === 在這裡掛事件 ===
+if(data.status === "已核准"){
+  const btn = document.getElementById("btnPurchase");
+  btn.addEventListener("click", () => {
+    goToPurchase(data);
+  });
+}
       } else {
         box.textContent = data.display || "❌ 查無此序列號";
         box.className = "status-error show";
@@ -133,22 +155,55 @@ function checkSerial(){
     .catch(err => {
       box.textContent = "⚠️ 系統發生錯誤";
       box.className = "status-error show";
-      detailBox.style.display = "none";
+      detailBox.classList.add("hidden");
       debugBox.textContent = "{}";
     });
 }
 
-// 🔽 新增這個函數（在 checkSerial 外面）
 function toggleDetail(btn){
   const detail = btn.nextElementSibling;
-  if(detail.style.display === "block"){
-    detail.style.display = "none";
-    btn.textContent = "🔽 展開細項";
-  } else {
-    detail.style.display = "block";
-    btn.textContent = "▲ 收起細項";
+  detail.classList.toggle("show");
+  btn.textContent = detail.classList.contains("show") ? "▲ 收起細項" : "🔽 展開細項";
+}
+
+// 把資料存到 localStorage，然後跳轉
+function goToPurchase(data){
+  // 只存需要的欄位，避免超過 localStorage 限制
+  const payload = {
+    productName: (data.brand ? data.brand + " " : "") + data.item,
+    specification: data.spec + " / " + data.unitType,
+    unit: data.unit
+  };
+  
+  try {
+    localStorage.setItem("purchaseData", JSON.stringify(payload));
+    window.location.href = "simplified-purchase-form.html";
+  } catch (e) {
+    console.error("存入 localStorage 失敗", e);
+    alert("⚠️ 資料過大無法傳遞，請手動輸入。");
   }
 }
+
+document.addEventListener("DOMContentLoaded", function(){
+  const saved = localStorage.getItem("purchaseData");
+  if(saved){
+    try {
+      const data = JSON.parse(saved);
+      if(data.productName){
+        document.getElementById("productName").value = data.productName;
+      }
+      if(data.specification){
+        document.getElementById("specification").value = data.specification;
+      }
+      if(data.unit){
+        document.getElementById("department").value = data.unit;
+      }
+    } catch(e){
+      console.error("解析 purchaseData 失敗", e);
+    }
+  }
+});
+
 </script>
 </body>
 </html>
