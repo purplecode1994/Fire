@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>請購單</title>
+    <style>
+        @font-face {
+            font-family: 'DFKai-SB';
+            src: local('DFKai-SB'), local('標楷體');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        body {
+            font-family: Arial, 'Microsoft JhengHei', '微軟正黑體', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+        }
+        
+        .outer-container {
+            width: calc(210mm + 30mm); /* A4 寬度加上左右邊距 */
+            margin: 20px auto;
+            box-sizing: border-box;
+            background-color: white;
+            padding: 10mm 15mm; /* 上下10mm，左右15mm的留白 */
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            width: 210mm;
+            margin: 0 auto;
+            box-sizing: border-box;
+            background-color: white;
+        }
+        
+        .form-container {
+            border: 2px solid #000; /* 外框2px */
+            width: 210mm;
+            height: 297mm;
+            box-sizing: border-box;
+            position: relative;
+            background-color: white;
+            overflow: hidden;
+            padding: 0;
+        }
+        
+        .title-container {
+            text-align: center;
+            border-bottom: 2px solid #000; /* 標題底部邊框2px */
+            padding: 15px 0;
+            background-color: #fff;
+        }
+        
+        .company-name {
+            font-family: 'DFKai-SB', '標楷體', serif;
+            font-size: 34px;
+            font-weight: bold;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .form-title {
+            font-family: 'DFKai-SB', '標楷體', serif;
+            font-size: 28px;
+            font-weight: bold;
+            margin: 5px 0 0;
+            padding: 0;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #000; /* 內線條1px */
+            padding: 10px 20px;
+        }
+        
+        .form-body {
+            padding: 10px 20px;
+            height: calc(297mm - 200px);
+            overflow-y: auto;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+        }
+        
+        .footer {
+            display: flex;
+            justify-content: flex-start;
+            padding: 15px 20px;
+            width: 100%;
+            box-sizing: border-box;
+            border-top: 1px solid #000; /* 內線條1px */
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            background-color: white;
+        }
+        
+        .signature {
+            width: 30%;
+            text-align: center;
+            margin-right: 10px;
+        }
+        
+        .btn {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+            border-radius: 4px;
+        }
+        
+        .btn:hover {
+            background-color: #45a049;
+        }
+        
+        .control-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            width: 280px;
+        }
+        
+        .image-upload-container {
+            margin-top: 20px;
+            border: 1px dashed #ccc;
+            padding: 15px;
+            max-height: 500px;
+            overflow: hidden;
+        }
+        
+        .image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .image-grid.grid-2 .image-item {
+            width: calc(50% - 15px);
+        }
+        
+        .image-grid.grid-3 .image-item {
+            width: calc(33.33% - 15px);
+        }
+        
+        .image-grid.grid-1 .image-item {
+            width: 100%;
+        }
+        
+        .image-item {
+            border: 1px solid #ddd;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        
+        .image-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .image-description {
+            width: 100%;
+            margin-top: 10px;
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        /* 附頁樣式 */
+        .additional-page {
+            border: 2px solid #000; /* 外框2px */
+            width: 210mm;
+            height: 297mm;
+            box-sizing: border-box;
+            position: relative;
+            background-color: white;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        .page-header {
+            text-align: center;
+            border-bottom: 1px solid #000; /* 內線條1px */
+            padding: 15px 0;
+            margin-bottom: 20px;
+        }
+        
+        .page-title {
+            font-family: 'DFKai-SB', '標楷體', serif;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .content-area {
+            height: calc(297mm - 100px);
+            overflow-y: auto;
+        }
+        
+        .content-block {
+            display: flex;
+            border: 1px solid #eee;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        
+        .block-image {
+            flex: 0 0 40%;
+            padding-right: 15px;
+        }
+        
+        .block-image img {
+            width: 100%;
+            height: auto;
+        }
+        
+        .block-text {
+            flex: 0 0 60%;
+        }
+        
+        .block-text textarea {
+            width: 100%;
+            height: 150px;
+            resize: vertical;
+        }
+        
+        .warning {
+            color: #856404;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        /* 打印樣式 */
+        @media print {
+            .control-panel, .btn {
+                display: none !important;
+            }
+            
+            body {
+                background-color: white;
+            }
+            
+            .outer-container {
+                padding: 10mm 15mm; /* 打印時保持邊距 */
+                margin: 0;
+                box-shadow: none;
+            }
+            
+            .container, .additional-page {
+                margin: 0;
+                page-break-after: always;
+            }
+            
+            .form-container, .additional-page {
+                border: 2px solid #000; /* 確保打印時外框為2px */
+                overflow: hidden;
+            }
+            
+            /* 設置打印頁面邊距 */
+            @page {
+                size: A4;
+                margin: 0; /* 我們使用外層容器控制邊距，這裡設為0 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="outer-container">
+        <div class="container">
+            <div class="form-container">
+            <div class="title-container">
+                <h1 id="companyName" class="company-name">亞洲健康智慧園區</h1>
+                <h2 class="form-title">請購單</h2>
+            </div>
+            
+            <div class="header">
+                <div>申請部門：<input type="text" id="department" style="border: none; border-bottom: 1px solid #000;"></div>
+                <div>填單日期：<input type="date" id="date" style="border: none; border-bottom: 1px solid #000;"></div>
+            </div>
+            
+            <div class="form-body">
+                <div class="form-group">
+                    <label>1. 品名：</label>
+                    <input type="text" id="productName">
+                </div>
+                
+                <div class="form-group">
+                    <label>2. 規格(請查清楚後填寫)：</label>
+                    <textarea id="specification" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>3. 購買用途：</label>
+                    <textarea id="purpose" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>4. 配置場所/使用人員：</label>
+                    <textarea id="location" rows="3"></textarea>
+                </div>
+                
+                <div class="image-upload-container">
+                    <h3>上傳相關圖片</h3>
+                    <div id="firstPageImageGrid" class="image-grid grid-2">
+                        <!-- 圖片將在這裡顯示 -->
+                    </div>
+                    <div id="firstPageWarning" class="warning">警告：內容超過 A4 頁面範圍，請調整或減少內容。</div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <div class="signature">
+                    <div>總經理：</div>
+                    <div style="margin-top: 30px;"><input type="text" style="border: none; border-bottom: 1px solid #000; text-align: center;"></div>
+                </div>
+                <div class="signature">
+                    <div>部門主管：</div>
+                    <div style="margin-top: 30px;"><input type="text" style="border: none; border-bottom: 1px solid #000; text-align: center;"></div>
+                    <div style="margin-top: 15px;">審驗：</div>
+                    <div style="margin-top: 5px; height: 25px; border-bottom: 1px solid #000;"></div>
+                </div>
+                <div class="signature">
+                    <div>申請人：</div>
+                    <div style="margin-top: 30px;"><input type="text" style="border: none; border-bottom: 1px solid #000; text-align: center;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="additionalPages">
+        <!-- 附頁將在這裡添加 -->
+    </div>
+    
+    <div class="control-panel">
+        <div style="margin-bottom: 15px;">
+            <label>選擇表單標題:</label>
+            <select id="titleSelect" style="padding: 8px; width: 100%; margin-top: 5px;">
+                <option value="亞洲健康智慧園區">亞洲健康智慧園區</option>
+                <option value="亞洲健康智慧園區（第一期）公寓大廈管理負責人">亞洲健康智慧園區（第一期）公寓大廈管理負責人</option>
+            </select>
+        </div>
+        
+        <button class="btn" style="width: 100%; margin-bottom: 8px;" onclick="changeTitle()">更改表單標題</button>
+        <button class="btn" style="width: 100%; margin-bottom: 8px;" onclick="uploadFirstPageImage()">上傳第一頁圖片</button>
+        
+        <div style="margin: 10px 0;">
+            <label>第一頁圖片布局:</label>
+            <div style="display: flex; margin-top: 5px; gap: 5px;">
+                <button class="btn" style="flex: 1" onclick="changeFirstPageLayout(2)">2格</button>
+                <button class="btn" style="flex: 1" onclick="changeFirstPageLayout(3)">3格</button>
+                <button class="btn" style="flex: 1" onclick="changeFirstPageLayout(1)">1格</button>
+            </div>
+        </div>
+        
+        <button class="btn" style="width: 100%; margin-bottom: 8px;" onclick="addNewPage()">新增附頁</button>
+        <button class="btn" style="width: 100%; margin-bottom: 8px;" onclick="printForm()">列印表單</button>
+        <button class="btn" style="width: 100%; margin-bottom: 8px;" onclick="resetForm()">重置表單</button>
+    </div>
+
+    <script>
+        // 當頁面載入時設置當前日期
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('date').valueAsDate = new Date();
+        });
+        
+        // 更改表單標題
+        function changeTitle() {
+            const titleSelect = document.getElementById('titleSelect');
+            const companyName = document.getElementById('companyName');
+            companyName.textContent = titleSelect.value;
+            
+            // 更新所有附頁標題
+            updateAllPageTitles();
+        }
+        
+        // 更新所有附頁標題
+        function updateAllPageTitles() {
+            const companyName = document.getElementById('companyName').textContent;
+            const pages = document.querySelectorAll('.additional-page');
+            
+            pages.forEach((page, index) => {
+                const titleElem = page.querySelector('.page-title');
+                if (titleElem) {
+                    titleElem.textContent = companyName + ' 請購單附頁 ' + (index + 1);
+                }
+            });
+        }
+        
+        // 上傳第一頁圖片
+        function uploadFirstPageImage() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.multiple = true;
+            
+            fileInput.addEventListener('change', function(e) {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                
+                const imageGrid = document.getElementById('firstPageImageGrid');
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        addImageToFirstPage(event.target.result);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            fileInput.click();
+        }
+        
+        // 添加圖片到第一頁
+        function addImageToFirstPage(imageUrl) {
+            const imageGrid = document.getElementById('firstPageImageGrid');
+            
+            const imageItem = document.createElement('div');
+            imageItem.className = 'image-item';
+            
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = '上傳圖片';
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = 'image-description';
+            textarea.placeholder = '圖片描述';
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn';
+            removeBtn.style.width = '100%';
+            removeBtn.style.backgroundColor = '#f44336';
+            removeBtn.style.marginTop = '5px';
+            removeBtn.textContent = '移除';
+            removeBtn.onclick = function() {
+                imageItem.remove();
+                checkFirstPageOverflow();
+            };
+            
+            imageItem.appendChild(img);
+            imageItem.appendChild(textarea);
+            imageItem.appendChild(removeBtn);
+            
+            imageGrid.appendChild(imageItem);
+            
+            // 檢查是否超出A4
+            checkFirstPageOverflow();
+        }
+        
+        // 更改第一頁圖片布局
+        function changeFirstPageLayout(columns) {
+            const imageGrid = document.getElementById('firstPageImageGrid');
+            
+            // 移除所有布局類
+            imageGrid.classList.remove('grid-1', 'grid-2', 'grid-3');
+            
+            // 添加選定的布局類
+            imageGrid.classList.add('grid-' + columns);
+            
+            // 檢查是否超出A4
+            checkFirstPageOverflow();
+        }
+        
+        // 檢查第一頁是否超出A4範圍
+        function checkFirstPageOverflow() {
+            const formBody = document.querySelector('.form-body');
+            const warning = document.getElementById('firstPageWarning');
+            
+            if (formBody.scrollHeight > formBody.clientHeight) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+        
+        // 添加新頁面
+        function addNewPage() {
+            const additionalPages = document.getElementById('additionalPages');
+            const pageCount = additionalPages.querySelectorAll('.additional-page').length + 1;
+            const companyName = document.getElementById('companyName').textContent;
+            
+            // 創建外層容器
+            const outerContainer = document.createElement('div');
+            outerContainer.className = 'outer-container';
+            
+            // 創建新頁面
+            const page = document.createElement('div');
+            page.className = 'additional-page';
+            page.id = 'page' + pageCount;
+            
+            // 頁面頂部控制按鈕
+            const pageControls = document.createElement('div');
+            pageControls.style.position = 'absolute';
+            pageControls.style.top = '15px';
+            pageControls.style.right = '15px';
+            pageControls.style.display = 'flex';
+            pageControls.style.gap = '5px';
+            
+            const uploadBtn = document.createElement('button');
+            uploadBtn.className = 'btn';
+            uploadBtn.textContent = '上傳圖片';
+            uploadBtn.style.padding = '5px 10px';
+            uploadBtn.style.fontSize = '12px';
+            uploadBtn.onclick = function() {
+                uploadPageImage(pageCount);
+            };
+            
+            const addBlockBtn = document.createElement('button');
+            addBlockBtn.className = 'btn';
+            addBlockBtn.textContent = '新增區塊';
+            addBlockBtn.style.padding = '5px 10px';
+            addBlockBtn.style.fontSize = '12px';
+            addBlockBtn.onclick = function() {
+                addContentBlock(pageCount);
+            };
+            
+            const removeBlockBtn = document.createElement('button');
+            removeBlockBtn.className = 'btn';
+            removeBlockBtn.textContent = '移除區塊';
+            removeBlockBtn.style.padding = '5px 10px';
+            removeBlockBtn.style.fontSize = '12px';
+            removeBlockBtn.style.backgroundColor = '#f44336';
+            removeBlockBtn.onclick = function() {
+                removeContentBlock(pageCount);
+            };
+            
+            const removePageBtn = document.createElement('button');
+            removePageBtn.className = 'btn';
+            removePageBtn.textContent = '移除頁面';
+            removePageBtn.style.padding = '5px 10px';
+            removePageBtn.style.fontSize = '12px';
+            removePageBtn.style.backgroundColor = '#f44336';
+            removePageBtn.onclick = function() {
+                if (confirm('確定要移除此頁面嗎？')) {
+                    outerContainer.remove();
+                    updateAllPageTitles();
+                }
+            };
+            
+            pageControls.appendChild(uploadBtn);
+            pageControls.appendChild(addBlockBtn);
+            pageControls.appendChild(removeBlockBtn);
+            pageControls.appendChild(removePageBtn);
+            
+            // 頁面標題
+            const header = document.createElement('div');
+            header.className = 'page-header';
+            
+            const title = document.createElement('h2');
+            title.className = 'page-title';
+            title.textContent = companyName + ' 請購單附頁 ' + pageCount;
+            
+            header.appendChild(title);
+            
+            // 內容區域
+            const contentArea = document.createElement('div');
+            contentArea.className = 'content-area';
+            contentArea.id = 'contentArea' + pageCount;
+            
+            // 警告訊息
+            const warning = document.createElement('div');
+            warning.className = 'warning';
+            warning.id = 'warning' + pageCount;
+            warning.textContent = '警告：內容超過 A4 頁面範圍，請調整或減少內容。';
+            warning.style.display = 'none';
+            
+            page.appendChild(pageControls);
+            page.appendChild(header);
+            page.appendChild(contentArea);
+            page.appendChild(warning);
+            
+            outerContainer.appendChild(page);
+            additionalPages.appendChild(outerContainer);
+            
+            // 添加第一個內容區塊
+            addContentBlock(pageCount);
+        }
+        
+        // 上傳附頁圖片
+        function uploadPageImage(pageNumber) {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    addContentBlockWithImage(pageNumber, event.target.result);
+                };
+                
+                reader.readAsDataURL(file);
+            });
+            
+            fileInput.click();
+        }
+        
+        // 添加內容區塊
+        function addContentBlock(pageNumber) {
+            const contentArea = document.getElementById('contentArea' + pageNumber);
+            
+            const block = document.createElement('div');
+            block.className = 'content-block';
+            
+            const imageDiv = document.createElement('div');
+            imageDiv.className = 'block-image';
+            
+            const img = document.createElement('img');
+            img.src = '/api/placeholder/400/320';
+            img.alt = '圖片預留位置';
+            
+            const imgInput = document.createElement('input');
+            imgInput.type = 'file';
+            imgInput.accept = 'image/*';
+            imgInput.style.display = 'none';
+            
+            img.style.cursor = 'pointer';
+            img.onclick = function() {
+                imgInput.click();
+            };
+            
+            imgInput.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    img.src = event.target.result;
+                    checkPageOverflow(pageNumber);
+                };
+                
+                reader.readAsDataURL(file);
+            };
+            
+            imageDiv.appendChild(img);
+            imageDiv.appendChild(imgInput);
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'block-text';
+            
+            const textarea = document.createElement('textarea');
+            textarea.placeholder = '請在此輸入描述文字...';
+            textarea.oninput = function() {
+                checkPageOverflow(pageNumber);
+            };
+            
+            textDiv.appendChild(textarea);
+            
+            block.appendChild(imageDiv);
+            block.appendChild(textDiv);
+            
+            contentArea.appendChild(block);
+            
+            // 檢查頁面是否溢出
+            checkPageOverflow(pageNumber);
+        }
+        
+        // 添加帶圖片的內容區塊
+        function addContentBlockWithImage(pageNumber, imageUrl) {
+            const contentArea = document.getElementById('contentArea' + pageNumber);
+            
+            const block = document.createElement('div');
+            block.className = 'content-block';
+            
+            const imageDiv = document.createElement('div');
+            imageDiv.className = 'block-image';
+            
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = '上傳圖片';
+            
+            imageDiv.appendChild(img);
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'block-text';
+            
+            const textarea = document.createElement('textarea');
+            textarea.placeholder = '請在此輸入描述文字...';
+            textarea.oninput = function() {
+                checkPageOverflow(pageNumber);
+            };
+            
+            textDiv.appendChild(textarea);
+            
+            block.appendChild(imageDiv);
+            block.appendChild(textDiv);
+            
+            contentArea.appendChild(block);
+            
+            // 檢查頁面是否溢出
+            checkPageOverflow(pageNumber);
+        }
+        
+        // 移除內容區塊
+        function removeContentBlock(pageNumber) {
+            const contentArea = document.getElementById('contentArea' + pageNumber);
+            const blocks = contentArea.querySelectorAll('.content-block');
+            
+            if (blocks.length > 0) {
+                blocks[blocks.length - 1].remove();
+                checkPageOverflow(pageNumber);
+            } else {
+                alert('此頁面沒有內容可移除');
+            }
+        }
+        
+        // 檢查附頁是否超出A4範圍
+        function checkPageOverflow(pageNumber) {
+            const contentArea = document.getElementById('contentArea' + pageNumber);
+            const warning = document.getElementById('warning' + pageNumber);
+            
+            if (contentArea.scrollHeight > contentArea.clientHeight) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+        
+        // 打印表單
+        function printForm() {
+            window.print();
+        }
+        
+        // 重置表單
+        function resetForm() {
+            if (!confirm('確定要重置表單嗎？所有輸入的內容將會丟失。')) {
+                return;
+            }
+            
+            // 重置第一頁
+            document.getElementById('department').value = '';
+            document.getElementById('productName').value = '';
+            document.getElementById('specification').value = '';
+            document.getElementById('purpose').value = '';
+            document.getElementById('location').value = '';
+            document.getElementById('date').valueAsDate = new Date();
+            
+            // 清空圖片
+            document.getElementById('firstPageImageGrid').innerHTML = '';
+            
+            // 清空簽名欄
+            const signatureInputs = document.querySelectorAll('.signature input');
+            signatureInputs.forEach(input => {
+                input.value = '';
+            });
+            
+            // 移除警告
+            document.getElementById('firstPageWarning').style.display = 'none';
+            
+            // 重置標題
+            document.getElementById('titleSelect').selectedIndex = 0;
+            document.getElementById('companyName').textContent = '亞洲健康智慧園區';
+            
+            // 移除所有附頁
+            document.getElementById('additionalPages').innerHTML = '';
+        }
+
+        document.addEventListener("DOMContentLoaded", function(){
+  const saved = localStorage.getItem("purchaseData");
+  if(saved){
+    try {
+      const data = JSON.parse(saved);
+      if(data.productName){
+        document.getElementById("productName").value = data.productName;
+      }
+      if(data.specification){
+        document.getElementById("specification").value = data.specification;
+      }
+    } catch(e){
+      console.error("解析 purchaseData 失敗", e);
+    }
+  }
+});
+    </script>
+</body>
+</html>
