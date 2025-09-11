@@ -22,18 +22,22 @@ h2 {
   .month-switch{
     margin:10px 0;
   }
-  .month-switch button{
-    padding:6px 14px;
-    margin:0 5px;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-    background:#ddd;
-    font-size:14px;
-  }
-  .month-switch button.active{
-    background:#666; color:#fff;
-  }
+.month-switch button{
+  padding:6px 14px;
+  margin:0 5px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  background:#999;   /* 灰底 */
+  color:#fff;
+  font-size:14px;
+  min-width:60px;    /* 🚩 統一寬度，兩個字或三個字都一樣 */
+  text-align:center; /* 🚩 保證置中 */
+}
+.month-switch button.active{
+  background:hwb(251 9% 58%);
+  color:#fff;
+}
 
   .banner{
     margin:10px 0 6px; padding:6px 12px; border-radius:999px;
@@ -66,7 +70,7 @@ table {
 }
 
 th, td {
-  border: 2px solid #bbb;
+  border: 2px solid #bbbbbb;
   padding: 4px 6px;         /* ← 減少內距，不會太擠 */
   text-align: center;
   min-width: 42px;          /* ← 每格再縮一點，避免超寬 */
