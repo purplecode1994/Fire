@@ -96,6 +96,8 @@ th, td {
   <!-- 月份切換按鈕 -->
   <div class="month-switch">
  <button class="active" data-target="m9">9月</button>
+ <button data-target="m10">10月</button>
+
   </div>
 
   <!-- 顯示今天 -->
@@ -166,19 +168,29 @@ makeWeekRow("weekRow9",30,1); // 例如 2025/9/1 是星期一 → start=1
 highlightToday("schedule9");
 
   // 高亮今天號碼（僅在該月）
-  function highlightToday(tableId){
-    const today = new Date();
-    const month = today.getMonth()+1;
-    const day = today.getDate();
-    const table = document.getElementById(tableId);
-    const tableMonth = Number(table.dataset.month);
-    if(month !== tableMonth) return;
+function highlightToday(tableId){
+  const today = new Date();
+  const month = today.getMonth()+1;
+  const day = today.getDate();
+  const table = document.getElementById(tableId);
+  const tableMonth = Number(table.dataset.month);
+  if(month !== tableMonth) return;
 
-    const ths = table.querySelectorAll("thead tr:first-child th");
-    ths.forEach(th=>{
-      if(Number(th.textContent)===day) th.classList.add("today-num");
-    });
-  }
+  const ths = table.querySelectorAll("thead tr:first-child th");
+  ths.forEach(th=>{
+    if(Number(th.textContent)===day){
+      th.classList.add("today-num");
+
+      // 🚩 自動捲到該日期
+      // 方法1：精準對準（欄位置中）
+      th.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
+
+      // 方法2：如果你只想水平移動（保持表頭在上方）
+      // const frame = table.closest(".frame");
+      // frame.scrollLeft = th.offsetLeft - frame.clientWidth/2 + th.clientWidth/2;
+    }
+  });
+}
   highlightToday("schedule8");
   highlightToday("schedule9");
 
