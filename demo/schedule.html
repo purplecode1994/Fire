@@ -11,33 +11,21 @@
     background:#f5f5f5; color:#000;
     display:flex; flex-direction:column; align-items:center;
   }
-h2 {
-  margin: 6px 0 10px;
-  font-size: 18px;
-  text-align: center;   /* ← 這行讓標題置中 */
-  width: 100%;          /* ← 這行保證置中能生效 */
-}
+  h2 {
+    margin: 6px 0 10px;
+    font-size: 18px;
+    text-align: center;
+    width: 100%;
+  }
 
   /* 頂部按鈕區 */
-  .month-switch{
-    margin:10px 0;
+  .month-switch{ margin:10px 0; }
+  .month-switch button{
+    padding:6px 14px; margin:0 5px; border:none; border-radius:6px;
+    cursor:pointer; background:#999; color:#fff; font-size:14px;
+    min-width:60px; text-align:center;
   }
-.month-switch button{
-  padding:6px 14px;
-  margin:0 5px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  background:#999;   /* 灰底 */
-  color:#fff;
-  font-size:14px;
-  min-width:60px;    /* 🚩 統一寬度，兩個字或三個字都一樣 */
-  text-align:center; /* 🚩 保證置中 */
-}
-.month-switch button.active{
-  background:hwb(251 9% 58%);
-  color:#fff;
-}
+  .month-switch button.active{ background:hwb(251 9% 58%); color:#fff; }
 
   .banner{
     margin:10px 0 6px; padding:6px 12px; border-radius:999px;
@@ -45,38 +33,39 @@ h2 {
     font-size:14px;
   }
 
-.frame {
-  width: 95%;
-  max-width: 95vw;          /* ← 保證只佔螢幕 95%，左右留 5% */
-  margin: 10px auto;        /* ← 上下 10px，左右自動置中 */
-  padding: 2px 5px 2px 5px; /* ← 左右保留 5px 空隙 */
-  border: 2px solid #666;
-  border-radius: 12px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  background: #fff;
-  scroll-behavior: smooth;
-}
+  .frame {
+    width: 95%;
+    max-width: 95vw;
+    margin: 10px auto;
+    padding: 2px 5px;
+    border: 2px solid #666;
+    border-radius: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: #fff;
+    scroll-behavior: smooth;
+  }
   /* 卷軸 */
   .frame::-webkit-scrollbar{ height:10px; opacity:0; transition:opacity 0.6s ease; }
   .frame::-webkit-scrollbar-track{ background:#eee; border-radius:10px; }
   .frame::-webkit-scrollbar-thumb{ background:#bbb; border-radius:10px; }
   .frame:hover::-webkit-scrollbar, .frame:active::-webkit-scrollbar{ opacity:1; }
 
-table {
-  border-collapse: collapse;
-  font-size: 14px;          /* ← 字體稍微縮小，適合手機直式 */
-  width: max-content;       /* ← 保持橫向可滑動 */
-}
-
-th, td {
-  border: 2px solid #bbbbbb;
-  padding: 4px 6px;         /* ← 減少內距，不會太擠 */
-  text-align: center;
-  min-width: 42px;          /* ← 每格再縮一點，避免超寬 */
-  user-select: none;
-}
-  thead th:first-child, tbody th{ background:#eee; position:sticky; left:0; z-index:2; }
+  table {
+    border-collapse: collapse;
+    font-size: 14px;
+    width: max-content;
+  }
+  th, td {
+    border: 2px solid #bbbbbb;
+    padding: 4px 6px;
+    text-align: center;
+    min-width: 42px;
+    user-select: none;
+  }
+  thead th:first-child, tbody th{
+    background:#eee; position:sticky; left:0; z-index:2;
+  }
 
   /* 班別顏色 */
   .休{ background:#ddd; }
@@ -99,20 +88,19 @@ th, td {
 <body>
   <!-- 月份切換按鈕 -->
   <div class="month-switch">
- <button class="active" data-target="m9">9月</button>
- <button data-target="m10">10月</button>
-
+    <button class="active" data-target="m9">9月</button>
+    <button data-target="m10">10月</button>
   </div>
 
   <!-- 顯示今天 -->
   <div class="banner" id="nowText">今天：YYYY/MM/DD 星期_</div>
 
-
   <!-- 9月班表 -->
-<div class="month active" id="m9">
-  <h2>九月份班表 </h2>
-  <div class="frame">
-    <table id="schedule9" data-month="9">        <thead>
+  <div class="month active" id="m9">
+    <h2>九月份班表</h2>
+    <div class="frame">
+      <table id="schedule9" data-month="9">
+        <thead>
           <tr>
             <th>日</th>
             <!-- 1~30 -->
@@ -125,24 +113,67 @@ th, td {
           </tr>
           <tr id="weekRow9"><th>週</th></tr>
         </thead>
-<tbody>
-  <tr><th>賢</th>
-    <td>B</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td>B</td>    <td class="休">休</td>    <td>A</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>A</td>    <td>B</td>    <td>A</td>    <td class="休">休</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>A</td>    <td class="休">休</td>    <td class="休">休</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>A</td>    <td>B</td>    <td>A</td>    <td>A</td>    <td class="特">特</td>    <td>A</td>
-  </tr>
-  <tr><th>杰</th>
-    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>B</td>    <td>B</td>    <td>A</td>    <td class="休">休</td>    <td>A</td>    <td class="休">休</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td class="特">特</td>    <td>B</td>    <td class="休">休</td>    <td class="休">休</td>
-  </tr>
-  <tr><th>宇</th>
-    <td class="休">休</td>    <td>A</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>
-  </tr>
-  <tr><th>強</th>
-    <td class="特">特</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>A</td>    <td class="休">休</td>    <td>A</td>    <td>A</td>    <td class="休">休</td>    <td>A</td>    <td>B</td>    <td>A</td>    <td class="休">休</td>    <td>B</td>    <td>B</td>    <td>A</td>    <td>B</td>    <td class="休">休</td>    <td>A</td>    <td class="休">休</td>
-  </tr>
-  <tr><th>璍</th>
-    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="特">特</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td class="休">休</td>    <td class="休">休</td>    <td>夜</td>    <td>夜</td>    <td>夜</td>
-  </tr>
-</tbody>
-        </div>
+        <tbody>
+          <tr><th>賢</th>
+            <td>B</td><td class="休">休</td><td>A</td><td>A</td><td>B</td><td class="休">休</td><td>A</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>B</td><td>A</td><td class="休">休</td><td class="休">休</td><td>B</td><td>B</td><td>A</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>B</td><td>A</td><td>A</td><td class="特">特</td>
+          </tr>
+          <tr><th>杰</th>
+            <td>A</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td>B</td><td>A</td><td class="休">休</td><td>A</td><td class="休">休</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="特">特</td><td>B</td><td class="休">休</td><td class="休">休</td>
+          </tr>
+          <tr><th>宇</th>
+            <td class="休">休</td><td>A</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td>B</td><td>B</td>
+          </tr>
+          <tr><th>強</th>
+            <td class="特">特</td><td>B</td><td class="休">休</td><td>B</td><td>A</td><td class="休">休</td><td>B</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td>B</td><td>B</td><td>A</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>A</td><td>B</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>A</td><td>B</td><td class="休">休</td><td>A</td><td class="休">休</td>
+          </tr>
+          <tr><th>璍</th>
+            <td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="特">特</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td class="休">休</td><td>夜</td><td>夜</td><td>夜</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 10月班表 -->
+  <div class="month" id="m10">
+    <h2>十月份班表</h2>
+    <div class="frame">
+      <table id="schedule10" data-month="10">
+        <thead>
+          <tr>
+            <th>日</th>
+            <!-- 1~31 -->
+            <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
+            <th>6</th><th>7</th><th>8</th><th>9</th><th>10</th>
+            <th>11</th><th>12</th><th>13</th><th>14</th><th>15</th>
+            <th>16</th><th>17</th><th>18</th><th>19</th><th>20</th>
+            <th>21</th><th>22</th><th>23</th><th>24</th><th>25</th>
+            <th>26</th><th>27</th><th>28</th><th>29</th><th>30</th>
+            <th>31</th>
+          </tr>
+          <tr id="weekRow10"><th>週</th></tr>
+        </thead>
+
+        <!-- 你提供的 10 月班表： -->
+        <tbody>
+          <tr><th>賢</th>
+            <td>B</td><td>B</td><td>A</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td>B</td><td>A</td><td>B</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>A</td><td>B</td><td class="休">休</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td class="休">休</td><td>A</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>B</td>
+          </tr>
+          <tr><th>杰</th>
+            <td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="休">休</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="休">休</td>
+          </tr>
+          <tr><th>宇</th>
+            <td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td class="休">休</td><td>A</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="休">休</td><td>A</td><td>B</td><td class="休">休</td><td>B</td><td>A</td>
+          </tr>
+          <tr><th>強</th>
+            <td class="特">特</td><td>A</td><td class="休">休</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td>B</td><td>A</td><td class="休">休</td><td>B</td><td class="休">休</td><td>A</td><td>B</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>B</td><td>B</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td>
+          </tr>
+          <tr><th>璍</th>
+            <td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td>夜</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
 <script>
@@ -168,35 +199,31 @@ th, td {
       weekRow.appendChild(th);
     }
   }
-makeWeekRow("weekRow9",30,1); // 例如 2025/9/1 是星期一 → start=1
-highlightToday("schedule9");
+  // 2025/9/1 是星期一 → start=1
+  makeWeekRow("weekRow9", 30, 1);
+  // 2025/10/1 是星期三 → start=3
+  makeWeekRow("weekRow10", 31, 3);
 
   // 高亮今天號碼（僅在該月）
-function highlightToday(tableId){
-  const today = new Date();
-  const month = today.getMonth()+1;
-  const day = today.getDate();
-  const table = document.getElementById(tableId);
-  const tableMonth = Number(table.dataset.month);
-  if(month !== tableMonth) return;
+  function highlightToday(tableId){
+    const today = new Date();
+    const month = today.getMonth()+1;
+    const day = today.getDate();
+    const table = document.getElementById(tableId);
+    const tableMonth = Number(table.dataset.month);
+    if(month !== tableMonth) return;
 
-  const ths = table.querySelectorAll("thead tr:first-child th");
-  ths.forEach(th=>{
-    if(Number(th.textContent)===day){
-      th.classList.add("today-num");
-
-      // 🚩 自動捲到該日期
-      // 方法1：精準對準（欄位置中）
-      th.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
-
-      // 方法2：如果你只想水平移動（保持表頭在上方）
-      // const frame = table.closest(".frame");
-      // frame.scrollLeft = th.offsetLeft - frame.clientWidth/2 + th.clientWidth/2;
-    }
-  });
-}
-  highlightToday("schedule8");
+    const ths = table.querySelectorAll("thead tr:first-child th");
+    ths.forEach(th=>{
+      if(Number(th.textContent)===day){
+        th.classList.add("today-num");
+        // 自動捲到該日期（欄置中）
+        th.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
+      }
+    });
+  }
   highlightToday("schedule9");
+  highlightToday("schedule10");
 
   // 點擊橫列高亮
   document.querySelectorAll("tbody tr").forEach(row=>{
