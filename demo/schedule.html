@@ -18,14 +18,36 @@
     width: 100%;
   }
 
-  /* 頂部按鈕區 */
-  .month-switch{ margin:10px 0; }
-  .month-switch button{
-    padding:6px 14px; margin:0 5px; border:none; border-radius:6px;
-    cursor:pointer; background:#999; color:#fff; font-size:14px;
-    min-width:60px; text-align:center;
-  }
-  .month-switch button.active{ background:hwb(251 9% 58%); color:#fff; }
+/* 橫向月份按鈕列（可滑動） */
+.month-switch{
+  display:flex; gap:8px; align-items:center;
+  padding:8px 6px;
+  overflow-x:auto; overflow-y:hidden;
+  -webkit-overflow-scrolling: touch;
+  white-space:nowrap;
+  background:transparent; /* 透明背景 */
+  scrollbar-gutter: stable both-edges;
+}
+
+/* 透明卷軸：WebKit */
+.month-switch::-webkit-scrollbar{ height:10px; }
+.month-switch::-webkit-scrollbar-track{ background:transparent; } /* 透明軌道 */
+.month-switch::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,.28);
+  border-radius:999px;
+}
+.month-switch:hover::-webkit-scrollbar-thumb{ background: rgba(0,0,0,.42); }
+
+/* Firefox */
+.month-switch{ scrollbar-width:thin; scrollbar-color: rgba(0,0,0,.28) transparent; }
+
+/* 按鈕樣式沿用你原本的設計，可微調 */
+.month-switch button{
+  padding:6px 14px; border:none; border-radius:999px;
+  cursor:pointer; background:#999; color:#fff; font-size:14px;
+  min-width:60px; text-align:center; flex:0 0 auto;
+}
+.month-switch button.active{ background:hwb(251 9% 58%); color:#fff; }
 
   .banner{
     margin:10px 0 6px; padding:6px 12px; border-radius:999px;
@@ -83,21 +105,32 @@
   /* 隱藏月份 */
   .month{ display:none; }
   .month.active{ display:block; }
+
+.banner.subtitle {
+  font-size: 13px;
+  color: #888;          /* 淺灰色 */
+  margin-top: -4px;     /* 貼近主標題 */
+  background: none;     /* 移除背景 */
+  border: none;         /* 移除邊框 */
+  box-shadow: none;     /* 移除陰影 */
+  padding: 0;           /* 去掉內距 */
+}
+
+
 </style>
 </head>
 <body>
-  <!-- 月份切換按鈕 -->
-  <div class="month-switch">
-    <button class="active" data-target="m9">9月</button>
-    <button data-target="m10">10月</button>
-  </div>
+<!-- 月份切換按鈕（交給 JS 動態產生） -->
+<div class="month-switch"></div>
 
-  <!-- 顯示今天 -->
-  <div class="banner" id="nowText">今天：YYYY/MM/DD 星期_</div>
+
+<!-- 顯示今天 -->
+<div class="banner" id="nowText">今天：YYYY/MM/DD 星期_</div>
+<div class="banner subtitle" id="subText"></div>
 
   <!-- 9月班表 -->
   <div class="month active" id="m9">
-    <h2>九月份班表</h2>
+    <h2>9月份班表</h2>
     <div class="frame">
       <table id="schedule9" data-month="9">
         <thead>
@@ -136,7 +169,7 @@
 
   <!-- 10月班表 -->
   <div class="month" id="m10">
-    <h2>十月份班表</h2>
+    <h2>10月份班表</h2>
     <div class="frame">
       <table id="schedule10" data-month="10">
         <thead>
@@ -175,8 +208,166 @@
       </table>
     </div>
   </div>
+  <!-- 11月份班表 -->
+<div class="month" id="m11">
+  <h2>11月份班表</h2>
+  <div class="frame">
+    <table id="schedule11" data-month="11">
+      
+      <thead>
+        <tr>
+          <th>日</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th><th>24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th>30</th>
+        </tr>
+        <tr id="weekRow11"><th>週</th></tr>
+      </thead>
+      <tbody>
+<tr><th>A</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 12月份班表 -->
+<div class="month" id="m12">
+  <h2>12月份班表</h2>
+  <div class="frame">
+    <table id="schedule12" data-month="12">
+      
+      <thead>
+        <tr>
+          <th>日</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th><th>24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th>30</th><th>31</th>
+        </tr>
+        <tr id="weekRow12"><th>週</th></tr>
+      </thead>
+      <tbody>
+<tr><th>A</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+    </table>
+  </div>
+</div>
+
+
 
 <script>
+(function showNow(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const d = String(now.getDate()).padStart(2,'0');
+  const wmap = ['日','一','二','三','四','五','六'];
+
+  // 主標題
+  document.getElementById('nowText').textContent =
+    `今天：${y}/${m}/${d} 星期${wmap[now.getDay()]}`;
+
+  // ====== 簡易對照表（到 2025/12） ======
+  // 範例：key = "2025-10-10"
+const info = {
+  // ---------------------- 1月 (臘月/正月) ----------------------
+  "2025-01-01": { lunar: "臘月初二", holiday: "開國紀念日" },
+  "2025-01-05": { lunar: "臘月初六", jieqi: "小寒" },
+  "2025-01-20": { lunar: "臘月廿一", jieqi: "大寒" },
+  "2025-01-23": { lunar: "臘月廿四", holiday: "送神 (民俗)" },
+  "2025-01-27": { lunar: "臘月廿八", holiday: "小年夜 (彈性放假)" },
+  "2025-01-28": { lunar: "臘月廿九", holiday: "除夕" },
+  "2025-01-29": { lunar: "正月初一", holiday: "春節" },
+  "2025-01-31": { lunar: "正月初三", holiday: "春節" },
+
+  // ---------------------- 2月 (正月/二月) ----------------------
+  "2025-02-01": { lunar: "正月初四", holiday: "春節" },
+  "2025-02-02": { lunar: "正月初五", holiday: "春節結束" },
+  "2025-02-03": { lunar: "正月初六", jieqi: "立春" },
+  "2025-02-06": { lunar: "正月初九", holiday: "天公生 (民俗)" },
+  "2025-02-12": { lunar: "正月十五", holiday: "元宵節 (民俗)" },
+  "2025-02-18": { lunar: "正月廿一", jieqi: "雨水" },
+  "2025-02-28": { lunar: "二月初一", holiday: "和平紀念日" },
+
+  // ---------------------- 3月 (二月/三月) ----------------------
+  "2025-03-05": { lunar: "二月初六", jieqi: "驚蟄" },
+  "2025-03-20": { lunar: "二月廿一", jieqi: "春分" },
+  "2025-03-30": { lunar: "三月初一" }, // 農曆三月開始
+
+  // ---------------------- 4月 (三月/四月) ----------------------
+  "2025-04-03": { lunar: "三月初五", holiday: "兒童節 (補假)" },
+  "2025-04-04": { lunar: "三月初七", jieqi: "清明", holiday: "兒童節/民族掃墓節" },
+  "2025-04-20": { lunar: "三月廿三", jieqi: "穀雨", holiday: "媽祖生 (民俗)" },
+  "2025-04-29": { lunar: "四月初一" }, // 農曆四月開始
+
+  // ---------------------- 5月 (四月/五月) ----------------------
+  "2025-05-01": { lunar: "四月初三", holiday: "勞動節 (勞工)" },
+  "2025-05-05": { lunar: "四月初七", jieqi: "立夏", holiday: "佛誕日 (民俗)" },
+  "2025-05-21": { lunar: "四月廿三", jieqi: "小滿" },
+  "2025-05-29": { lunar: "五月初一" }, // 農曆五月開始
+  "2025-05-30": { lunar: "五月初二", holiday: "端午節 (補假)" },
+  "2025-05-31": { lunar: "五月初三", holiday: "端午節" },
+
+  // ---------------------- 6月 (五月/六月) ----------------------
+  "2025-06-05": { lunar: "五月初八", jieqi: "芒種" },
+  "2025-06-21": { lunar: "五月廿四", jieqi: "夏至" },
+  "2025-06-28": { lunar: "六月初一" }, // 農曆六月開始
+
+  // ---------------------- 7月 (六月/閏六月) ----------------------
+  "2025-07-07": { lunar: "六月初十", jieqi: "小暑" },
+  "2025-07-22": { lunar: "六月廿五", jieqi: "大暑" },
+  "2025-07-28": { lunar: "閏六月初一" }, // 農曆閏六月開始
+
+  // ---------------------- 8月 (閏六月/七月) ----------------------
+  "2025-08-07": { lunar: "閏六月十一", jieqi: "立秋" },
+  "2025-08-23": { lunar: "七月初一", jieqi: "處暑", holiday: "鬼門開 (民俗)" }, // 農曆七月開始
+  "2025-08-29": { lunar: "七月初七", holiday: "七夕情人節 (民俗)" },
+
+  // ---------------------- 9月 (七月/八月) ----------------------
+  "2025-09-06": { lunar: "七月十五", holiday: "中元節 (民俗)" },
+  "2025-09-07": { lunar: "七月十六", jieqi: "白露" },
+  "2025-09-21": { lunar: "七月三十", holiday: "鬼門關 (民俗)" },
+  "2025-09-22": { lunar: "八月初一" }, // 農曆八月開始
+  "2025-09-23": { lunar: "八月初二", jieqi: "秋分" },
+  "2025-09-28": { lunar: "八月初七", holiday: "教師節" },
+  "2025-09-29": { lunar: "八月初八", holiday: "教師節 (補假)" },
+
+  // ---------------------- 10月 (八月/九月) ----------------------
+  "2025-10-06": { lunar: "八月十五", holiday: "中秋節" },
+  "2025-10-08": { lunar: "八月十七", jieqi: "寒露" },
+  "2025-10-10": { lunar: "八月十九", holiday: "國慶日" },
+  "2025-10-21": { lunar: "九月初一" }, // 農曆九月開始
+  "2025-10-23": { lunar: "九月初三", jieqi: "霜降" },
+  "2025-10-24": { lunar: "九月初四", holiday: "臺灣光復節 (補假)" },
+  "2025-10-25": { lunar: "九月初五", holiday: "臺灣光復節" },
+  "2025-10-29": { lunar: "九月初九", holiday: "重陽節 (民俗)" },
+
+  // ---------------------- 11月 (九月/十月) ----------------------
+  "2025-11-07": { lunar: "九月十七", jieqi: "立冬" },
+  "2025-11-20": { lunar: "十月初一" }, // 農曆十月開始
+  "2025-11-22": { lunar: "十月初三", jieqi: "小雪" },
+
+  // ---------------------- 12月 (十月/十一月) ----------------------
+  "2025-12-07": { lunar: "十月十八", jieqi: "大雪" },
+  "2025-12-20": { lunar: "十一月初一" }, // 農曆十一月開始
+  "2025-12-21": { lunar: "十一月初二", jieqi: "冬至" }, 
+  "2025-12-25": { lunar: "十一月初六", holiday: "行憲紀念日" },
+  "2025-12-31": { lunar: "十一月十二" }
+};
+  const todayStr = `${y}-${m}-${d}`;
+  let lunar = "";
+  let jieqi = "";
+  let holiday = "";
+
+  if (info[todayStr]) {
+    lunar   = info[todayStr].lunar   || "";
+    jieqi   = info[todayStr].jieqi   || "";
+    holiday = info[todayStr].holiday || "";
+  }
+
+  // 副標題組合
+  let sub = "";
+  if (lunar) sub += `農曆：${lunar}　`;
+  if (jieqi) sub += `節氣：${jieqi}　`;
+  if (holiday) sub += `假日：${holiday}`;
+  document.getElementById('subText').textContent = sub.trim();
+})();
+
+
+
   // 顯示電腦時間
   (function showNow(){
     const now = new Date();
@@ -203,35 +394,128 @@
   makeWeekRow("weekRow9", 30, 1);
   // 2025/10/1 是星期三 → start=3
   makeWeekRow("weekRow10", 31, 3);
+  // 11月份班表（11 月）
+  makeWeekRow("weekRow11", 30, 6); // 11/1 星期六
+  // 12月份班表（12 月）
+makeWeekRow("weekRow12", 31, 1); // 12/1 星期一
 
-  // 高亮今天號碼（僅在該月）
-  function highlightToday(tableId){
-    const today = new Date();
-    const month = today.getMonth()+1;
-    const day = today.getDate();
-    const table = document.getElementById(tableId);
-    const tableMonth = Number(table.dataset.month);
-    if(month !== tableMonth) return;
 
-    const ths = table.querySelectorAll("thead tr:first-child th");
-    ths.forEach(th=>{
-      if(Number(th.textContent)===day){
-        th.classList.add("today-num");
-        // 自動捲到該日期（欄置中）
-        th.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
-      }
-    });
+  // 依「今天」自動切換到對應月份（進站就會生效）
+// 自動切換到今天的月份
+(function autoSwitchMonth(){
+  const thisMonth = new Date().getMonth() + 1; // 1~12
+  const btn = document.querySelector(`.month-switch button[data-target="m${thisMonth}"]`);
+  const panel = document.getElementById(`m${thisMonth}`);
+  if (btn && panel) {
+    document.querySelectorAll(".month-switch button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".month").forEach(m => m.classList.remove("active"));
+    btn.classList.add("active");
+    panel.classList.add("active");
   }
-  highlightToday("schedule9");
-  highlightToday("schedule10");
+})();
 
-  // 點擊橫列高亮
-  document.querySelectorAll("tbody tr").forEach(row=>{
-    row.addEventListener("click", ()=>{
-      row.parentElement.querySelectorAll("tr").forEach(r=>r.classList.remove("highlight-row"));
-      row.classList.add("highlight-row");
-    });
+// 依畫面上「.month」區塊自動建立對應按鈕（例如 m9, m10, m11）
+(function buildMonthButtons(){
+  const switcher = document.querySelector('.month-switch');
+  const panels = Array.from(document.querySelectorAll('.month'));
+  // 依 id 中的數字排序（m9, m10, m11...）
+  panels.sort((a,b)=> Number(a.id.replace('m','')) - Number(b.id.replace('m','')));
+  panels.forEach(panel=>{
+    const mNum = Number(panel.id.replace('m',''));
+    const btn = document.createElement('button');
+    btn.dataset.target = panel.id;
+    btn.textContent = `${mNum}月`;
+    if (panel.classList.contains('active')) btn.classList.add('active');
+    switcher.appendChild(btn);
   });
+
+  // 事件委派：點擊按鈕切換月份
+  switcher.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-target]');
+    if(!btn) return;
+    // 切換 active 樣式
+    document.querySelectorAll('.month-switch button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    // 顯示對應面板
+    document.querySelectorAll('.month').forEach(m=>m.classList.remove('active'));
+    document.getElementById(btn.dataset.target).classList.add('active');
+    // 讓當前按鈕捲到可視
+    btn.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+  });
+})();
+
+// 進站自動切換到「今天的月份」面板，並把對應按鈕帶到視野中
+(function autoSwitchMonth(){
+  const thisMonth = new Date().getMonth() + 1; // 1~12
+  const panel = document.getElementById(`m${thisMonth}`);
+  const btn = document.querySelector(`.month-switch button[data-target="m${thisMonth}"]`);
+  if (panel && btn) {
+    document.querySelectorAll('.month').forEach(m=>m.classList.remove('active'));
+    document.querySelectorAll('.month-switch button').forEach(b=>b.classList.remove('active'));
+    panel.classList.add('active');
+    btn.classList.add('active');
+    // 把當月按鈕捲到中間
+    btn.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+  }
+})();
+
+
+// 高亮今天號碼（僅在該月，且自動切到該月面板）
+function highlightToday(tableId){
+  const table = document.getElementById(tableId);
+  if (!table) return; // 沒這張表就跳過
+
+  const today = new Date();
+  const month = today.getMonth() + 1;   // 1~12
+  const day = today.getDate();
+
+  const tableMonth = Number(table.dataset.month);
+  if (month !== tableMonth) return;     // 不是當月就不處理
+
+  // 自動切到這個月份的面板 & 對應按鈕
+  const panel = table.closest('.month');
+  if (panel) {
+    document.querySelectorAll('.month').forEach(m => m.classList.remove('active'));
+    panel.classList.add('active');
+
+    const mNum = panel.id.replace('m',''); // 例如 m10 → "10"
+    const btn = document.querySelector(`.month-switch button[data-target="m${mNum}"]`);
+    if (btn) {
+      document.querySelectorAll('.month-switch button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // 讓當月按鈕進入視野
+      btn.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+    }
+  }
+
+  // 在表頭第1列找今天的日期欄（跳過第一個“日”標題欄位）
+  const ths = table.querySelectorAll("thead tr:first-child th");
+  ths.forEach(th => {
+    const n = Number(th.textContent);
+    if (!Number.isNaN(n) && n === day) {
+      th.classList.add("today-num");
+      // 讓今天那一欄水平置中顯示
+      th.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
+    }
+  });
+}
+
+// ✅ 不用一個一個打；自動找出所有 schedule 表格來執行
+document.querySelectorAll('table[id^="schedule"]').forEach(tbl => {
+  highlightToday(tbl.id);
+});
+
+document.querySelectorAll("tbody tr").forEach(row=>{
+  row.addEventListener("click", ()=>{
+    const isActive = row.classList.contains("highlight-row");
+    // 清掉同一表格所有列的高亮
+    row.parentElement.querySelectorAll("tr").forEach(r=>r.classList.remove("highlight-row"));
+    // 如果剛才已經是高亮 → 不再加回去（等於取消）
+    if (!isActive) {
+      row.classList.add("highlight-row");
+    }
+  });
+});
 
   // 月份切換
   document.querySelectorAll(".month-switch button").forEach(btn=>{
@@ -246,4 +530,5 @@
 </script>
 </body>
 </html>
+
 
