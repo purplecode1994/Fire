@@ -116,6 +116,13 @@
   padding: 0;           /* 去掉內距 */
 }
 
+/* 2月 14~22 日期表頭紅底白字 */
+  #schedule2 thead th.range-red {
+    background: #c00000;
+    color: #fff;
+    font-weight: 700;
+  }
+
 
 </style>
 </head>
@@ -194,6 +201,30 @@
 <tr><th>宇</th><td>A</td><td class="休">休</td><td>B</td><td class="休">休</td><td>B</td><td class="特">特</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>A</td><td class="休">休</td><td>B</td></tr>
 <tr><th>强</th><td>B</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td>AB</td><td class="特">特</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="休">休</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="休">休</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td></tr>
 <tr><th>璍</th><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td class="休">休</td><td>夜</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td></tr>
+</tbody>
+    </table>
+  </div>
+</div>
+
+
+  <!-- 2月份班表 -->
+<div class="month" id="m2">
+  <h2>2月份班表</h2>
+  <div class="frame">
+    <table id="schedule2" data-month="2">
+      
+      <thead>
+        <tr>
+          <th>日</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th><th>24</th><th>25</th><th>26</th><th>27</th><th>28</th>
+        </tr>
+        <tr id="weekRow2"><th>週</th></tr>
+      </thead>
+      <tbody>
+<tr><th>賢</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><th>杰</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><th>宇</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><th>强</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><th>璍</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
 </tbody>
     </table>
   </div>
@@ -349,12 +380,13 @@ const info = {
       weekRow.appendChild(th);
     }
   }
-  // 11月份班表（11 月）
-  makeWeekRow("weekRow11", 30, 6); // 11/1 星期六
+
   // 12月份班表（12 月）
 makeWeekRow("weekRow12", 31, 1); // 2025/12/1 星期一
 // 1月份班表（1 月）
 makeWeekRow("weekRow1", 31, 4); // 1/1 星期四
+  // 2026年2月份班表（2026-02）
+makeWeekRow("weekRow2", 28, 0); // 2026/02/1 星期日
 
   // 依「今天」自動切換到對應月份（進站就會生效）
 // 自動切換到今天的月份
@@ -483,9 +515,20 @@ document.querySelectorAll("tbody tr").forEach(row=>{
       document.getElementById(target).classList.add("active");
     });
   });
+
+  document.addEventListener("DOMContentLoaded", () => {
+  const headerRow = document.querySelector("#schedule2 thead tr");
+  if (!headerRow) return;
+
+  headerRow.querySelectorAll("th").forEach(th => {
+    const d = parseInt(th.textContent.trim(), 10);
+    if (d >= 14 && d <= 22) th.classList.add("range-red");
+  });
+});
 </script>
 </body>
 </html>
+
 
 
 
