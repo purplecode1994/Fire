@@ -483,23 +483,19 @@ document.querySelectorAll("tbody tr").forEach(row=>{
 });
 
   // 月份切換
-  document.querySelectorAll(".month-switch button").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      document.querySelectorAll(".month-switch button").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      const target = btn.dataset.target;
-      document.querySelectorAll(".month").forEach(m=>m.classList.remove("active"));
-      document.getElementById(target).classList.add("active");
-    });
-  });
-
   document.addEventListener("DOMContentLoaded", () => {
-  const headerRow = document.querySelector("#schedule2 thead tr");
-  if (!headerRow) return;
+  const dateRow = document.querySelector("#schedule2 thead tr"); // 日期列
+  const weekRow = document.querySelector("#weekRow2");           // 星期列
+  if (!dateRow || !weekRow) return;
 
-  headerRow.querySelectorAll("th").forEach(th => {
+  const dateThs = dateRow.querySelectorAll("th");
+  const weekThs = weekRow.querySelectorAll("th");
+
+  dateThs.forEach((th, idx) => {
     const d = parseInt(th.textContent.trim(), 10);
-    if (d >= 14 && d <= 22) th.classList.add("range-red");
+    if (d >= 14 && d <= 22 && weekThs[idx]) {
+      weekThs[idx].classList.add("range-red");
+    }
   });
 });
 </script>
