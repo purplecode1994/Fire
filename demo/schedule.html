@@ -89,10 +89,25 @@
     background:#eee; position:sticky; left:0; z-index:2;
   }
 
-  /* 班別顏色 */
-  .休{ background:#ddd; }
-  .特{ background:#888; color:#fff; }
-  .weekend{ background:#888; color:#fff; }
+/* 班別顏色 */
+.休{ background:#ddd; }
+
+.特{ 
+  background:#888; 
+  color:#fff; 
+}
+
+/* 節慶／連續假期（像春節、初一～初六） */
+.假{
+  background:#d14141;
+  color:#fff;
+  font-weight:700;
+}
+
+.weekend{ 
+  background:#888; 
+  color:#fff; 
+}
 
   /* 今日日期號碼高亮 */
   .today-num{ background:#ffd700 !important; color:#000 !important; font-weight:bold; }
@@ -114,20 +129,6 @@
   border: none;         /* 移除邊框 */
   box-shadow: none;     /* 移除陰影 */
   padding: 0;           /* 去掉內距 */
-}
-
-/* 2月 14~22 日期表頭紅底白字 */
-#schedule2 thead th.range-red {
-  background: #c00000 !important;
-  color: #fff !important;
-  font-weight: 700;
-}
-
-  /* ⭐ 特殊重點日：紅底黃字（16~18） */
-#schedule2 thead th.range-red-yellow {
-  background: #c00000 !important;
-  color: #ffd700 !important; /* 黃字 */
-  font-weight: 800;
 }
 
 
@@ -204,6 +205,22 @@
         <tr id="weekRow2"><th>週</th></tr>
       </thead>
       <tbody>
+<tr class="note-row">
+  <th>備註</th>
+  <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td>
+  <td>春節</td>     <!-- 14 -->
+  <td>小年夜</td>   <!-- 15 -->
+  <td>除夕</td>     <!-- 16 -->
+  <td>初一</td>     <!-- 17 -->
+  <td>初二</td>     <!-- 18 -->
+  <td>初三</td>     <!-- 19 -->
+  <td>初四</td>     <!-- 20 -->
+  <td>初五</td>     <!-- 21 -->
+  <td>初六</td>     <!-- 22 -->
+  <td></td><td></td><td></td><td></td><td></td><td></td>
+</tr>
+        
 <tr><th>賢</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
 <tr><th>杰</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
 <tr><th>宇</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
@@ -489,37 +506,30 @@ document.querySelectorAll("tbody tr").forEach(row=>{
   });
 });
 
- document.addEventListener("DOMContentLoaded", () => {
-  const dateRow = document.querySelector("#schedule2 thead tr:first-child"); // 日期列
-  const weekRow = document.getElementById("weekRow2");                       // 週列
-  if (!dateRow || !weekRow) return;
+document.addEventListener("DOMContentLoaded", () => {
 
-  const dateThs = dateRow.querySelectorAll("th");
-  const weekThs = weekRow.querySelectorAll("th");
+  // ===== 2) 備註列：只要文字是春節/小年夜/除夕/初一~初六 → 自動套 .假 =====
+  const holidayKeywords = [
+    "春節","小年夜","除夕",
+    "初一","初二","初三","初四","初五","初六"
+  ];
 
-  // 需要紅底黃字的日期
-  const yellowDays = [16, 17, 18];
+  // 掃描所有月份的備註列（不限2月）
+  document.querySelectorAll("tr.note-row td").forEach(td => {
+    const t = td.textContent.trim();
+    if (!t) return;
 
-  dateThs.forEach((th, idx) => {
-    const d = parseInt(th.textContent.trim(), 10);
-    if (Number.isNaN(d) || !weekThs[idx]) return;
-
-    // 14~22：紅底白字
-    if (d >= 14 && d <= 22) {
-      weekThs[idx].classList.add("range-red");
-    }
-
-    // 16~18：紅底黃字（覆蓋上面）
-    if (yellowDays.includes(d)) {
-      weekThs[idx].classList.remove("range-red");
-      weekThs[idx].classList.add("range-red-yellow");
+    if (holidayKeywords.some(k => t.includes(k))) {
+      td.classList.add("假");
     }
   });
+
 });
 
 </script>
 </body>
 </html>
+
 
 
 
