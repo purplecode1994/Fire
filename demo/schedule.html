@@ -117,11 +117,18 @@
 }
 
 /* 2月 14~22 日期表頭紅底白字 */
-  #schedule2 thead th.range-red {
-    background: #c00000;
-    color: #fff;
-    font-weight: 700;
-  }
+#schedule2 thead th.range-red {
+  background: #c00000 !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+  /* ⭐ 特殊重點日：紅底黃字（16~18） */
+#schedule2 thead th.range-red-yellow {
+  background: #c00000 !important;
+  color: #ffd700 !important; /* 黃字 */
+  font-weight: 800;
+}
 
 
 </style>
@@ -482,25 +489,38 @@ document.querySelectorAll("tbody tr").forEach(row=>{
   });
 });
 
-  // 月份切換
-  document.addEventListener("DOMContentLoaded", () => {
-  const dateRow = document.querySelector("#schedule2 thead tr"); // 日期列
-  const weekRow = document.querySelector("#weekRow2");           // 星期列
+ document.addEventListener("DOMContentLoaded", () => {
+  const dateRow = document.querySelector("#schedule2 thead tr:first-child"); // 日期列
+  const weekRow = document.getElementById("weekRow2");                       // 週列
   if (!dateRow || !weekRow) return;
 
   const dateThs = dateRow.querySelectorAll("th");
   const weekThs = weekRow.querySelectorAll("th");
 
+  // 需要紅底黃字的日期
+  const yellowDays = [16, 17, 18];
+
   dateThs.forEach((th, idx) => {
     const d = parseInt(th.textContent.trim(), 10);
-    if (d >= 14 && d <= 22 && weekThs[idx]) {
+    if (Number.isNaN(d) || !weekThs[idx]) return;
+
+    // 14~22：紅底白字
+    if (d >= 14 && d <= 22) {
       weekThs[idx].classList.add("range-red");
+    }
+
+    // 16~18：紅底黃字（覆蓋上面）
+    if (yellowDays.includes(d)) {
+      weekThs[idx].classList.remove("range-red");
+      weekThs[idx].classList.add("range-red-yellow");
     }
   });
 });
+
 </script>
 </body>
 </html>
+
 
 
 
