@@ -104,6 +104,13 @@
   font-weight:700;
 }
 
+/* ✅新增：日班（紅底白字） */
+.日班{
+  background:#d14141;  /* 紅底（跟 .假 同色系） */
+  color:#fff;
+  font-weight:700;
+}
+
 .weekend{ 
   background:#888; 
   color:#fff; 
@@ -221,14 +228,34 @@
   <td></td><td></td><td></td><td></td><td></td><td></td>
 </tr>
         
-<tr><th>賢</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><th>杰</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><th>宇</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><th>强</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><th>璍</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><th>賢</th><td>A</td><td>A</td><td>B</td><td class="休">休</td><td class="休">休</td><td>B</td><td>B</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td class="休">休</td><td>A</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td class="日班">日班</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td class="休">休</td></tr>
+<tr><th>杰</th><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td>B</td><td class="日班">日班</td><td class="休">休</td><td class="日班">日班</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td class="休">休</td></tr>
+<tr><th>宇</th><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td class="日班">日班</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td class="日班">日班</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>B</td><td>B</td><td>B</td></tr>
+<tr><th>强</th><td class="休">休</td><td class="休">休</td><td>B</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td class="休">休</td><td>A</td><td>A</td><td>A</td><td class="休">休</td><td>A</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td class="休">休</td><td class="日班">日班</td><td class="日班">日班</td><td class="休">休</td><td class="休">休</td><td>B</td><td>B</td><td class="休">休</td><td>A</td><td>A</td><td>A</td></tr>
+<tr><th>璍</th><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td class="休">休</td><td>夜</td><td>夜</td><td>夜</td><td class="休">休</td><td class="休">休</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td>夜</td><td class="休">休</td><td>夜</td><td class="休">休</td><td>夜</td><td>夜</td><td class="特">特</td></tr>
+
 </tbody>
     </table>
   </div>
+
+  <!-- ✅ 2月垃圾清運公告（區塊置中、文字靠左） -->
+<div class="banner subtitle"
+     style="margin:8px auto 14px; line-height:1.7;
+            width:fit-content; max-width:92vw;
+            text-align:left; padding:8px 14px;">
+  <div style="font-weight:700; color:#333; margin-bottom:4px; text-align:center;">
+    2月垃圾清運調整
+  </div>
+
+  <div>2/14 (六)：正常清運</div>
+  <div>2/15 (日) 小年夜：下午1:30開始清運</div>
+  <div>2/16 (一) 除夕：上午8:30開始清運</div>
+  <div>2/17 (二)～2/20 (五) 初一至初四：停止清運</div>
+  <div>2/21 (六) 初五：上午8:30開始清運</div>
+  <div>2/22 (日) 初六：休息日（停止清運）</div>
+  <div>2/23 (一) 初七：恢復正常清運</div>
+</div>
+
 </div>
 
 
@@ -526,9 +553,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 
+// ✅補強：如果 td 文字是「日班」但沒有 class，也自動套上 .日班
+document.querySelectorAll("tbody td").forEach(td=>{
+  if (td.textContent.trim() === "日班") td.classList.add("日班");
+});
+
+
 </script>
 </body>
 </html>
+
 
 
 
