@@ -103,8 +103,12 @@
 
     .grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
+    }
+
+    .record-filter-grid {
+      grid-template-columns: 1fr;
     }
 
     .field {
@@ -112,6 +116,7 @@
       flex-direction: column;
       gap: 8px;
       margin-bottom: 14px;
+      min-width: 0;
     }
 
     .field.full {
@@ -130,6 +135,8 @@
 
     input, select, textarea {
       width: 100%;
+      min-width: 0;
+      max-width: 100%;
       border: 1px solid var(--line);
       border-radius: 14px;
       padding: 15px 16px;
@@ -145,6 +152,13 @@
     input:focus, select:focus, textarea:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10);
+    }
+
+    input[type="date"] {
+      min-width: 0;
+      max-width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     textarea {
@@ -238,7 +252,7 @@
 
     .meta {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px 12px;
       font-size: 16px;
       color: #334155;
@@ -249,6 +263,7 @@
       border-radius: 12px;
       padding: 10px 12px;
       line-height: 1.5;
+      min-width: 0;
     }
 
     .meta b {
@@ -408,6 +423,8 @@
       font-size: 17px;
       line-height: 1.5;
       color: #334155;
+      min-width: 0;
+      word-break: break-word;
     }
 
     .item-card-actions {
@@ -444,6 +461,7 @@
       font-size: 16px;
       color: #94a3b8;
       font-weight: 800;
+      gap: 10px;
     }
 
     .qty-pills {
@@ -473,6 +491,7 @@
       color: #334155;
       border-bottom: 1px dashed #e2e8f0;
       padding: 4px 0;
+      word-break: break-word;
     }
 
     .record-item-line:last-child {
@@ -497,16 +516,16 @@
       overflow: auto;
       background: #fff;
       border-radius: 24px;
-      padding: 18px 16px 24px;
+      padding: 12px 16px 20px;
       box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
       position: relative;
     }
 
     .modal-title {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 900;
       text-align: center;
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
 
     .picker-top {
@@ -542,7 +561,7 @@
 
     .multi-topbar {
       position: sticky;
-      top: -18px;
+      top: -12px;
       z-index: 2;
       background: #fff;
       padding: 0 0 12px 0;
@@ -554,6 +573,19 @@
       font-weight: 900;
       text-align: center;
       margin-bottom: 12px;
+    }
+
+    .room-modal-topbar {
+      position: sticky;
+      top: -12px;
+      z-index: 3;
+      background: #fff;
+      padding: 0 0 12px 0;
+      margin-bottom: 10px;
+    }
+
+    .room-top-actions {
+      margin-top: 0;
     }
 
     .multi-check-list {
@@ -681,7 +713,7 @@
           <button class="btn btn-light" id="refreshBtn" type="button">查詢</button>
         </div>
 
-        <div class="grid" style="margin-bottom:14px;">
+        <div class="grid record-filter-grid" style="margin-bottom:14px;">
           <div class="field">
             <label for="filterStartDate">開始日期</label>
             <input id="filterStartDate" type="date" />
@@ -693,13 +725,13 @@
 
           <div class="field">
             <label>棟別</label>
-            <button type="button" class="field-select-btn" id="openPrefixMulti">選擇棟別</button>
+            <button type="button" class="field-select-btn" id="openPrefixMulti">選擇棟別（可複選）</button>
             <div id="selectedPrefixText" class="notice" style="margin-top:8px;">未選擇</div>
           </div>
 
           <div class="field">
             <label>品名</label>
-            <button type="button" class="field-select-btn" id="openItemMulti">選擇品名</button>
+            <button type="button" class="field-select-btn" id="openItemMulti">選擇品名（可複選）</button>
             <div id="selectedItemText" class="notice" style="margin-top:8px;">未選擇</div>
           </div>
         </div>
@@ -710,7 +742,13 @@
 
     <div class="modal hidden" id="roomModal">
       <div class="modal-sheet">
-        <div class="modal-title">選擇房號</div>
+        <div class="room-modal-topbar">
+          <div class="modal-title">選擇房號</div>
+          <div class="modal-actions room-top-actions">
+            <button type="button" class="btn btn-light" id="cancelRoomPicker">取消</button>
+            <button type="button" class="btn btn-primary" id="confirmRoomPicker">確認房號</button>
+          </div>
+        </div>
 
         <div class="room-display-wrap">
           <div class="room-display" id="roomDisplay">請先選棟別</div>
@@ -746,11 +784,6 @@
               </svg>
             </button>
           </div>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn btn-light" id="cancelRoomPicker">取消</button>
-          <button type="button" class="btn btn-primary" id="confirmRoomPicker">確認房號</button>
         </div>
       </div>
     </div>
@@ -964,9 +997,9 @@
     ];
 
     function getLocalRecords() {
-      const saved = localStorage.getItem("laundryRecordsV4");
+      const saved = localStorage.getItem("laundryRecordsV5");
       if (!saved) {
-        localStorage.setItem("laundryRecordsV4", JSON.stringify(seedData));
+        localStorage.setItem("laundryRecordsV5", JSON.stringify(seedData));
         return structuredClone(seedData);
       }
       try {
@@ -977,7 +1010,7 @@
     }
 
     function setLocalRecords(records) {
-      localStorage.setItem("laundryRecordsV4", JSON.stringify(records));
+      localStorage.setItem("laundryRecordsV5", JSON.stringify(records));
     }
 
     function getItemUnit(itemName) {
