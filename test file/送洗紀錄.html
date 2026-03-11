@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>送洗紀錄表</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --sub: #94a3b8;
+      --line: #e5e7eb;
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --soft: #f8fafc;
+      --shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+      --radius: 20px;
+      --danger: #dc2626;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 0 16px 30px;
+    }
+
+    .topbar-header {
+      padding: 16px 0 8px;
+    }
+
+    .title {
+      font-size: 32px;
+      font-weight: 800;
+      text-align: center;
+      letter-spacing: 1px;
+      margin: 8px 0 6px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 15px;
+      color: var(--sub);
+      margin-bottom: 8px;
+    }
+
+    .tabs-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(246, 248, 251, 0.96);
+      backdrop-filter: blur(10px);
+      padding: 8px 0 12px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .tab {
+      border: 0;
+      border-radius: 16px;
+      padding: 15px;
+      font-size: 18px;
+      font-weight: 800;
+      background: #eaf0f7;
+      color: #475569;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: var(--shadow);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      margin: 0 0 16px;
+      font-size: 23px;
+      font-weight: 800;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 18px;
+      font-weight: 800;
+      color: #334155;
+    }
+
+    input, select, textarea, button {
+      font-family: inherit;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 15px 16px;
+      font-size: 20px;
+      background: #fff;
+      outline: none;
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: #cbd5e1;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10);
+    }
+
+    textarea {
+      min-height: 120px;
+      height: 120px;
+      resize: none;
+      line-height: 1.6;
+    }
+
+    .actions, .modal-actions, .record-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 16px;
+      padding: 16px 14px;
+      font-size: 20px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-light {
+      background: #eef2f7;
+      color: #334155;
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 84px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 800;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .record-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .record-item {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: #fff;
+    }
+
+    .record-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+
+    .room {
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 12px;
+      font-size: 16px;
+      color: #334155;
+    }
+
+    .meta div {
+      background: var(--soft);
+      border-radius: 12px;
+      padding: 10px 12px;
+      line-height: 1.5;
+    }
+
+    .meta b {
+      display: block;
+      color: #94a3b8;
+      font-size: 13px;
+      margin-bottom: 3px;
+      font-weight: 800;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--sub);
+      padding: 28px 10px;
+      font-size: 18px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .notice {
+      background: #fafcff;
+      border: 1px dashed #dbeafe;
+      color: #94a3b8;
+      font-size: 15px;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      line-height: 1.8;
+    }
+
+    .room-input-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .room-display-wrap {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: stretch;
+      margin-bottom: 14px;
+    }
+
+    .room-display {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 28px;
+      font-weight: 900;
+      text-align: center;
+      background: #f8fafc;
+      color: #1e293b;
+      letter-spacing: 2px;
+      min-height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .room-clear-btn {
+      border: 1px solid #fecaca;
+      background: #fff1f2;
+      color: #dc2626;
+      border-radius: 16px;
+      padding: 0 18px;
+      min-width: 88px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .room-picker {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .prefix-btn,
+    .num-btn,
+    .qty-pill,
+    .option-btn,
+    .item-pick-btn {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #1f2937;
+      border-radius: 16px;
+      padding: 16px 10px;
+      font-size: 20px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.15s ease;
+      text-align: center;
+    }
+
+    .item-pick-btn {
+      text-align: left;
+      padding: 15px 16px;
+    }
+
+    .prefix-btn.active,
+    .qty-pill.active {
+      background: #e8f0ff;
+      border-color: #60a5fa;
+      color: #1d4ed8;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+    }
+
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .numpad-bottom {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 10px;
+    }
+
+    .zero-btn {
+      font-size: 22px;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .back-btn svg {
+      display: block;
+    }
+
+    .item-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+
+    .item-card-text {
+      flex: 1;
+      font-size: 17px;
+      line-height: 1.5;
+      color: #334155;
+    }
+
+    .item-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 46px;
+      height: 46px;
+      border: 0;
+      border-radius: 12px;
+      background: #e8f0ff;
+      color: #1d4ed8;
+      font-size: 22px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .item-row {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      background: #fbfdff;
+      margin-bottom: 12px;
+    }
+
+    .item-row-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #94a3b8;
+      font-weight: 800;
+    }
+
+    .qty-pills {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .serial-no {
+      font-size: 13px;
+      color: #cbd5e1;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .record-items-box {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .record-item-line {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #334155;
+      border-bottom: 1px dashed #e2e8f0;
+      padding: 4px 0;
+    }
+
+    .record-item-line:last-child {
+      border-bottom: 0;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      z-index: 80;
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 520px;
+      max-height: calc(100vh - 20px);
+      overflow: auto;
+      background: #fff;
+      border-radius: 24px;
+      padding: 18px 16px 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      position: relative;
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 900;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .picker-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .picker-title {
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .picker-step {
+      font-size: 15px;
+      color: #94a3b8;
+      margin-bottom: 14px;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      overflow: auto;
+      padding-bottom: 8px;
+    }
+
+    .option-btn.wide {
+      grid-column: 1 / -1;
+    }
+
+    .multi-topbar {
+      position: sticky;
+      top: -18px;
+      z-index: 2;
+      background: #fff;
+      padding: 0 0 12px 0;
+      margin-bottom: 8px;
+    }
+
+    .multi-title {
+      font-size: 24px;
+      font-weight: 900;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .multi-check-list {
+      max-height: 60vh;
+      overflow: auto;
+      padding-top: 4px;
+    }
+
+    .multi-check-list label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      font-size: 18px;
+      border-bottom: 1px dashed #e5e7eb;
+    }
+
+    .multi-check-list input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+    }
+
+    .field-select-btn {
+      appearance: none;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 15px 16px;
+      font-size: 20px;
+      background: #fff;
+      outline: none;
+      text-align: left;
+      color: #334155;
+      cursor: pointer;
+    }
+
+    @media (max-width: 430px) {
+      .grid, .meta, .actions, .toolbar, .record-actions, .modal-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .room-picker {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .room-display-wrap {
+        grid-template-columns: 1fr 88px;
+      }
+
+      .option-grid,
+      .qty-pills {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar-header">
+      <div class="title">送洗紀錄表</div>
+      <div class="subtitle">手機版完整樣板｜可接試算表｜可查詢與補填</div>
+    </div>
+
+    <div class="tabs-wrap">
+      <div class="tabs">
+        <button class="tab active" id="tabForm">新增送洗</button>
+        <button class="tab" id="tabList">查看紀錄</button>
+      </div>
+    </div>
+
+    <section id="formPage">
+      <div class="card">
+        <h2 class="section-title">新增紀錄</h2>
+        <div class="notice">
+          目前先是完整前端樣板。<br>
+          先用本機暫存測試流程，之後把 Apps Script 網址貼上，就能正式接 Google 試算表。
+        </div>
+
+        <form id="laundryForm">
+          <div class="grid">
+            <div class="field full">
+              <label for="roomNo">房號</label>
+              <div class="room-input-wrap">
+                <input id="roomNo" name="roomNo" type="text" placeholder="請點一下選擇房號" readonly required />
+                <button type="button" class="btn btn-light" id="openRoomPicker">選擇房號</button>
+              </div>
+            </div>
+
+            <div class="field full">
+              <label for="sendDate">送洗日期</label>
+              <input id="sendDate" name="sendDate" type="date" required />
+            </div>
+
+            <div class="field full">
+              <label>品名 / 數量 / 顏色</label>
+              <div id="itemCards"></div>
+              <button type="button" class="btn btn-light" id="addItemRow">繼續加洗</button>
+            </div>
+
+            <div class="field full">
+              <label for="sender">送洗人員</label>
+              <input id="sender" name="sender" type="text" placeholder="請輸入送洗人員姓名" />
+            </div>
+
+            <div class="field full">
+              <label for="remark">送洗備註</label>
+              <textarea id="remark" name="remark" placeholder="這裡可先寫特殊交代"></textarea>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn btn-primary">送出儲存</button>
+            <button type="reset" class="btn btn-light" id="resetFormBtn">清空重填</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="listPage" class="hidden">
+      <div class="card">
+        <h2 class="section-title">歷史紀錄</h2>
+        <div class="toolbar">
+          <input id="searchInput" type="text" placeholder="搜尋房號、流水單號、送洗人員" />
+          <button class="btn btn-light" id="refreshBtn" type="button">查詢</button>
+        </div>
+
+        <div class="grid" style="margin-bottom:14px;">
+          <div class="field">
+            <label for="filterStartDate">開始日期</label>
+            <input id="filterStartDate" type="date" />
+          </div>
+          <div class="field">
+            <label for="filterEndDate">結束日期</label>
+            <input id="filterEndDate" type="date" />
+          </div>
+
+          <div class="field">
+            <label>棟別</label>
+            <button type="button" class="field-select-btn" id="openPrefixMulti">選擇棟別</button>
+            <div id="selectedPrefixText" class="notice" style="margin-top:8px;">未選擇</div>
+          </div>
+
+          <div class="field">
+            <label>品名</label>
+            <button type="button" class="field-select-btn" id="openItemMulti">選擇品名</button>
+            <div id="selectedItemText" class="notice" style="margin-top:8px;">未選擇</div>
+          </div>
+        </div>
+
+        <div id="recordList" class="record-list"></div>
+      </div>
+    </section>
+
+    <div class="modal hidden" id="roomModal">
+      <div class="modal-sheet">
+        <div class="modal-title">選擇房號</div>
+
+        <div class="room-display-wrap">
+          <div class="room-display" id="roomDisplay">請先選棟別</div>
+          <button type="button" class="room-clear-btn" id="clearRoom" aria-label="清除房號">清除</button>
+        </div>
+
+        <div class="room-picker">
+          <button type="button" class="prefix-btn" data-prefix="A">A</button>
+          <button type="button" class="prefix-btn" data-prefix="B">B</button>
+          <button type="button" class="prefix-btn" data-prefix="D">D</button>
+          <button type="button" class="prefix-btn" data-prefix="CA">CA</button>
+          <button type="button" class="prefix-btn" data-prefix="CB">CB</button>
+          <button type="button" class="prefix-btn" data-prefix="CC">CC</button>
+        </div>
+
+        <div class="numpad">
+          <button type="button" class="num-btn" data-num="1">1</button>
+          <button type="button" class="num-btn" data-num="2">2</button>
+          <button type="button" class="num-btn" data-num="3">3</button>
+          <button type="button" class="num-btn" data-num="4">4</button>
+          <button type="button" class="num-btn" data-num="5">5</button>
+          <button type="button" class="num-btn" data-num="6">6</button>
+          <button type="button" class="num-btn" data-num="7">7</button>
+          <button type="button" class="num-btn" data-num="8">8</button>
+          <button type="button" class="num-btn" data-num="9">9</button>
+
+          <div class="numpad-bottom">
+            <button type="button" class="num-btn zero-btn" data-num="0">0</button>
+            <button type="button" class="num-btn back-btn" id="backspaceRoom" aria-label="刪除一格">
+              <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+                <path d="M9 6H20V18H9L3 12L9 6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M15 9V15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-light" id="cancelRoomPicker">取消</button>
+          <button type="button" class="btn btn-primary" id="confirmRoomPicker">確認房號</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="itemPickerModal">
+      <div class="modal-sheet">
+        <div class="picker-top">
+          <div class="picker-title">選擇品名</div>
+          <button type="button" class="btn btn-light" id="closeItemPicker">關閉</button>
+        </div>
+        <div class="picker-step" id="itemPickerStepText">先選擇：單人、雙人、枕頭</div>
+        <div class="option-grid" id="itemPickerOptions"></div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="editModal">
+      <div class="modal-sheet">
+        <div class="modal-title">補填回件資料</div>
+        <form id="editForm">
+          <input type="hidden" id="editIndex" />
+          <div class="field">
+            <label for="editReceiver">收件人員</label>
+            <input id="editReceiver" type="text" placeholder="請輸入收件人員姓名" />
+          </div>
+          <div class="field">
+            <label for="editReturnDate">回件日期</label>
+            <input id="editReturnDate" type="date" />
+          </div>
+          <div class="field">
+            <label>新增項目（加洗）</label>
+            <div id="editAddItemCards"></div>
+            <button type="button" class="btn btn-light" id="editAddItemRowBtn">繼續加洗</button>
+          </div>
+          <div class="field">
+            <label for="editRemark">備註</label>
+            <textarea id="editRemark" placeholder="可補充回件說明"></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-light" id="cancelEdit">取消</button>
+            <button type="submit" class="btn btn-primary">儲存修改</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="confirmModal">
+      <div class="modal-sheet">
+        <div class="modal-title">送出前確認</div>
+        <div id="confirmSummary" class="notice" style="color:#475569;"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-light" id="cancelConfirm">返回修改</button>
+          <button type="button" class="btn btn-primary" id="submitConfirmed">確認送出</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="multiSelectModal">
+      <div class="modal-sheet">
+        <div class="multi-topbar">
+          <div class="multi-title" id="multiSelectTitle">複選</div>
+          <div class="modal-actions" style="margin-top:0;">
+            <button type="button" class="btn btn-light" id="cancelMultiSelect">取消</button>
+            <button type="button" class="btn btn-primary" id="confirmMultiSelect">確認</button>
+          </div>
+        </div>
+        <div id="multiSelectOptions" class="multi-check-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "";
+
+    const ITEM_TREE = {
+      "單人": ["單人棉被", "單人被套", "單人保潔墊", "單人三件床包組", "單人床罩"],
+      "雙人": ["雙人棉被", "雙人被套", "雙人保潔墊", "雙人三件床包組", "雙人床罩"],
+      "枕頭": ["枕頭", "枕頭保潔墊"]
+    };
+
+    const ITEM_OPTIONS = Object.values(ITEM_TREE).flat();
+    const PREFIX_OPTIONS = ["A", "B", "C", "CA", "CB", "CC", "D"];
+
+    const ITEM_UNIT_MAP = {
+      "枕頭": "個",
+      "枕頭保潔墊": "個",
+      "單人三件床包組": "組",
+      "雙人三件床包組": "組",
+      "單人棉被": "件",
+      "雙人棉被": "件",
+      "單人被套": "件",
+      "雙人被套": "件",
+      "單人保潔墊": "件",
+      "雙人保潔墊": "件",
+      "單人床罩": "件",
+      "雙人床罩": "件"
+    };
+
+    const tabForm = document.getElementById("tabForm");
+    const tabList = document.getElementById("tabList");
+    const formPage = document.getElementById("formPage");
+    const listPage = document.getElementById("listPage");
+    const form = document.getElementById("laundryForm");
+    const recordList = document.getElementById("recordList");
+    const searchInput = document.getElementById("searchInput");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const filterStartDate = document.getElementById("filterStartDate");
+    const filterEndDate = document.getElementById("filterEndDate");
+    const resetFormBtn = document.getElementById("resetFormBtn");
+
+    const openPrefixMulti = document.getElementById("openPrefixMulti");
+    const openItemMulti = document.getElementById("openItemMulti");
+    const selectedPrefixText = document.getElementById("selectedPrefixText");
+    const selectedItemText = document.getElementById("selectedItemText");
+
+    const roomNoInput = document.getElementById("roomNo");
+    const openRoomPicker = document.getElementById("openRoomPicker");
+    const roomModal = document.getElementById("roomModal");
+    const roomDisplay = document.getElementById("roomDisplay");
+    const confirmRoomPicker = document.getElementById("confirmRoomPicker");
+    const cancelRoomPicker = document.getElementById("cancelRoomPicker");
+    const prefixButtons = document.querySelectorAll(".prefix-btn");
+    const numButtons = document.querySelectorAll(".num-btn[data-num]");
+    const clearRoom = document.getElementById("clearRoom");
+    const backspaceRoom = document.getElementById("backspaceRoom");
+
+    const itemCards = document.getElementById("itemCards");
+    const addItemRowBtn = document.getElementById("addItemRow");
+
+    const editModal = document.getElementById("editModal");
+    const editForm = document.getElementById("editForm");
+    const editIndex = document.getElementById("editIndex");
+    const editReceiver = document.getElementById("editReceiver");
+    const editReturnDate = document.getElementById("editReturnDate");
+    const editRemark = document.getElementById("editRemark");
+    const cancelEdit = document.getElementById("cancelEdit");
+    const editAddItemCards = document.getElementById("editAddItemCards");
+    const editAddItemRowBtn = document.getElementById("editAddItemRowBtn");
+
+    const itemPickerModal = document.getElementById("itemPickerModal");
+    const itemPickerOptions = document.getElementById("itemPickerOptions");
+    const itemPickerStepText = document.getElementById("itemPickerStepText");
+    const closeItemPicker = document.getElementById("closeItemPicker");
+
+    const confirmModal = document.getElementById("confirmModal");
+    const confirmSummary = document.getElementById("confirmSummary");
+    const cancelConfirm = document.getElementById("cancelConfirm");
+    const submitConfirmed = document.getElementById("submitConfirmed");
+
+    const multiSelectModal = document.getElementById("multiSelectModal");
+    const multiSelectTitle = document.getElementById("multiSelectTitle");
+    const multiSelectOptions = document.getElementById("multiSelectOptions");
+    const cancelMultiSelect = document.getElementById("cancelMultiSelect");
+    const confirmMultiSelect = document.getElementById("confirmMultiSelect");
+
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    document.getElementById("sendDate").value = todayStr;
+
+    const past7 = new Date(today);
+    past7.setDate(today.getDate() - 6);
+    filterStartDate.value = past7.toISOString().split("T")[0];
+    filterEndDate.value = todayStr;
+
+    let selectedPrefix = "";
+    let selectedNumbers = "";
+    let isDirty = false;
+    let pickerStep = 1;
+    let pickedCategory = "";
+    let pendingPayload = null;
+    let currentMultiType = "";
+    let selectedPrefixes = [];
+    let selectedItems = [];
+    let currentItemIndex = -1;
+    let currentEditExtraIndex = -1;
+    let pickerTargetMode = "main";
+
+    let items = [
+      { itemName: "", itemQty: "", color: "", expanded: true }
+    ];
+
+    let editExtraItems = [];
+
+    const seedData = [
+      {
+        serialNo: "20260310001",
+        roomNo: "A615",
+        sendDate: "2026-03-10",
+        itemDetails: "單人棉被｜2件｜白色；枕頭｜2個｜白色",
+        itemRows: [
+          { itemName: "單人棉被", itemQty: "2", color: "白色" },
+          { itemName: "枕頭", itemQty: "2", color: "白色" }
+        ],
+        sender: "小王",
+        receiver: "",
+        returnDate: "",
+        remark: "住戶交代先處理"
+      },
+      {
+        serialNo: "20260309002",
+        roomNo: "CB210",
+        sendDate: "2026-03-09",
+        itemDetails: "雙人被套｜1件｜米色",
+        itemRows: [
+          { itemName: "雙人被套", itemQty: "1", color: "米色" }
+        ],
+        sender: "阿明",
+        receiver: "櫃台",
+        returnDate: "2026-03-10",
+        remark: "已回件"
+      }
+    ];
+
+    function getLocalRecords() {
+      const saved = localStorage.getItem("laundryRecordsV4");
+      if (!saved) {
+        localStorage.setItem("laundryRecordsV4", JSON.stringify(seedData));
+        return structuredClone(seedData);
+      }
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return structuredClone(seedData);
+      }
+    }
+
+    function setLocalRecords(records) {
+      localStorage.setItem("laundryRecordsV4", JSON.stringify(records));
+    }
+
+    function getItemUnit(itemName) {
+      return ITEM_UNIT_MAP[itemName] || "件";
+    }
+
+    function markDirty() {
+      isDirty = true;
+    }
+
+    function switchTab(type) {
+      const isForm = type === "form";
+      tabForm.classList.toggle("active", isForm);
+      tabList.classList.toggle("active", !isForm);
+      formPage.classList.toggle("hidden", !isForm);
+      listPage.classList.toggle("hidden", isForm);
+      if (!isForm) renderRecords();
+    }
+
+    tabForm.addEventListener("click", () => switchTab("form"));
+    tabList.addEventListener("click", () => switchTab("list"));
+    refreshBtn.addEventListener("click", renderRecords);
+    searchInput.addEventListener("input", renderRecords);
+    filterStartDate.addEventListener("change", renderRecords);
+    filterEndDate.addEventListener("change", renderRecords);
+
+    function getPrefix(roomNo = "") {
+      const match = roomNo.match(/^[A-Z]+/);
+      return match ? match[0] : "";
+    }
+
+    function getItemSummary(item) {
+      return `${item.itemName || "未選品名"}｜${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"}｜${item.color || "未填顏色"}`;
+    }
+
+    function renderItemPicker() {
+      if (pickerStep === 1) {
+        itemPickerStepText.textContent = "先選擇：單人、雙人、枕頭";
+        itemPickerOptions.innerHTML = Object.keys(ITEM_TREE).map(key => `
+          <button type="button" class="option-btn" data-step="1" data-value="${key}">${key}</button>
+        `).join("");
+      } else {
+        itemPickerStepText.textContent = `已選 ${pickedCategory}，請繼續選擇品名`;
+        itemPickerOptions.innerHTML = ITEM_TREE[pickedCategory].map(name => `
+          <button type="button" class="option-btn wide" data-step="2" data-value="${name}">${name}</button>
+        `).join("");
+      }
+
+      itemPickerOptions.querySelectorAll(".option-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const value = btn.dataset.value;
+          const step = btn.dataset.step;
+
+          if (step === "1") {
+            pickedCategory = value;
+            pickerStep = 2;
+            renderItemPicker();
+            return;
+          }
+
+          if (pickerTargetMode === "main" && currentItemIndex > -1) {
+            items[currentItemIndex].itemName = value;
+            items[currentItemIndex].itemQty = "";
+          }
+
+          if (pickerTargetMode === "edit" && currentEditExtraIndex > -1) {
+            editExtraItems[currentEditExtraIndex].itemName = value;
+            editExtraItems[currentEditExtraIndex].itemQty = "";
+          }
+
+          closeFullItemPicker();
+          renderItems();
+          renderEditExtraItems();
+          markDirty();
+        });
+      });
+    }
+
+    function openItemPickerByIndex(index) {
+      currentItemIndex = index;
+      pickerTargetMode = "main";
+      pickerStep = 1;
+      pickedCategory = "";
+      renderItemPicker();
+      itemPickerModal.classList.remove("hidden");
+    }
+
+    function openEditExtraItemPicker(index) {
+      currentEditExtraIndex = index;
+      pickerTargetMode = "edit";
+      pickerStep = 1;
+      pickedCategory = "";
+      renderItemPicker();
+      itemPickerModal.classList.remove("hidden");
+    }
+
+    function closeFullItemPicker() {
+      itemPickerModal.classList.add("hidden");
+    }
+
+    closeItemPicker.addEventListener("click", closeFullItemPicker);
+
+    function collapseAllItems() {
+      items.forEach(item => item.expanded = false);
+    }
+
+    function renderItems() {
+      itemCards.innerHTML = items.map((item, index) => {
+        const summary = getItemSummary(item);
+
+        if (!item.expanded) {
+          return `
+            <div class="item-card">
+              <div class="item-card-text">${summary}</div>
+              <div class="item-card-actions">
+                <button type="button" class="icon-btn" onclick="toggleItem(${index})">✎</button>
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="item-row">
+            <div class="item-row-head">
+              <span>第 ${index + 1} 項</span>
+              ${items.length > 1 ? `<button type="button" class="btn btn-danger" style="padding:10px 14px;font-size:16px;" onclick="deleteItem(${index})">刪除</button>` : ""}
+            </div>
+
+            <div class="field">
+              <label>品名</label>
+              <button type="button" class="item-pick-btn" onclick="openItemPickerByIndex(${index})">
+                ${item.itemName || "請點選品名"}
+              </button>
+            </div>
+
+            <div class="field">
+              <label>數量</label>
+              <div class="qty-pills">
+                ${[1,2,3,4].map(n => `
+                  <button type="button" class="qty-pill ${String(n) === String(item.itemQty) ? "active" : ""}" onclick="setItemQty(${index}, '${n}')">${n}</button>
+                `).join("")}
+              </div>
+            </div>
+
+            <div class="field">
+              <label>顏色</label>
+              <input type="text" value="${item.color || ""}" oninput="setItemColor(${index}, this.value)" placeholder="例如：白色、藍色" />
+            </div>
+
+            <div class="actions">
+              <button type="button" class="btn btn-primary" onclick="collapseItem(${index})">完成此項</button>
+              <button type="button" class="btn btn-light" onclick="clearItem(${index})">清空此項</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    window.toggleItem = function(index) {
+      collapseAllItems();
+      items[index].expanded = true;
+      renderItems();
+    };
+
+    window.collapseItem = function(index) {
+      if (!items[index].itemName || !items[index].itemQty) {
+        alert("請先完成品名與數量");
+        return;
+      }
+      items[index].expanded = false;
+      renderItems();
+    };
+
+    window.setItemQty = function(index, qty) {
+      items[index].itemQty = qty;
+      renderItems();
+      markDirty();
+    };
+
+    window.setItemColor = function(index, color) {
+      items[index].color = color;
+      markDirty();
+    };
+
+    window.clearItem = function(index) {
+      items[index].itemName = "";
+      items[index].itemQty = "";
+      items[index].color = "";
+      renderItems();
+      markDirty();
+    };
+
+    window.deleteItem = function(index) {
+      const item = items[index];
+      const text = `${item.itemName || "未填品名"} / ${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"} / ${item.color || "未填顏色"}`;
+      const ok = confirm(`你確定要刪除「${text}」嗎？`);
+      if (!ok) return;
+
+      items.splice(index, 1);
+      if (!items.length) {
+        items.push({ itemName: "", itemQty: "", color: "", expanded: true });
+      }
+      if (!items.some(x => x.expanded)) {
+        items[0].expanded = true;
+      }
+      renderItems();
+      markDirty();
+    };
+
+    addItemRowBtn.addEventListener("click", () => {
+      const hasIncomplete = items.some(x => !x.itemName || !x.itemQty);
+      if (hasIncomplete) {
+        alert("請先完成目前展開中的品項");
+        return;
+      }
+
+      collapseAllItems();
+      items.push({
+        itemName: "",
+        itemQty: "",
+        color: "",
+        expanded: true
+      });
+      renderItems();
+      markDirty();
+    });
+
+    function renderEditExtraItems() {
+      editAddItemCards.innerHTML = editExtraItems.map((item, index) => {
+        const summary = getItemSummary(item);
+
+        if (!item.expanded) {
+          return `
+            <div class="item-card">
+              <div class="item-card-text">${summary}</div>
+              <div class="item-card-actions">
+                <button type="button" class="icon-btn" onclick="toggleEditExtraItem(${index})">✎</button>
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="item-row">
+            <div class="item-row-head">
+              <span>加洗第 ${index + 1} 項</span>
+              ${editExtraItems.length > 1 ? `<button type="button" class="btn btn-danger" style="padding:10px 14px;font-size:16px;" onclick="deleteEditExtraItem(${index})">刪除</button>` : ""}
+            </div>
+
+            <div class="field">
+              <label>品名</label>
+              <button type="button" class="item-pick-btn" onclick="openEditExtraItemPicker(${index})">
+                ${item.itemName || "請點選品名"}
+              </button>
+            </div>
+
+            <div class="field">
+              <label>數量</label>
+              <div class="qty-pills">
+                ${[1,2,3,4].map(n => `
+                  <button type="button" class="qty-pill ${String(n) === String(item.itemQty) ? "active" : ""}" onclick="setEditExtraItemQty(${index}, '${n}')">${n}</button>
+                `).join("")}
+              </div>
+            </div>
+
+            <div class="field">
+              <label>顏色</label>
+              <input type="text" value="${item.color || ""}" oninput="setEditExtraItemColor(${index}, this.value)" placeholder="例如：白色、藍色" />
+            </div>
+
+            <div class="actions">
+              <button type="button" class="btn btn-primary" onclick="collapseEditExtraItem(${index})">完成此項</button>
+              <button type="button" class="btn btn-light" onclick="clearEditExtraItem(${index})">清空此項</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function collapseAllEditExtraItems() {
+      editExtraItems.forEach(item => item.expanded = false);
+    }
+
+    window.toggleEditExtraItem = function(index) {
+      collapseAllEditExtraItems();
+      editExtraItems[index].expanded = true;
+      renderEditExtraItems();
+    };
+
+    window.collapseEditExtraItem = function(index) {
+      if (!editExtraItems[index].itemName || !editExtraItems[index].itemQty) {
+        alert("請先完成品名與數量");
+        return;
+      }
+      editExtraItems[index].expanded = false;
+      renderEditExtraItems();
+    };
+
+    window.setEditExtraItemQty = function(index, qty) {
+      editExtraItems[index].itemQty = qty;
+      renderEditExtraItems();
+    };
+
+    window.setEditExtraItemColor = function(index, color) {
+      editExtraItems[index].color = color;
+    };
+
+    window.clearEditExtraItem = function(index) {
+      editExtraItems[index].itemName = "";
+      editExtraItems[index].itemQty = "";
+      editExtraItems[index].color = "";
+      renderEditExtraItems();
+    };
+
+    window.deleteEditExtraItem = function(index) {
+      const item = editExtraItems[index];
+      const text = `${item.itemName || "未填品名"} / ${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"} / ${item.color || "未填顏色"}`;
+      const ok = confirm(`你確定要刪除「${text}」嗎？`);
+      if (!ok) return;
+
+      editExtraItems.splice(index, 1);
+      if (!editExtraItems.length) {
+        editExtraItems.push({ itemName: "", itemQty: "", color: "", expanded: true });
+      }
+      if (!editExtraItems.some(x => x.expanded)) {
+        editExtraItems[0].expanded = true;
+      }
+      renderEditExtraItems();
+    };
+
+    editAddItemRowBtn.addEventListener("click", () => {
+      const hasIncomplete = editExtraItems.some(x => !x.itemName || !x.itemQty);
+      if (hasIncomplete) {
+        alert("請先完成目前展開中的品項");
+        return;
+      }
+
+      collapseAllEditExtraItems();
+      editExtraItems.push({
+        itemName: "",
+        itemQty: "",
+        color: "",
+        expanded: true
+      });
+      renderEditExtraItems();
+    });
+
+    function updateRoomDisplay() {
+      const full = `${selectedPrefix}${selectedNumbers}`;
+      roomDisplay.textContent = full || "請先選棟別";
+    }
+
+    function openRoomModal() {
+      roomModal.classList.remove("hidden");
+    }
+
+    function closeRoomModal() {
+      roomModal.classList.add("hidden");
+    }
+
+    openRoomPicker.addEventListener("click", openRoomModal);
+    roomNoInput.addEventListener("click", openRoomModal);
+    cancelRoomPicker.addEventListener("click", closeRoomModal);
+
+    prefixButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        prefixButtons.forEach(x => x.classList.remove("active"));
+        btn.classList.add("active");
+        selectedPrefix = btn.dataset.prefix;
+        updateRoomDisplay();
+        markDirty();
+      });
+    });
+
+    numButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (!selectedPrefix) {
+          alert("請先選擇 A、B、D、CA、CB、CC");
+          return;
+        }
+        if (selectedNumbers.length >= 3) return;
+        selectedNumbers += btn.dataset.num;
+        updateRoomDisplay();
+        markDirty();
+      });
+    });
+
+    clearRoom.addEventListener("click", () => {
+      selectedPrefix = "";
+      selectedNumbers = "";
+      prefixButtons.forEach(x => x.classList.remove("active"));
+      updateRoomDisplay();
+      markDirty();
+    });
+
+    backspaceRoom.addEventListener("click", () => {
+      selectedNumbers = selectedNumbers.slice(0, -1);
+      updateRoomDisplay();
+      markDirty();
+    });
+
+    confirmRoomPicker.addEventListener("click", () => {
+      if (!selectedPrefix || selectedNumbers.length !== 3) {
+        alert("房號需為棟別 + 3個數字");
+        return;
+      }
+      roomNoInput.value = `${selectedPrefix}${selectedNumbers}`;
+      closeRoomModal();
+      markDirty();
+    });
+
+    function generateSerialNo(records) {
+      const formDate = document.getElementById("sendDate").value || todayStr;
+      const datePart = formDate.replaceAll("-", "");
+      const countToday = records.filter(r => (r.sendDate || "").replaceAll("-", "") === datePart).length + 1;
+      return `${datePart}${String(countToday).padStart(3, "0")}`;
+    }
+
+    function createRecordCard(item, index) {
+      const itemLines = (item.itemRows || []).map(x => `
+        <div class="record-item-line">
+          ${x.itemName || "未填品名"}｜${x.itemQty ? x.itemQty + getItemUnit(x.itemName) : "未填數量"}｜${x.color || "未填顏色"}
+        </div>
+      `).join("");
+
+      return `
+        <div class="record-item">
+          <div class="serial-no">流水單號：${item.serialNo || "-"}</div>
+          <div class="record-head" onclick="toggleRecordDetail(${index})">
+            <div class="room">${item.roomNo || "未填房號"}</div>
+            <span class="pill">${item.returnDate ? "已回件" : "送洗中"}</span>
+          </div>
+          <div id="detail-${index}" class="hidden">
+            <div class="record-items-box">${itemLines || `<div class="record-item-line">-</div>`}</div>
+            <div class="meta">
+              <div><b>送洗日期</b>${item.sendDate || "-"}</div>
+              <div><b>送洗人員</b>${item.sender || "-"}</div>
+              <div><b>收件人員</b>${item.receiver || "-"}</div>
+              <div><b>回件日期</b>${item.returnDate || "-"}</div>
+              <div style="grid-column:1 / -1;"><b>備註</b>${item.remark || "-"}</div>
+            </div>
+            <div class="record-actions">
+              <button type="button" class="btn btn-light" onclick="openEditModal(${index});event.stopPropagation();">編輯補填</button>
+              <button type="button" class="btn btn-primary" onclick="openEditModal(${index}, true);event.stopPropagation();">新增項目</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRecords() {
+      const keyword = searchInput.value.trim().toLowerCase();
+      const start = filterStartDate.value;
+      const end = filterEndDate.value;
+
+      const records = getLocalRecords().slice().reverse();
+      const filtered = records
+        .map((item, idx, arr) => ({ item, originalIndex: arr.length - 1 - idx }))
+        .filter(({ item }) => {
+          const text = [item.roomNo, item.serialNo, item.sender, item.receiver, item.remark, item.itemDetails].join(" ").toLowerCase();
+          const sendDate = item.sendDate || "";
+          const inKeyword = text.includes(keyword);
+          const inStart = !start || sendDate >= start;
+          const inEnd = !end || sendDate <= end;
+          const inPrefix = !selectedPrefixes.length || selectedPrefixes.includes(getPrefix(item.roomNo));
+          const inItem = !selectedItems.length || (item.itemRows || []).some(x => selectedItems.includes(x.itemName));
+          return inKeyword && inStart && inEnd && inPrefix && inItem;
+        });
+
+      if (!filtered.length) {
+        recordList.innerHTML = `<div class="empty">查無符合的送洗紀錄</div>`;
+        return;
+      }
+
+      recordList.innerHTML = filtered.map(({ item, originalIndex }) => createRecordCard(item, originalIndex)).join("");
+    }
+
+    async function saveToGoogleSheet(payload) {
+      if (!API_URL) {
+        const records = getLocalRecords();
+        records.push(payload);
+        setLocalRecords(records);
+        return { ok: true, mode: "local" };
+      }
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error("送出失敗");
+      return await response.json();
+    }
+
+    document.addEventListener("input", (e) => {
+      if (formPage.contains(e.target)) markDirty();
+    });
+
+    window.addEventListener("beforeunload", (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    });
+
+    resetFormBtn.addEventListener("click", () => {
+      setTimeout(() => {
+        document.getElementById("sendDate").value = todayStr;
+        roomNoInput.value = "";
+        selectedPrefix = "";
+        selectedNumbers = "";
+        prefixButtons.forEach(x => x.classList.remove("active"));
+        updateRoomDisplay();
+        items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
+        renderItems();
+        isDirty = false;
+      }, 0);
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const itemData = items.filter(x => x.itemName && x.itemQty).map(x => ({
+        itemName: x.itemName,
+        itemQty: x.itemQty,
+        color: x.color
+      }));
+
+      if (!roomNoInput.value.trim()) {
+        alert("請先選擇房號");
+        return;
+      }
+      if (!itemData.length) {
+        alert("請至少新增一項送洗品名");
+        return;
+      }
+      if (items.some(x => x.expanded && (!x.itemName || !x.itemQty))) {
+        alert("請先完成目前展開中的品項");
+        return;
+      }
+
+      const records = getLocalRecords();
+      const payload = {
+        serialNo: generateSerialNo(records),
+        roomNo: roomNoInput.value.trim(),
+        sendDate: document.getElementById("sendDate").value,
+        itemRows: itemData,
+        itemDetails: itemData.map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`).join("；"),
+        sender: document.getElementById("sender").value.trim(),
+        receiver: "",
+        returnDate: "",
+        remark: document.getElementById("remark").value.trim(),
+        createdAt: new Date().toISOString()
+      };
+
+      confirmSummary.innerHTML = `
+        <div style="font-size:18px;font-weight:800;margin-bottom:8px;">房號：${payload.roomNo || "-"}</div>
+        <div style="margin-bottom:8px;">送洗日期：${payload.sendDate || "-"}</div>
+        <div style="margin-bottom:8px;">送洗人員：${payload.sender || "-"}</div>
+        <div style="margin-bottom:8px;">送洗項目：</div>
+        <div style="line-height:1.8;">${payload.itemRows.map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`).join("<br>")}</div>
+        <div style="margin-top:8px;">備註：${payload.remark || "-"}</div>
+      `;
+
+      pendingPayload = payload;
+      confirmModal.classList.remove("hidden");
+    });
+
+    cancelConfirm.addEventListener("click", () => {
+      confirmModal.classList.add("hidden");
+      pendingPayload = null;
+    });
+
+    submitConfirmed.addEventListener("click", async () => {
+      if (!pendingPayload) return;
+
+      try {
+        const result = await saveToGoogleSheet(pendingPayload);
+        alert(result.mode === "local" ? "已先儲存在手機樣板中" : "已成功寫入試算表");
+        form.reset();
+        document.getElementById("sendDate").value = todayStr;
+        selectedPrefix = "";
+        selectedNumbers = "";
+        roomNoInput.value = "";
+        updateRoomDisplay();
+        prefixButtons.forEach(x => x.classList.remove("active"));
+        items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
+        renderItems();
+        isDirty = false;
+        pendingPayload = null;
+        confirmModal.classList.add("hidden");
+        renderRecords();
+        switchTab("list");
+      } catch (error) {
+        console.error(error);
+        alert("送出失敗，請稍後再試");
+      }
+    });
+
+    window.openEditModal = function(index, addOnly = false) {
+      const records = getLocalRecords();
+      const item = records[index];
+      if (!item) return;
+
+      editIndex.value = index;
+      editReceiver.value = item.receiver || "";
+      editReturnDate.value = item.returnDate || "";
+      editRemark.value = item.remark || "";
+
+      editExtraItems = addOnly
+        ? [{ itemName: "", itemQty: "", color: "", expanded: true }]
+        : [];
+
+      renderEditExtraItems();
+      editModal.classList.remove("hidden");
+    };
+
+    window.toggleRecordDetail = function(index) {
+      const el = document.getElementById(`detail-${index}`);
+      if (el) el.classList.toggle("hidden");
+    };
+
+    cancelEdit.addEventListener("click", () => {
+      editModal.classList.add("hidden");
+    });
+
+    editForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const index = Number(editIndex.value);
+      const records = getLocalRecords();
+      if (!records[index]) return;
+
+      const incompleteExpanded = editExtraItems.some(x => x.expanded && (x.itemName || x.itemQty || x.color) && (!x.itemName || !x.itemQty));
+      if (incompleteExpanded) {
+        alert("請先完成目前展開中的加洗品項");
+        return;
+      }
+
+      const extraRows = editExtraItems
+        .filter(x => x.itemName && x.itemQty)
+        .map(x => ({
+          itemName: x.itemName,
+          itemQty: x.itemQty,
+          color: x.color
+        }));
+
+      records[index].receiver = editReceiver.value.trim();
+      records[index].returnDate = editReturnDate.value;
+      records[index].remark = editRemark.value.trim();
+
+      if (extraRows.length) {
+        records[index].itemRows = [...(records[index].itemRows || []), ...extraRows];
+        records[index].itemDetails = records[index].itemRows
+          .map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`)
+          .join("；");
+      }
+
+      setLocalRecords(records);
+      editModal.classList.add("hidden");
+      renderRecords();
+      alert("修改完成");
+    });
+
+    function openMultiSelect(type) {
+      currentMultiType = type;
+
+      if (type === "prefix") {
+        multiSelectTitle.textContent = "選擇棟別";
+        multiSelectOptions.innerHTML = PREFIX_OPTIONS.map(x => `
+          <label>
+            <input type="checkbox" value="${x}" ${selectedPrefixes.includes(x) ? "checked" : ""}>
+            ${x}
+          </label>
+        `).join("");
+      } else {
+        multiSelectTitle.textContent = "選擇品名";
+        multiSelectOptions.innerHTML = ITEM_OPTIONS.map(x => `
+          <label>
+            <input type="checkbox" value="${x}" ${selectedItems.includes(x) ? "checked" : ""}>
+            ${x}
+          </label>
+        `).join("");
+      }
+
+      multiSelectModal.classList.remove("hidden");
+    }
+
+    openPrefixMulti.addEventListener("click", () => openMultiSelect("prefix"));
+    openItemMulti.addEventListener("click", () => openMultiSelect("item"));
+
+    cancelMultiSelect.addEventListener("click", () => {
+      multiSelectModal.classList.add("hidden");
+    });
+
+    confirmMultiSelect.addEventListener("click", () => {
+      const values = [...multiSelectOptions.querySelectorAll("input:checked")].map(x => x.value);
+
+      if (currentMultiType === "prefix") {
+        selectedPrefixes = values;
+        selectedPrefixText.textContent = values.length ? values.join("、") : "未選擇";
+      } else {
+        selectedItems = values;
+        selectedItemText.textContent = values.length ? values.join("、") : "未選擇";
+      }
+
+      multiSelectModal.classList.add("hidden");
+      renderRecords();
+    });
+
+    renderItems();
+    renderRecords();
+    updateRoomDisplay();
+  </script>
+</body>
+</html>
