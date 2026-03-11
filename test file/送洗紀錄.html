@@ -637,6 +637,21 @@ textarea {
   cursor: pointer;
 }
 
+body.modal-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
+body.modal-open,
+body.modal-open html {
+  overscroll-behavior: none;
+}
+
+.modal {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 @media (max-width: 430px) {
   .grid,
   .meta,
@@ -915,875 +930,910 @@ textarea {
     </div>
   </div>
 
-  <script>
-    const API_URL = "";
+<script>
+  const API_URL = "";
 
-    const ITEM_TREE = {
-      "單人": ["單人棉被", "單人被套", "單人保潔墊", "單人三件床包組", "單人床罩"],
-      "雙人": ["雙人棉被", "雙人被套", "雙人保潔墊", "雙人三件床包組", "雙人床罩"],
-      "枕頭": ["枕頭", "枕頭保潔墊"]
-    };
+  const ITEM_TREE = {
+    "單人": ["單人棉被", "單人被套", "單人保潔墊", "單人三件床包組", "單人床罩"],
+    "雙人": ["雙人棉被", "雙人被套", "雙人保潔墊", "雙人三件床包組", "雙人床罩"],
+    "枕頭": ["枕頭", "枕頭保潔墊"]
+  };
 
-    const ITEM_OPTIONS = Object.values(ITEM_TREE).flat();
-    const PREFIX_OPTIONS = ["A", "B", "C", "CA", "CB", "CC", "D"];
+  const ITEM_OPTIONS = Object.values(ITEM_TREE).flat();
+  const PREFIX_OPTIONS = ["A", "B", "C", "CA", "CB", "CC", "D"];
 
-    const ITEM_UNIT_MAP = {
-      "枕頭": "個",
-      "枕頭保潔墊": "個",
-      "單人三件床包組": "組",
-      "雙人三件床包組": "組",
-      "單人棉被": "件",
-      "雙人棉被": "件",
-      "單人被套": "件",
-      "雙人被套": "件",
-      "單人保潔墊": "件",
-      "雙人保潔墊": "件",
-      "單人床罩": "件",
-      "雙人床罩": "件"
-    };
+  const ITEM_UNIT_MAP = {
+    "枕頭": "個",
+    "枕頭保潔墊": "個",
+    "單人三件床包組": "組",
+    "雙人三件床包組": "組",
+    "單人棉被": "件",
+    "雙人棉被": "件",
+    "單人被套": "件",
+    "雙人被套": "件",
+    "單人保潔墊": "件",
+    "雙人保潔墊": "件",
+    "單人床罩": "件",
+    "雙人床罩": "件"
+  };
 
-    const tabForm = document.getElementById("tabForm");
-    const tabList = document.getElementById("tabList");
-    const formPage = document.getElementById("formPage");
-    const listPage = document.getElementById("listPage");
-    const form = document.getElementById("laundryForm");
-    const recordList = document.getElementById("recordList");
-    const searchInput = document.getElementById("searchInput");
-    const refreshBtn = document.getElementById("refreshBtn");
-    const filterStartDate = document.getElementById("filterStartDate");
-    const filterEndDate = document.getElementById("filterEndDate");
-    const resetFormBtn = document.getElementById("resetFormBtn");
+  const tabForm = document.getElementById("tabForm");
+  const tabList = document.getElementById("tabList");
+  const formPage = document.getElementById("formPage");
+  const listPage = document.getElementById("listPage");
+  const form = document.getElementById("laundryForm");
+  const recordList = document.getElementById("recordList");
+  const searchInput = document.getElementById("searchInput");
+  const refreshBtn = document.getElementById("refreshBtn");
+  const filterStartDate = document.getElementById("filterStartDate");
+  const filterEndDate = document.getElementById("filterEndDate");
+  const resetFormBtn = document.getElementById("resetFormBtn");
 
-    const openPrefixMulti = document.getElementById("openPrefixMulti");
-    const openItemMulti = document.getElementById("openItemMulti");
-    const selectedPrefixText = document.getElementById("selectedPrefixText");
-    const selectedItemText = document.getElementById("selectedItemText");
+  const openPrefixMulti = document.getElementById("openPrefixMulti");
+  const openItemMulti = document.getElementById("openItemMulti");
+  const selectedPrefixText = document.getElementById("selectedPrefixText");
+  const selectedItemText = document.getElementById("selectedItemText");
 
-    const roomNoInput = document.getElementById("roomNo");
-    const openRoomPicker = document.getElementById("openRoomPicker");
-    const roomModal = document.getElementById("roomModal");
-    const roomDisplay = document.getElementById("roomDisplay");
-    const confirmRoomPicker = document.getElementById("confirmRoomPicker");
-    const cancelRoomPicker = document.getElementById("cancelRoomPicker");
-    const prefixButtons = document.querySelectorAll(".prefix-btn");
-    const numButtons = document.querySelectorAll(".num-btn[data-num]");
-    const clearRoom = document.getElementById("clearRoom");
-    const backspaceRoom = document.getElementById("backspaceRoom");
+  const roomNoInput = document.getElementById("roomNo");
+  const openRoomPicker = document.getElementById("openRoomPicker");
+  const roomModal = document.getElementById("roomModal");
+  const roomDisplay = document.getElementById("roomDisplay");
+  const confirmRoomPicker = document.getElementById("confirmRoomPicker");
+  const cancelRoomPicker = document.getElementById("cancelRoomPicker");
+  const prefixButtons = document.querySelectorAll(".prefix-btn");
+  const numButtons = document.querySelectorAll(".num-btn[data-num]");
+  const clearRoom = document.getElementById("clearRoom");
+  const backspaceRoom = document.getElementById("backspaceRoom");
 
-    const itemCards = document.getElementById("itemCards");
-    const addItemRowBtn = document.getElementById("addItemRow");
+  const itemCards = document.getElementById("itemCards");
+  const addItemRowBtn = document.getElementById("addItemRow");
 
-    const editModal = document.getElementById("editModal");
-    const editForm = document.getElementById("editForm");
-    const editIndex = document.getElementById("editIndex");
-    const editReceiver = document.getElementById("editReceiver");
-    const editReturnDate = document.getElementById("editReturnDate");
-    const editRemark = document.getElementById("editRemark");
-    const cancelEdit = document.getElementById("cancelEdit");
-    const editAddItemCards = document.getElementById("editAddItemCards");
-    const editAddItemRowBtn = document.getElementById("editAddItemRowBtn");
+  const editModal = document.getElementById("editModal");
+  const editForm = document.getElementById("editForm");
+  const editIndex = document.getElementById("editIndex");
+  const editReceiver = document.getElementById("editReceiver");
+  const editReturnDate = document.getElementById("editReturnDate");
+  const editRemark = document.getElementById("editRemark");
+  const cancelEdit = document.getElementById("cancelEdit");
+  const editAddItemCards = document.getElementById("editAddItemCards");
+  const editAddItemRowBtn = document.getElementById("editAddItemRowBtn");
 
-    const itemPickerModal = document.getElementById("itemPickerModal");
-    const itemPickerOptions = document.getElementById("itemPickerOptions");
-    const itemPickerStepText = document.getElementById("itemPickerStepText");
-    const closeItemPicker = document.getElementById("closeItemPicker");
+  const itemPickerModal = document.getElementById("itemPickerModal");
+  const itemPickerOptions = document.getElementById("itemPickerOptions");
+  const itemPickerStepText = document.getElementById("itemPickerStepText");
+  const closeItemPicker = document.getElementById("closeItemPicker");
 
-    const confirmModal = document.getElementById("confirmModal");
-    const confirmSummary = document.getElementById("confirmSummary");
-    const cancelConfirm = document.getElementById("cancelConfirm");
-    const submitConfirmed = document.getElementById("submitConfirmed");
+  const confirmModal = document.getElementById("confirmModal");
+  const confirmSummary = document.getElementById("confirmSummary");
+  const cancelConfirm = document.getElementById("cancelConfirm");
+  const submitConfirmed = document.getElementById("submitConfirmed");
 
-    const multiSelectModal = document.getElementById("multiSelectModal");
-    const multiSelectTitle = document.getElementById("multiSelectTitle");
-    const multiSelectOptions = document.getElementById("multiSelectOptions");
-    const cancelMultiSelect = document.getElementById("cancelMultiSelect");
-    const confirmMultiSelect = document.getElementById("confirmMultiSelect");
+  const multiSelectModal = document.getElementById("multiSelectModal");
+  const multiSelectTitle = document.getElementById("multiSelectTitle");
+  const multiSelectOptions = document.getElementById("multiSelectOptions");
+  const cancelMultiSelect = document.getElementById("cancelMultiSelect");
+  const confirmMultiSelect = document.getElementById("confirmMultiSelect");
 
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
-    document.getElementById("sendDate").value = todayStr;
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  document.getElementById("sendDate").value = todayStr;
 
-    const past7 = new Date(today);
-    past7.setDate(today.getDate() - 6);
-    filterStartDate.value = past7.toISOString().split("T")[0];
-    filterEndDate.value = todayStr;
+  const past7 = new Date(today);
+  past7.setDate(today.getDate() - 6);
+  filterStartDate.value = past7.toISOString().split("T")[0];
+  filterEndDate.value = todayStr;
 
-    let selectedPrefix = "";
-    let selectedNumbers = "";
-    let isDirty = false;
-    let pickerStep = 1;
-    let pickedCategory = "";
-    let pendingPayload = null;
-    let currentMultiType = "";
-    let selectedPrefixes = [];
-    let selectedItems = [];
-    let currentItemIndex = -1;
-    let currentEditExtraIndex = -1;
-    let pickerTargetMode = "main";
+  let selectedPrefix = "";
+  let selectedNumbers = "";
+  let isDirty = false;
+  let pickerStep = 1;
+  let pickedCategory = "";
+  let pendingPayload = null;
+  let currentMultiType = "";
+  let selectedPrefixes = [];
+  let selectedItems = [];
+  let currentItemIndex = -1;
+  let currentEditExtraIndex = -1;
+  let pickerTargetMode = "main";
+  let scrollY = 0;
 
-    let items = [
-      { itemName: "", itemQty: "", color: "", expanded: true }
-    ];
+  let items = [
+    { itemName: "", itemQty: "", color: "", expanded: true }
+  ];
 
-    let editExtraItems = [];
+  let editExtraItems = [];
 
-    const seedData = [
-      {
-        serialNo: "20260310001",
-        roomNo: "A615",
-        sendDate: "2026-03-10",
-        itemDetails: "單人棉被｜2件｜白色；枕頭｜2個｜白色",
-        itemRows: [
-          { itemName: "單人棉被", itemQty: "2", color: "白色" },
-          { itemName: "枕頭", itemQty: "2", color: "白色" }
-        ],
-        sender: "小王",
-        receiver: "",
-        returnDate: "",
-        remark: "住戶交代先處理"
-      },
-      {
-        serialNo: "20260309002",
-        roomNo: "CB210",
-        sendDate: "2026-03-09",
-        itemDetails: "雙人被套｜1件｜米色",
-        itemRows: [
-          { itemName: "雙人被套", itemQty: "1", color: "米色" }
-        ],
-        sender: "阿明",
-        receiver: "櫃台",
-        returnDate: "2026-03-10",
-        remark: "已回件"
-      }
-    ];
+  const seedData = [
+    {
+      serialNo: "20260310001",
+      roomNo: "A615",
+      sendDate: "2026-03-10",
+      itemDetails: "單人棉被｜2件｜白色；枕頭｜2個｜白色",
+      itemRows: [
+        { itemName: "單人棉被", itemQty: "2", color: "白色" },
+        { itemName: "枕頭", itemQty: "2", color: "白色" }
+      ],
+      sender: "小王",
+      receiver: "",
+      returnDate: "",
+      remark: "住戶交代先處理"
+    },
+    {
+      serialNo: "20260309002",
+      roomNo: "CB210",
+      sendDate: "2026-03-09",
+      itemDetails: "雙人被套｜1件｜米色",
+      itemRows: [
+        { itemName: "雙人被套", itemQty: "1", color: "米色" }
+      ],
+      sender: "阿明",
+      receiver: "櫃台",
+      returnDate: "2026-03-10",
+      remark: "已回件"
+    }
+  ];
 
-    function getLocalRecords() {
-      const saved = localStorage.getItem("laundryRecordsV5");
-      if (!saved) {
-        localStorage.setItem("laundryRecordsV5", JSON.stringify(seedData));
-        return structuredClone(seedData);
-      }
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return structuredClone(seedData);
-      }
+  function lockBodyScroll() {
+    scrollY = window.scrollY || window.pageYOffset || 0;
+    document.body.classList.add("modal-open");
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+  }
+
+  function unlockBodyScroll() {
+    document.body.classList.remove("modal-open");
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    window.scrollTo(0, scrollY);
+  }
+
+  function getLocalRecords() {
+    const saved = localStorage.getItem("laundryRecordsV5");
+    if (!saved) {
+      localStorage.setItem("laundryRecordsV5", JSON.stringify(seedData));
+      return structuredClone(seedData);
+    }
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return structuredClone(seedData);
+    }
+  }
+
+  function setLocalRecords(records) {
+    localStorage.setItem("laundryRecordsV5", JSON.stringify(records));
+  }
+
+  function getItemUnit(itemName) {
+    return ITEM_UNIT_MAP[itemName] || "件";
+  }
+
+  function markDirty() {
+    isDirty = true;
+  }
+
+  function switchTab(type) {
+    const isForm = type === "form";
+    tabForm.classList.toggle("active", isForm);
+    tabList.classList.toggle("active", !isForm);
+    formPage.classList.toggle("hidden", !isForm);
+    listPage.classList.toggle("hidden", isForm);
+    if (!isForm) renderRecords();
+  }
+
+  tabForm.addEventListener("click", () => switchTab("form"));
+  tabList.addEventListener("click", () => switchTab("list"));
+  refreshBtn.addEventListener("click", renderRecords);
+  searchInput.addEventListener("input", renderRecords);
+  filterStartDate.addEventListener("change", renderRecords);
+  filterEndDate.addEventListener("change", renderRecords);
+
+  function getPrefix(roomNo = "") {
+    const match = roomNo.match(/^[A-Z]+/);
+    return match ? match[0] : "";
+  }
+
+  function getItemSummary(item) {
+    return `${item.itemName || "未選品名"}｜${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"}｜${item.color || "未填顏色"}`;
+  }
+
+  function renderItemPicker() {
+    if (pickerStep === 1) {
+      itemPickerStepText.textContent = "先選擇：單人、雙人、枕頭";
+      itemPickerOptions.innerHTML = Object.keys(ITEM_TREE).map(key => `
+        <button type="button" class="option-btn" data-step="1" data-value="${key}">${key}</button>
+      `).join("");
+    } else {
+      itemPickerStepText.textContent = `已選 ${pickedCategory}，請繼續選擇品名`;
+      itemPickerOptions.innerHTML = ITEM_TREE[pickedCategory].map(name => `
+        <button type="button" class="option-btn wide" data-step="2" data-value="${name}">${name}</button>
+      `).join("");
     }
 
-    function setLocalRecords(records) {
-      localStorage.setItem("laundryRecordsV5", JSON.stringify(records));
-    }
-
-    function getItemUnit(itemName) {
-      return ITEM_UNIT_MAP[itemName] || "件";
-    }
-
-    function markDirty() {
-      isDirty = true;
-    }
-
-    function switchTab(type) {
-      const isForm = type === "form";
-      tabForm.classList.toggle("active", isForm);
-      tabList.classList.toggle("active", !isForm);
-      formPage.classList.toggle("hidden", !isForm);
-      listPage.classList.toggle("hidden", isForm);
-      if (!isForm) renderRecords();
-    }
-
-    tabForm.addEventListener("click", () => switchTab("form"));
-    tabList.addEventListener("click", () => switchTab("list"));
-    refreshBtn.addEventListener("click", renderRecords);
-    searchInput.addEventListener("input", renderRecords);
-    filterStartDate.addEventListener("change", renderRecords);
-    filterEndDate.addEventListener("change", renderRecords);
-
-    function getPrefix(roomNo = "") {
-      const match = roomNo.match(/^[A-Z]+/);
-      return match ? match[0] : "";
-    }
-
-    function getItemSummary(item) {
-      return `${item.itemName || "未選品名"}｜${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"}｜${item.color || "未填顏色"}`;
-    }
-
-    function renderItemPicker() {
-      if (pickerStep === 1) {
-        itemPickerStepText.textContent = "先選擇：單人、雙人、枕頭";
-        itemPickerOptions.innerHTML = Object.keys(ITEM_TREE).map(key => `
-          <button type="button" class="option-btn" data-step="1" data-value="${key}">${key}</button>
-        `).join("");
-      } else {
-        itemPickerStepText.textContent = `已選 ${pickedCategory}，請繼續選擇品名`;
-        itemPickerOptions.innerHTML = ITEM_TREE[pickedCategory].map(name => `
-          <button type="button" class="option-btn wide" data-step="2" data-value="${name}">${name}</button>
-        `).join("");
-      }
-
-      itemPickerOptions.querySelectorAll(".option-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const value = btn.dataset.value;
-          const step = btn.dataset.step;
-
-          if (step === "1") {
-            pickedCategory = value;
-            pickerStep = 2;
-            renderItemPicker();
-            return;
-          }
-
-          if (pickerTargetMode === "main" && currentItemIndex > -1) {
-            items[currentItemIndex].itemName = value;
-            items[currentItemIndex].itemQty = "";
-          }
-
-          if (pickerTargetMode === "edit" && currentEditExtraIndex > -1) {
-            editExtraItems[currentEditExtraIndex].itemName = value;
-            editExtraItems[currentEditExtraIndex].itemQty = "";
-          }
-
-          closeFullItemPicker();
-          renderItems();
-          renderEditExtraItems();
-          markDirty();
-        });
-      });
-    }
-
-    function openItemPickerByIndex(index) {
-      currentItemIndex = index;
-      pickerTargetMode = "main";
-      pickerStep = 1;
-      pickedCategory = "";
-      renderItemPicker();
-      itemPickerModal.classList.remove("hidden");
-    }
-
-    function openEditExtraItemPicker(index) {
-      currentEditExtraIndex = index;
-      pickerTargetMode = "edit";
-      pickerStep = 1;
-      pickedCategory = "";
-      renderItemPicker();
-      itemPickerModal.classList.remove("hidden");
-    }
-
-    function closeFullItemPicker() {
-      itemPickerModal.classList.add("hidden");
-    }
-
-    closeItemPicker.addEventListener("click", closeFullItemPicker);
-
-    function collapseAllItems() {
-      items.forEach(item => item.expanded = false);
-    }
-
-    function renderItems() {
-      itemCards.innerHTML = items.map((item, index) => {
-        const summary = getItemSummary(item);
-
-        if (!item.expanded) {
-          return `
-            <div class="item-card">
-              <div class="item-card-text">${summary}</div>
-              <div class="item-card-actions">
-                <button type="button" class="icon-btn" onclick="toggleItem(${index})">✎</button>
-              </div>
-            </div>
-          `;
-        }
-
-        return `
-          <div class="item-row">
-            <div class="item-row-head">
-              <span>第 ${index + 1} 項</span>
-              ${items.length > 1 ? `<button type="button" class="btn btn-danger" style="padding:10px 14px;font-size:16px;" onclick="deleteItem(${index})">刪除</button>` : ""}
-            </div>
-
-            <div class="field">
-              <label>品名</label>
-              <button type="button" class="item-pick-btn" onclick="openItemPickerByIndex(${index})">
-                ${item.itemName || "請點選品名"}
-              </button>
-            </div>
-
-            <div class="field">
-              <label>數量</label>
-              <div class="qty-pills">
-                ${[1,2,3,4].map(n => `
-                  <button type="button" class="qty-pill ${String(n) === String(item.itemQty) ? "active" : ""}" onclick="setItemQty(${index}, '${n}')">${n}</button>
-                `).join("")}
-              </div>
-            </div>
-
-            <div class="field">
-              <label>顏色</label>
-              <input type="text" value="${item.color || ""}" oninput="setItemColor(${index}, this.value)" placeholder="例如：白色、藍色" />
-            </div>
-
-            <div class="actions">
-              <button type="button" class="btn btn-primary" onclick="collapseItem(${index})">完成此項</button>
-              <button type="button" class="btn btn-light" onclick="clearItem(${index})">清空此項</button>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    window.toggleItem = function(index) {
-      collapseAllItems();
-      items[index].expanded = true;
-      renderItems();
-    };
-
-    window.collapseItem = function(index) {
-      if (!items[index].itemName || !items[index].itemQty) {
-        alert("請先完成品名與數量");
-        return;
-      }
-      items[index].expanded = false;
-      renderItems();
-    };
-
-    window.setItemQty = function(index, qty) {
-      items[index].itemQty = qty;
-      renderItems();
-      markDirty();
-    };
-
-    window.setItemColor = function(index, color) {
-      items[index].color = color;
-      markDirty();
-    };
-
-    window.clearItem = function(index) {
-      items[index].itemName = "";
-      items[index].itemQty = "";
-      items[index].color = "";
-      renderItems();
-      markDirty();
-    };
-
-    window.deleteItem = function(index) {
-      const item = items[index];
-      const text = `${item.itemName || "未填品名"} / ${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"} / ${item.color || "未填顏色"}`;
-      const ok = confirm(`你確定要刪除「${text}」嗎？`);
-      if (!ok) return;
-
-      items.splice(index, 1);
-      if (!items.length) {
-        items.push({ itemName: "", itemQty: "", color: "", expanded: true });
-      }
-      if (!items.some(x => x.expanded)) {
-        items[0].expanded = true;
-      }
-      renderItems();
-      markDirty();
-    };
-
-    addItemRowBtn.addEventListener("click", () => {
-      const hasIncomplete = items.some(x => !x.itemName || !x.itemQty);
-      if (hasIncomplete) {
-        alert("請先完成目前展開中的品項");
-        return;
-      }
-
-      collapseAllItems();
-      items.push({
-        itemName: "",
-        itemQty: "",
-        color: "",
-        expanded: true
-      });
-      renderItems();
-      markDirty();
-    });
-
-    function renderEditExtraItems() {
-      editAddItemCards.innerHTML = editExtraItems.map((item, index) => {
-        const summary = getItemSummary(item);
-
-        if (!item.expanded) {
-          return `
-            <div class="item-card">
-              <div class="item-card-text">${summary}</div>
-              <div class="item-card-actions">
-                <button type="button" class="icon-btn" onclick="toggleEditExtraItem(${index})">✎</button>
-              </div>
-            </div>
-          `;
-        }
-
-        return `
-          <div class="item-row">
-            <div class="item-row-head">
-              <span>加洗第 ${index + 1} 項</span>
-              ${editExtraItems.length > 1 ? `<button type="button" class="btn btn-danger" style="padding:10px 14px;font-size:16px;" onclick="deleteEditExtraItem(${index})">刪除</button>` : ""}
-            </div>
-
-            <div class="field">
-              <label>品名</label>
-              <button type="button" class="item-pick-btn" onclick="openEditExtraItemPicker(${index})">
-                ${item.itemName || "請點選品名"}
-              </button>
-            </div>
-
-            <div class="field">
-              <label>數量</label>
-              <div class="qty-pills">
-                ${[1,2,3,4].map(n => `
-                  <button type="button" class="qty-pill ${String(n) === String(item.itemQty) ? "active" : ""}" onclick="setEditExtraItemQty(${index}, '${n}')">${n}</button>
-                `).join("")}
-              </div>
-            </div>
-
-            <div class="field">
-              <label>顏色</label>
-              <input type="text" value="${item.color || ""}" oninput="setEditExtraItemColor(${index}, this.value)" placeholder="例如：白色、藍色" />
-            </div>
-
-            <div class="actions">
-              <button type="button" class="btn btn-primary" onclick="collapseEditExtraItem(${index})">完成此項</button>
-              <button type="button" class="btn btn-light" onclick="clearEditExtraItem(${index})">清空此項</button>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function collapseAllEditExtraItems() {
-      editExtraItems.forEach(item => item.expanded = false);
-    }
-
-    window.toggleEditExtraItem = function(index) {
-      collapseAllEditExtraItems();
-      editExtraItems[index].expanded = true;
-      renderEditExtraItems();
-    };
-
-    window.collapseEditExtraItem = function(index) {
-      if (!editExtraItems[index].itemName || !editExtraItems[index].itemQty) {
-        alert("請先完成品名與數量");
-        return;
-      }
-      editExtraItems[index].expanded = false;
-      renderEditExtraItems();
-    };
-
-    window.setEditExtraItemQty = function(index, qty) {
-      editExtraItems[index].itemQty = qty;
-      renderEditExtraItems();
-    };
-
-    window.setEditExtraItemColor = function(index, color) {
-      editExtraItems[index].color = color;
-    };
-
-    window.clearEditExtraItem = function(index) {
-      editExtraItems[index].itemName = "";
-      editExtraItems[index].itemQty = "";
-      editExtraItems[index].color = "";
-      renderEditExtraItems();
-    };
-
-    window.deleteEditExtraItem = function(index) {
-      const item = editExtraItems[index];
-      const text = `${item.itemName || "未填品名"} / ${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"} / ${item.color || "未填顏色"}`;
-      const ok = confirm(`你確定要刪除「${text}」嗎？`);
-      if (!ok) return;
-
-      editExtraItems.splice(index, 1);
-      if (!editExtraItems.length) {
-        editExtraItems.push({ itemName: "", itemQty: "", color: "", expanded: true });
-      }
-      if (!editExtraItems.some(x => x.expanded)) {
-        editExtraItems[0].expanded = true;
-      }
-      renderEditExtraItems();
-    };
-
-    editAddItemRowBtn.addEventListener("click", () => {
-      const hasIncomplete = editExtraItems.some(x => !x.itemName || !x.itemQty);
-      if (hasIncomplete) {
-        alert("請先完成目前展開中的品項");
-        return;
-      }
-
-      collapseAllEditExtraItems();
-      editExtraItems.push({
-        itemName: "",
-        itemQty: "",
-        color: "",
-        expanded: true
-      });
-      renderEditExtraItems();
-    });
-
-    function updateRoomDisplay() {
-      const full = `${selectedPrefix}${selectedNumbers}`;
-      roomDisplay.textContent = full || "請先選棟別";
-    }
-
-    function openRoomModal() {
-      roomModal.classList.remove("hidden");
-    }
-
-    function closeRoomModal() {
-      roomModal.classList.add("hidden");
-    }
-
-    openRoomPicker.addEventListener("click", openRoomModal);
-    roomNoInput.addEventListener("click", openRoomModal);
-    cancelRoomPicker.addEventListener("click", closeRoomModal);
-
-    prefixButtons.forEach(btn => {
+    itemPickerOptions.querySelectorAll(".option-btn").forEach(btn => {
       btn.addEventListener("click", () => {
-        prefixButtons.forEach(x => x.classList.remove("active"));
-        btn.classList.add("active");
-        selectedPrefix = btn.dataset.prefix;
-        updateRoomDisplay();
-        markDirty();
-      });
-    });
+        const value = btn.dataset.value;
+        const step = btn.dataset.step;
 
-    numButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        if (!selectedPrefix) {
-          alert("請先選擇 A、B、D、CA、CB、CC");
+        if (step === "1") {
+          pickedCategory = value;
+          pickerStep = 2;
+          renderItemPicker();
           return;
         }
-        if (selectedNumbers.length >= 3) return;
-        selectedNumbers += btn.dataset.num;
-        updateRoomDisplay();
+
+        if (pickerTargetMode === "main" && currentItemIndex > -1) {
+          items[currentItemIndex].itemName = value;
+          items[currentItemIndex].itemQty = "";
+        }
+
+        if (pickerTargetMode === "edit" && currentEditExtraIndex > -1) {
+          editExtraItems[currentEditExtraIndex].itemName = value;
+          editExtraItems[currentEditExtraIndex].itemQty = "";
+        }
+
+        closeFullItemPicker();
+        renderItems();
+        renderEditExtraItems();
         markDirty();
       });
     });
+  }
 
-    clearRoom.addEventListener("click", () => {
+  function openItemPickerByIndex(index) {
+    currentItemIndex = index;
+    pickerTargetMode = "main";
+    pickerStep = 1;
+    pickedCategory = "";
+    renderItemPicker();
+    lockBodyScroll();
+    itemPickerModal.classList.remove("hidden");
+  }
+
+  function openEditExtraItemPicker(index) {
+    currentEditExtraIndex = index;
+    pickerTargetMode = "edit";
+    pickerStep = 1;
+    pickedCategory = "";
+    renderItemPicker();
+    lockBodyScroll();
+    itemPickerModal.classList.remove("hidden");
+  }
+
+  function closeFullItemPicker() {
+    itemPickerModal.classList.add("hidden");
+    unlockBodyScroll();
+  }
+
+  closeItemPicker.addEventListener("click", closeFullItemPicker);
+
+  function collapseAllItems() {
+    items.forEach(item => item.expanded = false);
+  }
+
+  function renderItems() {
+    itemCards.innerHTML = items.map((item, index) => {
+      const summary = getItemSummary(item);
+
+      if (!item.expanded) {
+        return `
+          <div class="item-card">
+            <div class="item-card-text">${summary}</div>
+            <div class="item-card-actions">
+              <button type="button" class="icon-btn" onclick="toggleItem(${index})">✎</button>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="item-row">
+          <div class="item-row-head">
+            <span>第 ${index + 1} 項</span>
+            ${items.length > 1 ? `<button type="button" class="btn btn-danger" style="padding:10px 14px;font-size:16px;" onclick="deleteItem(${index})">刪除</button>` : ""}
+          </div>
+
+          <div class="field">
+            <label>品名</label>
+            <button type="button" class="item-pick-btn" onclick="openItemPickerByIndex(${index})">
+              ${item.itemName || "請點選品名"}
+            </button>
+          </div>
+
+          <div class="field">
+            <label>數量</label>
+            <div class="qty-pills">
+              ${[1,2,3,4].map(n => `
+                <button type="button" class="qty-pill ${String(n) === String(item.itemQty) ? "active" : ""}" onclick="setItemQty(${index}, '${n}')">${n}</button>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="field">
+            <label>顏色</label>
+            <input type="text" value="${item.color || ""}" oninput="setItemColor(${index}, this.value)" placeholder="例如：白色、藍色" />
+          </div>
+
+          <div class="actions">
+            <button type="button" class="btn btn-primary" onclick="collapseItem(${index})">完成此項</button>
+            <button type="button" class="btn btn-light" onclick="clearItem(${index})">清空此項</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  window.toggleItem = function(index) {
+    collapseAllItems();
+    items[index].expanded = true;
+    renderItems();
+  };
+
+  window.collapseItem = function(index) {
+    if (!items[index].itemName || !items[index].itemQty) {
+      alert("請先完成品名與數量");
+      return;
+    }
+    items[index].expanded = false;
+    renderItems();
+  };
+
+  window.setItemQty = function(index, qty) {
+    items[index].itemQty = qty;
+    renderItems();
+    markDirty();
+  };
+
+  window.setItemColor = function(index, color) {
+    items[index].color = color;
+    markDirty();
+  };
+
+  window.clearItem = function(index) {
+    items[index].itemName = "";
+    items[index].itemQty = "";
+    items[index].color = "";
+    renderItems();
+    markDirty();
+  };
+
+  window.deleteItem = function(index) {
+    const item = items[index];
+    const text = `${item.itemName || "未填品名"} / ${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"} / ${item.color || "未填顏色"}`;
+    const ok = confirm(`你確定要刪除「${text}」嗎？`);
+    if (!ok) return;
+
+    items.splice(index, 1);
+    if (!items.length) {
+      items.push({ itemName: "", itemQty: "", color: "", expanded: true });
+    }
+    if (!items.some(x => x.expanded)) {
+      items[0].expanded = true;
+    }
+    renderItems();
+    markDirty();
+  };
+
+  addItemRowBtn.addEventListener("click", () => {
+    const hasIncomplete = items.some(x => !x.itemName || !x.itemQty);
+    if (hasIncomplete) {
+      alert("請先完成目前展開中的品項");
+      return;
+    }
+
+    collapseAllItems();
+    items.push({
+      itemName: "",
+      itemQty: "",
+      color: "",
+      expanded: true
+    });
+    renderItems();
+    markDirty();
+  });
+
+  function renderEditExtraItems() {
+    editAddItemCards.innerHTML = editExtraItems.map((item, index) => {
+      const summary = getItemSummary(item);
+
+      if (!item.expanded) {
+        return `
+          <div class="item-card">
+            <div class="item-card-text">${summary}</div>
+            <div class="item-card-actions">
+              <button type="button" class="icon-btn" onclick="toggleEditExtraItem(${index})">✎</button>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="item-row">
+          <div class="item-row-head">
+            <span>加洗第 ${index + 1} 項</span>
+            ${editExtraItems.length > 1 ? `<button type="button" class="btn btn-danger" style="padding:10px 14px;font-size:16px;" onclick="deleteEditExtraItem(${index})">刪除</button>` : ""}
+          </div>
+
+          <div class="field">
+            <label>品名</label>
+            <button type="button" class="item-pick-btn" onclick="openEditExtraItemPicker(${index})">
+              ${item.itemName || "請點選品名"}
+            </button>
+          </div>
+
+          <div class="field">
+            <label>數量</label>
+            <div class="qty-pills">
+              ${[1,2,3,4].map(n => `
+                <button type="button" class="qty-pill ${String(n) === String(item.itemQty) ? "active" : ""}" onclick="setEditExtraItemQty(${index}, '${n}')">${n}</button>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="field">
+            <label>顏色</label>
+            <input type="text" value="${item.color || ""}" oninput="setEditExtraItemColor(${index}, this.value)" placeholder="例如：白色、藍色" />
+          </div>
+
+          <div class="actions">
+            <button type="button" class="btn btn-primary" onclick="collapseEditExtraItem(${index})">完成此項</button>
+            <button type="button" class="btn btn-light" onclick="clearEditExtraItem(${index})">清空此項</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function collapseAllEditExtraItems() {
+    editExtraItems.forEach(item => item.expanded = false);
+  }
+
+  window.toggleEditExtraItem = function(index) {
+    collapseAllEditExtraItems();
+    editExtraItems[index].expanded = true;
+    renderEditExtraItems();
+  };
+
+  window.collapseEditExtraItem = function(index) {
+    if (!editExtraItems[index].itemName || !editExtraItems[index].itemQty) {
+      alert("請先完成品名與數量");
+      return;
+    }
+    editExtraItems[index].expanded = false;
+    renderEditExtraItems();
+  };
+
+  window.setEditExtraItemQty = function(index, qty) {
+    editExtraItems[index].itemQty = qty;
+    renderEditExtraItems();
+  };
+
+  window.setEditExtraItemColor = function(index, color) {
+    editExtraItems[index].color = color;
+  };
+
+  window.clearEditExtraItem = function(index) {
+    editExtraItems[index].itemName = "";
+    editExtraItems[index].itemQty = "";
+    editExtraItems[index].color = "";
+    renderEditExtraItems();
+  };
+
+  window.deleteEditExtraItem = function(index) {
+    const item = editExtraItems[index];
+    const text = `${item.itemName || "未填品名"} / ${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"} / ${item.color || "未填顏色"}`;
+    const ok = confirm(`你確定要刪除「${text}」嗎？`);
+    if (!ok) return;
+
+    editExtraItems.splice(index, 1);
+    if (!editExtraItems.length) {
+      editExtraItems.push({ itemName: "", itemQty: "", color: "", expanded: true });
+    }
+    if (!editExtraItems.some(x => x.expanded)) {
+      editExtraItems[0].expanded = true;
+    }
+    renderEditExtraItems();
+  };
+
+  editAddItemRowBtn.addEventListener("click", () => {
+    const hasIncomplete = editExtraItems.some(x => !x.itemName || !x.itemQty);
+    if (hasIncomplete) {
+      alert("請先完成目前展開中的品項");
+      return;
+    }
+
+    collapseAllEditExtraItems();
+    editExtraItems.push({
+      itemName: "",
+      itemQty: "",
+      color: "",
+      expanded: true
+    });
+    renderEditExtraItems();
+  });
+
+  function updateRoomDisplay() {
+    const full = `${selectedPrefix}${selectedNumbers}`;
+    roomDisplay.textContent = full || "請先選棟別";
+  }
+
+  function openRoomModal() {
+    lockBodyScroll();
+    roomModal.classList.remove("hidden");
+  }
+
+  function closeRoomModal() {
+    roomModal.classList.add("hidden");
+    unlockBodyScroll();
+  }
+
+  openRoomPicker.addEventListener("click", openRoomModal);
+  roomNoInput.addEventListener("click", openRoomModal);
+  cancelRoomPicker.addEventListener("click", closeRoomModal);
+
+  prefixButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      prefixButtons.forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
+      selectedPrefix = btn.dataset.prefix;
+      updateRoomDisplay();
+      markDirty();
+    });
+  });
+
+  numButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (!selectedPrefix) {
+        alert("請先選擇 A、B、D、CA、CB、CC");
+        return;
+      }
+      if (selectedNumbers.length >= 3) return;
+      selectedNumbers += btn.dataset.num;
+      updateRoomDisplay();
+      markDirty();
+    });
+  });
+
+  clearRoom.addEventListener("click", () => {
+    selectedPrefix = "";
+    selectedNumbers = "";
+    prefixButtons.forEach(x => x.classList.remove("active"));
+    updateRoomDisplay();
+    markDirty();
+  });
+
+  backspaceRoom.addEventListener("click", () => {
+    selectedNumbers = selectedNumbers.slice(0, -1);
+    updateRoomDisplay();
+    markDirty();
+  });
+
+  confirmRoomPicker.addEventListener("click", () => {
+    if (!selectedPrefix || selectedNumbers.length !== 3) {
+      alert("房號需為棟別 + 3個數字");
+      return;
+    }
+    roomNoInput.value = `${selectedPrefix}${selectedNumbers}`;
+    closeRoomModal();
+    markDirty();
+  });
+
+  function generateSerialNo(records) {
+    const formDate = document.getElementById("sendDate").value || todayStr;
+    const datePart = formDate.replaceAll("-", "");
+    const countToday = records.filter(r => (r.sendDate || "").replaceAll("-", "") === datePart).length + 1;
+    return `${datePart}${String(countToday).padStart(3, "0")}`;
+  }
+
+  function createRecordCard(item, index) {
+    const itemLines = (item.itemRows || []).map(x => `
+      <div class="record-item-line">
+        ${x.itemName || "未填品名"}｜${x.itemQty ? x.itemQty + getItemUnit(x.itemName) : "未填數量"}｜${x.color || "未填顏色"}
+      </div>
+    `).join("");
+
+    return `
+      <div class="record-item">
+        <div class="serial-no">流水單號：${item.serialNo || "-"}</div>
+        <div class="record-head" onclick="toggleRecordDetail(${index})">
+          <div class="room">${item.roomNo || "未填房號"}</div>
+          <span class="pill">${item.returnDate ? "已回件" : "送洗中"}</span>
+        </div>
+        <div id="detail-${index}" class="hidden">
+          <div class="record-items-box">${itemLines || `<div class="record-item-line">-</div>`}</div>
+          <div class="meta">
+            <div><b>送洗日期</b>${item.sendDate || "-"}</div>
+            <div><b>送洗人員</b>${item.sender || "-"}</div>
+            <div><b>收件人員</b>${item.receiver || "-"}</div>
+            <div><b>回件日期</b>${item.returnDate || "-"}</div>
+            <div style="grid-column:1 / -1;"><b>備註</b>${item.remark || "-"}</div>
+          </div>
+          <div class="record-actions">
+            <button type="button" class="btn btn-light" onclick="openEditModal(${index});event.stopPropagation();">編輯補填</button>
+            <button type="button" class="btn btn-primary" onclick="openEditModal(${index}, true);event.stopPropagation();">新增項目</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderRecords() {
+    const keyword = searchInput.value.trim().toLowerCase();
+    const start = filterStartDate.value;
+    const end = filterEndDate.value;
+
+    const records = getLocalRecords().slice().reverse();
+    const filtered = records
+      .map((item, idx, arr) => ({ item, originalIndex: arr.length - 1 - idx }))
+      .filter(({ item }) => {
+        const text = [item.roomNo, item.serialNo, item.sender, item.receiver, item.remark, item.itemDetails].join(" ").toLowerCase();
+        const sendDate = item.sendDate || "";
+        const inKeyword = text.includes(keyword);
+        const inStart = !start || sendDate >= start;
+        const inEnd = !end || sendDate <= end;
+        const inPrefix = !selectedPrefixes.length || selectedPrefixes.includes(getPrefix(item.roomNo));
+        const inItem = !selectedItems.length || (item.itemRows || []).some(x => selectedItems.includes(x.itemName));
+        return inKeyword && inStart && inEnd && inPrefix && inItem;
+      });
+
+    if (!filtered.length) {
+      recordList.innerHTML = `<div class="empty">查無符合的送洗紀錄</div>`;
+      return;
+    }
+
+    recordList.innerHTML = filtered.map(({ item, originalIndex }) => createRecordCard(item, originalIndex)).join("");
+  }
+
+  async function saveToGoogleSheet(payload) {
+    if (!API_URL) {
+      const records = getLocalRecords();
+      records.push(payload);
+      setLocalRecords(records);
+      return { ok: true, mode: "local" };
+    }
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) throw new Error("送出失敗");
+    return await response.json();
+  }
+
+  document.addEventListener("input", (e) => {
+    if (formPage.contains(e.target)) markDirty();
+  });
+
+  window.addEventListener("beforeunload", (e) => {
+    if (!isDirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+
+  resetFormBtn.addEventListener("click", () => {
+    setTimeout(() => {
+      document.getElementById("sendDate").value = todayStr;
+      roomNoInput.value = "";
       selectedPrefix = "";
       selectedNumbers = "";
       prefixButtons.forEach(x => x.classList.remove("active"));
       updateRoomDisplay();
-      markDirty();
-    });
+      items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
+      renderItems();
+      isDirty = false;
+    }, 0);
+  });
 
-    backspaceRoom.addEventListener("click", () => {
-      selectedNumbers = selectedNumbers.slice(0, -1);
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const itemData = items.filter(x => x.itemName && x.itemQty).map(x => ({
+      itemName: x.itemName,
+      itemQty: x.itemQty,
+      color: x.color
+    }));
+
+    if (!roomNoInput.value.trim()) {
+      alert("請先選擇房號");
+      return;
+    }
+    if (!itemData.length) {
+      alert("請至少新增一項送洗品名");
+      return;
+    }
+    if (items.some(x => x.expanded && (!x.itemName || !x.itemQty))) {
+      alert("請先完成目前展開中的品項");
+      return;
+    }
+
+    const records = getLocalRecords();
+    const payload = {
+      serialNo: generateSerialNo(records),
+      roomNo: roomNoInput.value.trim(),
+      sendDate: document.getElementById("sendDate").value,
+      itemRows: itemData,
+      itemDetails: itemData.map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`).join("；"),
+      sender: document.getElementById("sender").value.trim(),
+      receiver: "",
+      returnDate: "",
+      remark: document.getElementById("remark").value.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    confirmSummary.innerHTML = `
+      <div style="font-size:18px;font-weight:800;margin-bottom:8px;">房號：${payload.roomNo || "-"}</div>
+      <div style="margin-bottom:8px;">送洗日期：${payload.sendDate || "-"}</div>
+      <div style="margin-bottom:8px;">送洗人員：${payload.sender || "-"}</div>
+      <div style="margin-bottom:8px;">送洗項目：</div>
+      <div style="line-height:1.8;">${payload.itemRows.map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`).join("<br>")}</div>
+      <div style="margin-top:8px;">備註：${payload.remark || "-"}</div>
+    `;
+
+    pendingPayload = payload;
+    lockBodyScroll();
+    confirmModal.classList.remove("hidden");
+  });
+
+  cancelConfirm.addEventListener("click", () => {
+    confirmModal.classList.add("hidden");
+    unlockBodyScroll();
+    pendingPayload = null;
+  });
+
+  submitConfirmed.addEventListener("click", async () => {
+    if (!pendingPayload) return;
+
+    try {
+      const result = await saveToGoogleSheet(pendingPayload);
+      alert(result.mode === "local" ? "已先儲存在手機樣板中" : "已成功寫入試算表");
+      form.reset();
+      document.getElementById("sendDate").value = todayStr;
+      selectedPrefix = "";
+      selectedNumbers = "";
+      roomNoInput.value = "";
       updateRoomDisplay();
-      markDirty();
-    });
+      prefixButtons.forEach(x => x.classList.remove("active"));
+      items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
+      renderItems();
+      isDirty = false;
+      pendingPayload = null;
+      confirmModal.classList.add("hidden");
+      unlockBodyScroll();
+      renderRecords();
+      switchTab("list");
+    } catch (error) {
+      console.error(error);
+      alert("送出失敗，請稍後再試");
+    }
+  });
 
-    confirmRoomPicker.addEventListener("click", () => {
-      if (!selectedPrefix || selectedNumbers.length !== 3) {
-        alert("房號需為棟別 + 3個數字");
-        return;
-      }
-      roomNoInput.value = `${selectedPrefix}${selectedNumbers}`;
-      closeRoomModal();
-      markDirty();
-    });
+  window.openEditModal = function(index, addOnly = false) {
+    const records = getLocalRecords();
+    const item = records[index];
+    if (!item) return;
 
-    function generateSerialNo(records) {
-      const formDate = document.getElementById("sendDate").value || todayStr;
-      const datePart = formDate.replaceAll("-", "");
-      const countToday = records.filter(r => (r.sendDate || "").replaceAll("-", "") === datePart).length + 1;
-      return `${datePart}${String(countToday).padStart(3, "0")}`;
+    editIndex.value = index;
+    editReceiver.value = item.receiver || "";
+    editReturnDate.value = item.returnDate || "";
+    editRemark.value = item.remark || "";
+
+    editExtraItems = addOnly
+      ? [{ itemName: "", itemQty: "", color: "", expanded: true }]
+      : [];
+
+    renderEditExtraItems();
+    lockBodyScroll();
+    editModal.classList.remove("hidden");
+  };
+
+  window.toggleRecordDetail = function(index) {
+    const el = document.getElementById(`detail-${index}`);
+    if (el) el.classList.toggle("hidden");
+  };
+
+  cancelEdit.addEventListener("click", () => {
+    editModal.classList.add("hidden");
+    unlockBodyScroll();
+  });
+
+  editForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const index = Number(editIndex.value);
+    const records = getLocalRecords();
+    if (!records[index]) return;
+
+    const incompleteExpanded = editExtraItems.some(x => x.expanded && (x.itemName || x.itemQty || x.color) && (!x.itemName || !x.itemQty));
+    if (incompleteExpanded) {
+      alert("請先完成目前展開中的加洗品項");
+      return;
     }
 
-    function createRecordCard(item, index) {
-      const itemLines = (item.itemRows || []).map(x => `
-        <div class="record-item-line">
-          ${x.itemName || "未填品名"}｜${x.itemQty ? x.itemQty + getItemUnit(x.itemName) : "未填數量"}｜${x.color || "未填顏色"}
-        </div>
-      `).join("");
-
-      return `
-        <div class="record-item">
-          <div class="serial-no">流水單號：${item.serialNo || "-"}</div>
-          <div class="record-head" onclick="toggleRecordDetail(${index})">
-            <div class="room">${item.roomNo || "未填房號"}</div>
-            <span class="pill">${item.returnDate ? "已回件" : "送洗中"}</span>
-          </div>
-          <div id="detail-${index}" class="hidden">
-            <div class="record-items-box">${itemLines || `<div class="record-item-line">-</div>`}</div>
-            <div class="meta">
-              <div><b>送洗日期</b>${item.sendDate || "-"}</div>
-              <div><b>送洗人員</b>${item.sender || "-"}</div>
-              <div><b>收件人員</b>${item.receiver || "-"}</div>
-              <div><b>回件日期</b>${item.returnDate || "-"}</div>
-              <div style="grid-column:1 / -1;"><b>備註</b>${item.remark || "-"}</div>
-            </div>
-            <div class="record-actions">
-              <button type="button" class="btn btn-light" onclick="openEditModal(${index});event.stopPropagation();">編輯補填</button>
-              <button type="button" class="btn btn-primary" onclick="openEditModal(${index}, true);event.stopPropagation();">新增項目</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderRecords() {
-      const keyword = searchInput.value.trim().toLowerCase();
-      const start = filterStartDate.value;
-      const end = filterEndDate.value;
-
-      const records = getLocalRecords().slice().reverse();
-      const filtered = records
-        .map((item, idx, arr) => ({ item, originalIndex: arr.length - 1 - idx }))
-        .filter(({ item }) => {
-          const text = [item.roomNo, item.serialNo, item.sender, item.receiver, item.remark, item.itemDetails].join(" ").toLowerCase();
-          const sendDate = item.sendDate || "";
-          const inKeyword = text.includes(keyword);
-          const inStart = !start || sendDate >= start;
-          const inEnd = !end || sendDate <= end;
-          const inPrefix = !selectedPrefixes.length || selectedPrefixes.includes(getPrefix(item.roomNo));
-          const inItem = !selectedItems.length || (item.itemRows || []).some(x => selectedItems.includes(x.itemName));
-          return inKeyword && inStart && inEnd && inPrefix && inItem;
-        });
-
-      if (!filtered.length) {
-        recordList.innerHTML = `<div class="empty">查無符合的送洗紀錄</div>`;
-        return;
-      }
-
-      recordList.innerHTML = filtered.map(({ item, originalIndex }) => createRecordCard(item, originalIndex)).join("");
-    }
-
-    async function saveToGoogleSheet(payload) {
-      if (!API_URL) {
-        const records = getLocalRecords();
-        records.push(payload);
-        setLocalRecords(records);
-        return { ok: true, mode: "local" };
-      }
-
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) throw new Error("送出失敗");
-      return await response.json();
-    }
-
-    document.addEventListener("input", (e) => {
-      if (formPage.contains(e.target)) markDirty();
-    });
-
-    window.addEventListener("beforeunload", (e) => {
-      if (!isDirty) return;
-      e.preventDefault();
-      e.returnValue = "";
-    });
-
-    resetFormBtn.addEventListener("click", () => {
-      setTimeout(() => {
-        document.getElementById("sendDate").value = todayStr;
-        roomNoInput.value = "";
-        selectedPrefix = "";
-        selectedNumbers = "";
-        prefixButtons.forEach(x => x.classList.remove("active"));
-        updateRoomDisplay();
-        items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
-        renderItems();
-        isDirty = false;
-      }, 0);
-    });
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-
-      const itemData = items.filter(x => x.itemName && x.itemQty).map(x => ({
+    const extraRows = editExtraItems
+      .filter(x => x.itemName && x.itemQty)
+      .map(x => ({
         itemName: x.itemName,
         itemQty: x.itemQty,
         color: x.color
       }));
 
-      if (!roomNoInput.value.trim()) {
-        alert("請先選擇房號");
-        return;
-      }
-      if (!itemData.length) {
-        alert("請至少新增一項送洗品名");
-        return;
-      }
-      if (items.some(x => x.expanded && (!x.itemName || !x.itemQty))) {
-        alert("請先完成目前展開中的品項");
-        return;
-      }
+    records[index].receiver = editReceiver.value.trim();
+    records[index].returnDate = editReturnDate.value;
+    records[index].remark = editRemark.value.trim();
 
-      const records = getLocalRecords();
-      const payload = {
-        serialNo: generateSerialNo(records),
-        roomNo: roomNoInput.value.trim(),
-        sendDate: document.getElementById("sendDate").value,
-        itemRows: itemData,
-        itemDetails: itemData.map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`).join("；"),
-        sender: document.getElementById("sender").value.trim(),
-        receiver: "",
-        returnDate: "",
-        remark: document.getElementById("remark").value.trim(),
-        createdAt: new Date().toISOString()
-      };
-
-      confirmSummary.innerHTML = `
-        <div style="font-size:18px;font-weight:800;margin-bottom:8px;">房號：${payload.roomNo || "-"}</div>
-        <div style="margin-bottom:8px;">送洗日期：${payload.sendDate || "-"}</div>
-        <div style="margin-bottom:8px;">送洗人員：${payload.sender || "-"}</div>
-        <div style="margin-bottom:8px;">送洗項目：</div>
-        <div style="line-height:1.8;">${payload.itemRows.map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`).join("<br>")}</div>
-        <div style="margin-top:8px;">備註：${payload.remark || "-"}</div>
-      `;
-
-      pendingPayload = payload;
-      confirmModal.classList.remove("hidden");
-    });
-
-    cancelConfirm.addEventListener("click", () => {
-      confirmModal.classList.add("hidden");
-      pendingPayload = null;
-    });
-
-    submitConfirmed.addEventListener("click", async () => {
-      if (!pendingPayload) return;
-
-      try {
-        const result = await saveToGoogleSheet(pendingPayload);
-        alert(result.mode === "local" ? "已先儲存在手機樣板中" : "已成功寫入試算表");
-        form.reset();
-        document.getElementById("sendDate").value = todayStr;
-        selectedPrefix = "";
-        selectedNumbers = "";
-        roomNoInput.value = "";
-        updateRoomDisplay();
-        prefixButtons.forEach(x => x.classList.remove("active"));
-        items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
-        renderItems();
-        isDirty = false;
-        pendingPayload = null;
-        confirmModal.classList.add("hidden");
-        renderRecords();
-        switchTab("list");
-      } catch (error) {
-        console.error(error);
-        alert("送出失敗，請稍後再試");
-      }
-    });
-
-    window.openEditModal = function(index, addOnly = false) {
-      const records = getLocalRecords();
-      const item = records[index];
-      if (!item) return;
-
-      editIndex.value = index;
-      editReceiver.value = item.receiver || "";
-      editReturnDate.value = item.returnDate || "";
-      editRemark.value = item.remark || "";
-
-      editExtraItems = addOnly
-        ? [{ itemName: "", itemQty: "", color: "", expanded: true }]
-        : [];
-
-      renderEditExtraItems();
-      editModal.classList.remove("hidden");
-    };
-
-    window.toggleRecordDetail = function(index) {
-      const el = document.getElementById(`detail-${index}`);
-      if (el) el.classList.toggle("hidden");
-    };
-
-    cancelEdit.addEventListener("click", () => {
-      editModal.classList.add("hidden");
-    });
-
-    editForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const index = Number(editIndex.value);
-      const records = getLocalRecords();
-      if (!records[index]) return;
-
-      const incompleteExpanded = editExtraItems.some(x => x.expanded && (x.itemName || x.itemQty || x.color) && (!x.itemName || !x.itemQty));
-      if (incompleteExpanded) {
-        alert("請先完成目前展開中的加洗品項");
-        return;
-      }
-
-      const extraRows = editExtraItems
-        .filter(x => x.itemName && x.itemQty)
-        .map(x => ({
-          itemName: x.itemName,
-          itemQty: x.itemQty,
-          color: x.color
-        }));
-
-      records[index].receiver = editReceiver.value.trim();
-      records[index].returnDate = editReturnDate.value;
-      records[index].remark = editRemark.value.trim();
-
-      if (extraRows.length) {
-        records[index].itemRows = [...(records[index].itemRows || []), ...extraRows];
-        records[index].itemDetails = records[index].itemRows
-          .map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`)
-          .join("；");
-      }
-
-      setLocalRecords(records);
-      editModal.classList.add("hidden");
-      renderRecords();
-      alert("修改完成");
-    });
-
-    function openMultiSelect(type) {
-      currentMultiType = type;
-
-      if (type === "prefix") {
-        multiSelectTitle.textContent = "選擇棟別";
-        multiSelectOptions.innerHTML = PREFIX_OPTIONS.map(x => `
-          <label>
-            <input type="checkbox" value="${x}" ${selectedPrefixes.includes(x) ? "checked" : ""}>
-            ${x}
-          </label>
-        `).join("");
-      } else {
-        multiSelectTitle.textContent = "選擇品名";
-        multiSelectOptions.innerHTML = ITEM_OPTIONS.map(x => `
-          <label>
-            <input type="checkbox" value="${x}" ${selectedItems.includes(x) ? "checked" : ""}>
-            ${x}
-          </label>
-        `).join("");
-      }
-
-      multiSelectModal.classList.remove("hidden");
+    if (extraRows.length) {
+      records[index].itemRows = [...(records[index].itemRows || []), ...extraRows];
+      records[index].itemDetails = records[index].itemRows
+        .map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`)
+        .join("；");
     }
 
-    openPrefixMulti.addEventListener("click", () => openMultiSelect("prefix"));
-    openItemMulti.addEventListener("click", () => openMultiSelect("item"));
-
-    cancelMultiSelect.addEventListener("click", () => {
-      multiSelectModal.classList.add("hidden");
-    });
-
-    confirmMultiSelect.addEventListener("click", () => {
-      const values = [...multiSelectOptions.querySelectorAll("input:checked")].map(x => x.value);
-
-      if (currentMultiType === "prefix") {
-        selectedPrefixes = values;
-        selectedPrefixText.textContent = values.length ? values.join("、") : "未選擇";
-      } else {
-        selectedItems = values;
-        selectedItemText.textContent = values.length ? values.join("、") : "未選擇";
-      }
-
-      multiSelectModal.classList.add("hidden");
-      renderRecords();
-    });
-
-    renderItems();
+    setLocalRecords(records);
+    editModal.classList.add("hidden");
+    unlockBodyScroll();
     renderRecords();
-    updateRoomDisplay();
-  </script>
+    alert("修改完成");
+  });
+
+  function openMultiSelect(type) {
+    currentMultiType = type;
+
+    if (type === "prefix") {
+      multiSelectTitle.textContent = "選擇棟別";
+      multiSelectOptions.innerHTML = PREFIX_OPTIONS.map(x => `
+        <label>
+          <input type="checkbox" value="${x}" ${selectedPrefixes.includes(x) ? "checked" : ""}>
+          ${x}
+        </label>
+      `).join("");
+    } else {
+      multiSelectTitle.textContent = "選擇品名";
+      multiSelectOptions.innerHTML = ITEM_OPTIONS.map(x => `
+        <label>
+          <input type="checkbox" value="${x}" ${selectedItems.includes(x) ? "checked" : ""}>
+          ${x}
+        </label>
+      `).join("");
+    }
+
+    lockBodyScroll();
+    multiSelectModal.classList.remove("hidden");
+  }
+
+  openPrefixMulti.addEventListener("click", () => openMultiSelect("prefix"));
+  openItemMulti.addEventListener("click", () => openMultiSelect("item"));
+
+  cancelMultiSelect.addEventListener("click", () => {
+    multiSelectModal.classList.add("hidden");
+    unlockBodyScroll();
+  });
+
+  confirmMultiSelect.addEventListener("click", () => {
+    const values = [...multiSelectOptions.querySelectorAll("input:checked")].map(x => x.value);
+
+    if (currentMultiType === "prefix") {
+      selectedPrefixes = values;
+      selectedPrefixText.textContent = values.length ? values.join("、") : "未選擇";
+    } else {
+      selectedItems = values;
+      selectedItemText.textContent = values.length ? values.join("、") : "未選擇";
+    }
+
+    multiSelectModal.classList.add("hidden");
+    unlockBodyScroll();
+    renderRecords();
+  });
+
+  renderItems();
+  renderRecords();
+  updateRoomDisplay();
+</script>
 </body>
 </html>
