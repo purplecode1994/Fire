@@ -5,736 +5,106 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>送洗紀錄表</title>
   <style>
-    :root {
-  --bg: #f6f8fb;
-  --card: #ffffff;
-  --text: #1f2937;
-  --sub: #94a3b8;
-  --line: #e5e7eb;
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --soft: #f8fafc;
-  --shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-  --radius: 20px;
-  --danger: #dc2626;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
-
-.app {
-  max-width: 520px;
-  margin: 0 auto;
-  min-height: 100vh;
-  padding: 0 16px 30px;
-}
-
-.topbar-header {
-  padding: 16px 0 8px;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: 800;
-  text-align: center;
-  letter-spacing: 1px;
-  margin: 8px 0 6px;
-}
-
-.subtitle {
-  text-align: center;
-  font-size: 15px;
-  color: var(--sub);
-  margin-bottom: 8px;
-}
-
-.tabs-wrap {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: rgba(246, 248, 251, 0.96);
-  backdrop-filter: blur(10px);
-  padding: 8px 0 12px;
-}
-
-.tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.tab {
-  border: 0;
-  border-radius: 16px;
-  padding: 15px;
-  font-size: 18px;
-  font-weight: 800;
-  background: #eaf0f7;
-  color: #475569;
-  cursor: pointer;
-}
-
-.tab.active {
-  background: var(--primary);
-  color: white;
-  box-shadow: var(--shadow);
-}
-
-.card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 18px;
-  box-shadow: var(--shadow);
-  margin-bottom: 16px;
-}
-
-.section-title {
-  margin: 0 0 16px;
-  font-size: 23px;
-  font-weight: 800;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.record-filter-grid {
-  grid-template-columns: 1fr;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 14px;
-  min-width: 0;
-}
-
-.field.full {
-  grid-column: 1 / -1;
-}
-
-label {
-  font-size: 18px;
-  font-weight: 800;
-  color: #334155;
-}
-
-input,
-select,
-textarea,
-button {
-  font-family: inherit;
-}
-
-input,
-select,
-textarea {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 15px 16px;
-  font-size: 20px;
-  background: #fff;
-  outline: none;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: #cbd5e1;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-input[type="date"] {
-  min-width: 0;
-  max-width: 100%;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-textarea {
-  min-height: 120px;
-  height: 120px;
-  resize: none;
-  line-height: 1.6;
-}
-
-.actions,
-.modal-actions,
-.record-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 10px;
-}
-
-.btn {
-  border: 0;
-  border-radius: 16px;
-  padding: 16px 14px;
-  font-size: 20px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.btn-primary {
-  background: var(--primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--primary-dark);
-}
-
-.btn-light {
-  background: #eef2f7;
-  color: #334155;
-}
-
-.btn-danger {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.toolbar {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 84px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 800;
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
-.record-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.record-item {
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 16px;
-  background: #fff;
-}
-
-.record-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  cursor: pointer;
-}
-
-.room {
-  font-size: 24px;
-  font-weight: 900;
-}
-
-.meta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 12px;
-  font-size: 16px;
-  color: #334155;
-}
-
-.meta div {
-  background: var(--soft);
-  border-radius: 12px;
-  padding: 10px 12px;
-  line-height: 1.5;
-  min-width: 0;
-}
-
-.meta b {
-  display: block;
-  color: #94a3b8;
-  font-size: 13px;
-  margin-bottom: 3px;
-  font-weight: 800;
-}
-
-.empty {
-  text-align: center;
-  color: var(--sub);
-  padding: 28px 10px;
-  font-size: 18px;
-}
-
-.hidden {
-  display: none !important;
-}
-
-.notice {
-  background: #fafcff;
-  border: 1px dashed #dbeafe;
-  color: #94a3b8;
-  font-size: 15px;
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  line-height: 1.8;
-}
-
-.room-input-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.room-display-wrap {
-  display: grid;
-  grid-template-columns: 1fr 84px;
-  gap: 8px;
-  align-items: stretch;
-  margin-bottom: 10px;
-}
-
-.room-display {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px;
-  font-size: 24px;
-  font-weight: 900;
-  text-align: center;
-  background: #f8fafc;
-  color: #1e293b;
-  letter-spacing: 1px;
-  min-height: 68px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.room-clear-btn {
-  border: 1px solid #fecaca;
-  background: #fff1f2;
-  color: #dc2626;
-  border-radius: 14px;
-  padding: 0 10px;
-  min-width: 84px;
-  font-size: 16px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.room-picker {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.prefix-btn,
-.num-btn,
-.qty-pill,
-.option-btn,
-.item-pick-btn {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #1f2937;
-  border-radius: 14px;
-  padding: 12px 8px;
-  font-size: 18px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: 0.15s ease;
-  text-align: center;
-}
-
-.item-pick-btn {
-  text-align: left;
-  padding: 15px 16px;
-}
-
-.prefix-btn.active,
-.qty-pill.active {
-  background: #e8f0ff;
-  border-color: #60a5fa;
-  color: #1d4ed8;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
-}
-
-.numpad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.numpad-bottom {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 8px;
-}
-
-.zero-btn {
-  font-size: 20px;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.back-btn svg {
-  display: block;
-}
-
-.item-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-bottom: 10px;
-}
-
-.item-card-text {
-  flex: 1;
-  font-size: 17px;
-  line-height: 1.5;
-  color: #334155;
-  min-width: 0;
-  word-break: break-word;
-}
-
-.item-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.icon-btn {
-  width: 46px;
-  height: 46px;
-  border: 0;
-  border-radius: 12px;
-  background: #e8f0ff;
-  color: #1d4ed8;
-  font-size: 22px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.item-row {
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 12px;
-  background: #fbfdff;
-  margin-bottom: 12px;
-}
-
-.item-row-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  font-size: 16px;
-  color: #94a3b8;
-  font-weight: 800;
-  gap: 10px;
-}
-
-.qty-pills {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-
-.serial-no {
-  font-size: 13px;
-  color: #cbd5e1;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-}
-
-.record-items-box {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
-}
-
-.record-item-line {
-  font-size: 15px;
-  line-height: 1.7;
-  color: #334155;
-  border-bottom: 1px dashed #e2e8f0;
-  padding: 4px 0;
-  word-break: break-word;
-}
-
-.record-item-line:last-child {
-  border-bottom: 0;
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  z-index: 80;
-}
-
-#editModal {
-  z-index: 90;
-}
-
-#itemPickerModal {
-  z-index: 120;
-}
-
-.modal-sheet {
-  width: calc(100vw - 24px);
-  max-width: 500px;
-  max-height: calc(100vh - 32px);
-  overflow: auto;
-  background: #fff;
-  border-radius: 18px;
-  padding: 8px 12px 12px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
-  position: relative;
-}
-
-.modal-title {
-  font-size: 20px;
-  font-weight: 900;
-  text-align: center;
-  margin-bottom: 8px;
-}
-
-.picker-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.picker-title {
-  font-size: 28px;
-  font-weight: 900;
-}
-
-.picker-step {
-  font-size: 15px;
-  color: #94a3b8;
-  margin-bottom: 14px;
-}
-
-.option-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  overflow: auto;
-  padding-bottom: 8px;
-}
-
-.option-btn.wide {
-  grid-column: 1 / -1;
-}
-
-.multi-topbar {
-  position: sticky;
-  top: -8px;
-  z-index: 2;
-  background: #fff;
-  padding: 0 0 8px 0;
-  margin-bottom: 8px;
-}
-
-.multi-title {
-  font-size: 24px;
-  font-weight: 900;
-  text-align: center;
-  margin-bottom: 12px;
-}
-
-.room-modal-topbar {
-  position: sticky;
-  top: -8px;
-  z-index: 3;
-  background: #fff;
-  padding: 0 0 8px 0;
-  margin-bottom: 8px;
-}
-
-.room-top-actions {
-  margin-top: 0;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.multi-check-list {
-  max-height: 60vh;
-  overflow: auto;
-  padding-top: 4px;
-}
-
-.multi-check-list label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 0;
-  font-size: 18px;
-  border-bottom: 1px dashed #e5e7eb;
-}
-
-.multi-check-list input[type="checkbox"] {
-  width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-}
-
-.field-select-btn {
-  appearance: none;
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 15px 16px;
-  font-size: 20px;
-  background: #fff;
-  outline: none;
-  text-align: left;
-  color: #334155;
-  cursor: pointer;
-}
-
-body.modal-open {
-  overflow: hidden;
-  touch-action: none;
-}
-
-body.modal-open,
-body.modal-open html {
-  overscroll-behavior: none;
-}
-
-.modal {
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-@media (max-width: 430px) {
-  .grid,
-  .meta,
-  .actions,
-  .toolbar,
-  .record-actions,
-  .modal-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .room-picker {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .room-display-wrap {
-    grid-template-columns: 1fr 78px;
-    gap: 8px;
-  }
-
-  .option-grid,
-  .qty-pills {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .modal-sheet {
-    width: calc(100vw - 20px);
-    max-height: calc(100vh - 24px);
-    padding: 8px 10px 10px;
-    border-radius: 16px;
-  }
-
-  .room-modal-topbar {
-    top: -8px;
-    padding-bottom: 8px;
-    margin-bottom: 8px;
-  }
-
-  .modal-title {
-    font-size: 18px;
-    margin-bottom: 6px;
-  }
-
-  .room-top-actions .btn {
-    padding: 14px 10px;
-    font-size: 18px;
-  }
-
-  .room-display {
-    min-height: 62px;
-    font-size: 22px;
-    padding: 10px;
-  }
-
-  .room-clear-btn {
-    min-width: 78px;
-    font-size: 15px;
-    padding: 0 8px;
-  }
-
-  .prefix-btn,
-  .num-btn {
-    font-size: 17px;
-    padding: 12px 8px;
-  }
-}
-
-
-
+    :root{
+      --bg:#f6f8fb;--card:#fff;--text:#1f2937;--sub:#94a3b8;--line:#e5e7eb;
+      --primary:#3b82f6;--primary-dark:#2563eb;--soft:#f8fafc;--danger:#dc2626;
+      --shadow:0 10px 24px rgba(15,23,42,.06);--radius:20px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;background:var(--bg);color:var(--text)}
+    .app{max-width:520px;margin:0 auto;min-height:100vh;padding:0 16px 30px}
+    .topbar-header{padding:16px 0 8px}
+    .title{font-size:32px;font-weight:800;text-align:center;letter-spacing:1px;margin:8px 0 6px}
+    .subtitle{text-align:center;font-size:15px;color:var(--sub);margin-bottom:8px}
+    .tabs-wrap{position:sticky;top:0;z-index:20;background:rgba(246,248,251,.96);backdrop-filter:blur(10px);padding:8px 0 12px}
+    .tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .tab{border:0;border-radius:16px;padding:15px;font-size:18px;font-weight:800;background:#eaf0f7;color:#475569;cursor:pointer}
+    .tab.active{background:var(--primary);color:#fff;box-shadow:var(--shadow)}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
+    .section-title{margin:0 0 16px;font-size:23px;font-weight:800}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .record-filter-grid{grid-template-columns:1fr}
+    .field{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;min-width:0}
+    .field.full{grid-column:1/-1}
+    label{font-size:18px;font-weight:800;color:#334155}
+    input,select,textarea,button{font-family:inherit}
+    input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:15px 16px;font-size:20px;background:#fff;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+    textarea{min-height:120px;height:120px;resize:none;line-height:1.6}
+    .actions,.modal-actions,.record-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+    .btn{border:0;border-radius:16px;padding:16px 14px;font-size:20px;font-weight:800;cursor:pointer}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-primary:hover{background:var(--primary-dark)}
+    .btn-light{background:#eef2f7;color:#334155}
+    .btn-danger{background:#fee2e2;color:#b91c1c}
+    .toolbar{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:14px}
+    .pill{display:inline-flex;align-items:center;justify-content:center;min-width:84px;padding:8px 12px;border-radius:999px;font-size:14px;font-weight:800;background:#eff6ff;color:#1d4ed8}
+    .record-list{display:flex;flex-direction:column;gap:12px}
+    .record-item{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fff}
+    .record-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer}
+    .room{font-size:24px;font-weight:900}
+    .meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;font-size:16px;color:#334155}
+    .meta div{background:var(--soft);border-radius:12px;padding:10px 12px;line-height:1.5;min-width:0}
+    .meta b{display:block;color:#94a3b8;font-size:13px;margin-bottom:3px;font-weight:800}
+    .empty{text-align:center;color:var(--sub);padding:28px 10px;font-size:18px}
+    .hidden{display:none!important}
+    .notice{background:#fafcff;border:1px dashed #dbeafe;color:#64748b;font-size:15px;border-radius:14px;padding:12px 14px;margin-bottom:14px;line-height:1.8}
+    .room-input-wrap{display:flex;flex-direction:column;gap:10px}
+    .room-display-wrap{display:grid;grid-template-columns:1fr 84px;gap:8px;align-items:stretch;margin-bottom:10px}
+    .room-display{border:1px solid var(--line);border-radius:14px;padding:12px;font-size:24px;font-weight:900;text-align:center;background:#f8fafc;color:#1e293b;letter-spacing:1px;min-height:68px;display:flex;align-items:center;justify-content:center}
+    .room-clear-btn{border:1px solid #fecaca;background:#fff1f2;color:#dc2626;border-radius:14px;padding:0 10px;min-width:84px;font-size:16px;font-weight:800;cursor:pointer}
+    .room-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+    .prefix-btn,.num-btn,.qty-pill,.option-btn,.item-pick-btn{width:100%;border:1px solid #cbd5e1;background:#fff;color:#1f2937;border-radius:14px;padding:12px 8px;font-size:18px;font-weight:800;cursor:pointer;text-align:center}
+    .item-pick-btn{text-align:left;padding:15px 16px}
+    .prefix-btn.active,.qty-pill.active{background:#e8f0ff;border-color:#60a5fa;color:#1d4ed8;box-shadow:0 0 0 2px rgba(59,130,246,.12)}
+    .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+    .numpad-bottom{grid-column:1/-1;display:grid;grid-template-columns:2fr 1fr;gap:8px}
+    .item-card{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 14px;margin-bottom:10px}
+    .item-card-text{flex:1;font-size:17px;line-height:1.5;color:#334155;word-break:break-word}
+    .item-card-actions{display:flex;align-items:center;gap:8px}
+    .icon-btn{width:46px;height:46px;border:0;border-radius:12px;background:#e8f0ff;color:#1d4ed8;font-size:22px;font-weight:800;cursor:pointer}
+    .item-row{border:1px solid var(--line);border-radius:16px;padding:12px;background:#fbfdff;margin-bottom:12px}
+    .item-row-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:16px;color:#94a3b8;font-weight:800;gap:10px}
+    .qty-pills{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .serial-no{font-size:13px;color:#cbd5e1;font-weight:800;letter-spacing:.5px;margin-bottom:8px}
+    .record-items-box{background:#f8fafc;border-radius:12px;padding:10px 12px;margin-bottom:12px}
+    .record-item-line{font-size:15px;line-height:1.7;color:#334155;border-bottom:1px dashed #e2e8f0;padding:4px 0;word-break:break-word}
+    .record-item-line:last-child{border-bottom:0}
+    .modal{position:fixed;inset:0;background:rgba(15,23,42,.35);display:flex;align-items:center;justify-content:center;padding:12px;z-index:80}
+    .modal-sheet{width:calc(100vw - 24px);max-width:500px;max-height:calc(100vh - 32px);overflow:auto;background:#fff;border-radius:18px;padding:8px 12px 12px;box-shadow:0 10px 30px rgba(15,23,42,.12);position:relative}
+    .modal-title{font-size:20px;font-weight:900;text-align:center;margin-bottom:8px}
+    .picker-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+    .picker-title{font-size:28px;font-weight:900}
+    .picker-step{font-size:15px;color:#94a3b8;margin-bottom:14px}
+    .option-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;overflow:auto;padding-bottom:8px}
+    .option-btn.wide{grid-column:1/-1}
+    .multi-topbar,.room-modal-topbar{position:sticky;top:-8px;background:#fff;padding:0 0 8px;margin-bottom:8px}
+    .room-modal-topbar{z-index:3}
+    .multi-topbar{z-index:2}
+    .multi-title{font-size:24px;font-weight:900;text-align:center;margin-bottom:12px}
+    .room-top-actions{margin-top:0;grid-template-columns:1fr 1fr;gap:10px}
+    .multi-check-list{max-height:60vh;overflow:auto;padding-top:4px}
+    .multi-check-list label{display:flex;align-items:center;gap:10px;padding:12px 0;font-size:18px;border-bottom:1px dashed #e5e7eb}
+    .multi-check-list input[type="checkbox"]{width:22px;height:22px;flex:0 0 auto}
+    .field-select-btn{appearance:none;width:100%;border:1px solid var(--line);border-radius:14px;padding:15px 16px;font-size:20px;background:#fff;outline:none;text-align:left;color:#334155;cursor:pointer}
+    body.modal-open{overflow:hidden;touch-action:none}
+    #editModal{z-index:90}
+    #confirmModal{z-index:100}
+    #multiSelectModal{z-index:110}
+    #itemPickerModal{z-index:120}
+    @media (max-width:430px){
+      .grid,.meta,.actions,.toolbar,.record-actions,.modal-actions{grid-template-columns:1fr}
+      .room-picker{grid-template-columns:repeat(2,1fr)}
+      .room-display-wrap{grid-template-columns:1fr 78px}
+      .option-grid,.qty-pills{grid-template-columns:1fr 1fr}
+    }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="topbar-header">
       <div class="title">送洗紀錄表</div>
-      <div class="subtitle">手機版完整樣板｜可接試算表｜可查詢與補填</div>
+      <div class="subtitle">Apps Script 安全版｜正式寫入 Google 試算表</div>
     </div>
 
     <div class="tabs-wrap">
@@ -748,8 +118,8 @@ body.modal-open html {
       <div class="card">
         <h2 class="section-title">新增紀錄</h2>
         <div class="notice">
-          目前先是完整前端樣板。<br>
-          先用本機暫存測試流程，之後把 Apps Script 網址貼上，就能正式接 Google 試算表。
+          這版不使用 localStorage 當正式資料。<br>
+          所有新增與更新都交給 Apps Script 驗證後再寫入試算表。
         </div>
 
         <form id="laundryForm">
@@ -839,17 +209,10 @@ body.modal-open html {
 
         <div class="room-display-wrap">
           <div class="room-display" id="roomDisplay">請先選棟別</div>
-          <button type="button" class="room-clear-btn" id="clearRoom" aria-label="清除房號">清除</button>
+          <button type="button" class="room-clear-btn" id="clearRoom">清除</button>
         </div>
 
-        <div class="room-picker">
-          <button type="button" class="prefix-btn" data-prefix="A">A</button>
-          <button type="button" class="prefix-btn" data-prefix="B">B</button>
-          <button type="button" class="prefix-btn" data-prefix="D">D</button>
-          <button type="button" class="prefix-btn" data-prefix="CA">CA</button>
-          <button type="button" class="prefix-btn" data-prefix="CB">CB</button>
-          <button type="button" class="prefix-btn" data-prefix="CC">CC</button>
-        </div>
+        <div class="room-picker" id="roomPickerPrefix"></div>
 
         <div class="numpad">
           <button type="button" class="num-btn" data-num="1">1</button>
@@ -861,15 +224,9 @@ body.modal-open html {
           <button type="button" class="num-btn" data-num="7">7</button>
           <button type="button" class="num-btn" data-num="8">8</button>
           <button type="button" class="num-btn" data-num="9">9</button>
-
           <div class="numpad-bottom">
-            <button type="button" class="num-btn zero-btn" data-num="0">0</button>
-            <button type="button" class="num-btn back-btn" id="backspaceRoom" aria-label="刪除一格">
-              <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
-                <path d="M9 6H20V18H9L3 12L9 6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                <path d="M15 9V15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </button>
+            <button type="button" class="num-btn" data-num="0">0</button>
+            <button type="button" class="num-btn" id="backspaceRoom">⌫</button>
           </div>
         </div>
       </div>
@@ -890,7 +247,7 @@ body.modal-open html {
       <div class="modal-sheet">
         <div class="modal-title">補填回件資料</div>
         <form id="editForm">
-          <input type="hidden" id="editIndex" />
+          <input type="hidden" id="editSerialNo" />
           <div class="field">
             <label for="editReceiver">收件人員</label>
             <input id="editReceiver" type="text" placeholder="請輸入收件人員姓名" />
@@ -942,950 +299,797 @@ body.modal-open html {
   </div>
 
 <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbwjeQ45-Lx6LoF_H1QFsqaibj6luWd99N8NQtS37ka2hUFI938-88oVd3UmFr9oII3y/exec";
+const API_URL = "請貼上你的 Apps Script Web App 網址";
 
-  const ITEM_TREE = {
-    "單人": ["單人棉被", "單人被套", "單人保潔墊", "單人三件床包組", "單人床罩"],
-    "雙人": ["雙人棉被", "雙人被套", "雙人保潔墊", "雙人三件床包組", "雙人床罩"],
-    "枕頭": ["枕頭", "枕頭保潔墊"]
-  };
+const ITEM_TREE = {
+  "單人": ["單人棉被", "單人被套", "單人保潔墊", "單人三件床包組", "單人床罩"],
+  "雙人": ["雙人棉被", "雙人被套", "雙人保潔墊", "雙人三件床包組", "雙人床罩"],
+  "枕頭": ["枕頭", "枕頭保潔墊"]
+};
+const ITEM_OPTIONS = Object.values(ITEM_TREE).flat();
+const PREFIX_OPTIONS = ["A", "B", "D", "CA", "CB", "CC"];
+const ITEM_UNIT_MAP = {
+  "枕頭": "個", "枕頭保潔墊": "個", "單人三件床包組": "組", "雙人三件床包組": "組",
+  "單人棉被": "件", "雙人棉被": "件", "單人被套": "件", "雙人被套": "件",
+  "單人保潔墊": "件", "雙人保潔墊": "件", "單人床罩": "件", "雙人床罩": "件"
+};
 
-  const ITEM_OPTIONS = Object.values(ITEM_TREE).flat();
-  const PREFIX_OPTIONS = ["A", "B", "C", "CA", "CB", "CC", "D"];
+const tabForm = document.getElementById("tabForm");
+const tabList = document.getElementById("tabList");
+const formPage = document.getElementById("formPage");
+const listPage = document.getElementById("listPage");
+const form = document.getElementById("laundryForm");
+const recordList = document.getElementById("recordList");
+const searchInput = document.getElementById("searchInput");
+const refreshBtn = document.getElementById("refreshBtn");
+const filterStartDate = document.getElementById("filterStartDate");
+const filterEndDate = document.getElementById("filterEndDate");
+const resetFormBtn = document.getElementById("resetFormBtn");
 
-  const ITEM_UNIT_MAP = {
-    "枕頭": "個",
-    "枕頭保潔墊": "個",
-    "單人三件床包組": "組",
-    "雙人三件床包組": "組",
-    "單人棉被": "件",
-    "雙人棉被": "件",
-    "單人被套": "件",
-    "雙人被套": "件",
-    "單人保潔墊": "件",
-    "雙人保潔墊": "件",
-    "單人床罩": "件",
-    "雙人床罩": "件"
-  };
+const openPrefixMulti = document.getElementById("openPrefixMulti");
+const openItemMulti = document.getElementById("openItemMulti");
+const selectedPrefixText = document.getElementById("selectedPrefixText");
+const selectedItemText = document.getElementById("selectedItemText");
 
-  const tabForm = document.getElementById("tabForm");
-  const tabList = document.getElementById("tabList");
-  const formPage = document.getElementById("formPage");
-  const listPage = document.getElementById("listPage");
-  const form = document.getElementById("laundryForm");
-  const recordList = document.getElementById("recordList");
-  const searchInput = document.getElementById("searchInput");
-  const refreshBtn = document.getElementById("refreshBtn");
-  const filterStartDate = document.getElementById("filterStartDate");
-  const filterEndDate = document.getElementById("filterEndDate");
-  const resetFormBtn = document.getElementById("resetFormBtn");
+const roomNoInput = document.getElementById("roomNo");
+const openRoomPicker = document.getElementById("openRoomPicker");
+const roomModal = document.getElementById("roomModal");
+const roomDisplay = document.getElementById("roomDisplay");
+const confirmRoomPicker = document.getElementById("confirmRoomPicker");
+const cancelRoomPicker = document.getElementById("cancelRoomPicker");
+const clearRoom = document.getElementById("clearRoom");
+const backspaceRoom = document.getElementById("backspaceRoom");
+const roomPickerPrefix = document.getElementById("roomPickerPrefix");
 
-  const openPrefixMulti = document.getElementById("openPrefixMulti");
-  const openItemMulti = document.getElementById("openItemMulti");
-  const selectedPrefixText = document.getElementById("selectedPrefixText");
-  const selectedItemText = document.getElementById("selectedItemText");
+const itemCards = document.getElementById("itemCards");
+const addItemRowBtn = document.getElementById("addItemRow");
 
-  const roomNoInput = document.getElementById("roomNo");
-  const openRoomPicker = document.getElementById("openRoomPicker");
-  const roomModal = document.getElementById("roomModal");
-  const roomDisplay = document.getElementById("roomDisplay");
-  const confirmRoomPicker = document.getElementById("confirmRoomPicker");
-  const cancelRoomPicker = document.getElementById("cancelRoomPicker");
-  const prefixButtons = document.querySelectorAll(".prefix-btn");
-  const numButtons = document.querySelectorAll(".num-btn[data-num]");
-  const clearRoom = document.getElementById("clearRoom");
-  const backspaceRoom = document.getElementById("backspaceRoom");
+const editModal = document.getElementById("editModal");
+const editForm = document.getElementById("editForm");
+const editSerialNo = document.getElementById("editSerialNo");
+const editReceiver = document.getElementById("editReceiver");
+const editReturnDate = document.getElementById("editReturnDate");
+const editRemark = document.getElementById("editRemark");
+const cancelEdit = document.getElementById("cancelEdit");
+const editAddItemCards = document.getElementById("editAddItemCards");
+const editAddItemRowBtn = document.getElementById("editAddItemRowBtn");
 
-  const itemCards = document.getElementById("itemCards");
-  const addItemRowBtn = document.getElementById("addItemRow");
+const itemPickerModal = document.getElementById("itemPickerModal");
+const itemPickerOptions = document.getElementById("itemPickerOptions");
+const itemPickerStepText = document.getElementById("itemPickerStepText");
+const closeItemPicker = document.getElementById("closeItemPicker");
 
-  const editModal = document.getElementById("editModal");
-  const editForm = document.getElementById("editForm");
-  const editIndex = document.getElementById("editIndex");
-  const editReceiver = document.getElementById("editReceiver");
-  const editReturnDate = document.getElementById("editReturnDate");
-  const editRemark = document.getElementById("editRemark");
-  const cancelEdit = document.getElementById("cancelEdit");
-  const editAddItemCards = document.getElementById("editAddItemCards");
-  const editAddItemRowBtn = document.getElementById("editAddItemRowBtn");
+const confirmModal = document.getElementById("confirmModal");
+const confirmSummary = document.getElementById("confirmSummary");
+const cancelConfirm = document.getElementById("cancelConfirm");
+const submitConfirmed = document.getElementById("submitConfirmed");
 
-  const itemPickerModal = document.getElementById("itemPickerModal");
-  const itemPickerOptions = document.getElementById("itemPickerOptions");
-  const itemPickerStepText = document.getElementById("itemPickerStepText");
-  const closeItemPicker = document.getElementById("closeItemPicker");
+const multiSelectModal = document.getElementById("multiSelectModal");
+const multiSelectTitle = document.getElementById("multiSelectTitle");
+const multiSelectOptions = document.getElementById("multiSelectOptions");
+const cancelMultiSelect = document.getElementById("cancelMultiSelect");
+const confirmMultiSelect = document.getElementById("confirmMultiSelect");
 
-  const confirmModal = document.getElementById("confirmModal");
-  const confirmSummary = document.getElementById("confirmSummary");
-  const cancelConfirm = document.getElementById("cancelConfirm");
-  const submitConfirmed = document.getElementById("submitConfirmed");
+const today = new Date();
+const todayStr = today.toISOString().split("T")[0];
+document.getElementById("sendDate").value = todayStr;
 
-  const multiSelectModal = document.getElementById("multiSelectModal");
-  const multiSelectTitle = document.getElementById("multiSelectTitle");
-  const multiSelectOptions = document.getElementById("multiSelectOptions");
-  const cancelMultiSelect = document.getElementById("cancelMultiSelect");
-  const confirmMultiSelect = document.getElementById("confirmMultiSelect");
+const past7 = new Date(today);
+past7.setDate(today.getDate() - 6);
+filterStartDate.value = past7.toISOString().split("T")[0];
+filterEndDate.value = todayStr;
 
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
-  document.getElementById("sendDate").value = todayStr;
+let recordsCache = [];
+let selectedPrefix = "";
+let selectedNumbers = "";
+let isDirty = false;
+let pickerStep = 1;
+let pickedCategory = "";
+let pendingPayload = null;
+let currentMultiType = "";
+let selectedPrefixes = [];
+let selectedItems = [];
+let currentItemIndex = -1;
+let currentEditExtraIndex = -1;
+let pickerTargetMode = "main";
+let scrollY = 0;
 
-  const past7 = new Date(today);
-  past7.setDate(today.getDate() - 6);
-  filterStartDate.value = past7.toISOString().split("T")[0];
-  filterEndDate.value = todayStr;
+let items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
+let editExtraItems = [];
 
-  let selectedPrefix = "";
-  let selectedNumbers = "";
-  let isDirty = false;
-  let pickerStep = 1;
-  let pickedCategory = "";
-  let pendingPayload = null;
-  let currentMultiType = "";
-  let selectedPrefixes = [];
-  let selectedItems = [];
-  let currentItemIndex = -1;
-  let currentEditExtraIndex = -1;
-  let pickerTargetMode = "main";
-  let scrollY = 0;
+function markDirty() { isDirty = true; }
+function getItemUnit(itemName) { return ITEM_UNIT_MAP[itemName] || "件"; }
+function shouldAutoExpandFirstItem() { return !roomNoInput.value.trim(); }
 
-let items = [
-  { itemName: "", itemQty: "", color: "", expanded: true }
-];
-
-  let editExtraItems = [];
-
-  const seedData = [
-    {
-      serialNo: "20260310001",
-      roomNo: "A615",
-      sendDate: "2026-03-10",
-      itemDetails: "單人棉被｜2件｜白色；枕頭｜2個｜白色",
-      itemRows: [
-        { itemName: "單人棉被", itemQty: "2", color: "白色" },
-        { itemName: "枕頭", itemQty: "2", color: "白色" }
-      ],
-      sender: "小王",
-      receiver: "",
-      returnDate: "",
-      remark: "住戶交代先處理"
-    },
-    {
-      serialNo: "20260309002",
-      roomNo: "CB210",
-      sendDate: "2026-03-09",
-      itemDetails: "雙人被套｜1件｜米色",
-      itemRows: [
-        { itemName: "雙人被套", itemQty: "1", color: "米色" }
-      ],
-      sender: "阿明",
-      receiver: "櫃台",
-      returnDate: "2026-03-10",
-      remark: "已回件"
-    }
-  ];
-
-  function lockBodyScroll() {
-    scrollY = window.scrollY || window.pageYOffset || 0;
-    document.body.classList.add("modal-open");
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
-  }
-
-  function unlockBodyScroll() {
-    document.body.classList.remove("modal-open");
-    document.body.style.position = "";
-    document.body.style.top = "";
-    document.body.style.left = "";
-    document.body.style.right = "";
-    document.body.style.width = "";
-    window.scrollTo(0, scrollY);
-  }
-
-  function getLocalRecords() {
-    const saved = localStorage.getItem("laundryRecordsV5");
-    if (!saved) {
-      localStorage.setItem("laundryRecordsV5", JSON.stringify(seedData));
-      return structuredClone(seedData);
-    }
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return structuredClone(seedData);
-    }
-  }
-
-  function setLocalRecords(records) {
-    localStorage.setItem("laundryRecordsV5", JSON.stringify(records));
-  }
-
-  function getItemUnit(itemName) {
-    return ITEM_UNIT_MAP[itemName] || "件";
-  }
-
-  function markDirty() {
-    isDirty = true;
-  }
-
-  function shouldAutoExpandFirstItem() {
-  return !roomNoInput.value.trim();
+function lockBodyScroll() {
+  scrollY = window.scrollY || 0;
+  document.body.classList.add("modal-open");
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${scrollY}px`;
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.body.style.width = "100%";
+}
+function unlockBodyScroll() {
+  document.body.classList.remove("modal-open");
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.width = "";
+  window.scrollTo(0, scrollY);
 }
 
-  function switchTab(type) {
-    const isForm = type === "form";
-    tabForm.classList.toggle("active", isForm);
-    tabList.classList.toggle("active", !isForm);
-    formPage.classList.toggle("hidden", !isForm);
-    listPage.classList.toggle("hidden", isForm);
-    if (!isForm) renderRecords();
-  }
-
-  tabForm.addEventListener("click", () => switchTab("form"));
-  tabList.addEventListener("click", () => switchTab("list"));
-  refreshBtn.addEventListener("click", renderRecords);
-  searchInput.addEventListener("input", renderRecords);
-  filterStartDate.addEventListener("change", renderRecords);
-  filterEndDate.addEventListener("change", renderRecords);
-
-  function getPrefix(roomNo = "") {
-    const match = roomNo.match(/^[A-Z]+/);
-    return match ? match[0] : "";
-  }
-
-  function getItemSummary(item) {
-    return `${item.itemName || "未選品名"}｜${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"}｜${item.color || "未填顏色"}`;
-  }
-
-  function renderItemPicker() {
-    if (pickerStep === 1) {
-      itemPickerStepText.textContent = "先選擇：單人、雙人、枕頭";
-      itemPickerOptions.innerHTML = Object.keys(ITEM_TREE).map(key => `
-        <button type="button" class="option-btn" data-step="1" data-value="${key}">${key}</button>
-      `).join("");
-    } else {
-      itemPickerStepText.textContent = `已選 ${pickedCategory}，請繼續選擇品名`;
-      itemPickerOptions.innerHTML = ITEM_TREE[pickedCategory].map(name => `
-        <button type="button" class="option-btn wide" data-step="2" data-value="${name}">${name}</button>
-      `).join("");
-    }
-
-    itemPickerOptions.querySelectorAll(".option-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const value = btn.dataset.value;
-        const step = btn.dataset.step;
-
-        if (step === "1") {
-          pickedCategory = value;
-          pickerStep = 2;
-          renderItemPicker();
-          return;
-        }
-
-        if (pickerTargetMode === "main" && currentItemIndex > -1) {
-          items[currentItemIndex].itemName = value;
-          items[currentItemIndex].itemQty = "";
-        }
-
-        if (pickerTargetMode === "edit" && currentEditExtraIndex > -1) {
-          editExtraItems[currentEditExtraIndex].itemName = value;
-          editExtraItems[currentEditExtraIndex].itemQty = "";
-        }
-
-        closeFullItemPicker();
-        renderItems();
-        renderEditExtraItems();
-        markDirty();
-      });
-    });
-  }
-
-  function openItemPickerByIndex(index) {
-    currentItemIndex = index;
-    pickerTargetMode = "main";
-    pickerStep = 1;
-    pickedCategory = "";
-    renderItemPicker();
-    lockBodyScroll();
-    itemPickerModal.classList.remove("hidden");
-  }
-
-  function openEditExtraItemPicker(index) {
-    currentEditExtraIndex = index;
-    pickerTargetMode = "edit";
-    pickerStep = 1;
-    pickedCategory = "";
-    renderItemPicker();
-    lockBodyScroll();
-    itemPickerModal.classList.remove("hidden");
-  }
-
-  function closeFullItemPicker() {
-    itemPickerModal.classList.add("hidden");
-    unlockBodyScroll();
-  }
-
-  closeItemPicker.addEventListener("click", closeFullItemPicker);
-
-  function collapseAllItems() {
-    items.forEach(item => item.expanded = false);
-  }
-
-  function renderItems() {
-    itemCards.innerHTML = items.map((item, index) => {
-      const summary = getItemSummary(item);
-
-      if (!item.expanded) {
-        return `
-          <div class="item-card">
-            <div class="item-card-text">${summary}</div>
-            <div class="item-card-actions">
-              <button type="button" class="icon-btn" onclick="toggleItem(${index})">✎</button>
-            </div>
-          </div>
-        `;
-      }
-
-      return `
-        <div class="item-row">
-          <div class="item-row-head">
-            <span>第 ${index + 1} 項</span>
-            ${items.length > 1 ? `<button type="button" class="btn btn-danger" style="padding:10px 14px;font-size:16px;" onclick="deleteItem(${index})">刪除</button>` : ""}
-          </div>
-
-          <div class="field">
-            <label>品名</label>
-            <button type="button" class="item-pick-btn" onclick="openItemPickerByIndex(${index})">
-              ${item.itemName || "請點選品名"}
-            </button>
-          </div>
-
-          <div class="field">
-            <label>數量</label>
-            <div class="qty-pills">
-              ${[1,2,3,4].map(n => `
-                <button type="button" class="qty-pill ${String(n) === String(item.itemQty) ? "active" : ""}" onclick="setItemQty(${index}, '${n}')">${n}</button>
-              `).join("")}
-            </div>
-          </div>
-
-          <div class="field">
-            <label>顏色</label>
-            <input type="text" value="${item.color || ""}" oninput="setItemColor(${index}, this.value)" placeholder="例如：白色、藍色" />
-          </div>
-
-          <div class="actions">
-            <button type="button" class="btn btn-primary" onclick="collapseItem(${index})">完成此項</button>
-            <button type="button" class="btn btn-light" onclick="clearItem(${index})">清空此項</button>
-          </div>
-        </div>
-      `;
-    }).join("");
-  }
-
-  window.toggleItem = function(index) {
-    collapseAllItems();
-    items[index].expanded = true;
-    renderItems();
-  };
-
-  window.collapseItem = function(index) {
-    if (!items[index].itemName || !items[index].itemQty) {
-      alert("請先完成品名與數量");
-      return;
-    }
-    items[index].expanded = false;
-    renderItems();
-  };
-
-  window.setItemQty = function(index, qty) {
-    items[index].itemQty = qty;
-    renderItems();
-    markDirty();
-  };
-
-  window.setItemColor = function(index, color) {
-    items[index].color = color;
-    markDirty();
-  };
-
-  window.clearItem = function(index) {
-    items[index].itemName = "";
-    items[index].itemQty = "";
-    items[index].color = "";
-    renderItems();
-    markDirty();
-  };
-
-window.deleteItem = function(index) {
-  const item = items[index];
-  const text = `${item.itemName || "未填品名"} / ${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"} / ${item.color || "未填顏色"}`;
-  const ok = confirm(`你確定要刪除「${text}」嗎？`);
-  if (!ok) return;
-
-  const wasExpanded = !!items[index].expanded;
-
-  items.splice(index, 1);
-
-  if (!items.length) {
-    items.push({
-      itemName: "",
-      itemQty: "",
-      color: "",
-      expanded: shouldAutoExpandFirstItem()
-    });
-  } else {
-    items.forEach(x => x.expanded = false);
-
-    // 只有在「房號未輸入」時，才允許自動展開第一筆
-    if (shouldAutoExpandFirstItem()) {
-      items[0].expanded = true;
-    }
-
-    // 若你未來想改成「刪掉展開中的那筆，就展開前一筆或同位置那筆」，
-    // 才會用 wasExpanded 這個變數；目前先保留但不自動展開。
-  }
-
-  renderItems();
-  markDirty();
-};
-
-  addItemRowBtn.addEventListener("click", () => {
-    const hasIncomplete = items.some(x => !x.itemName || !x.itemQty);
-    if (hasIncomplete) {
-      alert("請先完成目前展開中的品項");
-      return;
-    }
-
-    collapseAllItems();
-    items.push({
-      itemName: "",
-      itemQty: "",
-      color: "",
-      expanded: true
-    });
-    renderItems();
-    markDirty();
-  });
-
-  function renderEditExtraItems() {
-    editAddItemCards.innerHTML = editExtraItems.map((item, index) => {
-      const summary = getItemSummary(item);
-
-      if (!item.expanded) {
-        return `
-          <div class="item-card">
-            <div class="item-card-text">${summary}</div>
-            <div class="item-card-actions">
-              <button type="button" class="icon-btn" onclick="toggleEditExtraItem(${index})">✎</button>
-            </div>
-          </div>
-        `;
-      }
-
-      return `
-        <div class="item-row">
-          <div class="item-row-head">
-            <span>加洗第 ${index + 1} 項</span>
-            ${editExtraItems.length > 1 ? `<button type="button" class="btn btn-danger" style="padding:10px 14px;font-size:16px;" onclick="deleteEditExtraItem(${index})">刪除</button>` : ""}
-          </div>
-
-          <div class="field">
-            <label>品名</label>
-            <button type="button" class="item-pick-btn" onclick="openEditExtraItemPicker(${index})">
-              ${item.itemName || "請點選品名"}
-            </button>
-          </div>
-
-          <div class="field">
-            <label>數量</label>
-            <div class="qty-pills">
-              ${[1,2,3,4].map(n => `
-                <button type="button" class="qty-pill ${String(n) === String(item.itemQty) ? "active" : ""}" onclick="setEditExtraItemQty(${index}, '${n}')">${n}</button>
-              `).join("")}
-            </div>
-          </div>
-
-          <div class="field">
-            <label>顏色</label>
-            <input type="text" value="${item.color || ""}" oninput="setEditExtraItemColor(${index}, this.value)" placeholder="例如：白色、藍色" />
-          </div>
-
-          <div class="actions">
-            <button type="button" class="btn btn-primary" onclick="collapseEditExtraItem(${index})">完成此項</button>
-            <button type="button" class="btn btn-light" onclick="clearEditExtraItem(${index})">清空此項</button>
-          </div>
-        </div>
-      `;
-    }).join("");
-  }
-
-  function collapseAllEditExtraItems() {
-    editExtraItems.forEach(item => item.expanded = false);
-  }
-
-  window.toggleEditExtraItem = function(index) {
-    collapseAllEditExtraItems();
-    editExtraItems[index].expanded = true;
-    renderEditExtraItems();
-  };
-
-  window.collapseEditExtraItem = function(index) {
-    if (!editExtraItems[index].itemName || !editExtraItems[index].itemQty) {
-      alert("請先完成品名與數量");
-      return;
-    }
-    editExtraItems[index].expanded = false;
-    renderEditExtraItems();
-  };
-
-  window.setEditExtraItemQty = function(index, qty) {
-    editExtraItems[index].itemQty = qty;
-    renderEditExtraItems();
-  };
-
-  window.setEditExtraItemColor = function(index, color) {
-    editExtraItems[index].color = color;
-  };
-
-  window.clearEditExtraItem = function(index) {
-    editExtraItems[index].itemName = "";
-    editExtraItems[index].itemQty = "";
-    editExtraItems[index].color = "";
-    renderEditExtraItems();
-  };
-
-  window.deleteEditExtraItem = function(index) {
-    const item = editExtraItems[index];
-    const text = `${item.itemName || "未填品名"} / ${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"} / ${item.color || "未填顏色"}`;
-    const ok = confirm(`你確定要刪除「${text}」嗎？`);
-    if (!ok) return;
-
-    editExtraItems.splice(index, 1);
-    if (!editExtraItems.length) {
-      editExtraItems.push({ itemName: "", itemQty: "", color: "", expanded: true });
-    }
-
-
-  editExtraItems.splice(index, 1);
-
-  if (!editExtraItems.length) {
-    editExtraItems.push({
-      itemName: "",
-      itemQty: "",
-      color: "",
-      expanded: true
-    });
-  } else {
-    editExtraItems.forEach(x => x.expanded = false);
-  }
-
-  renderEditExtraItems();
-};
-
-
-  editAddItemRowBtn.addEventListener("click", () => {
-    const hasIncomplete = editExtraItems.some(x => !x.itemName || !x.itemQty);
-    if (hasIncomplete) {
-      alert("請先完成目前展開中的品項");
-      return;
-    }
-
-    collapseAllEditExtraItems();
-    editExtraItems.push({
-      itemName: "",
-      itemQty: "",
-      color: "",
-      expanded: true
-    });
-    renderEditExtraItems();
-  });
-
-  function updateRoomDisplay() {
-    const full = `${selectedPrefix}${selectedNumbers}`;
-    roomDisplay.textContent = full || "請先選棟別";
-  }
-
-  function openRoomModal() {
-    lockBodyScroll();
-    roomModal.classList.remove("hidden");
-  }
-
-  function closeRoomModal() {
-    roomModal.classList.add("hidden");
-    unlockBodyScroll();
-  }
-
-  openRoomPicker.addEventListener("click", openRoomModal);
-  roomNoInput.addEventListener("click", openRoomModal);
-  cancelRoomPicker.addEventListener("click", closeRoomModal);
-
-  prefixButtons.forEach(btn => {
+function buildRoomPrefixButtons() {
+  roomPickerPrefix.innerHTML = PREFIX_OPTIONS.map(p => `<button type="button" class="prefix-btn" data-prefix="${p}">${p}</button>`).join("");
+  roomPickerPrefix.querySelectorAll(".prefix-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      prefixButtons.forEach(x => x.classList.remove("active"));
+      roomPickerPrefix.querySelectorAll(".prefix-btn").forEach(x => x.classList.remove("active"));
       btn.classList.add("active");
       selectedPrefix = btn.dataset.prefix;
       updateRoomDisplay();
       markDirty();
     });
   });
+}
 
-  numButtons.forEach(btn => {
+function switchTab(type) {
+  const isForm = type === "form";
+  tabForm.classList.toggle("active", isForm);
+  tabList.classList.toggle("active", !isForm);
+  formPage.classList.toggle("hidden", !isForm);
+  listPage.classList.toggle("hidden", isForm);
+  if (!isForm) renderRecords();
+}
+
+function updateRoomDisplay() {
+  const full = `${selectedPrefix}${selectedNumbers}`;
+  roomDisplay.textContent = full || "請先選棟別";
+}
+
+function openRoomModal() {
+  lockBodyScroll();
+  roomModal.classList.remove("hidden");
+}
+function closeRoomModal() {
+  roomModal.classList.add("hidden");
+  unlockBodyScroll();
+}
+
+function getPrefix(roomNo = "") {
+  const match = roomNo.match(/^[A-Z]+/);
+  return match ? match[0] : "";
+}
+
+function getItemSummary(item) {
+  return `${item.itemName || "未選品名"}｜${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"}｜${item.color || "未填顏色"}`;
+}
+
+function collapseAllItems() {
+  items.forEach(item => item.expanded = false);
+}
+function collapseAllEditExtraItems() {
+  editExtraItems.forEach(item => item.expanded = false);
+}
+
+function renderItemPicker() {
+  if (pickerStep === 1) {
+    itemPickerStepText.textContent = "先選擇：單人、雙人、枕頭";
+    itemPickerOptions.innerHTML = Object.keys(ITEM_TREE).map(key => `
+      <button type="button" class="option-btn" data-step="1" data-value="${key}">${key}</button>
+    `).join("");
+  } else {
+    itemPickerStepText.textContent = `已選 ${pickedCategory}，請繼續選擇品名`;
+    itemPickerOptions.innerHTML = ITEM_TREE[pickedCategory].map(name => `
+      <button type="button" class="option-btn wide" data-step="2" data-value="${name}">${name}</button>
+    `).join("");
+  }
+
+  itemPickerOptions.querySelectorAll(".option-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      if (!selectedPrefix) {
-        alert("請先選擇 A、B、D、CA、CB、CC");
+      const value = btn.dataset.value;
+      const step = btn.dataset.step;
+
+      if (step === "1") {
+        pickedCategory = value;
+        pickerStep = 2;
+        renderItemPicker();
         return;
       }
-      if (selectedNumbers.length >= 3) return;
-      selectedNumbers += btn.dataset.num;
-      updateRoomDisplay();
+
+      if (pickerTargetMode === "main" && currentItemIndex > -1) {
+        items[currentItemIndex].itemName = value;
+        items[currentItemIndex].itemQty = "";
+      }
+
+      if (pickerTargetMode === "edit" && currentEditExtraIndex > -1) {
+        editExtraItems[currentEditExtraIndex].itemName = value;
+        editExtraItems[currentEditExtraIndex].itemQty = "";
+      }
+
+      closeFullItemPicker();
+      renderItems();
+      renderEditExtraItems();
       markDirty();
     });
   });
+}
 
-  clearRoom.addEventListener("click", () => {
-    selectedPrefix = "";
-    selectedNumbers = "";
-    prefixButtons.forEach(x => x.classList.remove("active"));
-    updateRoomDisplay();
-    markDirty();
-  });
+function openItemPickerByIndex(index) {
+  currentItemIndex = index;
+  pickerTargetMode = "main";
+  pickerStep = 1;
+  pickedCategory = "";
+  renderItemPicker();
+  lockBodyScroll();
+  itemPickerModal.classList.remove("hidden");
+}
+function openEditExtraItemPicker(index) {
+  currentEditExtraIndex = index;
+  pickerTargetMode = "edit";
+  pickerStep = 1;
+  pickedCategory = "";
+  renderItemPicker();
+  lockBodyScroll();
+  itemPickerModal.classList.remove("hidden");
+}
+function closeFullItemPicker() {
+  itemPickerModal.classList.add("hidden");
+  unlockBodyScroll();
+}
 
-  backspaceRoom.addEventListener("click", () => {
-    selectedNumbers = selectedNumbers.slice(0, -1);
-    updateRoomDisplay();
-    markDirty();
-  });
+function renderItems() {
+  itemCards.innerHTML = items.map((item, index) => {
+    const summary = getItemSummary(item);
 
-  confirmRoomPicker.addEventListener("click", () => {
-    if (!selectedPrefix || selectedNumbers.length !== 3) {
-      alert("房號需為棟別 + 3個數字");
-      return;
+    if (!item.expanded) {
+      return `
+        <div class="item-card">
+          <div class="item-card-text">${summary}</div>
+          <div class="item-card-actions">
+            <button type="button" class="icon-btn" data-action="toggle-main" data-index="${index}">✎</button>
+          </div>
+        </div>
+      `;
     }
-    roomNoInput.value = `${selectedPrefix}${selectedNumbers}`;
-    closeRoomModal();
-    markDirty();
-  });
-
-  function generateSerialNo(records) {
-    const formDate = document.getElementById("sendDate").value || todayStr;
-    const datePart = formDate.replaceAll("-", "");
-    const countToday = records.filter(r => (r.sendDate || "").replaceAll("-", "") === datePart).length + 1;
-    return `${datePart}${String(countToday).padStart(3, "0")}`;
-  }
-
-  function createRecordCard(item, index) {
-    const itemLines = (item.itemRows || []).map(x => `
-      <div class="record-item-line">
-        ${x.itemName || "未填品名"}｜${x.itemQty ? x.itemQty + getItemUnit(x.itemName) : "未填數量"}｜${x.color || "未填顏色"}
-      </div>
-    `).join("");
 
     return `
-      <div class="record-item">
-        <div class="serial-no">流水單號：${item.serialNo || "-"}</div>
-        <div class="record-head" onclick="toggleRecordDetail(${index})">
-          <div class="room">${item.roomNo || "未填房號"}</div>
-          <span class="pill">${item.returnDate ? "已回件" : "送洗中"}</span>
+      <div class="item-row">
+        <div class="item-row-head">
+          <span>第 ${index + 1} 項</span>
+          ${items.length > 1 ? `<button type="button" class="btn btn-danger" style="padding:10px 14px;font-size:16px;" data-action="delete-main" data-index="${index}">刪除</button>` : ""}
         </div>
-        <div id="detail-${index}" class="hidden">
-          <div class="record-items-box">${itemLines || `<div class="record-item-line">-</div>`}</div>
-          <div class="meta">
-            <div><b>送洗日期</b>${item.sendDate || "-"}</div>
-            <div><b>送洗人員</b>${item.sender || "-"}</div>
-            <div><b>收件人員</b>${item.receiver || "-"}</div>
-            <div><b>回件日期</b>${item.returnDate || "-"}</div>
-            <div style="grid-column:1 / -1;"><b>備註</b>${item.remark || "-"}</div>
+
+        <div class="field">
+          <label>品名</label>
+          <button type="button" class="item-pick-btn" data-action="pick-main" data-index="${index}">
+            ${item.itemName || "請點選品名"}
+          </button>
+        </div>
+
+        <div class="field">
+          <label>數量</label>
+          <div class="qty-pills">
+            ${[1,2,3,4].map(n => `
+              <button type="button" class="qty-pill ${String(n) === String(item.itemQty) ? "active" : ""}" data-action="qty-main" data-index="${index}" data-qty="${n}">${n}</button>
+            `).join("")}
           </div>
-          <div class="record-actions">
-            <button type="button" class="btn btn-light" onclick="openEditModal(${index});event.stopPropagation();">編輯補填</button>
-            <button type="button" class="btn btn-primary" onclick="openEditModal(${index}, true);event.stopPropagation();">新增項目</button>
-          </div>
+        </div>
+
+        <div class="field">
+          <label>顏色</label>
+          <input type="text" value="${item.color || ""}" data-action="color-main" data-index="${index}" placeholder="例如：白色、藍色" />
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-primary" data-action="collapse-main" data-index="${index}">完成此項</button>
+          <button type="button" class="btn btn-light" data-action="clear-main" data-index="${index}">清空此項</button>
         </div>
       </div>
     `;
-  }
+  }).join("");
+}
 
-  function renderRecords() {
-    const keyword = searchInput.value.trim().toLowerCase();
-    const start = filterStartDate.value;
-    const end = filterEndDate.value;
+function renderEditExtraItems() {
+  editAddItemCards.innerHTML = editExtraItems.map((item, index) => {
+    const summary = getItemSummary(item);
 
-    const records = getLocalRecords().slice().reverse();
-    const filtered = records
-      .map((item, idx, arr) => ({ item, originalIndex: arr.length - 1 - idx }))
-      .filter(({ item }) => {
-        const text = [item.roomNo, item.serialNo, item.sender, item.receiver, item.remark, item.itemDetails].join(" ").toLowerCase();
-        const sendDate = item.sendDate || "";
-        const inKeyword = text.includes(keyword);
-        const inStart = !start || sendDate >= start;
-        const inEnd = !end || sendDate <= end;
-        const inPrefix = !selectedPrefixes.length || selectedPrefixes.includes(getPrefix(item.roomNo));
-        const inItem = !selectedItems.length || (item.itemRows || []).some(x => selectedItems.includes(x.itemName));
-        return inKeyword && inStart && inEnd && inPrefix && inItem;
-      });
-
-    if (!filtered.length) {
-      recordList.innerHTML = `<div class="empty">查無符合的送洗紀錄</div>`;
-      return;
+    if (!item.expanded) {
+      return `
+        <div class="item-card">
+          <div class="item-card-text">${summary}</div>
+          <div class="item-card-actions">
+            <button type="button" class="icon-btn" data-action="toggle-edit" data-index="${index}">✎</button>
+          </div>
+        </div>
+      `;
     }
 
-    recordList.innerHTML = filtered.map(({ item, originalIndex }) => createRecordCard(item, originalIndex)).join("");
-  }
+    return `
+      <div class="item-row">
+        <div class="item-row-head">
+          <span>加洗第 ${index + 1} 項</span>
+          ${editExtraItems.length > 1 ? `<button type="button" class="btn btn-danger" style="padding:10px 14px;font-size:16px;" data-action="delete-edit" data-index="${index}">刪除</button>` : ""}
+        </div>
 
-  async function saveToGoogleSheet(payload) {
-    if (!API_URL) {
-      const records = getLocalRecords();
-      records.push(payload);
-      setLocalRecords(records);
-      return { ok: true, mode: "local" };
-    }
+        <div class="field">
+          <label>品名</label>
+          <button type="button" class="item-pick-btn" data-action="pick-edit" data-index="${index}">
+            ${item.itemName || "請點選品名"}
+          </button>
+        </div>
 
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+        <div class="field">
+          <label>數量</label>
+          <div class="qty-pills">
+            ${[1,2,3,4].map(n => `
+              <button type="button" class="qty-pill ${String(n) === String(item.itemQty) ? "active" : ""}" data-action="qty-edit" data-index="${index}" data-qty="${n}">${n}</button>
+            `).join("")}
+          </div>
+        </div>
 
-    if (!response.ok) throw new Error("送出失敗");
-    return await response.json();
-  }
+        <div class="field">
+          <label>顏色</label>
+          <input type="text" value="${item.color || ""}" data-action="color-edit" data-index="${index}" placeholder="例如：白色、藍色" />
+        </div>
 
-  document.addEventListener("input", (e) => {
-    if (formPage.contains(e.target)) markDirty();
-  });
-
-  window.addEventListener("beforeunload", (e) => {
-    if (!isDirty) return;
-    e.preventDefault();
-    e.returnValue = "";
-  });
-
-  resetFormBtn.addEventListener("click", () => {
-    setTimeout(() => {
-      document.getElementById("sendDate").value = todayStr;
-      roomNoInput.value = "";
-      selectedPrefix = "";
-      selectedNumbers = "";
-      prefixButtons.forEach(x => x.classList.remove("active"));
-      updateRoomDisplay();
-items = [{
-  itemName: "",
-  itemQty: "",
-  color: "",
-  expanded: shouldAutoExpandFirstItem()
-}];
-      renderItems();
-      isDirty = false;
-    }, 0);
-  });
-
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-
-    const itemData = items.filter(x => x.itemName && x.itemQty).map(x => ({
-      itemName: x.itemName,
-      itemQty: x.itemQty,
-      color: x.color
-    }));
-
-    if (!roomNoInput.value.trim()) {
-      alert("請先選擇房號");
-      return;
-    }
-    if (!itemData.length) {
-      alert("請至少新增一項送洗品名");
-      return;
-    }
-    if (items.some(x => x.expanded && (!x.itemName || !x.itemQty))) {
-      alert("請先完成目前展開中的品項");
-      return;
-    }
-
-    const records = getLocalRecords();
-    const payload = {
-      serialNo: generateSerialNo(records),
-      roomNo: roomNoInput.value.trim(),
-      sendDate: document.getElementById("sendDate").value,
-      itemRows: itemData,
-      itemDetails: itemData.map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`).join("；"),
-      sender: document.getElementById("sender").value.trim(),
-      receiver: "",
-      returnDate: "",
-      remark: document.getElementById("remark").value.trim(),
-      createdAt: new Date().toISOString()
-    };
-
-    confirmSummary.innerHTML = `
-      <div style="font-size:18px;font-weight:800;margin-bottom:8px;">房號：${payload.roomNo || "-"}</div>
-      <div style="margin-bottom:8px;">送洗日期：${payload.sendDate || "-"}</div>
-      <div style="margin-bottom:8px;">送洗人員：${payload.sender || "-"}</div>
-      <div style="margin-bottom:8px;">送洗項目：</div>
-      <div style="line-height:1.8;">${payload.itemRows.map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`).join("<br>")}</div>
-      <div style="margin-top:8px;">備註：${payload.remark || "-"}</div>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" data-action="collapse-edit" data-index="${index}">完成此項</button>
+          <button type="button" class="btn btn-light" data-action="clear-edit" data-index="${index}">清空此項</button>
+        </div>
+      </div>
     `;
+  }).join("");
+}
 
-    pendingPayload = payload;
-    lockBodyScroll();
-    confirmModal.classList.remove("hidden");
+itemCards.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const index = Number(btn.dataset.index);
+
+  if (action === "toggle-main") {
+    collapseAllItems();
+    items[index].expanded = true;
+    renderItems();
+  }
+  if (action === "delete-main") {
+    const item = items[index];
+    const ok = confirm(`你確定要刪除「${getItemSummary(item)}」嗎？`);
+    if (!ok) return;
+    items.splice(index, 1);
+    if (!items.length) {
+      items.push({ itemName: "", itemQty: "", color: "", expanded: shouldAutoExpandFirstItem() });
+    } else {
+      items.forEach(x => x.expanded = false);
+      if (shouldAutoExpandFirstItem()) items[0].expanded = true;
+    }
+    renderItems();
+    markDirty();
+  }
+  if (action === "pick-main") openItemPickerByIndex(index);
+  if (action === "qty-main") {
+    items[index].itemQty = btn.dataset.qty;
+    renderItems();
+    markDirty();
+  }
+  if (action === "collapse-main") {
+    if (!items[index].itemName || !items[index].itemQty) return alert("請先完成品名與數量");
+    items[index].expanded = false;
+    renderItems();
+  }
+  if (action === "clear-main") {
+    items[index].itemName = "";
+    items[index].itemQty = "";
+    items[index].color = "";
+    renderItems();
+    markDirty();
+  }
+});
+
+itemCards.addEventListener("input", (e) => {
+  if (e.target.dataset.action === "color-main") {
+    const index = Number(e.target.dataset.index);
+    items[index].color = e.target.value;
+    markDirty();
+  }
+});
+
+editAddItemCards.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const index = Number(btn.dataset.index);
+
+  if (action === "toggle-edit") {
+    collapseAllEditExtraItems();
+    editExtraItems[index].expanded = true;
+    renderEditExtraItems();
+  }
+  if (action === "delete-edit") {
+    const item = editExtraItems[index];
+    const ok = confirm(`你確定要刪除「${getItemSummary(item)}」嗎？`);
+    if (!ok) return;
+    editExtraItems.splice(index, 1);
+    if (!editExtraItems.length) {
+      editExtraItems.push({ itemName: "", itemQty: "", color: "", expanded: true });
+    } else {
+      editExtraItems.forEach(x => x.expanded = false);
+    }
+    renderEditExtraItems();
+  }
+  if (action === "pick-edit") openEditExtraItemPicker(index);
+  if (action === "qty-edit") {
+    editExtraItems[index].itemQty = btn.dataset.qty;
+    renderEditExtraItems();
+  }
+  if (action === "collapse-edit") {
+    if (!editExtraItems[index].itemName || !editExtraItems[index].itemQty) return alert("請先完成品名與數量");
+    editExtraItems[index].expanded = false;
+    renderEditExtraItems();
+  }
+  if (action === "clear-edit") {
+    editExtraItems[index].itemName = "";
+    editExtraItems[index].itemQty = "";
+    editExtraItems[index].color = "";
+    renderEditExtraItems();
+  }
+});
+
+editAddItemCards.addEventListener("input", (e) => {
+  if (e.target.dataset.action === "color-edit") {
+    const index = Number(e.target.dataset.index);
+    editExtraItems[index].color = e.target.value;
+  }
+});
+
+function createRecordCard(item) {
+  const itemLines = (item.itemRows || []).map(x => `
+    <div class="record-item-line">
+      ${x.itemName || "未填品名"}｜${x.itemQty ? x.itemQty + getItemUnit(x.itemName) : "未填數量"}｜${x.color || "未填顏色"}
+    </div>
+  `).join("");
+
+  return `
+    <div class="record-item">
+      <div class="serial-no">流水單號：${item.serialNo || "-"}</div>
+      <div class="record-head" data-toggle-record="${item.serialNo}">
+        <div class="room">${item.roomNo || "未填房號"}</div>
+        <span class="pill">${item.returnDate ? "已回件" : "送洗中"}</span>
+      </div>
+      <div id="detail-${item.serialNo}" class="hidden">
+        <div class="record-items-box">${itemLines || `<div class="record-item-line">-</div>`}</div>
+        <div class="meta">
+          <div><b>送洗日期</b>${item.sendDate || "-"}</div>
+          <div><b>送洗人員</b>${item.sender || "-"}</div>
+          <div><b>收件人員</b>${item.receiver || "-"}</div>
+          <div><b>回件日期</b>${item.returnDate || "-"}</div>
+          <div style="grid-column:1 / -1;"><b>備註</b>${item.remark || "-"}</div>
+        </div>
+        <div class="record-actions">
+          <button type="button" class="btn btn-light" data-edit-serial="${item.serialNo}" data-add-only="0">編輯補填</button>
+          <button type="button" class="btn btn-primary" data-edit-serial="${item.serialNo}" data-add-only="1">新增項目</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderRecords() {
+  const keyword = searchInput.value.trim().toLowerCase();
+  const start = filterStartDate.value;
+  const end = filterEndDate.value;
+
+  const filtered = recordsCache.filter(item => {
+    const text = [item.roomNo, item.serialNo, item.sender, item.receiver, item.remark, item.itemDetails].join(" ").toLowerCase();
+    const sendDate = item.sendDate || "";
+    const inKeyword = text.includes(keyword);
+    const inStart = !start || sendDate >= start;
+    const inEnd = !end || sendDate <= end;
+    const inPrefix = !selectedPrefixes.length || selectedPrefixes.includes(getPrefix(item.roomNo));
+    const inItem = !selectedItems.length || (item.itemRows || []).some(x => selectedItems.includes(x.itemName));
+    return inKeyword && inStart && inEnd && inPrefix && inItem;
   });
 
-  cancelConfirm.addEventListener("click", () => {
+  if (!filtered.length) {
+    recordList.innerHTML = `<div class="empty">查無符合的送洗紀錄</div>`;
+    return;
+  }
+
+  recordList.innerHTML = filtered.map(createRecordCard).join("");
+}
+
+recordList.addEventListener("click", (e) => {
+  const head = e.target.closest("[data-toggle-record]");
+  if (head) {
+    const serial = head.dataset.toggleRecord;
+    const el = document.getElementById(`detail-${serial}`);
+    if (el) el.classList.toggle("hidden");
+    return;
+  }
+
+  const editBtn = e.target.closest("[data-edit-serial]");
+  if (editBtn) {
+    const serial = editBtn.dataset.editSerial;
+    const addOnly = editBtn.dataset.addOnly === "1";
+    openEditModal(serial, addOnly);
+  }
+});
+
+function openEditModal(serialNo, addOnly = false) {
+  const item = recordsCache.find(x => x.serialNo === serialNo);
+  if (!item) return;
+
+  editSerialNo.value = serialNo;
+  editReceiver.value = item.receiver || "";
+  editReturnDate.value = item.returnDate || "";
+  editRemark.value = item.remark || "";
+  editExtraItems = addOnly ? [{ itemName: "", itemQty: "", color: "", expanded: true }] : [];
+  renderEditExtraItems();
+  lockBodyScroll();
+  editModal.classList.remove("hidden");
+}
+
+async function apiGetList() {
+  const url = `${API_URL}?action=list&_t=${Date.now()}`;
+  const res = await fetch(url, { method: "GET" });
+  if (!res.ok) throw new Error("讀取失敗");
+  return res.json();
+}
+
+async function apiPost(payload) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error("送出失敗");
+  return res.json();
+}
+
+async function loadRecords() {
+  try {
+    const result = await apiGetList();
+    if (!result.ok) throw new Error(result.message || "讀取失敗");
+    recordsCache = result.records || [];
+    renderRecords();
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "讀取紀錄失敗");
+  }
+}
+
+function openMultiSelect(type) {
+  currentMultiType = type;
+  if (type === "prefix") {
+    multiSelectTitle.textContent = "選擇棟別";
+    multiSelectOptions.innerHTML = PREFIX_OPTIONS.map(x => `
+      <label><input type="checkbox" value="${x}" ${selectedPrefixes.includes(x) ? "checked" : ""}>${x}</label>
+    `).join("");
+  } else {
+    multiSelectTitle.textContent = "選擇品名";
+    multiSelectOptions.innerHTML = ITEM_OPTIONS.map(x => `
+      <label><input type="checkbox" value="${x}" ${selectedItems.includes(x) ? "checked" : ""}>${x}</label>
+    `).join("");
+  }
+  lockBodyScroll();
+  multiSelectModal.classList.remove("hidden");
+}
+
+tabForm.addEventListener("click", () => switchTab("form"));
+tabList.addEventListener("click", () => switchTab("list"));
+refreshBtn.addEventListener("click", loadRecords);
+searchInput.addEventListener("input", renderRecords);
+filterStartDate.addEventListener("change", renderRecords);
+filterEndDate.addEventListener("change", renderRecords);
+
+openPrefixMulti.addEventListener("click", () => openMultiSelect("prefix"));
+openItemMulti.addEventListener("click", () => openMultiSelect("item"));
+
+cancelMultiSelect.addEventListener("click", () => {
+  multiSelectModal.classList.add("hidden");
+  unlockBodyScroll();
+});
+confirmMultiSelect.addEventListener("click", () => {
+  const values = [...multiSelectOptions.querySelectorAll("input:checked")].map(x => x.value);
+  if (currentMultiType === "prefix") {
+    selectedPrefixes = values;
+    selectedPrefixText.textContent = values.length ? values.join("、") : "未選擇";
+  } else {
+    selectedItems = values;
+    selectedItemText.textContent = values.length ? values.join("、") : "未選擇";
+  }
+  multiSelectModal.classList.add("hidden");
+  unlockBodyScroll();
+  renderRecords();
+});
+
+openRoomPicker.addEventListener("click", openRoomModal);
+roomNoInput.addEventListener("click", openRoomModal);
+cancelRoomPicker.addEventListener("click", closeRoomModal);
+closeItemPicker.addEventListener("click", closeFullItemPicker);
+
+document.querySelectorAll(".num-btn[data-num]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (!selectedPrefix) return alert("請先選棟別");
+    if (selectedNumbers.length >= 3) return;
+    selectedNumbers += btn.dataset.num;
+    updateRoomDisplay();
+    markDirty();
+  });
+});
+
+clearRoom.addEventListener("click", () => {
+  selectedPrefix = "";
+  selectedNumbers = "";
+  roomPickerPrefix.querySelectorAll(".prefix-btn").forEach(x => x.classList.remove("active"));
+  updateRoomDisplay();
+  markDirty();
+});
+
+backspaceRoom.addEventListener("click", () => {
+  selectedNumbers = selectedNumbers.slice(0, -1);
+  updateRoomDisplay();
+  markDirty();
+});
+
+confirmRoomPicker.addEventListener("click", () => {
+  if (!selectedPrefix || selectedNumbers.length !== 3) return alert("房號需為棟別 + 3個數字");
+  roomNoInput.value = `${selectedPrefix}${selectedNumbers}`;
+  closeRoomModal();
+  markDirty();
+});
+
+addItemRowBtn.addEventListener("click", () => {
+  const hasIncomplete = items.some(x => !x.itemName || !x.itemQty);
+  if (hasIncomplete) return alert("請先完成目前展開中的品項");
+  collapseAllItems();
+  items.push({ itemName: "", itemQty: "", color: "", expanded: true });
+  renderItems();
+  markDirty();
+});
+
+editAddItemRowBtn.addEventListener("click", () => {
+  const hasIncomplete = editExtraItems.some(x => !x.itemName || !x.itemQty);
+  if (hasIncomplete) return alert("請先完成目前展開中的品項");
+  collapseAllEditExtraItems();
+  editExtraItems.push({ itemName: "", itemQty: "", color: "", expanded: true });
+  renderEditExtraItems();
+});
+
+resetFormBtn.addEventListener("click", () => {
+  setTimeout(() => {
+    document.getElementById("sendDate").value = todayStr;
+    roomNoInput.value = "";
+    selectedPrefix = "";
+    selectedNumbers = "";
+    roomPickerPrefix.querySelectorAll(".prefix-btn").forEach(x => x.classList.remove("active"));
+    updateRoomDisplay();
+    items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
+    renderItems();
+    isDirty = false;
+  }, 0);
+});
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const itemData = items
+    .filter(x => x.itemName && x.itemQty)
+    .map(x => ({ itemName: x.itemName, itemQty: x.itemQty, color: x.color }));
+
+  if (!roomNoInput.value.trim()) return alert("請先選擇房號");
+  if (!itemData.length) return alert("請至少新增一項送洗品名");
+  if (items.some(x => x.expanded && (!x.itemName || !x.itemQty))) return alert("請先完成目前展開中的品項");
+
+  pendingPayload = {
+    action: "create",
+    roomNo: roomNoInput.value.trim(),
+    sendDate: document.getElementById("sendDate").value,
+    itemRows: itemData,
+    sender: document.getElementById("sender").value.trim(),
+    remark: document.getElementById("remark").value.trim()
+  };
+
+  confirmSummary.innerHTML = `
+    <div style="font-size:18px;font-weight:800;margin-bottom:8px;">房號：${pendingPayload.roomNo}</div>
+    <div style="margin-bottom:8px;">送洗日期：${pendingPayload.sendDate}</div>
+    <div style="margin-bottom:8px;">送洗人員：${pendingPayload.sender || "-"}</div>
+    <div style="margin-bottom:8px;">送洗項目：</div>
+    <div style="line-height:1.8;">${pendingPayload.itemRows.map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`).join("<br>")}</div>
+    <div style="margin-top:8px;">備註：${pendingPayload.remark || "-"}</div>
+  `;
+
+  lockBodyScroll();
+  confirmModal.classList.remove("hidden");
+});
+
+cancelConfirm.addEventListener("click", () => {
+  confirmModal.classList.add("hidden");
+  unlockBodyScroll();
+  pendingPayload = null;
+});
+
+submitConfirmed.addEventListener("click", async () => {
+  if (!pendingPayload) return;
+  try {
+    const result = await apiPost(pendingPayload);
+    if (!result.ok) throw new Error(result.message || "新增失敗");
+
+    alert(`新增成功，流水單號：${result.serialNo || "-"}`);
+    form.reset();
+    document.getElementById("sendDate").value = todayStr;
+    selectedPrefix = "";
+    selectedNumbers = "";
+    roomNoInput.value = "";
+    updateRoomDisplay();
+    roomPickerPrefix.querySelectorAll(".prefix-btn").forEach(x => x.classList.remove("active"));
+    items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
+    renderItems();
+    isDirty = false;
+    pendingPayload = null;
     confirmModal.classList.add("hidden");
     unlockBodyScroll();
-    pendingPayload = null;
-  });
-
-  submitConfirmed.addEventListener("click", async () => {
-    if (!pendingPayload) return;
-
-    try {
-      const result = await saveToGoogleSheet(pendingPayload);
-      alert(result.mode === "local" ? "已先儲存在手機樣板中" : "已成功寫入試算表");
-      form.reset();
-      document.getElementById("sendDate").value = todayStr;
-      selectedPrefix = "";
-      selectedNumbers = "";
-      roomNoInput.value = "";
-      updateRoomDisplay();
-      prefixButtons.forEach(x => x.classList.remove("active"));
-let items = [
-  { itemName: "", itemQty: "", color: "", expanded: true }
-];
-      renderItems();
-      isDirty = false;
-      pendingPayload = null;
-      confirmModal.classList.add("hidden");
-      unlockBodyScroll();
-      renderRecords();
-      switchTab("list");
-    } catch (error) {
-      console.error(error);
-      alert("送出失敗，請稍後再試");
-    }
-  });
-
-  window.openEditModal = function(index, addOnly = false) {
-    const records = getLocalRecords();
-    const item = records[index];
-    if (!item) return;
-
-    editIndex.value = index;
-    editReceiver.value = item.receiver || "";
-    editReturnDate.value = item.returnDate || "";
-    editRemark.value = item.remark || "";
-
-    editExtraItems = addOnly
-      ? [{ itemName: "", itemQty: "", color: "", expanded: true }]
-      : [];
-
-    renderEditExtraItems();
-    lockBodyScroll();
-    editModal.classList.remove("hidden");
-  };
-
-  window.toggleRecordDetail = function(index) {
-    const el = document.getElementById(`detail-${index}`);
-    if (el) el.classList.toggle("hidden");
-  };
-
-  cancelEdit.addEventListener("click", () => {
-    editModal.classList.add("hidden");
-    unlockBodyScroll();
-  });
-
-  editForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const index = Number(editIndex.value);
-    const records = getLocalRecords();
-    if (!records[index]) return;
-
-    const incompleteExpanded = editExtraItems.some(x => x.expanded && (x.itemName || x.itemQty || x.color) && (!x.itemName || !x.itemQty));
-    if (incompleteExpanded) {
-      alert("請先完成目前展開中的加洗品項");
-      return;
-    }
-
-    const extraRows = editExtraItems
-      .filter(x => x.itemName && x.itemQty)
-      .map(x => ({
-        itemName: x.itemName,
-        itemQty: x.itemQty,
-        color: x.color
-      }));
-
-    records[index].receiver = editReceiver.value.trim();
-    records[index].returnDate = editReturnDate.value;
-    records[index].remark = editRemark.value.trim();
-
-    if (extraRows.length) {
-      records[index].itemRows = [...(records[index].itemRows || []), ...extraRows];
-      records[index].itemDetails = records[index].itemRows
-        .map(x => `${x.itemName}｜${x.itemQty}${getItemUnit(x.itemName)}｜${x.color || "未填顏色"}`)
-        .join("；");
-    }
-
-    setLocalRecords(records);
-    editModal.classList.add("hidden");
-    unlockBodyScroll();
-    renderRecords();
-    alert("修改完成");
-  });
-
-  function openMultiSelect(type) {
-    currentMultiType = type;
-
-    if (type === "prefix") {
-      multiSelectTitle.textContent = "選擇棟別";
-      multiSelectOptions.innerHTML = PREFIX_OPTIONS.map(x => `
-        <label>
-          <input type="checkbox" value="${x}" ${selectedPrefixes.includes(x) ? "checked" : ""}>
-          ${x}
-        </label>
-      `).join("");
-    } else {
-      multiSelectTitle.textContent = "選擇品名";
-      multiSelectOptions.innerHTML = ITEM_OPTIONS.map(x => `
-        <label>
-          <input type="checkbox" value="${x}" ${selectedItems.includes(x) ? "checked" : ""}>
-          ${x}
-        </label>
-      `).join("");
-    }
-
-    lockBodyScroll();
-    multiSelectModal.classList.remove("hidden");
+    await loadRecords();
+    switchTab("list");
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "送出失敗");
   }
+});
 
-  openPrefixMulti.addEventListener("click", () => openMultiSelect("prefix"));
-  openItemMulti.addEventListener("click", () => openMultiSelect("item"));
+cancelEdit.addEventListener("click", () => {
+  editModal.classList.add("hidden");
+  unlockBodyScroll();
+});
 
-  cancelMultiSelect.addEventListener("click", () => {
-    multiSelectModal.classList.add("hidden");
+editForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const incompleteExpanded = editExtraItems.some(x => x.expanded && (x.itemName || x.itemQty || x.color) && (!x.itemName || !x.itemQty));
+  if (incompleteExpanded) return alert("請先完成目前展開中的加洗品項");
+
+  const extraItems = editExtraItems
+    .filter(x => x.itemName && x.itemQty)
+    .map(x => ({ itemName: x.itemName, itemQty: x.itemQty, color: x.color }));
+
+  try {
+    const result = await apiPost({
+      action: "updateReturn",
+      serialNo: editSerialNo.value,
+      receiver: editReceiver.value.trim(),
+      returnDate: editReturnDate.value,
+      remark: editRemark.value.trim(),
+      extraItems
+    });
+
+    if (!result.ok) throw new Error(result.message || "更新失敗");
+
+    editModal.classList.add("hidden");
     unlockBodyScroll();
-  });
+    await loadRecords();
+    alert("修改完成");
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "修改失敗");
+  }
+});
 
-  confirmMultiSelect.addEventListener("click", () => {
-    const values = [...multiSelectOptions.querySelectorAll("input:checked")].map(x => x.value);
+document.addEventListener("input", (e) => {
+  if (formPage.contains(e.target)) markDirty();
+});
 
-    if (currentMultiType === "prefix") {
-      selectedPrefixes = values;
-      selectedPrefixText.textContent = values.length ? values.join("、") : "未選擇";
-    } else {
-      selectedItems = values;
-      selectedItemText.textContent = values.length ? values.join("、") : "未選擇";
-    }
+window.addEventListener("beforeunload", (e) => {
+  if (!isDirty) return;
+  e.preventDefault();
+  e.returnValue = "";
+});
 
-    multiSelectModal.classList.add("hidden");
-    unlockBodyScroll();
-    renderRecords();
-  });
-
-  renderItems();
-  renderRecords();
-  updateRoomDisplay();
+buildRoomPrefixButtons();
+renderItems();
+renderEditExtraItems();
+updateRoomDisplay();
+loadRecords();
 </script>
 </body>
 </html>
-
