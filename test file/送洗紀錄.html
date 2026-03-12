@@ -521,6 +521,14 @@ textarea {
   z-index: 80;
 }
 
+#editModal {
+  z-index: 90;
+}
+
+#itemPickerModal {
+  z-index: 120;
+}
+
 .modal-sheet {
   width: calc(100vw - 24px);
   max-width: 500px;
@@ -717,6 +725,9 @@ body.modal-open html {
     padding: 12px 8px;
   }
 }
+
+
+
   </style>
 </head>
 <body>
@@ -1037,9 +1048,9 @@ body.modal-open html {
   let pickerTargetMode = "main";
   let scrollY = 0;
 
-  let items = [
-    { itemName: "", itemQty: "", color: "", expanded: true }
-  ];
+let items = [
+  { itemName: "", itemQty: "", color: "", expanded: true }
+];
 
   let editExtraItems = [];
 
@@ -1117,6 +1128,10 @@ body.modal-open html {
   function markDirty() {
     isDirty = true;
   }
+
+  function shouldAutoExpandFirstItem() {
+  return !roomNoInput.value.trim();
+}
 
   function switchTab(type) {
     const isForm = type === "form";
@@ -1303,22 +1318,38 @@ body.modal-open html {
     markDirty();
   };
 
-  window.deleteItem = function(index) {
-    const item = items[index];
-    const text = `${item.itemName || "未填品名"} / ${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"} / ${item.color || "未填顏色"}`;
-    const ok = confirm(`你確定要刪除「${text}」嗎？`);
-    if (!ok) return;
+window.deleteItem = function(index) {
+  const item = items[index];
+  const text = `${item.itemName || "未填品名"} / ${item.itemQty ? item.itemQty + getItemUnit(item.itemName) : "未填數量"} / ${item.color || "未填顏色"}`;
+  const ok = confirm(`你確定要刪除「${text}」嗎？`);
+  if (!ok) return;
 
-    items.splice(index, 1);
-    if (!items.length) {
-      items.push({ itemName: "", itemQty: "", color: "", expanded: true });
-    }
-    if (!items.some(x => x.expanded)) {
+  const wasExpanded = !!items[index].expanded;
+
+  items.splice(index, 1);
+
+  if (!items.length) {
+    items.push({
+      itemName: "",
+      itemQty: "",
+      color: "",
+      expanded: shouldAutoExpandFirstItem()
+    });
+  } else {
+    items.forEach(x => x.expanded = false);
+
+    // 只有在「房號未輸入」時，才允許自動展開第一筆
+    if (shouldAutoExpandFirstItem()) {
       items[0].expanded = true;
     }
-    renderItems();
-    markDirty();
-  };
+
+    // 若你未來想改成「刪掉展開中的那筆，就展開前一筆或同位置那筆」，
+    // 才會用 wasExpanded 這個變數；目前先保留但不自動展開。
+  }
+
+  renderItems();
+  markDirty();
+};
 
   addItemRowBtn.addEventListener("click", () => {
     const hasIncomplete = items.some(x => !x.itemName || !x.itemQty);
@@ -1435,11 +1466,24 @@ body.modal-open html {
     if (!editExtraItems.length) {
       editExtraItems.push({ itemName: "", itemQty: "", color: "", expanded: true });
     }
-    if (!editExtraItems.some(x => x.expanded)) {
-      editExtraItems[0].expanded = true;
-    }
-    renderEditExtraItems();
-  };
+
+
+  editExtraItems.splice(index, 1);
+
+  if (!editExtraItems.length) {
+    editExtraItems.push({
+      itemName: "",
+      itemQty: "",
+      color: "",
+      expanded: true
+    });
+  } else {
+    editExtraItems.forEach(x => x.expanded = false);
+  }
+
+  renderEditExtraItems();
+};
+
 
   editAddItemRowBtn.addEventListener("click", () => {
     const hasIncomplete = editExtraItems.some(x => !x.itemName || !x.itemQty);
@@ -1626,7 +1670,12 @@ body.modal-open html {
       selectedNumbers = "";
       prefixButtons.forEach(x => x.classList.remove("active"));
       updateRoomDisplay();
-      items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
+items = [{
+  itemName: "",
+  itemQty: "",
+  color: "",
+  expanded: shouldAutoExpandFirstItem()
+}];
       renderItems();
       isDirty = false;
     }, 0);
@@ -1701,7 +1750,9 @@ body.modal-open html {
       roomNoInput.value = "";
       updateRoomDisplay();
       prefixButtons.forEach(x => x.classList.remove("active"));
-      items = [{ itemName: "", itemQty: "", color: "", expanded: true }];
+let items = [
+  { itemName: "", itemQty: "", color: "", expanded: true }
+];
       renderItems();
       isDirty = false;
       pendingPayload = null;
@@ -1837,3 +1888,4 @@ body.modal-open html {
 </script>
 </body>
 </html>
+
