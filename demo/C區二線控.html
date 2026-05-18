@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C 區二線控編碼表及已設群組｜燈控互動版</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;background:#0f172a;color:#e5edf8;
+  font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;
+}
+.page{max-width:1280px;margin:0 auto;padding:20px}
+h1{text-align:center;margin:8px 0 18px;color:#dbeafe;font-size:clamp(22px,5.8vw,42px);letter-spacing:.14em;font-weight:900;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.card{
+  position:relative;min-height:190px;padding:16px 10px 14px;
+  background:#111827;border:1px solid #334155;border-radius:13px;
+  box-shadow:0 8px 24px rgba(0,0,0,.32);
+}
+.zone{
+  position:absolute;top:0;left:0;width:38px;height:34px;
+  display:grid;place-items:center;background:linear-gradient(180deg,#475569,#334155);color:#f8fafc;
+  border-radius:13px 0 12px 0;font-weight:900;font-size:20px;
+}
+.lines{margin-top:20px;line-height:1.65;font-size:15.5px;font-weight:800}
+.line{padding:1px 5px;border-radius:6px;white-space:nowrap}
+.line.active{background:rgba(239,68,68,.22);color:#fff}
+.line.g1{background:rgba(22,163,74,.18)}
+.line.g2{background:rgba(37,99,235,.20)}
+.line.g3{background:rgba(234,88,12,.20)}
+.line.g4{background:rgba(147,51,234,.22)}
+.keys{display:flex;justify-content:center;gap:12px;margin-top:12px}
+.key{
+  width:30px;height:62px;border-radius:999px;border:2px solid #cbd5e1;
+  background:#e2e8f0;color:#0f172a;display:flex;align-items:flex-end;justify-content:center;
+  padding-bottom:7px;font-size:18px;font-weight:900;cursor:pointer;transition:.16s;
+}
+.key:hover{transform:translateY(-2px)}
+.key.on{background:#ef4444;border-color:#ef4444;color:white;box-shadow:0 0 18px #ef4444}
+.key.g1{background:#16a34a;border-color:#16a34a;color:white;box-shadow:0 0 18px #16a34a}
+.key.g2{background:#2563eb;border-color:#2563eb;color:white;box-shadow:0 0 18px #2563eb}
+.key.g3{background:#ea580c;border-color:#ea580c;color:white;box-shadow:0 0 18px #ea580c}
+.key.g4{background:#9333ea;border-color:#9333ea;color:white;box-shadow:0 0 18px #9333ea}
+.key.spare{background:#475569;border-color:#64748b;color:#94a3b8;cursor:not-allowed;box-shadow:none}
+.group-title{
+  margin:26px 0 14px;padding:12px;text-align:center;color:white;
+  font-size:30px;font-weight:900;letter-spacing:6px;border-radius:12px;
+  background:linear-gradient(90deg,#1e3a8a,#2563eb,#1e3a8a);
+}
+.groups{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.group{
+  --c:#2563eb;background:#111827;border:1px solid #334155;border-radius:13px;padding:16px;
+}
+.badge{
+  display:inline-block;min-width:192px;text-align:center;padding:9px 20px;
+  border-radius:10px;border:2px solid var(--c);background:#1e293b;
+  color:#e2e8f0;font-size:22px;font-weight:900;cursor:pointer;transition:.16s;
+}
+.badge:hover{transform:translateY(-2px);filter:brightness(1.12)}
+.badge.active{background:var(--c);border-color:var(--c);color:white;box-shadow:0 0 22px var(--c)}
+.group-name{margin:12px 0 14px;font-size:20px;font-weight:900;color:#eaf2ff}
+.codes{display:flex;flex-wrap:wrap;gap:10px}
+.code{
+  width:106px;height:44px;border-radius:9px;border:2px solid var(--c);
+  background:#1f2937;color:#cbd5e1;font-size:20px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;
+  cursor:default;user-select:none;transition:.16s;
+  box-shadow:0 0 0 1px rgba(255,255,255,.03);
+}
+.code.active{background:var(--c);border-color:var(--c);color:white;box-shadow:0 0 18px var(--c)}
+@media(max-width:900px){.grid,.groups{grid-template-columns:repeat(2,1fr)}.line{white-space:normal}}
+@media(max-width:560px){.grid,.groups{grid-template-columns:1fr}}
+
+@media(max-width:900px){
+  .page{padding:14px}
+  .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .groups{grid-template-columns:1fr;gap:10px}
+  .card{min-height:168px;padding:14px 7px 11px;border-radius:12px}
+  .zone{width:32px;height:30px;font-size:18px}
+  .lines{margin-top:24px;font-size:13px;line-height:1.55}
+  .line{padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .keys{gap:8px;margin-top:9px}
+  .key{width:27px;height:52px;font-size:16px;padding-bottom:6px}
+  .group-title{font-size:22px;letter-spacing:3px;margin:20px 0 10px}
+  .badge{font-size:18px;min-width:150px}
+  .group-name{font-size:17px}
+  .code{width:90px;height:40px;font-size:17px}
+}
+@media(max-width:430px){
+  .page{padding:10px}
+  h1{font-size:clamp(18px,5.2vw,24px);letter-spacing:.08em}
+  .grid{gap:8px}
+  .card{min-height:154px;padding:12px 5px 9px}
+  .zone{width:28px;height:27px;font-size:16px}
+  .lines{margin-top:22px;font-size:11.5px;line-height:1.5}
+  .keys{gap:6px}
+  .key{width:23px;height:46px;font-size:14px}
+}
+
+</style>
+</head>
+<body>
+<main class="page">
+  <h1>C 區二線控編碼表及已設群組</h1>
+  <div class="grid">
+    <section class="card">
+      <div class="zone">1</div>
+      <div class="lines"><div class="line" id="line-1-1">1-1 → 戶內陽台燈B17戶</div><div class="line" id="line-1-2">1-2 → 戶內陽台燈B15戶</div><div class="line" id="line-1-3">1-3 → 戶內陽台燈B13戶</div><div class="line" id="line-1-4">1-4 → 戶內陽台燈B11戶</div></div>
+      <div class="keys"><button class="key" id="btn-1-1" data-id="1-1" >1</button><button class="key" id="btn-1-2" data-id="1-2" >2</button><button class="key" id="btn-1-3" data-id="1-3" >3</button><button class="key" id="btn-1-4" data-id="1-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">2</div>
+      <div class="lines"><div class="line" id="line-2-1">2-1 → 戶內陽台燈B9戶</div><div class="line" id="line-2-2">2-2 → 戶內陽台燈B7戶</div><div class="line" id="line-2-3">2-3 → 戶內陽台燈B5戶</div><div class="line" id="line-2-4">2-4 → 戶內陽台燈B3戶</div></div>
+      <div class="keys"><button class="key" id="btn-2-1" data-id="2-1" >1</button><button class="key" id="btn-2-2" data-id="2-2" >2</button><button class="key" id="btn-2-3" data-id="2-3" >3</button><button class="key" id="btn-2-4" data-id="2-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">3</div>
+      <div class="lines"><div class="line" id="line-3-1">3-1 → 戶內陽台燈B1戶</div><div class="line" id="line-3-2">3-2 → 戶內陽台燈A7戶</div><div class="line" id="line-3-3">3-3 → 戶內陽台燈A8戶</div><div class="line" id="line-3-4">3-4 → 戶內陽台燈A9戶</div></div>
+      <div class="keys"><button class="key" id="btn-3-1" data-id="3-1" >1</button><button class="key" id="btn-3-2" data-id="3-2" >2</button><button class="key" id="btn-3-3" data-id="3-3" >3</button><button class="key" id="btn-3-4" data-id="3-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">4</div>
+      <div class="lines"><div class="line" id="line-4-1">4-1 → 戶內陽台燈A10戶</div><div class="line" id="line-4-2">4-2 → 戶內陽台燈A11戶</div><div class="line" id="line-4-3">4-3 → 戶內陽台燈A12戶</div><div class="line" id="line-4-4">4-4 → 戶內陽台燈A6戶</div></div>
+      <div class="keys"><button class="key" id="btn-4-1" data-id="4-1" >1</button><button class="key" id="btn-4-2" data-id="4-2" >2</button><button class="key" id="btn-4-3" data-id="4-3" >3</button><button class="key" id="btn-4-4" data-id="4-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">5</div>
+      <div class="lines"><div class="line" id="line-5-1">5-1 → 戶內陽台燈A5戶</div><div class="line" id="line-5-2">5-2 → 戶內陽台燈A4戶</div><div class="line" id="line-5-3">5-3 → 戶內陽台燈A3戶</div><div class="line" id="line-5-4">5-4 → 戶內陽台燈A2戶</div></div>
+      <div class="keys"><button class="key" id="btn-5-1" data-id="5-1" >1</button><button class="key" id="btn-5-2" data-id="5-2" >2</button><button class="key" id="btn-5-3" data-id="5-3" >3</button><button class="key" id="btn-5-4" data-id="5-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">6</div>
+      <div class="lines"><div class="line" id="line-6-1">6-1 → 戶內陽台燈A1戶</div><div class="line" id="line-6-2">6-2 → 戶內陽台燈B2戶</div><div class="line" id="line-6-3">6-3 → 戶內陽台燈B4戶</div><div class="line" id="line-6-4">6-4 → 戶內陽台燈B6戶</div></div>
+      <div class="keys"><button class="key" id="btn-6-1" data-id="6-1" >1</button><button class="key" id="btn-6-2" data-id="6-2" >2</button><button class="key" id="btn-6-3" data-id="6-3" >3</button><button class="key" id="btn-6-4" data-id="6-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">7</div>
+      <div class="lines"><div class="line" id="line-7-1">7-1 → 戶內陽台燈B9戶</div><div class="line" id="line-7-2">7-2 → 戶內陽台燈B10戶</div><div class="line" id="line-7-3">7-3 → 戶內陽台燈A10戶</div><div class="line" id="line-7-4">7-4 → 戶內陽台燈A14戶</div></div>
+      <div class="keys"><button class="key" id="btn-7-1" data-id="7-1" >1</button><button class="key" id="btn-7-2" data-id="7-2" >2</button><button class="key" id="btn-7-3" data-id="7-3" >3</button><button class="key" id="btn-7-4" data-id="7-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">8</div>
+      <div class="lines"><div class="line" id="line-8-1">8-1 → 戶內陽台燈B16戶</div><div class="line" id="line-8-2">8-2 → 戶內陽台燈B18戶</div><div class="line" id="line-8-3">8-3 → SPARE</div><div class="line" id="line-8-4">8-4 → 車道壁燈</div></div>
+      <div class="keys"><button class="key" id="btn-8-1" data-id="8-1" >1</button><button class="key" id="btn-8-2" data-id="8-2" >2</button><button class="key spare" id="btn-8-3" data-id="8-3" disabled>3</button><button class="key" id="btn-8-4" data-id="8-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">9</div>
+      <div class="lines"><div class="line" id="line-9-1">9-1 → 1F前側景觀燈</div><div class="line" id="line-9-2">9-2 → 1F前側景觀燈</div><div class="line" id="line-9-3">9-3 → 1F前側景觀燈</div><div class="line" id="line-9-4">9-4 → 1F前側景觀燈</div></div>
+      <div class="keys"><button class="key" id="btn-9-1" data-id="9-1" >1</button><button class="key" id="btn-9-2" data-id="9-2" >2</button><button class="key" id="btn-9-3" data-id="9-3" >3</button><button class="key" id="btn-9-4" data-id="9-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">10</div>
+      <div class="lines"><div class="line" id="line-10-1">10-1 → 1F前側景觀燈</div><div class="line" id="line-10-2">10-2 → 1F前側景觀燈</div><div class="line" id="line-10-3">10-3 → 1F後側景觀燈</div><div class="line" id="line-10-4">10-4 → 1F後側景觀燈</div></div>
+      <div class="keys"><button class="key" id="btn-10-1" data-id="10-1" >1</button><button class="key" id="btn-10-2" data-id="10-2" >2</button><button class="key" id="btn-10-3" data-id="10-3" >3</button><button class="key" id="btn-10-4" data-id="10-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">11</div>
+      <div class="lines"><div class="line" id="line-11-1">11-1 → 鳳凰櫃台間照明</div><div class="line" id="line-11-2">11-2 → 逃生梯上方間照明</div><div class="line" id="line-11-3">11-3 → B門口照明</div><div class="line" id="line-11-4">11-4 → 鳳凰接待區間照明</div></div>
+      <div class="keys"><button class="key" id="btn-11-1" data-id="11-1" >1</button><button class="key" id="btn-11-2" data-id="11-2" >2</button><button class="key" id="btn-11-3" data-id="11-3" >3</button><button class="key" id="btn-11-4" data-id="11-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">12</div>
+      <div class="lines"><div class="line" id="line-12-1">12-1 → 鳳凰接待區照明</div><div class="line" id="line-12-2">12-2 → 鳳凰接待區照明</div><div class="line" id="line-12-3">12-3 → SPARE</div><div class="line" id="line-12-4">12-4 → SPARE</div></div>
+      <div class="keys"><button class="key" id="btn-12-1" data-id="12-1" >1</button><button class="key" id="btn-12-2" data-id="12-2" >2</button><button class="key spare" id="btn-12-3" data-id="12-3" disabled>3</button><button class="key spare" id="btn-12-4" data-id="12-4" disabled>4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">13</div>
+      <div class="lines"><div class="line" id="line-13-1">13-1 → 鳳凰餐廳區照明</div><div class="line" id="line-13-2">13-2 → 鳳凰餐廳區照明</div><div class="line" id="line-13-3">13-3 → 鳳凰餐廳區照明</div><div class="line" id="line-13-4">13-4 → 鳳凰餐廳區照明</div></div>
+      <div class="keys"><button class="key" id="btn-13-1" data-id="13-1" >1</button><button class="key" id="btn-13-2" data-id="13-2" >2</button><button class="key" id="btn-13-3" data-id="13-3" >3</button><button class="key" id="btn-13-4" data-id="13-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">14</div>
+      <div class="lines"><div class="line" id="line-14-1">14-1 → 鳳凰餐廳照明</div><div class="line" id="line-14-2">14-2 → 鳳凰餐廳照明</div><div class="line" id="line-14-3">14-3 → 鳳凰櫃檯上方條燈</div><div class="line" id="line-14-4">14-4 → 鳳凰挑高區照明</div></div>
+      <div class="keys"><button class="key" id="btn-14-1" data-id="14-1" >1</button><button class="key" id="btn-14-2" data-id="14-2" >2</button><button class="key" id="btn-14-3" data-id="14-3" >3</button><button class="key" id="btn-14-4" data-id="14-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">15</div>
+      <div class="lines"><div class="line" id="line-15-1">15-1 → 鳳凰櫃台吊燈</div><div class="line" id="line-15-2">15-2 → SPARE</div><div class="line" id="line-15-3">15-3 → SPARE</div><div class="line" id="line-15-4">15-4 → SPARE</div></div>
+      <div class="keys"><button class="key" id="btn-15-1" data-id="15-1" >1</button><button class="key spare" id="btn-15-2" data-id="15-2" disabled>2</button><button class="key spare" id="btn-15-3" data-id="15-3" disabled>3</button><button class="key spare" id="btn-15-4" data-id="15-4" disabled>4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">16</div>
+      <div class="lines"><div class="line" id="line-16-1">16-1 → 鳳凰2F辦公室照明</div><div class="line" id="line-16-2">16-2 → 鳳凰2F辦公室照明</div><div class="line" id="line-16-3">16-3 → 鳳凰2F辦公室照明</div><div class="line" id="line-16-4">16-4 → 鳳凰2F辦公室照明</div></div>
+      <div class="keys"><button class="key" id="btn-16-1" data-id="16-1" >1</button><button class="key" id="btn-16-2" data-id="16-2" >2</button><button class="key" id="btn-16-3" data-id="16-3" >3</button><button class="key" id="btn-16-4" data-id="16-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">17</div>
+      <div class="lines"><div class="line" id="line-17-1">17-1 → 鳳凰2F沙發區照明</div><div class="line" id="line-17-2">17-2 → 鳳凰2F沙發區照明</div><div class="line" id="line-17-3">17-3 → 長春2F茶水間照明</div><div class="line" id="line-17-4">17-4 → 長春2F茶水間照明</div></div>
+      <div class="keys"><button class="key" id="btn-17-1" data-id="17-1" >1</button><button class="key" id="btn-17-2" data-id="17-2" >2</button><button class="key" id="btn-17-3" data-id="17-3" >3</button><button class="key" id="btn-17-4" data-id="17-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">18</div>
+      <div class="lines"><div class="line" id="line-18-1">18-1 → 1F外側B前側壁燈</div><div class="line" id="line-18-2">18-2 → 1F外側B後側壁燈</div><div class="line" id="line-18-3">18-3 → SPARE</div><div class="line" id="line-18-4">18-4 → SPARE</div></div>
+      <div class="keys"><button class="key" id="btn-18-1" data-id="18-1" >1</button><button class="key" id="btn-18-2" data-id="18-2" >2</button><button class="key spare" id="btn-18-3" data-id="18-3" disabled>3</button><button class="key spare" id="btn-18-4" data-id="18-4" disabled>4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">19</div>
+      <div class="lines"><div class="line" id="line-19-1">19-1 → 長春1F大廳照明</div><div class="line" id="line-19-2">19-2 → 長春1F大廳照明</div><div class="line" id="line-19-3">19-3 → 長春1F大廳照明</div><div class="line" id="line-19-4">19-4 → 長春1F大廳照明</div></div>
+      <div class="keys"><button class="key" id="btn-19-1" data-id="19-1" >1</button><button class="key" id="btn-19-2" data-id="19-2" >2</button><button class="key" id="btn-19-3" data-id="19-3" >3</button><button class="key" id="btn-19-4" data-id="19-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">20</div>
+      <div class="lines"><div class="line" id="line-20-1">20-1 → 長春1F大廳照明</div><div class="line" id="line-20-2">20-2 → 長春1F大廳照明</div><div class="line" id="line-20-3">20-3 → 長春1F大廳照明</div><div class="line" id="line-20-4">20-4 → 長春湯屋區照明</div></div>
+      <div class="keys"><button class="key" id="btn-20-1" data-id="20-1" >1</button><button class="key" id="btn-20-2" data-id="20-2" >2</button><button class="key" id="btn-20-3" data-id="20-3" >3</button><button class="key" id="btn-20-4" data-id="20-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">21</div>
+      <div class="lines"><div class="line" id="line-21-1">21-1 → A棟門口照明</div><div class="line" id="line-21-2">21-2 → 長春湯屋區照明</div><div class="line" id="line-21-3">21-3 → 長春湯屋區照明</div><div class="line" id="line-21-4">21-4 → 長春湯屋區照明</div></div>
+      <div class="keys"><button class="key" id="btn-21-1" data-id="21-1" >1</button><button class="key" id="btn-21-2" data-id="21-2" >2</button><button class="key" id="btn-21-3" data-id="21-3" >3</button><button class="key" id="btn-21-4" data-id="21-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">22</div>
+      <div class="lines"><div class="line" id="line-22-1">22-1 → 長春2F公共區照明</div><div class="line" id="line-22-2">22-2 → 長春挑高公區照明</div><div class="line" id="line-22-3">22-3 → 長春2F公區照明</div><div class="line" id="line-22-4">22-4 → 長春挑高公區照明</div></div>
+      <div class="keys"><button class="key" id="btn-22-1" data-id="22-1" >1</button><button class="key" id="btn-22-2" data-id="22-2" >2</button><button class="key" id="btn-22-3" data-id="22-3" >3</button><button class="key" id="btn-22-4" data-id="22-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">23</div>
+      <div class="lines"><div class="line" id="line-23-1">23-1 → 長春2F公區壁燈</div><div class="line" id="line-23-2">23-2 → 長春挑高公區照明</div><div class="line" id="line-23-3">23-3 → 長春2F公區照明</div><div class="line" id="line-23-4">23-4 → 1F外觀A前側壁燈</div></div>
+      <div class="keys"><button class="key" id="btn-23-1" data-id="23-1" >1</button><button class="key" id="btn-23-2" data-id="23-2" >2</button><button class="key" id="btn-23-3" data-id="23-3" >3</button><button class="key" id="btn-23-4" data-id="23-4" >4</button></div>
+    </section>
+    <section class="card">
+      <div class="zone">24</div>
+      <div class="lines"><div class="line" id="line-24-1">24-1 → 長春2F公區照明</div><div class="line" id="line-24-2">24-2 → 1F外觀A後側壁燈</div><div class="line" id="line-24-3">24-3 → 長春2F公區照明</div><div class="line" id="line-24-4">24-4 → SPARE</div></div>
+      <div class="keys"><button class="key" id="btn-24-1" data-id="24-1" >1</button><button class="key" id="btn-24-2" data-id="24-2" >2</button><button class="key" id="btn-24-3" data-id="24-3" >3</button><button class="key spare" id="btn-24-4" data-id="24-4" disabled>4</button></div>
+    </section></div>
+  <div class="group-title">群組編碼設定</div>
+  <div class="groups">
+    <section class="group" style="--c:#16a34a">
+      <button class="badge group-toggle" data-group="g1">群組一 G1</button>
+      <div class="group-name">A.B 棟 2-7F 戶內前側陽台燈</div>
+      <div class="codes"><span class="code" data-group="g1" data-range="1-1~4">1-1~4</span><span class="code" data-group="g1" data-range="2-1~4">2-1~4</span><span class="code" data-group="g1" data-range="3-1~4">3-1~4</span><span class="code" data-group="g1" data-range="4-1~3">4-1~3</span></div>
+    </section>
+    <section class="group" style="--c:#2563eb">
+      <button class="badge group-toggle" data-group="g2">群組二 G2</button>
+      <div class="group-name">A.B 棟 2-7F 戶內後側陽台燈</div>
+      <div class="codes"><span class="code" data-group="g2" data-range="4-4">4-4</span><span class="code" data-group="g2" data-range="5-1~4">5-1~4</span><span class="code" data-group="g2" data-range="6-1~4">6-1~4</span><span class="code" data-group="g2" data-range="7-1~4">7-1~4</span><span class="code" data-group="g2" data-range="8-1">8-1</span><span class="code" data-group="g2" data-range="8-2">8-2</span></div>
+    </section>
+    <section class="group" style="--c:#ea580c">
+      <button class="badge group-toggle" data-group="g3">群組三 G3</button>
+      <div class="group-name">1F 二期園區外圍景觀燈</div>
+      <div class="codes"><span class="code" data-group="g3" data-range="9-1~4">9-1~4</span><span class="code" data-group="g3" data-range="10-1~4">10-1~4</span></div>
+    </section>
+    <section class="group" style="--c:#9333ea">
+      <button class="badge group-toggle" data-group="g4">群組四 G4</button>
+      <div class="group-name">A.B 棟 1F 外圍壁燈</div>
+      <div class="codes"><span class="code" data-group="g4" data-range="18-1">18-1</span><span class="code" data-group="g4" data-range="18-2">18-2</span><span class="code" data-group="g4" data-range="23-4">23-4</span><span class="code" data-group="g4" data-range="24-3">24-3</span></div>
+    </section></div>
+  </main>
+
+<script>
+const groupItems = {
+  g1:["1-1~4","2-1~4","3-1~4","4-1~3"],
+  g2:["4-4","5-1~4","6-1~4","7-1~4","8-1","8-2"],
+  g3:["9-1~4","10-1~4"],
+  g4:["18-1","18-2","23-4","24-3"]
+};
+const state = {};
+
+function expandRange(txt){
+  txt = txt.trim();
+  if(!txt.includes("~")) return [txt];
+  const [base, end] = txt.split("~");
+  const [zone, start] = base.split("-").map(Number);
+  const arr = [];
+  for(let i=start; i<=Number(end); i++) arr.push(zone + "-" + i);
+  return arr;
+}
+
+function groupList(group){
+  return groupItems[group].flatMap(expandRange);
+}
+
+function setOne(id, on, cls){
+  const btn = document.getElementById("btn-" + id);
+  const line = document.getElementById("line-" + id);
+  if(!btn || btn.disabled) return;
+  state[id] = {on, cls: on ? cls : ""};
+  btn.className = "key";
+  line.className = "line";
+  if(on){
+    btn.classList.add(cls || "on");
+    line.classList.add("active");
+    if(cls) line.classList.add(cls);
+  }
+}
+
+function toggleOne(id){
+  const current = state[id]?.on || false;
+  setOne(id, !current, "on");
+  refreshGroupView();
+}
+
+function toggleGroup(group){
+  const list = groupList(group);
+  const allOn = list.every(id => state[id]?.on && state[id]?.cls === group);
+  list.forEach(id => setOne(id, !allOn, group));
+  refreshGroupView();
+}
+
+function refreshGroupView(){
+  document.querySelectorAll(".group-toggle").forEach(btn => {
+    const group = btn.dataset.group;
+    const list = groupList(group);
+    const active = list.every(id => state[id]?.on && state[id]?.cls === group);
+    btn.classList.toggle("active", active);
+  });
+  document.querySelectorAll(".code").forEach(code => {
+    const group = code.dataset.group;
+    const list = expandRange(code.dataset.range);
+    const active = list.every(id => state[id]?.on && state[id]?.cls === group);
+    code.classList.toggle("active", active);
+  });
+}
+
+document.querySelectorAll(".key").forEach(btn => {
+  btn.addEventListener("click", () => toggleOne(btn.dataset.id));
+});
+document.querySelectorAll(".group-toggle").forEach(btn => {
+  btn.addEventListener("click", () => toggleGroup(btn.dataset.group));
+});
+refreshGroupView();
+</script>
+</body>
+</html>
