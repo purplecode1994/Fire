@@ -2,24 +2,41 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>LG WD-S90VDW 洗程速查</title>
 <style>
 
 html,body{
   touch-action:manipulation;
   -webkit-text-size-adjust:100%;
+  overscroll-behavior:none;
 }
 
 button,
 .accordion,
 .main-action-btn,
+.main-action-box,
 .indicator,
 .close-btn,
-.opt{
+.opt,
+.panel,
+.card,
+.grid,
+.wrap{
   touch-action:manipulation;
   -webkit-tap-highlight-color:transparent;
 }
+
+button,
+.accordion,
+.main-action-btn,
+.close-btn,
+#indicatorToggleBtn{
+  font-size:16px !important;
+}
+
+
+
   
   body{margin:0;font-family:-apple-system,"Microsoft JhengHei",sans-serif;background:#fff;color:#111}
   header{position:sticky;top:0;background:#fff;padding:12px;border-bottom:1px solid #ddd;
@@ -708,28 +725,27 @@ button,
 
 <script>
 
-  let lastTapTime = 0;
+  // 防止手機雙擊按鈕時觸發瀏覽器智慧放大
+  let lastTouchTime = 0;
 
-document.addEventListener('touchend', function(event){
-  const now = Date.now();
+  document.addEventListener('touchstart', function(event){
+    const now = Date.now();
+    if(now - lastTouchTime < 400){
+      event.preventDefault();
+    }
+    lastTouchTime = now;
+  }, {passive:false});
 
-  if(now - lastTapTime < 350){
+  document.addEventListener('dblclick', function(event){
     event.preventDefault();
-  }
+  }, {passive:false});
 
-  lastTapTime = now;
-}, { passive:false });
+  document.addEventListener('gesturestart', function(event){
+    event.preventDefault();
+  }, {passive:false});
 
-document.addEventListener('dblclick', function(event){
-  event.preventDefault();
-}, { passive:false });
 
-document.addEventListener('gesturestart', function(event){
-  event.preventDefault();
-});
-
-  
-  const acc = document.querySelectorAll(".accordion");
+const acc = document.querySelectorAll(".accordion");
   acc.forEach(btn=>{
     btn.addEventListener("click",()=>{
       const panel=btn.nextElementSibling;
