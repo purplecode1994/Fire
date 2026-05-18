@@ -2,9 +2,26 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="
+  width=device-width,initial-scale=1,viewport-fit=cover">
 <title>LG WD-S90VDW 洗程速查</title>
 <style>
+
+html,body{
+  touch-action:manipulation;
+  -webkit-text-size-adjust:100%;
+}
+
+button,
+.accordion,
+.main-action-btn,
+.indicator,
+.close-btn,
+.opt{
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+  
   body{margin:0;font-family:-apple-system,"Microsoft JhengHei",sans-serif;background:#fff;color:#111}
   header{position:sticky;top:0;background:#fff;padding:12px;border-bottom:1px solid #ddd;
     font-size:18px;font-weight:700;text-align:center}
@@ -691,6 +708,28 @@
 
 
 <script>
+
+  let lastTapTime = 0;
+
+document.addEventListener('touchend', function(event){
+  const now = Date.now();
+
+  if(now - lastTapTime < 350){
+    event.preventDefault();
+  }
+
+  lastTapTime = now;
+}, { passive:false });
+
+document.addEventListener('dblclick', function(event){
+  event.preventDefault();
+}, { passive:false });
+
+document.addEventListener('gesturestart', function(event){
+  event.preventDefault();
+});
+
+  
   const acc = document.querySelectorAll(".accordion");
   acc.forEach(btn=>{
     btn.addEventListener("click",()=>{
