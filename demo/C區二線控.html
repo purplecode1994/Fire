@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>C 區二線控編碼表及已設群組</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>C 區二線控編碼表及已設群組｜燈控互動版</title>
 <style>
 *{box-sizing:border-box;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 body{
@@ -322,5 +322,26 @@ document.querySelectorAll(".group-toggle").forEach(btn => {
 });
 refreshGroupView();
 </script>
+
+<script>
+let lastTouchEnd = 0;
+
+document.addEventListener('touchend', function (event) {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+  lastTouchEnd = now;
+}, { passive: false });
+
+document.addEventListener('gesturestart', function (event) {
+  event.preventDefault();
+});
+
+document.addEventListener('dblclick', function (event) {
+  event.preventDefault();
+}, { passive:false });
+</script>
+
 </body>
 </html>
