@@ -11,12 +11,9 @@
     background:#f5f5f5; color:#000;
     display:flex; flex-direction:column; align-items:center;
   }
-  h2 {
-    margin: 6px 0 10px;
-    font-size: 18px;
-    text-align: center;
-    width: 100%;
-  }
+
+
+
 
 
     /* 外層：固定在頂部、有背景 */
@@ -60,45 +57,18 @@
 }
 .month-switch button.active{ background:hwb(251 9% 58%); color:#fff; }
 
-  .banner{
-    margin:10px 0 6px; padding:6px 12px; border-radius:999px;
-    background:#fff; border:1px solid #ddd; box-shadow:0 1px 2px rgba(0,0,0,.04);
-    font-size:14px;
-  }
 
-  .frame {
-    width: 95%;
-    max-width: 95vw;
-    margin: 10px auto;
-    padding: 2px 5px;
-    border: 2px solid #666;
-    border-radius: 12px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    background: #fff;
-    scroll-behavior: smooth;
-  }
+
+
   /* 卷軸 */
   .frame::-webkit-scrollbar{ height:10px; opacity:0; transition:opacity 0.6s ease; }
   .frame::-webkit-scrollbar-track{ background:#eee; border-radius:10px; }
   .frame::-webkit-scrollbar-thumb{ background:#bbb; border-radius:10px; }
   .frame:hover::-webkit-scrollbar, .frame:active::-webkit-scrollbar{ opacity:1; }
 
-  table {
-    border-collapse: collapse;
-    font-size: 14px;
-    width: max-content;
-  }
-  th, td {
-    border: 2px solid #bbbbbb;
-    padding: 4px 6px;
-    text-align: center;
-    min-width: 42px;
-    user-select: none;
-  }
-  thead th:first-child, tbody th{
-    background:#eee; position:sticky; left:0; z-index:2;
-  }
+
+
+
 
 /* 班別顏色 */
 .休{ background:#ddd; }
@@ -147,6 +117,140 @@
   border: none;         /* 移除邊框 */
   box-shadow: none;     /* 移除陰影 */
   padding: 0;           /* 去掉內距 */
+}
+
+
+h2 {
+  margin: 6px 0 10px;
+  font-size: 18px;
+  text-align: center;
+  width: 100%;
+}
+
+.banner{
+  margin:10px 0 6px;
+  padding:6px 12px;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid #ddd;
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+  font-size:14px;
+}
+
+.frame {
+  width: 95%;
+  max-width: 95vw;
+  margin: 10px auto;
+  padding: 2px 5px;
+  border: 2px solid #666;
+  border-radius: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #fff;
+  scroll-behavior: smooth;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 14px;
+  width: max-content;
+}
+
+th, td {
+  border: 2px solid #bbbbbb;
+  padding: 4px 6px;
+  text-align: center;
+  min-width: 42px;
+  user-select: none;
+}
+
+thead th:first-child, tbody th{
+  background:#eee;
+  position:sticky;
+  left:0;
+  z-index:2;
+}
+
+@media (max-width: 600px){
+  h2{
+    font-size: 20px;
+    margin: 8px 0 8px;
+  }
+
+  .banner{
+    font-size: 15px;
+    padding: 5px 12px;
+    margin: 8px 0 4px;
+  }
+
+  .frame{
+    width: 98%;
+    max-width: 98vw;
+    padding: 1px 2px;
+    margin: 6px auto;
+  }
+
+  table{
+    font-size: 18px;
+  }
+
+  th, td{
+    min-width: 66px;
+    height: 28px;
+    padding: 2px 6px;
+    line-height: 1.05;
+    font-weight: 700;
+  }
+
+  thead th:first-child,
+  tbody th{
+    min-width: 54px;
+  }
+}
+
+/* ✅ 手機版調整：橫向放大到約「姓名＋1～5號」，但列高不要太長 */
+@media (max-width: 600px){
+  h2{
+    font-size: 20px;
+    margin: 8px 0 8px;
+  }
+
+  .banner{
+    font-size: 15px;
+    padding: 5px 12px;
+    margin: 8px 0 4px;
+  }
+
+  .frame{
+    width: 98%;
+    max-width: 98vw;
+    padding: 1px 2px;
+    margin: 6px auto;
+  }
+
+  table{
+    font-size: 18px;
+  }
+
+  th, td{
+    min-width: 66px;
+    height: 32px;
+    padding: 3px 6px;
+    line-height: 1.05;
+    font-weight: 700;
+  }
+
+  thead th:first-child,
+  tbody th{
+    min-width: 54px;
+  }
+}
+
+@media (max-width: 600px){
+  thead th:first-child,
+  tbody th{
+    min-width: 54px;
+  }
 }
 
 
