@@ -913,6 +913,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 
+// 補強：特殊假別（喪/事/公/補/病）套用 .特，日班與春節維持原邏輯
+const specialLeaveTargets = ["喪", "事", "公", "補", "病"];
+document.querySelectorAll("tbody td").forEach(td => {
+  const t = td.textContent.trim();
+  if (specialLeaveTargets.includes(t)) td.classList.add("特");
+});
+  
 // ✅補強：如果 td 文字是「日班 / 春節1 / 春節2 / 春節3」但沒有 class，也自動套上 .日班
 document.querySelectorAll("tbody td").forEach(td=>{
   const t = td.textContent.trim();
