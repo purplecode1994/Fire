@@ -167,6 +167,34 @@
     border-color: #007BFF;
   }
 
+  .person-selection-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 40px;
+  }
+
+  .person-selection-field {
+    flex: 1 1 50%;
+    min-width: 0;
+  }
+
+  .selection-display {
+    min-height: 44px;
+    box-sizing: border-box;
+    border: none;
+    background: transparent;
+    color: #555;
+    padding: 10px 12px;
+    font-size: 1.08em;
+    line-height: 1.35;
+    text-align: center;
+  }
+
+  .selection-display.has-selection {
+    background: transparent;
+    color: #0056b3;
+  }
+
   #date {
     text-align: center;
     font-size: 1.05em;
@@ -233,9 +261,15 @@
     </div>
   </div>
 
-  <div class="form-row">
-    <label>人員</label>
-    <input type="text" id="handoverPerson" placeholder="請輸入姓名">
+  <div class="form-row person-selection-row">
+    <div class="person-selection-field">
+      <label for="handoverPerson">人員</label>
+      <input type="text" id="handoverPerson" placeholder="請輸入姓名">
+    </div>
+    <div class="person-selection-field">
+      <label>目前選擇</label>
+      <div id="currentShiftSelection" class="selection-display" aria-live="polite">未選擇</div>
+    </div>
   </div>
 
   <div class="form-row">
@@ -292,6 +326,48 @@
   const dateStr = `${mm}/${dd}`;
   document.getElementById("date").textContent = `日期：${dateStr}`;
 
+  function setActiveButton(groupId, value) {
+    const group = document.getElementById(groupId);
+    group.querySelectorAll(".btn").forEach(button => {
+      const isActive = button.dataset.value === value;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
+    });
+  }
+
+  function updateCurrentShiftSelection() {
+    const shiftButton = document.querySelector("#shiftName .active");
+    const typeButton = document.querySelector("#shiftType .active");
+    const display = document.getElementById("currentShiftSelection");
+    const hasSelection = Boolean(shiftButton && typeButton);
+
+    display.textContent = hasSelection
+      ? `${shiftButton.dataset.value} ${typeButton.dataset.value}`
+      : "未選擇";
+    display.classList.toggle("has-selection", hasSelection);
+  }
+
+  function getAutomaticShift(date = new Date()) {
+    const minutes = date.getHours() * 60 + date.getMinutes();
+    const isBetween = (startHour, endHour) =>
+      minutes >= startHour * 60 && minutes <= endHour * 60;
+
+    if (isBetween(7, 9)) return { shift: "A班", type: "上班" };
+    if (isBetween(16, 18)) return { shift: "A班", type: "下班" };
+    if (isBetween(10, 12)) return { shift: "B班", type: "上班" };
+    if (isBetween(19, 22)) return { shift: "B班", type: "下班" };
+    return null;
+  }
+
+  function applyAutomaticShift(date = new Date()) {
+    const selection = getAutomaticShift(date);
+    setActiveButton("shiftName", selection?.shift);
+    setActiveButton("shiftType", selection?.type);
+    updateCurrentShiftSelection();
+  }
+
+  applyAutomaticShift(now);
+
   const labels = [
     "接待中心", "北醫中午", "北醫休診", "社區廚房", "溫泉區", "娛樂室", "樣品房",
     "3F祈禱室", "4F書畫室", "5F宗教室", "7F棋藝室", "泳池", "足湯"
@@ -340,26 +416,38 @@
       if (e.target.classList.contains('btn')) {
         group.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
+        group.querySelectorAll('.btn').forEach(button => {
+          button.setAttribute("aria-pressed", String(button.classList.contains("active")));
+        });
+        updateCurrentShiftSelection();
       }
     });
   });
 
   /* 複製交接內容 */
   function copyShift() {
-    const shift = document.querySelector('#shiftName .active').dataset.value;
-    const type = document.querySelector('#shiftType .active').dataset.value;
+    const shiftButton = document.querySelector('#shiftName .active');
+    const typeButton = document.querySelector('#shiftType .active');
+    if (!shiftButton || !typeButton) {
+      alert("目前非上下班時段，請先選擇班別與類型。");
+      return;
+    }
+
+    const shift = shiftButton.dataset.value;
+    const type = typeButton.dataset.value;
+    const outputShift = shift.replace("A", "Ａ").replace("B", "Ｂ");
     const person = document.getElementById("handoverPerson").value.trim();
     const item = document.getElementById("handoverItem").value.trim();
     const note = document.getElementById("handoverNote").value.trim();
     const extra = document.getElementById("handoverExtra").value.trim();
 
-    let result = `${shift}${type}`;
+    let result = `${outputShift}${type}`;
     if (person) result += `：${person}`;
     else result += `：`;
 
     result += `\n交接物品：${item}`;
     result += `\n交接事項：${note}`;
-    if (extra) result += `\n${extra}`;
+    if (extra) result += `\n\n${extra}`;
 
     const box = document.getElementById("resultShift");
     box.value = result;
