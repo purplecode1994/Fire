@@ -41,6 +41,16 @@
     }
     #pauseBtn:active { transform: scale(.94); }
     #pauseBtn.visible { display: grid; place-items: center; }
+    #muteBtn {
+      position: absolute; left: 62px; bottom: 10px; z-index: 9; display: grid;
+      width: 44px; height: 44px; min-height: 0; margin: 0; padding: 0;
+      place-items: center; border: 2px solid #fff8; border-radius: 50%;
+      color: #fff; background: #17142fbb; font-size: 20px; box-shadow: 0 3px 10px #0008;
+    }
+    #muteBtn.muted { background: #a83e55cc; }
+    #stageSelect { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
+    #stageSelect button { margin: 0; padding: 10px 6px; font-size: 15px; }
+    #stageSelect button.active { color: #fff; background: #c94e63; }
     #pauseStats {
       display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px;
       margin-top: 14px; text-align: left;
@@ -146,6 +156,7 @@
       #metaStats { grid-template-columns: repeat(2,1fr); }
       .menuPanel { padding: 16px; }
       #pauseBtn { left: 8px; bottom: max(8px,env(safe-area-inset-bottom)); }
+      #muteBtn { left: 60px; bottom: max(8px,env(safe-area-inset-bottom)); }
     }
     @media(pointer:coarse) and (orientation:portrait) {
       #touch { width: 118px; height: 118px; }
@@ -192,6 +203,10 @@
         <span id="metaPoints">強化點數 0</span>
       </div>
       <div id="metaStats"></div>
+      <div id="stageSelect">
+        <button id="gardenStage" type="button">第一關・菜園</button>
+        <button id="desertStage" type="button">第二關・沙漠</button>
+      </div>
       <div class="help">
         強化點數：一般敵人每 25 隻 +1・菁英 +3・BOSS +10・擊敗最終魔王 +25<br>
         WASD / 方向鍵移動，胡蘿蔔會自動瞄準最近敵人<br>
@@ -227,6 +242,7 @@
   <div id="touch"><div id="touchKnob"></div></div>
   <div id="touchHint">按住畫面任意位置拖曳即可移動</div>
   <button id="pauseBtn" type="button" aria-label="暫停遊戲">Ⅱ</button>
+  <button id="muteBtn" type="button" aria-label="切換音效">🔊</button>
 </div>
 <script>
 (() => {
@@ -247,27 +263,30 @@
   let kills=0,score=0,eliteKills=0,bossKills=0,nextId=1,levelQueue=0;
   let eligibleKills=0,instantKills=0,instantKillTimer=0;
   let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false;
-  let carrotVolley=0,pinkyBoostTimer=0;
+  let carrotVolley=0,pinkyBoostTimer=0,pinkyDamageBoost=1;
+  let poisonTimer=0,poisonRate=0,stunTimer=0,currentStage=1;
   let runRewarded=false;
   let escalationStart=null;
   let killSurgeActive=false;
   let finalPhase="none",finalTimer=0;
   let bossArena={active:false,x:0,y:0,r:360};
-  let audio=null;
+  let audio=null,muted=false;
 
   const META_KEY="bunnyCarrotSurvivorsMetaV1";
   const metaDefs=[
-    {id:"damage",name:"攻擊力",cost:5,desc:"+4% 初始攻擊力",value:m=>`+${m.damage*4}%`},
-    {id:"crit",name:"爆擊率",cost:8,desc:"+1% 基礎爆擊率",value:m=>`+${m.crit}%`},
-    {id:"speed",name:"攻擊速度",cost:7,desc:"+3% 初始攻速",value:m=>`+${m.speed*3}%`},
+    {id:"damage",name:"攻擊力",cost:5,desc:"+4% 初始攻擊力（無上限）",value:m=>`+${m.damage*4}%`},
+    {id:"crit",name:"爆擊率",cost:8,cap:48,desc:"+2% 基礎爆擊率，滿級解鎖無視防禦",value:m=>`${Math.min(100,5+m.crit*2)}%`},
+    {id:"speed",name:"攻擊速度",cost:7,cap:50,desc:"+3% 初始攻速",value:m=>`+${m.speed*3}%`},
     {id:"critDamage",name:"爆擊傷害",cost:6,desc:"+5% 爆擊傷害",value:m=>`+${m.critDamage*5}%`},
-    {id:"life",name:"生命力",cost:4,desc:"+5% 最大生命",value:m=>`+${m.life*5}%`},
-    {id:"regen",name:"回復力",cost:10,desc:"+0.08% 最大生命/秒",value:m=>`+${(m.regen*.08).toFixed(2)}%/秒`}
+    {id:"life",name:"生命力",cost:4,desc:"+5% 最大生命（無上限）",value:m=>`+${m.life*5}%`},
+    {id:"regen",name:"回復力",cost:10,cap:50,desc:"+0.08% 最大生命/秒",value:m=>`+${(m.regen*.08).toFixed(2)}%/秒`},
+    {id:"armorPen",name:"無視防禦",cost:12,cap:50,unlock:m=>m.crit>=48,desc:"+1% 無視敵人防禦",value:m=>`${m.armorPen}%`}
   ];
   let meta=loadMeta();
+  muted=!!meta.muted;
 
   function defaultMeta(){
-    return{points:0,totalKills:0,totalElites:0,totalBosses:0,damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0};
+    return{points:0,totalKills:0,totalElites:0,totalBosses:0,damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,desertUnlocked:false,muted:false};
   }
 
   function loadMeta(){
@@ -299,14 +318,16 @@
     metaRecordEl.textContent=`累計擊殺 ${meta.totalKills}・菁英 ${meta.totalElites}・BOSS ${meta.totalBosses}`;
     metaStatsEl.innerHTML="";
     for(const def of metaDefs){
+      if(def.unlock&&!def.unlock(meta))continue;
       const cost=metaUpgradeCost(def);
       const tier=Math.floor(meta[def.id]/10)+1;
       const card=document.createElement("div");
       card.className="statCard";
       card.innerHTML=`<b>${def.name} LV${meta[def.id]}</b><small>${def.desc}<br>目前 ${def.value(meta)}・強化階級 ${tier}</small>`;
       const button=document.createElement("button");
-      button.textContent=`強化 1 點（花費 ${cost}）`;
-      button.disabled=meta.points<cost;
+      const maxed=def.cap!==undefined&&meta[def.id]>=def.cap;
+      button.textContent=maxed?"已滿級":`強化 1 點（花費 ${cost}）`;
+      button.disabled=maxed||meta.points<cost;
       button.onclick=()=>{
         const currentCost=metaUpgradeCost(def);
         if(meta.points<currentCost)return;
@@ -319,18 +340,23 @@
       card.appendChild(button);
       metaStatsEl.appendChild(card);
     }
+    gardenStage.classList.toggle("active",currentStage===1);
+    desertStage.classList.toggle("active",currentStage===2);
+    desertStage.disabled=!meta.desertUnlocked;
+    desertStage.textContent=meta.desertUnlocked?"第二關・沙漠":"第二關・沙漠（未解鎖）";
+    document.getElementById("start").textContent=currentStage===2?"挑戰沙漠":"開始割草";
   }
 
   const player={
     x:0,y:0,r:18,speed:210,hp:100,maxHp:100,regen:0,
     level:1,xp:0,nextXp:18,damage:18,attackSpeed:1,projectiles:1,
     crit:0.05,critStack:0.05,critDamage:1.6,pierce:0,magnet:90,area:1,areaDamage:1,invuln:0,
-    facing:1
+    armorPen:0,facing:1
   };
   const skills={orbit:0,burst:0,peanut:0,pinky:0};
   const upgradeLevels={
     speed:0,heal:0,haste:0,damage:0,crit:0,critd:0,
-    pierce:0,magnet:0,vital:0,area:0,multi:0
+    pierce:0,magnet:0,vital:0,area:0,multi:0,armorPen:0
   };
   const BASIC_UPGRADE_CAP=6;
   const KILL_SURGE_THRESHOLD=500;
@@ -342,7 +368,7 @@
     {id:"heal",icon:"💚",name:"生命回復",desc:"+0.6% 最大生命/秒（最高 LV10）",cap:10,apply(){player.regen+=0.006;}},
     {id:"haste",icon:"⏱",name:"攻擊速度",desc:"+15% 攻擊速度",basic:true,apply(){player.attackSpeed*=1.15;}},
     {id:"damage",icon:"🥕",name:"胡蘿蔔威力",desc:"+18% 攻擊力",basic:true,apply(){player.damage*=1.18;}},
-    {id:"crit",icon:"✦",name:"幸運一擊",desc:"+7% 基礎爆擊率",basic:true,apply(){const old=player.crit;player.crit=Math.min(.75,player.crit+.07);player.critStack=Math.min(1,player.critStack+player.crit-old);}},
+    {id:"crit",icon:"✦",name:"幸運一擊",desc:"+7% 基礎爆擊率",basic:true,valid(){return player.crit<1;},apply(){const old=player.crit;player.crit=Math.min(1,player.crit+.07);player.critStack=Math.min(1,player.critStack+player.crit-old);}},
     {id:"critd",icon:"💥",name:"爆擊強化",desc:"+30% 爆擊傷害",basic:true,apply(){player.critDamage+=.3;}},
     {id:"pierce",icon:"➶",name:"銳利蘿蔔",desc:"+1 穿透敵人數",basic:true,apply(){player.pierce++;}},
     {id:"magnet",icon:"🧺",name:"剪取範圍",desc:"+30% 蔬菜拾取範圍",basic:true,apply(){player.magnet*=1.3;}},
@@ -352,18 +378,24 @@
     {id:"orbit",icon:"🥕",name:"蘿蔔旋風",desc:"環繞胡蘿蔔傷害敵人；LV5進化高速切割",valid(){return skills.orbit<5;},apply(){skills.orbit++;}},
     {id:"burst",icon:"🌱",name:"菜園爆發",desc:"定時造成範圍傷害；LV5進化巨大衝擊圈",valid(){return skills.burst<5;},apply(){skills.burst++;}},
     {id:"peanut",icon:"🥜",name:"花生跟班",desc:"花生自動丟石頭；LV5進化貫穿滾石",valid(){return skills.peanut<5;},apply(){skills.peanut++;}},
-    {id:"pinky",icon:"🍌",name:"PINKY 跟班",desc:"香蕉直線穿透後原路返回；LV5接回時回血並加速3秒",valid(){return skills.pinky<5;},apply(){skills.pinky++;}}
+    {id:"pinky",icon:"🍌",name:"PINKY 跟班",desc:"香蕉直線穿透後原路返回；接回強化攻擊與移速",valid(){return skills.pinky<5;},apply(){skills.pinky++;}},
+    {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+8% 無視防禦（第二關限定）",cap:5,valid(){return currentStage===2&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.08;}}
   ];
 
   const enemyData={
     turtle:{hp:34,speed:48,damage:10,xp:4,r:18,color:"#55a94d"},
     mushroom:{hp:22,speed:68,damage:8,xp:3,r:15,color:"#9b5a3d"},
     bombcloud:{hp:48,speed:42,damage:14,xp:6,r:20,color:"#60667b"},
-    plant:{hp:60,speed:34,damage:16,xp:7,r:19,color:"#dd4a45"}
+    plant:{hp:60,speed:34,damage:16,xp:7,r:19,color:"#dd4a45",defense:0},
+    snake:{hp:35,speed:92,damage:10,xp:4,r:14,color:"#b7a83b",defense:5},
+    scorpion:{hp:85,speed:44,damage:20,xp:8,r:21,color:"#9b4e35",defense:20},
+    cactus:{hp:55,speed:35,damage:12,xp:7,r:19,color:"#3d9b55",defense:10},
+    sandcloud:{hp:65,speed:48,damage:15,xp:7,r:20,color:"#b59662",defense:12},
+    stoneface:{hp:40000,speed:30,damage:30,xp:300,r:64,color:"#7d7162",defense:45}
   };
 
-  function initAudio(){if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();}
-  function beep(f,d=.06,v=.025,type="square"){if(!audio)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);}
+  function initAudio(){if(muted)return;if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();}
+  function beep(f,d=.06,v=.025,type="square"){if(!audio||muted)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);}
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const rand=(a,b)=>a+Math.random()*(b-a);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -376,13 +408,14 @@
 
   function reset(){
     const maxHp=100*(1+meta.life*.05);
-    const baseCrit=Math.min(.75,.05+meta.crit*.01);
+    const baseCrit=Math.min(1,.05+meta.crit*.02);
     Object.assign(player,{
       x:0,y:0,r:18,speed:210,hp:maxHp,maxHp,regen:meta.regen*.0008,
       level:1,xp:0,nextXp:xpRequirement(1,0),damage:18*(1+meta.damage*.04),
       attackSpeed:1+meta.speed*.03,projectiles:1,
       crit:baseCrit,critStack:baseCrit,critDamage:1.6+meta.critDamage*.05,
-      pierce:0,magnet:90,area:1,areaDamage:1,invuln:0,facing:1
+      pierce:0,magnet:90,area:1,areaDamage:1,invuln:0,
+      armorPen:Math.min(.75,meta.armorPen*.01),facing:1
     });
     skills.orbit=skills.burst=skills.peanut=skills.pinky=0;
     updatePlayer.pet=updatePlayer.burst=updatePlayer.pinky=0;
@@ -390,9 +423,10 @@
     enemies=[];shots=[];enemyShots=[];gems=[];effects=[];texts=[];areas=[];petShots=[];bananas=[];chests=[];pickups=[];
     announcements=[];activeAnnouncement=null;
     kills=score=eliteKills=bossKills=eligibleKills=instantKills=0;instantKillTimer=0;time=spawnClock=shotClock=0;nextId=1;levelQueue=0;
-    chestClock=35;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;carrotVolley=0;pinkyBoostTimer=0;
+    chestClock=35;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;
+    poisonTimer=poisonRate=stunTimer=0;
     running=true;paused=false;ended=false;runRewarded=false;escalationStart=null;killSurgeActive=false;
-    finalPhase="none";finalTimer=0;bossArena.active=false;bossArena.x=player.x;bossArena.y=player.y;
+    finalPhase="none";finalTimer=0;bossArena.active=false;bossArena.r=currentStage===2?470:430;bossArena.x=player.x;bossArena.y=player.y;
     keys.up=keys.down=keys.left=keys.right=false;
     resetStick();
   }
@@ -410,13 +444,20 @@
     let hp=base.hp*scale,size=base.r,speed=base.speed*(1+time/1200),damage=base.damage*scale,xp=base.xp;
     if(kind==="elite"){hp*=7;size*=1.45;speed*=1.08;damage*=1.8;xp*=8;}
     if(kind==="boss"){hp*=35;size*=2.25;speed*=.82;damage*=2.8;xp*=35;}
-    if(kind==="final"){hp=4200;size=58;speed=52;damage=32;xp=250;}
+    let defense=base.defense||0;
+    if(currentStage===2&&defense===0)defense=5;
+    if(kind==="elite")defense+=currentStage===2?10:0;
+    if(kind==="boss")defense+=currentStage===2?18:6;
+    if(kind==="final"){
+      if(currentStage===2){hp=40000;size=64;speed=30;damage=30;xp=300;defense=45;}
+      else{hp=26000*(1+meta.damage*.04*.2);size=62;speed=52;damage=32;xp=250;defense=15;}
+    }
     if(killSurgeActive)hp*=KILL_SURGE_HP_MULTIPLIER;
-    enemies.push({id:nextId++,type,kind,x:player.x+Math.cos(angle)*range,y:player.y+Math.sin(angle)*range,r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1});
+    enemies.push({id:nextId++,type,kind,defense,x:player.x+Math.cos(angle)*range,y:player.y+Math.sin(angle)*range,r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1});
   }
 
   function spawnWave(count,kind="normal"){
-    const types=["turtle","mushroom","bombcloud","plant"];
+    const types=currentStage===2?["snake","scorpion","cactus","sandcloud","turtle"]:["turtle","mushroom","bombcloud","plant"];
     const finalCount=Math.ceil(count*(killSurgeActive?KILL_SURGE_WAVE_MULTIPLIER:1));
     for(let i=0;i<finalCount;i++)spawnEnemy(types[Math.floor(Math.random()*types.length)],kind);
     announce(
@@ -438,7 +479,7 @@
     if(escalationStart===null){
       if(sec>0&&sec%60===0&&!timeline.seen.has("early-wave"+sec)){timeline.seen.add("early-wave"+sec);spawnWave(12+sec/10);}
       if([120,270,420].includes(sec)&&!timeline.seen.has("early-elite"+sec)){timeline.seen.add("early-elite"+sec);spawnWave(2,"elite");}
-      if([180,360].includes(sec)&&!timeline.seen.has("early-boss"+sec)){timeline.seen.add("early-boss"+sec);spawnEnemy(sec===360?"bombcloud":"plant","boss");announce("BOSS 出現！","強敵已進入菜園","#ff775e");}
+      if([180,360].includes(sec)&&!timeline.seen.has("early-boss"+sec)){timeline.seen.add("early-boss"+sec);spawnEnemy(currentStage===2?(sec===360?"scorpion":"cactus"):(sec===360?"bombcloud":"plant"),"boss");announce("BOSS 出現！",currentStage===2?"沙漠強敵正在逼近":"強敵已進入菜園","#ff775e");}
     }else if(sec<DURATION){
       const elapsed=Math.floor(time-escalationStart);
       const waveSlot=Math.floor(elapsed/30);
@@ -446,7 +487,7 @@
       const bossSlot=Math.floor(elapsed/120);
       if(waveSlot>0&&!timeline.seen.has("rush-wave"+waveSlot)){timeline.seen.add("rush-wave"+waveSlot);spawnWave(20+Math.floor(time/30));}
       if(eliteSlot>0&&!timeline.seen.has("rush-elite"+eliteSlot)){timeline.seen.add("rush-elite"+eliteSlot);spawnWave(2+Math.floor(time/240),"elite");}
-      if(bossSlot>0&&!timeline.seen.has("rush-boss"+bossSlot)){timeline.seen.add("rush-boss"+bossSlot);spawnEnemy(bossSlot%2?"plant":"bombcloud","boss");announce("終盤 BOSS 出現！","高威脅敵人加入戰場","#ff775e");}
+      if(bossSlot>0&&!timeline.seen.has("rush-boss"+bossSlot)){timeline.seen.add("rush-boss"+bossSlot);spawnEnemy(currentStage===2?(bossSlot%2?"scorpion":"cactus"):(bossSlot%2?"plant":"bombcloud"),"boss");announce("終盤 BOSS 出現！","高威脅敵人加入戰場","#ff775e");}
     }
 
     if(sec>=DURATION&&!timeline.seen.has("final")){
@@ -470,12 +511,12 @@
   }
 
   function spawnFinalBoss(){
-    spawnEnemy("plant","final");
+    spawnEnemy(currentStage===2?"stoneface":"plant","final");
     const boss=enemies[enemies.length-1];
     boss.x=bossArena.x+Math.min(210,bossArena.r*.58);
     boss.y=bossArena.y;
     finalPhase="fight";
-    text(boss.x,boss.y-boss.r-24,"霸王食人花！","#ff4f68",28);
+    text(boss.x,boss.y-boss.r-24,currentStage===2?"遠古石面怪！":"霸王食人花！","#ff4f68",28);
     effects.push({kind:"shockwave",x:boss.x,y:boss.y,r:20,max:190,life:.75});
     beep(80,.8,.06,"sawtooth");
   }
@@ -546,14 +587,18 @@
   function catchBanana(banana){
     banana.dead=true;
     burst(player.x,player.y,"#ffe45f",8);
+    pinkyBoostTimer=3;
+    pinkyDamageBoost=skills.pinky>=5?1.2:1.1;
+    for(let i=0;i<7;i++)effects.push({kind:"pinkyLine",x:player.x+rand(-16,16),y:player.y+28+rand(0,18),vx:0,vy:rand(-150,-105),life:.55,r:rand(2,4),color:"#ff9fc7"});
     if(skills.pinky>=5){
-      const healed=player.maxHp*.06;
+      const healed=player.maxHp*.08;
       player.hp=Math.min(player.maxHp,player.hp+healed);
-      pinkyBoostTimer=3;
-      text(player.x,player.y-48,`香蕉接回！+${Math.round(healed)} HP・加速 3 秒`,"#ffef72",18);
+      effects.push({kind:"shockwave",x:player.x,y:player.y,r:10,max:70*player.area,life:.5});
+      for(let i=0;i<6;i++)effects.push({kind:"heart",x:player.x+rand(-28,28),y:player.y+rand(-5,28),vx:rand(-15,15),vy:rand(-85,-50),life:.8,r:rand(4,7),color:"#ff75ad"});
+      text(player.x,player.y-48,`+${Math.round(healed)} HP・攻擊+20%・加速`,"#ff9fc7",17);
       beep(880,.16,.035,"triangle");
     }else{
-      text(player.x,player.y-42,"香蕉接回！","#ffe45f",15);
+      text(player.x,player.y-42,"攻擊+10%・移速+15%","#ffb5d0",15);
     }
   }
 
@@ -587,9 +632,15 @@
 
   function damageEnemy(e,amount,critical=false,source="normal"){
     if(source!=="chestBomb"){
+      amount*=pinkyBoostTimer>0?pinkyDamageBoost:1;
       const variance=rand(.01,.05)*(Math.random()<.5?-1:1);
       amount*=1+variance;
       if(critical)amount*=1+rand(.01,.10);
+    }
+    if(source!=="chestBomb"){
+      const ignored=Math.min(.75,player.armorPen);
+      const effectiveDefense=(e.defense||0)*(1-ignored);
+      amount*=100/(100+effectiveDefense);
     }
     e.hp-=amount;e.hit=.1;
     text(e.x,e.y-e.r,Math.round(amount)+(critical?"!":""),critical?"#ffe45f":"#fff",critical?19:14,critical?"critical":"normal");
@@ -791,10 +842,10 @@
     let dx=(keys.right?1:0)-(keys.left?1:0),dy=(keys.down?1:0)-(keys.up?1:0);
     if(stick.active){dx=stick.x;dy=stick.y;}
     let moved=0;
-    if(dx||dy){
+    if(stunTimer<=0&&(dx||dy)){
       const l=Math.hypot(dx,dy),strength=Math.min(1,l);
       dx/=l;dy/=l;
-      moved=player.speed*(pinkyBoostTimer>0?1.25:1)*dt*strength;
+      moved=player.speed*(pinkyBoostTimer>0?(skills.pinky>=5?1.25:1.15):1)*dt*strength;
       player.x+=dx*moved;player.y+=dy*moved;
       if(dx)player.facing=Math.sign(dx);
     }
@@ -804,7 +855,14 @@
     }
     updateChests(dt,moved);
     if(player.regen)player.hp=Math.min(player.maxHp,player.hp+player.maxHp*player.regen*dt);
+    if(poisonTimer>0){
+      poisonTimer=Math.max(0,poisonTimer-dt);
+      player.hp-=player.maxHp*poisonRate*dt;
+      if(player.hp<=0)lose();
+    }
+    stunTimer=Math.max(0,stunTimer-dt);
     pinkyBoostTimer=Math.max(0,pinkyBoostTimer-dt);
+    if(pinkyBoostTimer<=0)pinkyDamageBoost=1;
     player.invuln=Math.max(0,player.invuln-dt);
     shotClock-=dt;if(shotClock<=0){shotClock=.72/player.attackSpeed;fireCarrots();}
     if(skills.peanut){updatePlayer.pet=(updatePlayer.pet||0)-dt;if(updatePlayer.pet<=0){updatePlayer.pet=Math.max(.35,1.3-skills.peanut*.16);firePet();}}
@@ -847,11 +905,21 @@
       }
       if(e.slow>0)speed*=.48;
       e.x+=Math.cos(a)*speed*dt;e.y+=Math.sin(a)*speed*dt;
-      const ranged=e.type==="plant";
+      const ranged=e.type==="plant"||e.type==="cactus";
       if(ranged&&e.shoot<=0&&dist(e,player)<650){
         const shotSpeed=e.kind==="normal"?185:e.kind==="elite"?225:250;
-        enemyShots.push({x:e.x,y:e.y,vx:Math.cos(a)*shotSpeed,vy:Math.sin(a)*shotSpeed,r:e.kind==="normal"?7:10,damage:e.damage*.55,life:4});
+        enemyShots.push({kind:e.type==="cactus"?"needle":"normal",x:e.x,y:e.y,vx:Math.cos(a)*shotSpeed,vy:Math.sin(a)*shotSpeed,r:e.kind==="normal"?7:10,damage:e.damage*.55,life:4,poison:e.type==="cactus"?(e.kind==="boss"?rand(.004,.005):e.kind==="elite"?rand(.0025,.004):rand(.001,.0025)):0});
         e.shoot=e.kind==="normal"?rand(2.1,3.2):e.kind==="elite"?rand(1.3,2):rand(.8,1.35);
+      }
+      if(e.kind==="final"&&e.type==="stoneface"){
+        e.phase-=dt;
+        if(e.phase<=0){
+          e.phase=Math.max(1.4,3.2-(3-e.bars)*.55);
+          const count=e.bars===1?Math.floor(rand(3,6)):e.bars===2?2:1;
+          for(let i=0;i<count;i++){
+            effects.push({kind:"bossRock",x:player.x+rand(-90,90),y:player.y+rand(-90,90),r:32,delay:.8,life:1.15,damage:18+(3-e.bars)*5});
+          }
+        }
       }
       if(e.kind==="final"&&e.type==="plant"){
         e.phase-=dt;if(e.phase<=0){e.phase=2.2;for(let i=0;i<8;i++){const q=i*Math.PI/4;enemyShots.push({x:e.x,y:e.y,vx:Math.cos(q)*150,vy:Math.sin(q)*150,life:4,r:12,damage:12});}}
@@ -882,6 +950,11 @@
       if(shot.life>0&&dist(shot,player)<shot.r+player.r){
         shot.life=0;
         hurt(shot.damage);
+        if(shot.poison){
+          poisonRate=Math.max(poisonRate,shot.poison);
+          poisonTimer=3;
+          text(player.x,player.y-48,"中毒 3 秒","#9cff68",17);
+        }
       }
     }
     enemyShots=enemyShots.filter(s=>s.life>0&&dist(s,player)<1100);
@@ -1002,14 +1075,32 @@
     }
     spawnClock-=dt;
     const intensity=1+time/150;
-    if(finalPhase==="none"&&time<DURATION&&spawnClock<=0){spawnClock=Math.max(.12,.7/intensity);const types=time<60?["turtle","mushroom"]:time<240?["turtle","mushroom","bombcloud"]:["turtle","mushroom","bombcloud","plant"];for(let i=0;i<Math.min(4,Math.ceil(intensity/2));i++)spawnEnemy(types[Math.floor(Math.random()*types.length)]);}
+    if(finalPhase==="none"&&time<DURATION&&spawnClock<=0){
+      spawnClock=Math.max(.12,.7/intensity);
+      const types=currentStage===2
+        ?(time<60?["snake","cactus"]:time<240?["snake","cactus","sandcloud"]:["snake","cactus","sandcloud","scorpion","turtle"])
+        :(time<60?["turtle","mushroom"]:time<240?["turtle","mushroom","bombcloud"]:["turtle","mushroom","bombcloud","plant"]);
+      for(let i=0;i<Math.min(4,Math.ceil(intensity/2));i++)spawnEnemy(types[Math.floor(Math.random()*types.length)]);
+    }
     updatePlayer(dt);updateEnemies(dt);shots=updateShots(dt,shots);petShots=updateShots(dt,petShots,true);updateBananas(dt);updateSkills(dt);updateEnemyShots(dt);updateGems(dt);updatePickups(dt);
     for(const e of effects){
-      if(e.kind==="particle"||e.kind==="chip"||e.kind==="half"){
+      if(e.kind==="particle"||e.kind==="chip"||e.kind==="half"||e.kind==="pinkyLine"||e.kind==="heart"){
         e.x+=e.vx*dt;e.y+=e.vy*dt;e.life-=dt;
         if(e.kind==="chip"||e.kind==="half")e.vy+=260*dt;
       }
       if(e.kind==="crater"||e.kind==="shockwave"||e.kind==="slash")e.life-=dt;
+      if(e.kind==="bossRock"){
+        e.delay-=dt;
+        if(e.delay<=0&&!e.landed){
+          e.landed=true;
+          if(dist(e,player)<e.r+player.r){
+            hurt(e.damage);
+            if(Math.random()<.25){stunTimer=1;resetStick();text(player.x,player.y-55,"暈眩 1 秒！","#ffd15e",20);}
+          }
+          burst(e.x,e.y,"#9b8267",14);
+        }
+        e.life-=dt;
+      }
       if(e.kind==="shockwave")e.r+=(e.max-e.r)*dt*11;
       if(e.kind==="flash")e.life-=dt;
       if(e.kind==="rockFragment"){
@@ -1094,7 +1185,7 @@
   }
 
   function drawGround(){
-    rect(0,0,W,H,"#79bd58");
+    rect(0,0,W,H,currentStage===2?"#d7b66f":"#79bd58");
     const grid=64,camera=cameraPosition();
     const left=camera.x-W/2-grid,top=camera.y-H/2-grid;
     const firstX=Math.floor(left/grid),firstY=Math.floor(top/grid);
@@ -1102,9 +1193,16 @@
     for(let gx=firstX;gx<firstX+cols;gx++)for(let gy=firstY;gy<firstY+rows;gy++){
       const x=gx*grid-camera.x+W/2,y=gy*grid-camera.y+H/2;
       const hash=((gx*928371+gy*1237)%7+7)%7;
-      if(hash===1){rect(x+12,y+15,4,12,"#3e9148");rect(x+18,y+10,4,17,"#55a64d");}
-      if(hash===3){rect(x+40,y+35,5,5,"#f5da62");rect(x+45,y+35,5,5,"#fff1a0");}
-      if(hash===5){rect(x+24,y+28,22,10,"#69aa51");rect(x+29,y+22,12,16,"#69aa51");}
+      if(currentStage===2){
+        if(hash===1){rect(x+10,y+44,28,5,"#c09a58");rect(x+18,y+38,22,4,"#e2c481");}
+        if(hash===3){rect(x+43,y+31,10,7,"#8d7150");rect(x+47,y+27,7,5,"#b59465");}
+        if(hash===5){rect(x+25,y+22,6,24,"#4b8b52");rect(x+18,y+28,8,6,"#4b8b52");rect(x+30,y+34,8,6,"#4b8b52");}
+        if(hash===6){rect(x+12,y+50,27,4,"#eee0b6");rect(x+10,y+47,6,5,"#eee0b6");}
+      }else{
+        if(hash===1){rect(x+12,y+15,4,12,"#3e9148");rect(x+18,y+10,4,17,"#55a64d");}
+        if(hash===3){rect(x+40,y+35,5,5,"#f5da62");rect(x+45,y+35,5,5,"#fff1a0");}
+        if(hash===5){rect(x+24,y+28,22,10,"#69aa51");rect(x+29,y+22,12,16,"#69aa51");}
+      }
     }
   }
 
@@ -1169,6 +1267,16 @@
       rect(-12,-2,24,17,"#9a633f");rect(-17,-12,34,16,"#7b4432");rect(-12,-9,7,6,"#e6b16e");rect(5,-9,7,6,"#e6b16e");rect(-7,3,4,5,"#171624");rect(4,3,4,5,"#171624");
     }else if(e.type==="bombcloud"){
       rect(-17,-7,34,18,"#686d80");rect(-11,-14,22,25,"#858b9c");rect(-8,-4,5,4,"#151525");rect(5,-4,5,4,"#151525");rect(13,-15,12,5,"#333747");rect(23,-17,4,4,"#ffb83e");
+    }else if(e.type==="snake"){
+      rect(-16,5,8,8,"#a99b35");rect(-9,0,8,9,"#c7b943");rect(-2,-5,8,10,"#a99b35");rect(5,-10,13,13,"#d5c64d");rect(11,-7,3,3,"#231c25");rect(17,-3,6,2,"#d6534c");
+    }else if(e.type==="scorpion"){
+      rect(-14,-5,27,17,"#9b4e35");rect(-18,-3,7,12,"#cc7547");rect(12,-3,7,12,"#cc7547");rect(-21,-12,9,7,"#8b402f");rect(13,-12,9,7,"#8b402f");rect(8,9,6,7,"#7b382d");rect(12,14,6,7,"#7b382d");rect(15,19,5,5,"#362329");
+    }else if(e.type==="cactus"){
+      rect(-8,-15,16,34,"#3d9b55");rect(-16,-7,9,7,"#55b966");rect(-16,-7,6,15,"#55b966");rect(7,0,10,7,"#55b966");rect(12,-8,5,15,"#55b966");rect(-4,-7,3,4,"#171624");rect(3,-7,3,4,"#171624");
+    }else if(e.type==="sandcloud"){
+      rect(-18,-7,35,18,"#aa8c5e");rect(-11,-14,23,25,"#c6a872");rect(-8,-4,5,4,"#312824");rect(5,-4,5,4,"#312824");rect(13,-15,12,5,"#7b6040");
+    }else if(e.type==="stoneface"){
+      rect(-17,-18,34,38,"#746b60");rect(-13,-14,26,30,"#948779");rect(-10,-7,7,7,"#241f20");rect(4,-7,7,7,"#241f20");rect(-7,7,14,5,"#443c38");rect(-22,-12,7,28,"#5e574f");rect(15,-12,7,28,"#5e574f");
     }else{
       rect(-5,4,10,20,"#47974b");rect(-17,-13,34,26,"#d84d48");rect(-11,-8,22,17,"#f0e6b4");rect(-8,-6,5,5,"#191624");rect(4,-6,5,5,"#191624");rect(-14,-17,8,7,"#f3e8a9");rect(6,-17,8,7,"#f3e8a9");
     }
@@ -1274,6 +1382,10 @@
 
   function drawEnemyShot(shot){
     const p=worldToScreen(shot.x,shot.y);
+    if(shot.kind==="needle"){
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(shot.vy,shot.vx));
+      rect(-10,-2,20,4,"#d9ef7a");rect(6,-1,7,2,"#62994d");ctx.restore();return;
+    }
     ctx.globalAlpha=.28;ctx.fillStyle="#ff263f";ctx.beginPath();ctx.arc(p.x,p.y,shot.r+7,0,Math.PI*2);ctx.fill();
     ctx.globalAlpha=1;ctx.fillStyle="#d71932";ctx.beginPath();ctx.arc(p.x,p.y,shot.r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle="#ff8b76";ctx.beginPath();ctx.arc(p.x-shot.r*.28,p.y-shot.r*.3,Math.max(2,shot.r*.3),0,Math.PI*2);ctx.fill();
@@ -1346,12 +1458,12 @@
       const a=time*1.45+Math.PI,p=worldToScreen(player.x+Math.cos(a)*58,player.y+Math.sin(a)*40);
       ctx.save();ctx.translate(p.x,p.y);
       // Curled tail behind the body.
-      ctx.strokeStyle="#e23891";ctx.lineWidth=6;ctx.lineCap="square";
+      ctx.strokeStyle="#d95c92";ctx.lineWidth=6;ctx.lineCap="square";
       ctx.beginPath();ctx.moveTo(9,8);ctx.lineTo(18,7);ctx.lineTo(21,-2);ctx.lineTo(17,-9);ctx.lineTo(11,-9);ctx.lineTo(9,-4);ctx.lineTo(13,0);ctx.stroke();
-      rect(-9,5,18,18,"#e23891");rect(-13,-12,26,24,"#e23891");
+      rect(-9,5,18,18,"#f58fba");rect(-13,-12,26,24,"#f58fba");rect(-10,-10,7,5,"#ffc4da");
       rect(-17,-7,6,10,"#f2b693");rect(11,-7,6,10,"#f2b693");
       // Two rounded lobes make the pale face read as a heart.
-      rect(-8,-7,8,11,"#ffd0b5");rect(0,-7,8,11,"#ffd0b5");rect(-6,3,12,5,"#ffd0b5");
+      rect(-8,-7,8,11,"#ffd9c8");rect(0,-7,8,11,"#ffd9c8");rect(-6,3,12,5,"#ffd9c8");
       rect(-5,-2,3,4,"#251b20");rect(3,-2,3,4,"#251b20");
       rect(-1,2,3,2,"#6d2948");rect(-4,6,3,2,"#6d2948");rect(2,6,3,2,"#6d2948");
       rect(-13,21,7,5,"#f2b693");rect(6,21,7,5,"#f2b693");
@@ -1430,7 +1542,9 @@
       ctx.fillText(`擊倒 ${kills}`,W-14,90);
       ctx.fillText(`🥕×${player.projectiles} 穿透${player.pierce} 爆擊${Math.round(player.critStack*100)}%`,W-14,116);
       ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut} PINKY${skills.pinky}`,W-14,140);
-      if(pinkyBoostTimer>0){ctx.fillStyle="#ffef72";ctx.fillText(`香蕉加速 ${pinkyBoostTimer.toFixed(1)}s`,W-14,164);}
+      if(pinkyBoostTimer>0){ctx.fillStyle="#ffef72";ctx.fillText(`香蕉增益 ${pinkyBoostTimer.toFixed(1)}s`,W-14,164);}
+      if(poisonTimer>0){ctx.fillStyle="#9cff68";ctx.fillText(`中毒 ${poisonTimer.toFixed(1)}s`,W-14,188);}
+      if(stunTimer>0){ctx.fillStyle="#ffd15e";ctx.fillText(`暈眩 ${stunTimer.toFixed(1)}s`,W-14,212);}
       if(killSurgeActive){ctx.fillStyle="#ff6978";ctx.fillText("狂暴怪潮 +75%",W-14,164);}
       if(time<4){ctx.textAlign="center";ctx.font="bold 18px sans-serif";ctx.fillStyle="#fff";ctx.fillText("按住畫面拖曳移動",W/2,H-42);}
       ctx.restore();
@@ -1536,6 +1650,16 @@
       if(e.kind==="flash"||e.kind==="crater")continue;
       const p=worldToScreen(e.x,e.y);
       if(e.kind==="particle"||e.kind==="chip")rect(p.x,p.y,e.r,e.r,e.color);
+      else if(e.kind==="pinkyLine"){ctx.globalAlpha=clamp(e.life*2,0,1);rect(p.x-1,p.y-e.r*3,3,e.r*6,e.color);ctx.globalAlpha=1;}
+      else if(e.kind==="heart"){ctx.globalAlpha=clamp(e.life*2,0,1);rect(p.x-e.r,p.y-e.r,e.r,e.r,e.color);rect(p.x,p.y-e.r,e.r,e.r,e.color);rect(p.x-e.r*.5,p.y,e.r,e.r,e.color);ctx.globalAlpha=1;}
+      else if(e.kind==="bossRock"){
+        if(e.delay>0){
+          ctx.globalAlpha=.28+.18*Math.sin(time*14);ctx.fillStyle="#d72f3f";ctx.beginPath();ctx.arc(p.x,p.y,e.r,0,Math.PI*2);ctx.fill();
+          ctx.globalAlpha=1;ctx.strokeStyle="#ffbf67";ctx.lineWidth=4;ctx.beginPath();ctx.arc(p.x,p.y,e.r,0,Math.PI*2);ctx.stroke();
+        }else{
+          rect(p.x-e.r*.6,p.y-e.r*.6,e.r*1.2,e.r*1.2,"#75695c");rect(p.x-e.r*.35,p.y-e.r*.35,e.r*.55,e.r*.4,"#a18f7b");
+        }
+      }
       else if(e.kind==="rockFragment"){
         const shadowScale=clamp(1-e.z/90,.25,1);
         ctx.globalAlpha=.28;ctx.fillStyle="#2f2925";ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*shadowScale,e.r*.45*shadowScale,0,0,Math.PI*2);ctx.fill();
@@ -1571,7 +1695,7 @@
     if(runRewarded)return 0;
     runRewarded=true;
     const normalKills=Math.max(0,kills-eliteKills-bossKills);
-    const earned=Math.floor(normalKills/25)+eliteKills*3+bossKills*10+(success?25:0);
+    const earned=Math.floor(normalKills/25)+eliteKills*3+bossKills*10+(success?25:0)+Math.floor(time/60)*3;
     meta.points+=earned;
     meta.totalKills+=kills;
     meta.totalElites+=eliteKills;
@@ -1585,9 +1709,10 @@
     ended=true;running=false;
     pauseBtn.classList.remove("visible");pauseScreen.classList.add("hidden");
     const earned=awardRun(true);
+    if(currentStage===1&&!meta.desertUnlocked){meta.desertUnlocked=true;saveMeta();}
     endScreen.classList.remove("hidden");
-    document.getElementById("endTitle").textContent="菜園守護成功！";
-    document.getElementById("endSub").textContent="兔兔擊敗了最終魔王";
+    document.getElementById("endTitle").textContent=currentStage===2?"沙漠遺跡征服成功！":"菜園守護成功！";
+    document.getElementById("endSub").textContent=currentStage===2?"兔兔擊敗了遠古石面怪":"兔兔擊敗了最終魔王";
     document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>目前共 ${meta.points} 點`;
     beep(660,.4,.05);
   }
@@ -1607,7 +1732,16 @@
   function loop(now){const dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw();requestAnimationFrame(loop);}
   function setKey(k,v){keys[k]=v;}
   const touch=document.getElementById("touch"),touchKnob=document.getElementById("touchKnob"),touchHint=document.getElementById("touchHint");
-  const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn");
+  const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn"),muteBtn=document.getElementById("muteBtn");
+  const gardenStage=document.getElementById("gardenStage"),desertStage=document.getElementById("desertStage");
+  function updateMuteButton(){
+    muteBtn.textContent=muted?"🔇":"🔊";
+    muteBtn.classList.toggle("muted",muted);
+  }
+  function toggleMute(){
+    muted=!muted;meta.muted=muted;saveMeta();updateMuteButton();
+    if(!muted){initAudio();beep(620,.08,.025);}
+  }
   function renderPauseStats(){
     const stats=[
       ["等級",player.level],
@@ -1618,6 +1752,7 @@
       ["生命回復",`${(player.regen*100).toFixed(2)}%/秒`],
       ["爆擊率",`${Math.round(player.crit*100)}%`],
       ["爆擊傷害",`${Math.round(player.critDamage*100)}%`],
+      ["無視防禦",`${Math.round(Math.min(.75,player.armorPen)*100)}%`],
       ["胡蘿蔔數",player.projectiles],
       ["穿透",player.pierce],
       ["拾取範圍",Math.round(player.magnet)],
@@ -1627,7 +1762,9 @@
       ["胡蘿蔔菜園",`LV ${skills.burst}`],
       ["花生幫手",`LV ${skills.peanut}`],
       ["PINKY",`LV ${skills.pinky}`],
-      ["香蕉加速",pinkyBoostTimer>0?`${pinkyBoostTimer.toFixed(1)} 秒`:"未啟動"]
+      ["香蕉增益",pinkyBoostTimer>0?`${pinkyBoostTimer.toFixed(1)} 秒`:"未啟動"]
+      ,["中毒",poisonTimer>0?`${poisonTimer.toFixed(1)} 秒・${(poisonRate*100).toFixed(2)}%/秒`:"無"]
+      ,["暈眩",stunTimer>0?`${stunTimer.toFixed(1)} 秒`:"無"]
     ];
     pauseStats.innerHTML=stats.map(([label,value])=>`<div class="pauseStat"><b>${label}</b><span>${value}</span></div>`).join("");
   }
@@ -1695,6 +1832,9 @@
   addEventListener("blur",()=>{Object.keys(keys).forEach(k=>keys[k]=false);resetStick();});
   pauseBtn.addEventListener("click",pauseGame);
   resumeBtn.addEventListener("click",resumeGame);
+  muteBtn.addEventListener("click",toggleMute);
+  gardenStage.addEventListener("click",()=>{currentStage=1;renderMeta();});
+  desertStage.addEventListener("click",()=>{if(meta.desertUnlocked){currentStage=2;renderMeta();}});
   document.getElementById("start").onclick=()=>{timeline.seen.clear();start();};
   document.getElementById("again").onclick=()=>{
     endScreen.classList.add("hidden");
@@ -1702,7 +1842,7 @@
     pauseScreen.classList.add("hidden");pauseBtn.classList.remove("visible");
     renderMeta();
   };
-  renderMeta();draw();requestAnimationFrame(loop);
+  updateMuteButton();renderMeta();draw();requestAnimationFrame(loop);
 })();
 </script>
 </body>
