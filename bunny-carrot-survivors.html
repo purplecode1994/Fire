@@ -586,6 +586,11 @@
   }
 
   function damageEnemy(e,amount,critical=false,source="normal"){
+    if(source!=="chestBomb"){
+      const variance=rand(.01,.05)*(Math.random()<.5?-1:1);
+      amount*=1+variance;
+      if(critical)amount*=1+rand(.01,.10);
+    }
     e.hp-=amount;e.hit=.1;
     text(e.x,e.y-e.r,Math.round(amount)+(critical?"!":""),critical?"#ffe45f":"#fff",critical?19:14,critical?"critical":"normal");
     if(e.kind==="final"&&e.hp<=0&&e.bars>1){
@@ -734,6 +739,15 @@
   }
 
   function updateChests(dt,moved){
+    let recycled=false;
+    chests=chests.filter(chest=>{
+      if(!chest.opened&&dist(chest,player)>1050){
+        recycled=true;
+        return false;
+      }
+      return true;
+    });
+    if(recycled)chestClock=Math.min(chestClock,6);
     const unopened=chests.filter(c=>!c.opened).length;
     const activeTreasures=unopened+pickups.length;
     if(activeTreasures<5&&finalPhase==="none")chestClock-=dt;
