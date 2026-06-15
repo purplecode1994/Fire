@@ -21,49 +21,33 @@
     }
     body { display: grid; place-items: center; background: radial-gradient(circle,#3d315e,#151427 72%); }
     #wrap {
-      position: relative; width: min(100vw,1200px); aspect-ratio: 16/9; max-height: 100vh;
+      position: relative; width: min(100vw,56.25dvh); height: min(100dvh,177.78vw);
+      aspect-ratio: 9/16; max-height: 100dvh;
       overflow: hidden; border: 4px solid #fff0b1; background: #74be55;
       box-shadow: 0 0 0 6px #3e315e,0 20px 70px #000b; image-rendering: pixelated;
       touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-    }
-    #wrap:fullscreen, #wrap.fullscreenFallback {
-      width: 100vw; height: 100dvh; max-width: none; max-height: none;
-      aspect-ratio: auto; border: 0; box-shadow: none; background: #151427;
     }
     canvas {
       display: block; width: 100%; height: 100%; image-rendering: pixelated;
       touch-action: none; user-select: none; -webkit-user-select: none;
       -webkit-touch-callout: none; -webkit-user-drag: none;
     }
-    #displayControls {
-      position: absolute; right: 10px; bottom: 10px; z-index: 30;
-      display: flex; gap: 7px; padding: 6px; border: 2px solid #fff5; border-radius: 12px;
-      background: #17142fcc; backdrop-filter: blur(4px);
-    }
-    #displayControls button {
-      min-width: 0; min-height: 38px; margin: 0; padding: 7px 11px;
-      border-radius: 7px; font-size: 14px; box-shadow: inset -3px -3px #d99032,3px 3px #0b0920;
-    }
-    #displayControls button.active { color: #fff; background: #c94e63; box-shadow: inset -3px -3px #793042,3px 3px #0b0920; }
-    #displayControls.gameSettings {
-      left: 62px; right: auto; bottom: 10px;
-    }
-    #settingsBtn {
-      position: absolute; left: 10px; bottom: 10px; z-index: 29; display: none;
+    #pauseBtn {
+      position: absolute; left: 10px; bottom: 10px; z-index: 9; display: none;
       width: 44px; height: 44px; min-height: 0; margin: 0; padding: 0;
       border: 2px solid #fff8; border-radius: 50%; color: #fff;
       background: #17142fbb; font-size: 24px; line-height: 1;
       box-shadow: 0 3px 10px #0008;
     }
-    #settingsBtn:active { transform: scale(.94); }
-    #settingsBtn.visible { display: grid; place-items: center; }
-    #settingsBtn.active { background: #c94e63dd; }
-    #orientationNote {
-      position: absolute; left: 50%; top: 12px; z-index: 31; display: none;
-      transform: translateX(-50%); padding: 8px 13px; border-radius: 999px;
-      color: #fff; background: #17142fe8; font-size: 13px; font-weight: bold;
-      pointer-events: none;
+    #pauseBtn:active { transform: scale(.94); }
+    #pauseBtn.visible { display: grid; place-items: center; }
+    #pauseStats {
+      display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px;
+      margin-top: 14px; text-align: left;
     }
+    .pauseStat { padding: 9px; border: 2px solid #765d96; background: #302652; }
+    .pauseStat b { display: block; color: #9eeaff; font-size: 13px; }
+    .pauseStat span { color: #fff4c7; font-size: 16px; font-weight: bold; }
     .screen {
       position: absolute; inset: 0; z-index: 10; display: grid; place-items: center;
       padding: 22px; text-align: center; background: #17132ce8;
@@ -160,20 +144,11 @@
       .choice { min-height:0; }
       #metaStats { grid-template-columns: repeat(2,1fr); }
       .menuPanel { padding: 16px; }
-      #displayControls { right: 8px; bottom: 8px; gap: 5px; padding: 5px; }
-      #displayControls.gameSettings { left: 60px; right: auto; }
-      #displayControls button { min-height: 42px; padding: 7px 10px; font-size: 13px; }
-      #settingsBtn { left: 8px; bottom: 8px; }
+      #pauseBtn { left: 8px; bottom: max(8px,env(safe-area-inset-bottom)); }
     }
     @media(pointer:coarse) and (orientation:portrait) {
       #touch { width: 118px; height: 118px; }
       #touchKnob { width: 52px; height: 52px; }
-    }
-    body.layout-landscape #wrap:fullscreen canvas,
-    body.layout-landscape #wrap.fullscreenFallback canvas {
-      position: absolute; left: 50%; top: 50%;
-      width: min(100vw,177.78dvh); height: min(100dvh,56.25vw);
-      transform: translate(-50%,-50%);
     }
     body.layout-portrait #wrap {
       width: 100vw; height: 100dvh; max-height: none; aspect-ratio: auto;
@@ -185,18 +160,10 @@
       aspect-ratio: 9/16; transform: translate(-50%,-50%);
     }
     body.layout-portrait .screen { inset: 0; height: auto; transform: none; }
-    body.layout-portrait #displayControls {
-      left: 50%; right: auto; top: auto; bottom: max(10px,env(safe-area-inset-bottom));
-      transform: translateX(-50%); width: max-content;
-    }
-    body.layout-portrait #displayControls.gameSettings {
-      left: 60px; bottom: max(8px,env(safe-area-inset-bottom)); transform: none;
-    }
-    body.layout-portrait #settingsBtn { bottom: max(8px,env(safe-area-inset-bottom)); }
+    body.layout-portrait #pauseBtn { bottom: max(8px,env(safe-area-inset-bottom)); }
     body.layout-portrait #touchHint {
       bottom: max(70px,calc(env(safe-area-inset-bottom) + 60px));
     }
-    body.layout-portrait #orientationNote { top: max(10px,env(safe-area-inset-top)); }
     body.layout-portrait .menuPanel {
       width: min(94%,560px); max-height: 92%; padding: 13px;
     }
@@ -212,9 +179,9 @@
     body.layout-portrait .choice { padding: 10px 7px; }
   </style>
 </head>
-<body>
+<body class="layout-portrait">
 <div id="wrap">
-  <canvas id="game" width="960" height="540"></canvas>
+  <canvas id="game" width="540" height="960"></canvas>
   <div id="intro" class="screen">
     <div class="panel menuPanel">
       <h1>兔兔胡蘿蔔割草戰</h1>
@@ -227,7 +194,7 @@
       <div class="help">
         強化點數：一般敵人每 25 隻 +1・菁英 +3・BOSS +10・擊敗最終魔王 +25<br>
         WASD / 方向鍵移動，胡蘿蔔會自動瞄準最近敵人<br>
-        手機可用右下方按鈕選擇全螢幕、橫向或直向<br>
+        手機固定直式遊玩，左下角可暫停並查看能力<br>
         蒐集發光小蔬菜升級，每次從 4 種能力中選 1 種<br>
         怪潮、菁英、BOSS 與最終魔王正在接近
       </div>
@@ -248,25 +215,28 @@
       <button id="again">返回能力頁</button>
     </div>
   </div>
+  <div id="pauseScreen" class="screen hidden">
+    <div class="panel">
+      <h1>遊戲暫停</h1>
+      <h2>角色目前能力</h2>
+      <div id="pauseStats"></div>
+      <button id="resumeBtn" type="button">繼續遊戲</button>
+    </div>
+  </div>
   <div id="touch"><div id="touchKnob"></div></div>
   <div id="touchHint">按住畫面任意位置拖曳即可移動</div>
-  <div id="orientationNote"></div>
-  <button id="settingsBtn" type="button" aria-label="顯示設定">⚙</button>
-  <div id="displayControls">
-    <button id="fullscreenBtn" type="button">全螢幕</button>
-    <button id="landscapeBtn" type="button">橫向</button>
-    <button id="portraitBtn" type="button">直向</button>
-  </div>
+  <button id="pauseBtn" type="button" aria-label="暫停遊戲">Ⅱ</button>
 </div>
 <script>
 (() => {
   "use strict";
   const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
   ctx.imageSmoothingEnabled=false;
-  let W=960,H=540;
+  const W=540,H=960;
   const DURATION=600,wrap=document.getElementById("wrap");
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
+  const pauseScreen=document.getElementById("pauseScreen"),pauseStats=document.getElementById("pauseStats");
   const metaStatsEl=document.getElementById("metaStats"),metaPointsEl=document.getElementById("metaPoints"),metaRecordEl=document.getElementById("metaRecord");
   const keys={up:false,down:false,left:false,right:false};
   const stick={active:false,pointerId:null,x:0,y:0,startX:0,startY:0};
@@ -426,8 +396,8 @@
 
   function start(){
     initAudio();reset();
-    intro.classList.add("hidden");endScreen.classList.add("hidden");levelScreen.classList.add("hidden");
-    enterGameDisplayMode();
+    intro.classList.add("hidden");endScreen.classList.add("hidden");levelScreen.classList.add("hidden");pauseScreen.classList.add("hidden");
+    pauseBtn.classList.add("visible");
     last=performance.now();
   }
 
@@ -1499,7 +1469,7 @@
   function win(){
     if(ended)return;
     ended=true;running=false;
-    settingsBtn.classList.remove("visible","active");displayControls.classList.add("hidden");
+    pauseBtn.classList.remove("visible");pauseScreen.classList.add("hidden");
     const earned=awardRun(true);
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent="菜園守護成功！";
@@ -1511,7 +1481,7 @@
   function lose(){
     if(ended)return;
     ended=true;running=false;
-    settingsBtn.classList.remove("visible","active");displayControls.classList.add("hidden");
+    pauseBtn.classList.remove("visible");pauseScreen.classList.add("hidden");
     const earned=awardRun(false);
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent="兔兔倒下了";
@@ -1523,79 +1493,36 @@
   function loop(now){const dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw();requestAnimationFrame(loop);}
   function setKey(k,v){keys[k]=v;}
   const touch=document.getElementById("touch"),touchKnob=document.getElementById("touchKnob"),touchHint=document.getElementById("touchHint");
-  const fullscreenBtn=document.getElementById("fullscreenBtn"),landscapeBtn=document.getElementById("landscapeBtn"),portraitBtn=document.getElementById("portraitBtn");
-  const orientationNote=document.getElementById("orientationNote"),displayControls=document.getElementById("displayControls"),settingsBtn=document.getElementById("settingsBtn");
-  let noteTimer=0,layoutMode="landscape";
-  function enterGameDisplayMode(){
-    displayControls.classList.add("gameSettings","hidden");
-    settingsBtn.classList.add("visible");
-    settingsBtn.classList.remove("active");
+  const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn");
+  function renderPauseStats(){
+    const stats=[
+      ["等級",player.level],
+      ["生命",`${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`],
+      ["傷害",Math.round(player.damage)],
+      ["攻擊速度",`${player.attackSpeed.toFixed(2)}×`],
+      ["移動速度",Math.round(player.speed)],
+      ["生命回復",`${(player.regen*100).toFixed(2)}%/秒`],
+      ["爆擊率",`${Math.round(player.crit*100)}%`],
+      ["爆擊傷害",`${Math.round(player.critDamage*100)}%`],
+      ["胡蘿蔔數",player.projectiles],
+      ["穿透",player.pierce],
+      ["拾取範圍",Math.round(player.magnet)],
+      ["範圍倍率",`${player.area.toFixed(2)}×`],
+      ["胡蘿蔔旋風",`LV ${skills.orbit}`],
+      ["胡蘿蔔菜園",`LV ${skills.burst}`],
+      ["花生幫手",`LV ${skills.peanut}`]
+    ];
+    pauseStats.innerHTML=stats.map(([label,value])=>`<div class="pauseStat"><b>${label}</b><span>${value}</span></div>`).join("");
   }
-  function enterMenuDisplayMode(){
-    displayControls.classList.remove("gameSettings","hidden");
-    settingsBtn.classList.remove("visible","active");
+  function pauseGame(){
+    if(!running||ended||paused||!levelScreen.classList.contains("hidden"))return;
+    paused=true;resetStick();renderPauseStats();
+    pauseScreen.classList.remove("hidden");pauseBtn.classList.remove("visible");
   }
-  function closeGameSettings(){
-    if(!running)return;
-    displayControls.classList.add("hidden");
-    settingsBtn.classList.remove("active");
-  }
-  function toggleGameSettings(){
-    const opening=displayControls.classList.contains("hidden");
-    displayControls.classList.toggle("hidden",!opening);
-    settingsBtn.classList.toggle("active",opening);
-  }
-  function showOrientationNote(message){
-    orientationNote.textContent=message;orientationNote.style.display="block";
-    clearTimeout(noteTimer);noteTimer=setTimeout(()=>orientationNote.style.display="none",3200);
-  }
-  function fullscreenElement(){return document.fullscreenElement||document.webkitFullscreenElement;}
-  async function enterFullscreen(){
-    if(fullscreenElement())return true;
-    try{
-      if(wrap.requestFullscreen)await wrap.requestFullscreen();
-      else if(wrap.webkitRequestFullscreen)wrap.webkitRequestFullscreen();
-      else{showOrientationNote("此瀏覽器不支援網頁全螢幕，可將網頁加入主畫面");return false;}
-      return true;
-    }catch(_error){
-      showOrientationNote("瀏覽器未允許全螢幕，請再按一次全螢幕按鈕");
-      return false;
-    }
-  }
-  async function toggleFullscreen(){
-    if(fullscreenElement()){
-      if(document.exitFullscreen)await document.exitFullscreen();
-      else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
-      closeGameSettings();
-      return;
-    }
-    await enterFullscreen();
-    closeGameSettings();
-  }
-  function setLayout(mode){
-    layoutMode=mode;
-    document.body.classList.toggle("layout-landscape",mode==="landscape");
-    document.body.classList.toggle("layout-portrait",mode==="portrait");
-    landscapeBtn.classList.toggle("active",mode==="landscape");
-    portraitBtn.classList.toggle("active",mode==="portrait");
-    W=mode==="portrait"?540:960;H=mode==="portrait"?960:540;
-    canvas.width=W;canvas.height=H;ctx.imageSmoothingEnabled=false;
-    try{localStorage.setItem("bunnyDisplayLayout",mode);}catch(_error){}
-    resetStick();draw();
-  }
-  async function chooseOrientation(mode){
-    setLayout(mode);
-    await enterFullscreen();
-    try{
-      if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock(mode);
-      else showOrientationNote(`已切換${mode==="portrait"?"直向":"橫向"} UI；此瀏覽器不支援鎖定旋轉`);
-    }catch(_error){
-      showOrientationNote(`已切換${mode==="portrait"?"直向":"橫向"} UI；請手動旋轉手機`);
-    }
-    closeGameSettings();
-  }
-  function updateFullscreenButton(){
-    fullscreenBtn.textContent=fullscreenElement()?"退出全螢幕":"全螢幕";
+  function resumeGame(){
+    if(ended)return;
+    pauseScreen.classList.add("hidden");paused=false;last=performance.now();
+    pauseBtn.classList.add("visible");
   }
   function resetStick(){
     stick.active=false;stick.pointerId=null;stick.x=stick.y=0;
@@ -1641,22 +1568,15 @@
   addEventListener("keydown",e=>{if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],true);}});
   addEventListener("keyup",e=>{if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],false);}});
   addEventListener("blur",()=>{Object.keys(keys).forEach(k=>keys[k]=false);resetStick();});
-  fullscreenBtn.addEventListener("click",toggleFullscreen);
-  landscapeBtn.addEventListener("click",()=>chooseOrientation("landscape"));
-  portraitBtn.addEventListener("click",()=>chooseOrientation("portrait"));
-  settingsBtn.addEventListener("click",toggleGameSettings);
-  document.addEventListener("fullscreenchange",updateFullscreenButton);
-  document.addEventListener("webkitfullscreenchange",updateFullscreenButton);
+  pauseBtn.addEventListener("click",pauseGame);
+  resumeBtn.addEventListener("click",resumeGame);
   document.getElementById("start").onclick=()=>{timeline.seen.clear();start();};
   document.getElementById("again").onclick=()=>{
     endScreen.classList.add("hidden");
     intro.classList.remove("hidden");
-    enterMenuDisplayMode();
+    pauseScreen.classList.add("hidden");pauseBtn.classList.remove("visible");
     renderMeta();
   };
-  let savedLayout="";
-  try{savedLayout=localStorage.getItem("bunnyDisplayLayout")||"";}catch(_error){}
-  setLayout(savedLayout||((innerHeight>innerWidth&&matchMedia("(pointer:coarse)").matches)?"portrait":"landscape"));
   renderMeta();draw();requestAnimationFrame(loop);
 })();
 </script>
