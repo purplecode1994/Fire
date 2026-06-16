@@ -48,14 +48,54 @@
       color: #fff; background: #17142fbb; font-size: 20px; box-shadow: 0 3px 10px #0008;
     }
     #muteBtn.muted { background: #a83e55cc; }
-    #stageSelect { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
-    #stageSelect button { margin: 0; padding: 10px 6px; font-size: 15px; }
+    #accountBox {
+      position: absolute; left: 12px; top: 12px; z-index: 2;
+      width: 165px; padding: 8px; border: 3px solid #fff; background: #0e0b1fdd;
+      text-align: left; box-shadow: 4px 4px #0008;
+    }
+    #accountLevel { color: #fff; font: bold 20px monospace; letter-spacing: 1px; }
+    #accountExpText { margin-top: 4px; color: #d8f2ff; font-size: 12px; }
+    .expBar { height: 9px; margin-top: 5px; background: #2c244a; border: 1px solid #7d6aa0; }
+    #accountExpFill { height: 100%; width: 0; background: #ffe15b; }
+    #rewardPanel {
+      position: absolute; left: 12px; right: 12px; top: 92px; z-index: 2;
+      padding: 8px; border: 2px solid #79609b; background: #17142fcc; text-align: left;
+    }
+    #rewardPanel b { color: #ffe15b; font-size: 13px; }
+    #rewardTrack {
+      display: flex; gap: 8px; margin-top: 7px; overflow-x: auto; padding-bottom: 4px;
+      scroll-snap-type: x proximity;
+    }
+    .rewardNode {
+      flex: 0 0 86px; min-height: 72px; padding: 6px; border: 2px solid #765d96;
+      background: #302652; text-align: center; scroll-snap-align: start;
+    }
+    .rewardNode.done { border-color: #ffe15b; background: #44306d; }
+    .rewardNode small { display: block; color: #c9bddb; margin: 4px 0; }
+    .rewardNode button { margin: 0; min-height: 26px; padding: 3px 6px; font-size: 11px; }
+    .homeTitle { margin-top: 174px; }
+    #stageSelect { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px auto 0; width: min(360px,92%); }
+    #stageSelect button { margin: 0; padding: 15px 8px; font-size: 18px; }
     #stageSelect button.active { color: #fff; background: #c94e63; }
+    .cornerMenu {
+      position: absolute; left: 12px; right: 12px; bottom: 16px; z-index: 2;
+      display: flex; justify-content: space-between; gap: 12px;
+    }
+    .cornerMenu button { width: 50%; margin: 0; padding: 12px 8px; font-size: 16px; }
+    #characterScreen .panel {
+      height: min(92%,860px); display: flex; flex-direction: column; overflow: hidden;
+    }
+    #characterScreen .panelBody { min-height: 0; overflow-y: auto; padding-right: 4px; }
     #pauseStats {
       display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px;
       margin-top: 14px; text-align: left;
     }
-    #pauseScreen .panel { max-height: 90%; overflow-y: auto; }
+    #pauseScreen .panel {
+      height: min(88%,760px); display: flex; flex-direction: column; overflow: hidden;
+    }
+    #pauseScreen .panelBody { min-height: 0; overflow-y: auto; padding-right: 4px; }
+    #pauseScreen .panelFooter { padding-top: 10px; background: #231c42f2; }
+    #pauseScreen .panelFooter button { width: 100%; margin-top: 0; }
     .pauseStat { padding: 9px; border: 2px solid #765d96; background: #302652; }
     .pauseStat b { display: block; color: #9eeaff; font-size: 13px; }
     .pauseStat span { color: #fff4c7; font-size: 16px; font-weight: bold; }
@@ -89,6 +129,7 @@
       width: 100%; margin: 3px 0 0; padding: 7px 5px; font-size: 14px;
       box-shadow: inset -3px -3px #d99032,3px 3px #0b0920;
     }
+    .statCard button.flash { filter: brightness(1.35); transform: translate(2px,2px); }
     .statCard button:disabled { filter: grayscale(1); opacity: .45; cursor: default; }
     button {
       border: 0; margin-top: 15px; padding: 12px 28px; cursor: pointer;
@@ -196,13 +237,17 @@
   <canvas id="game" width="540" height="960"></canvas>
   <div id="intro" class="screen">
     <div class="panel menuPanel">
-      <h1>兔兔胡蘿蔔割草戰</h1>
-      <h2>兔兔能力・永久強化</h2>
-      <div class="metaTop">
-        <span id="metaRecord">累計擊殺 0</span>
-        <span id="metaPoints">強化點數 0</span>
+      <div id="accountBox">
+        <div id="accountLevel">LV-01</div>
+        <div class="expBar"><div id="accountExpFill"></div></div>
+        <div id="accountExpText">EXP 0 / 0</div>
       </div>
-      <div id="metaStats"></div>
+      <div id="rewardPanel">
+        <b>等級獎勵（尚未開放）</b>
+        <div id="rewardTrack"></div>
+      </div>
+      <h1 class="homeTitle">兔兔胡蘿蔔割草戰</h1>
+      <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
         <button id="desertStage" type="button">第二關・沙漠</button>
@@ -215,6 +260,23 @@
         怪潮、菁英、BOSS 與最終魔王正在接近
       </div>
       <button id="start">開始割草</button>
+      <div class="cornerMenu">
+        <button id="characterBtn" type="button">角色資訊</button>
+        <button id="shopBtn" type="button">商城（未開放）</button>
+      </div>
+    </div>
+  </div>
+  <div id="characterScreen" class="screen hidden">
+    <div class="panel menuPanel">
+      <h1>角色資訊</h1>
+      <div class="metaTop">
+        <span id="metaRecord">累計擊殺 0</span>
+        <span id="metaPoints">強化點數 0</span>
+      </div>
+      <div class="panelBody">
+        <div id="metaStats"></div>
+      </div>
+      <button id="closeCharacter" type="button">返回首頁</button>
     </div>
   </div>
   <div id="levelup" class="screen hidden">
@@ -235,8 +297,12 @@
     <div class="panel">
       <h1>遊戲暫停</h1>
       <h2>角色目前能力</h2>
-      <div id="pauseStats"></div>
-      <button id="resumeBtn" type="button">繼續遊戲</button>
+      <div class="panelBody">
+        <div id="pauseStats"></div>
+      </div>
+      <div class="panelFooter">
+        <button id="resumeBtn" type="button">繼續遊戲</button>
+      </div>
     </div>
   </div>
   <div id="touch"><div id="touchKnob"></div></div>
@@ -253,8 +319,10 @@
   const DURATION=600,wrap=document.getElementById("wrap");
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
+  const characterScreen=document.getElementById("characterScreen"),rewardTrack=document.getElementById("rewardTrack");
   const pauseScreen=document.getElementById("pauseScreen"),pauseStats=document.getElementById("pauseStats");
   const metaStatsEl=document.getElementById("metaStats"),metaPointsEl=document.getElementById("metaPoints"),metaRecordEl=document.getElementById("metaRecord");
+  const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText");
   const keys={up:false,down:false,left:false,right:false};
   const stick={active:false,pointerId:null,x:0,y:0,startX:0,startY:0};
   let running=false,paused=false,ended=false,last=0,time=0,spawnClock=0,shotClock=0;
@@ -286,7 +354,7 @@
   muted=!!meta.muted;
 
   function defaultMeta(){
-    return{points:0,totalKills:0,totalElites:0,totalBosses:0,damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,desertUnlocked:false,muted:false};
+    return{points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,desertUnlocked:false,muted:false};
   }
 
   function loadMeta(){
@@ -313,7 +381,37 @@
     return Math.ceil(def.cost*(1+tier*.5));
   }
 
+  function accountLevelInfo(){
+    let exp=Math.floor((meta.totalPlaySeconds||0)/60),level=1;
+    while(level<100){
+      const need=5+level;
+      if(exp<need)break;
+      exp-=need;level++;
+    }
+    const next=level>=100?0:5+level;
+    return{level,exp,next,total:Math.floor((meta.totalPlaySeconds||0)/60)};
+  }
+
+  function renderAccount(){
+    const info=accountLevelInfo();
+    accountLevelEl.textContent=`LV-${String(info.level).padStart(2,"0")}`;
+    accountExpFill.style.width=info.level>=100?"100%":`${Math.floor(info.exp/info.next*100)}%`;
+    accountExpText.textContent=info.level>=100?`MAX・總EXP ${info.total}`:`EXP ${info.exp} / ${info.next}`;
+    rewardTrack.innerHTML="";
+    for(let lv=5;lv<=100;lv+=5){
+      const node=document.createElement("div");
+      node.className="rewardNode"+(info.level>=lv?" done":"");
+      node.innerHTML=`<b>LV-${String(lv).padStart(2,"0")}</b><small>${info.level>=lv?"可領取":"未達成"}<br>獎勵尚未開放</small>`;
+      const btn=document.createElement("button");
+      btn.textContent="領取";
+      btn.disabled=true;
+      node.appendChild(btn);
+      rewardTrack.appendChild(node);
+    }
+  }
+
   function renderMeta(){
+    renderAccount();
     metaPointsEl.textContent=`強化點數 ${meta.points}`;
     metaRecordEl.textContent=`累計擊殺 ${meta.totalKills}・菁英 ${meta.totalElites}・BOSS ${meta.totalBosses}`;
     metaStatsEl.innerHTML="";
@@ -334,6 +432,8 @@
         meta.points-=currentCost;
         meta[def.id]++;
         saveMeta();
+        button.classList.add("flash");
+        setTimeout(()=>button.classList.remove("flash"),110);
         renderMeta();
         beep(620,.09,.025);
       };
@@ -579,7 +679,7 @@
       x:startX,y:startY,launchX:startX,launchY:startY,
       vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       traveled:0,range,phase:"out",
-      r:8*player.area,damage:(12+level*9)*player.areaDamage,
+      r:8*(level>=5?1.35:1)*player.area,damage:(12+level*9)*player.areaDamage,
       hit:new Set(),spin:0
     });
     beep(520,.08,.025,"triangle");
@@ -1200,7 +1300,7 @@
       if(currentStage===2){
         if(hash===1){rect(x+10,y+44,28,5,"#c09a58");rect(x+18,y+38,22,4,"#e2c481");}
         if(hash===3){rect(x+43,y+31,10,7,"#8d7150");rect(x+47,y+27,7,5,"#b59465");}
-        if(hash===5){rect(x+25,y+22,6,24,"#4b8b52");rect(x+18,y+28,8,6,"#4b8b52");rect(x+30,y+34,8,6,"#4b8b52");}
+        if(hash===5){rect(x+17,y+36,24,4,"#8f6b3f");rect(x+25,y+29,4,11,"#8f6b3f");rect(x+10,y+13,3,3,"#b89055");rect(x+48,y+48,2,2,"#f0d08a");}
         if(hash===6){rect(x+12,y+50,27,4,"#eee0b6");rect(x+10,y+47,6,5,"#eee0b6");}
       }else{
         if(hash===1){rect(x+12,y+15,4,12,"#3e9148");rect(x+18,y+10,4,17,"#55a64d");}
@@ -1700,6 +1800,7 @@
     const normalKills=Math.max(0,kills-eliteKills-bossKills);
     const earned=Math.floor(normalKills/25)+eliteKills*3+bossKills*10+(success?25:0)+Math.floor(time/60)*3;
     meta.points+=earned;
+    meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
     meta.totalKills+=kills;
     meta.totalElites+=eliteKills;
     meta.totalBosses+=bossKills;
@@ -1736,6 +1837,7 @@
   function setKey(k,v){keys[k]=v;}
   const touch=document.getElementById("touch"),touchKnob=document.getElementById("touchKnob"),touchHint=document.getElementById("touchHint");
   const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn"),muteBtn=document.getElementById("muteBtn");
+  const characterBtn=document.getElementById("characterBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter");
   const gardenStage=document.getElementById("gardenStage"),desertStage=document.getElementById("desertStage");
   function updateMuteButton(){
     muteBtn.textContent=muted?"🔇":"🔊";
@@ -1838,10 +1940,14 @@
   muteBtn.addEventListener("click",toggleMute);
   gardenStage.addEventListener("click",()=>{currentStage=1;renderMeta();});
   desertStage.addEventListener("click",()=>{if(meta.desertUnlocked){currentStage=2;renderMeta();}});
+  characterBtn.addEventListener("click",()=>{renderMeta();characterScreen.classList.remove("hidden");});
+  closeCharacter.addEventListener("click",()=>{characterScreen.classList.add("hidden");renderMeta();});
+  shopBtn.addEventListener("click",()=>{beep(220,.08,.02);alert("商城尚未開放");});
   document.getElementById("start").onclick=()=>{timeline.seen.clear();start();};
   document.getElementById("again").onclick=()=>{
     endScreen.classList.add("hidden");
     intro.classList.remove("hidden");
+    characterScreen.classList.add("hidden");
     pauseScreen.classList.add("hidden");pauseBtn.classList.remove("visible");
     renderMeta();
   };
