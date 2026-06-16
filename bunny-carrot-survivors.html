@@ -389,8 +389,9 @@
     plant:{hp:60,speed:34,damage:16,xp:7,r:19,color:"#dd4a45",defense:0},
     snake:{hp:35,speed:92,damage:10,xp:4,r:14,color:"#b7a83b",defense:5},
     scorpion:{hp:85,speed:44,damage:20,xp:8,r:21,color:"#9b4e35",defense:20},
-    cactus:{hp:55,speed:35,damage:12,xp:7,r:19,color:"#3d9b55",defense:10},
-    sandcloud:{hp:65,speed:48,damage:15,xp:7,r:20,color:"#b59662",defense:12},
+    mouse:{hp:32,speed:105,damage:8,xp:4,r:13,color:"#8f8b83",defense:4},
+    vulture:{hp:62,speed:72,damage:14,xp:7,r:20,color:"#6b5a4a",defense:10},
+    centipede:{hp:70,speed:58,damage:16,xp:8,r:19,color:"#b5793b",defense:14},
     stoneface:{hp:40000,speed:30,damage:30,xp:300,r:64,color:"#7d7162",defense:45}
   };
 
@@ -457,7 +458,7 @@
   }
 
   function spawnWave(count,kind="normal"){
-    const types=currentStage===2?["snake","scorpion","cactus","sandcloud","turtle"]:["turtle","mushroom","bombcloud","plant"];
+    const types=currentStage===2?["snake","scorpion","mouse","vulture","centipede"]:["turtle","mushroom","bombcloud","plant"];
     const finalCount=Math.ceil(count*(killSurgeActive?KILL_SURGE_WAVE_MULTIPLIER:1));
     for(let i=0;i<finalCount;i++)spawnEnemy(types[Math.floor(Math.random()*types.length)],kind);
     announce(
@@ -479,7 +480,7 @@
     if(escalationStart===null){
       if(sec>0&&sec%60===0&&!timeline.seen.has("early-wave"+sec)){timeline.seen.add("early-wave"+sec);spawnWave(12+sec/10);}
       if([120,270,420].includes(sec)&&!timeline.seen.has("early-elite"+sec)){timeline.seen.add("early-elite"+sec);spawnWave(2,"elite");}
-      if([180,360].includes(sec)&&!timeline.seen.has("early-boss"+sec)){timeline.seen.add("early-boss"+sec);spawnEnemy(currentStage===2?(sec===360?"scorpion":"cactus"):(sec===360?"bombcloud":"plant"),"boss");announce("BOSS 出現！",currentStage===2?"沙漠強敵正在逼近":"強敵已進入菜園","#ff775e");}
+      if([180,360].includes(sec)&&!timeline.seen.has("early-boss"+sec)){timeline.seen.add("early-boss"+sec);spawnEnemy(currentStage===2?(sec===360?"scorpion":"centipede"):(sec===360?"bombcloud":"plant"),"boss");announce("BOSS 出現！",currentStage===2?"沙漠強敵正在逼近":"強敵已進入菜園","#ff775e");}
     }else if(sec<DURATION){
       const elapsed=Math.floor(time-escalationStart);
       const waveSlot=Math.floor(elapsed/30);
@@ -487,7 +488,7 @@
       const bossSlot=Math.floor(elapsed/120);
       if(waveSlot>0&&!timeline.seen.has("rush-wave"+waveSlot)){timeline.seen.add("rush-wave"+waveSlot);spawnWave(20+Math.floor(time/30));}
       if(eliteSlot>0&&!timeline.seen.has("rush-elite"+eliteSlot)){timeline.seen.add("rush-elite"+eliteSlot);spawnWave(2+Math.floor(time/240),"elite");}
-      if(bossSlot>0&&!timeline.seen.has("rush-boss"+bossSlot)){timeline.seen.add("rush-boss"+bossSlot);spawnEnemy(currentStage===2?(bossSlot%2?"scorpion":"cactus"):(bossSlot%2?"plant":"bombcloud"),"boss");announce("終盤 BOSS 出現！","高威脅敵人加入戰場","#ff775e");}
+      if(bossSlot>0&&!timeline.seen.has("rush-boss"+bossSlot)){timeline.seen.add("rush-boss"+bossSlot);spawnEnemy(currentStage===2?(bossSlot%2?"scorpion":"vulture"):(bossSlot%2?"plant":"bombcloud"),"boss");announce("終盤 BOSS 出現！","高威脅敵人加入戰場","#ff775e");}
     }
 
     if(sec>=DURATION&&!timeline.seen.has("final")){
@@ -897,6 +898,9 @@
       if(e.dead)continue;e.hit=Math.max(0,e.hit-dt);e.attack-=dt;e.shoot-=dt;e.slow=Math.max(0,e.slow-dt);
       let a=Math.atan2(player.y-e.y,player.x-e.x),speed=e.speed;
       if(e.type==="bombcloud")a+=Math.sin(time*2+e.id)*.5;
+      if(e.type==="snake")a+=Math.sin(time*5+e.id)*.32;
+      if(e.type==="vulture"){a+=Math.sin(time*3.2+e.id)*.22;speed*=1+.18*Math.sin(time*4+e.id);}
+      if(e.type==="centipede")a+=Math.sin(time*7+e.id)*.18;
       for(const crater of effects){
         if(crater.kind==="crater"&&dist(e,crater)<crater.r+e.r*.35){
           e.slow=Math.max(e.slow,1.25);
@@ -905,10 +909,10 @@
       }
       if(e.slow>0)speed*=.48;
       e.x+=Math.cos(a)*speed*dt;e.y+=Math.sin(a)*speed*dt;
-      const ranged=e.type==="plant"||e.type==="cactus";
+      const ranged=e.type==="plant";
       if(ranged&&e.shoot<=0&&dist(e,player)<650){
         const shotSpeed=e.kind==="normal"?185:e.kind==="elite"?225:250;
-        enemyShots.push({kind:e.type==="cactus"?"needle":"normal",x:e.x,y:e.y,vx:Math.cos(a)*shotSpeed,vy:Math.sin(a)*shotSpeed,r:e.kind==="normal"?7:10,damage:e.damage*.55,life:4,poison:e.type==="cactus"?(e.kind==="boss"?rand(.004,.005):e.kind==="elite"?rand(.0025,.004):rand(.001,.0025)):0});
+        enemyShots.push({kind:"normal",x:e.x,y:e.y,vx:Math.cos(a)*shotSpeed,vy:Math.sin(a)*shotSpeed,r:e.kind==="normal"?7:10,damage:e.damage*.55,life:4,poison:0});
         e.shoot=e.kind==="normal"?rand(2.1,3.2):e.kind==="elite"?rand(1.3,2):rand(.8,1.35);
       }
       if(e.kind==="final"&&e.type==="stoneface"){
@@ -1078,7 +1082,7 @@
     if(finalPhase==="none"&&time<DURATION&&spawnClock<=0){
       spawnClock=Math.max(.12,.7/intensity);
       const types=currentStage===2
-        ?(time<60?["snake","cactus"]:time<240?["snake","cactus","sandcloud"]:["snake","cactus","sandcloud","scorpion","turtle"])
+        ?(time<60?["snake","mouse"]:time<240?["snake","mouse","vulture"]:["snake","mouse","vulture","centipede","scorpion"])
         :(time<60?["turtle","mushroom"]:time<240?["turtle","mushroom","bombcloud"]:["turtle","mushroom","bombcloud","plant"]);
       for(let i=0;i<Math.min(4,Math.ceil(intensity/2));i++)spawnEnemy(types[Math.floor(Math.random()*types.length)]);
     }
@@ -1271,10 +1275,13 @@
       rect(-16,5,8,8,"#a99b35");rect(-9,0,8,9,"#c7b943");rect(-2,-5,8,10,"#a99b35");rect(5,-10,13,13,"#d5c64d");rect(11,-7,3,3,"#231c25");rect(17,-3,6,2,"#d6534c");
     }else if(e.type==="scorpion"){
       rect(-14,-5,27,17,"#9b4e35");rect(-18,-3,7,12,"#cc7547");rect(12,-3,7,12,"#cc7547");rect(-21,-12,9,7,"#8b402f");rect(13,-12,9,7,"#8b402f");rect(8,9,6,7,"#7b382d");rect(12,14,6,7,"#7b382d");rect(15,19,5,5,"#362329");
-    }else if(e.type==="cactus"){
-      rect(-8,-15,16,34,"#3d9b55");rect(-16,-7,9,7,"#55b966");rect(-16,-7,6,15,"#55b966");rect(7,0,10,7,"#55b966");rect(12,-8,5,15,"#55b966");rect(-4,-7,3,4,"#171624");rect(3,-7,3,4,"#171624");
-    }else if(e.type==="sandcloud"){
-      rect(-18,-7,35,18,"#aa8c5e");rect(-11,-14,23,25,"#c6a872");rect(-8,-4,5,4,"#312824");rect(5,-4,5,4,"#312824");rect(13,-15,12,5,"#7b6040");
+    }else if(e.type==="mouse"){
+      rect(-14,-6,27,16,"#85817a");rect(-18,-9,9,8,"#aaa49a");rect(7,-10,9,8,"#aaa49a");rect(8,-1,4,4,"#211b20");rect(-3,0,5,3,"#f0c2ba");rect(12,5,13,3,"#6f6a64");rect(-9,9,8,4,"#c5b9a8");rect(4,9,8,4,"#c5b9a8");
+    }else if(e.type==="vulture"){
+      rect(-8,-13,16,26,"#5e4f43");rect(-20,-5,15,8,"#806b56");rect(5,-5,15,8,"#806b56");rect(-6,-17,12,9,"#c7b69f");rect(-3,-15,3,3,"#191624");rect(3,-15,3,3,"#191624");rect(-2,-9,4,8,"#d6a13e");rect(-8,14,5,6,"#6f5130");rect(3,14,5,6,"#6f5130");
+    }else if(e.type==="centipede"){
+      for(let i=0;i<5;i++){rect(-22+i*9,-5+Math.sin(time*8+i)*2,10,11,i%2?"#a76736":"#c1823f");rect(-20+i*9,6,3,5,"#6b3a26");}
+      rect(20,-7,12,14,"#d19a4d");rect(25,-3,3,3,"#211b20");rect(30,-1,6,2,"#d65045");
     }else if(e.type==="stoneface"){
       rect(-17,-18,34,38,"#746b60");rect(-13,-14,26,30,"#948779");rect(-10,-7,7,7,"#241f20");rect(4,-7,7,7,"#241f20");rect(-7,7,14,5,"#443c38");rect(-22,-12,7,28,"#5e574f");rect(15,-12,7,28,"#5e574f");
     }else{
@@ -1382,10 +1389,6 @@
 
   function drawEnemyShot(shot){
     const p=worldToScreen(shot.x,shot.y);
-    if(shot.kind==="needle"){
-      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(shot.vy,shot.vx));
-      rect(-10,-2,20,4,"#d9ef7a");rect(6,-1,7,2,"#62994d");ctx.restore();return;
-    }
     ctx.globalAlpha=.28;ctx.fillStyle="#ff263f";ctx.beginPath();ctx.arc(p.x,p.y,shot.r+7,0,Math.PI*2);ctx.fill();
     ctx.globalAlpha=1;ctx.fillStyle="#d71932";ctx.beginPath();ctx.arc(p.x,p.y,shot.r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle="#ff8b76";ctx.beginPath();ctx.arc(p.x-shot.r*.28,p.y-shot.r*.3,Math.max(2,shot.r*.3),0,Math.PI*2);ctx.fill();
