@@ -753,7 +753,6 @@
   <button id="pauseBtn" type="button" aria-label="暫停遊戲"><span class="pixelIcon pixelPause" aria-hidden="true"></span></button>
   <button id="muteBtn" type="button" aria-label="切換音效"><span class="pixelIcon pixelSound" aria-hidden="true"></span></button>
 </div>
-<script src="bunny-crit-sample.js"></script>
 <script>
 (() => {
   "use strict";
@@ -1306,11 +1305,51 @@
     imp:{hp:260,speed:78,damage:34,xp:20,r:21,color:"#aa3348",defense:24},
     reaper:{hp:98000,speed:36,damage:42,xp:520,r:68,color:"#331421",defense:60}
   };
+  // Optional external audio files:
+  // audio/crit.wav.wav
+  // audio/small-carrot.wav
+  // audio/giant-launch.wav
+  // audio/giant-explosion.wav
+  const externalAudioDefs={
+    crit:"audio/crit.wav.wav",
+    smallCarrot:"audio/small-carrot.wav",
+    giantLaunch:"audio/giant-launch.wav",
+    giantExplosion:"audio/giant-explosion.wav"
+  };
+  const externalAudio={};
+
+  function initExternalAudio(){
+    for(const [key,src] of Object.entries(externalAudioDefs)){
+      if(externalAudio[key])continue;
+      const el=new Audio(src);
+      el.preload="auto";
+      externalAudio[key]={el,ok:null};
+      el.addEventListener("canplaythrough",()=>{ if(externalAudio[key])externalAudio[key].ok=true; },{once:true});
+      el.addEventListener("error",()=>{ if(externalAudio[key])externalAudio[key].ok=false; },{once:true});
+      el.load();
+    }
+  }
+
+  function playExternalAudio(key,volume=1,rate=1){
+    const entry=externalAudio[key];
+    if(!entry||entry.ok!==true||muted)return false;
+    try{
+      const clone=entry.el.cloneNode();
+      clone.volume=Math.max(0,Math.min(1,volume));
+      clone.playbackRate=Math.max(.5,Math.min(2,rate));
+      const p=clone.play();
+      if(p&&typeof p.catch==="function")p.catch(()=>{});
+      return true;
+    }catch{
+      return false;
+    }
+  }
 
   function initAudio(){
     if(muted)return;
     if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();
     if(audio.state==="suspended")audio.resume();
+    initExternalAudio();
     if(!critSampleBuffer&&!critSampleLoading&&window.RO_CRIT_WAV_BASE64){
       critSampleLoading=true;
       const binary=atob(window.RO_CRIT_WAV_BASE64);
@@ -1324,8 +1363,74 @@
     }
   }
   function beep(f,d=.06,v=.025,type="square"){if(!audio||muted)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);}
+  function playSmallCarrotSound(){
+    if(playExternalAudio("smallCarrot",.42,1))return;
+    if(!audio||muted)return;
+    const t=audio.currentTime;
+    const osc=audio.createOscillator();
+    const gain=audio.createGain();
+    const filter=audio.createBiquadFilter();
+    osc.type="triangle";
+    osc.frequency.setValueAtTime(420,t);
+    osc.frequency.linearRampToValueAtTime(900,t+.025);
+    filter.type="bandpass";
+    filter.frequency.setValueAtTime(1450,t);
+    filter.Q.setValueAtTime(1.1,t);
+    gain.gain.setValueAtTime(.0001,t);
+    gain.gain.exponentialRampToValueAtTime(.045,t+.004);
+    gain.gain.exponentialRampToValueAtTime(.016,t+.025);
+    gain.gain.exponentialRampToValueAtTime(.0001,t+.03);
+    osc.connect(filter).connect(gain).connect(audio.destination);
+    osc.start(t);
+    osc.stop(t+.05);
+  }
+  function playGiantLaunchSound(){
+    if(playExternalAudio("giantLaunch",.56,1))return;
+    if(!audio||muted)return;
+    const t=audio.currentTime;
+    const osc=audio.createOscillator();
+    const gain=audio.createGain();
+    osc.type="sawtooth";
+    osc.frequency.setValueAtTime(170,t);
+    osc.frequency.exponentialRampToValueAtTime(110,t+.08);
+    gain.gain.setValueAtTime(.0001,t);
+    gain.gain.exponentialRampToValueAtTime(.06,t+.006);
+    gain.gain.exponentialRampToValueAtTime(.0001,t+.11);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(t);
+    osc.stop(t+.13);
+  }
+  function playCritFallback(volume=1,rate=1){
+    if(!audio||muted)return;
+    const t=audio.currentTime;
+    const main=audio.createOscillator();
+    const harm=audio.createOscillator();
+    const gain=audio.createGain();
+    const boost=Math.max(.75,Math.min(1.25,rate));
+    main.type="triangle";
+    harm.type="square";
+    main.frequency.setValueAtTime(880*boost,t);
+    main.frequency.exponentialRampToValueAtTime(1420*boost,t+.06);
+    harm.frequency.setValueAtTime(1320*boost,t);
+    harm.frequency.exponentialRampToValueAtTime(1880*boost,t+.045);
+    gain.gain.setValueAtTime(.0001,t);
+    gain.gain.exponentialRampToValueAtTime(.05*Math.max(.35,Math.min(1,volume)),t+.004);
+    gain.gain.exponentialRampToValueAtTime(.0001,t+.085);
+    main.connect(gain);
+    harm.connect(gain);
+    gain.connect(audio.destination);
+    main.start(t);
+    harm.start(t);
+    main.stop(t+.09);
+    harm.stop(t+.07);
+  }
   function playCritSample(volume=1,rate=1){
-    if(muted||!audio||!critSampleBuffer)return;
+    if(muted||!audio)return;
+    if(playExternalAudio("crit",Math.max(.25,Math.min(.85,volume*.9)),rate))return;
+    if(!critSampleBuffer){
+      playCritFallback(volume,rate);
+      return;
+    }
     const source=audio.createBufferSource();
     const gain=audio.createGain();
     source.buffer=critSampleBuffer;
@@ -1340,7 +1445,7 @@
     const d=Math.max(.04,duration);
     const gain=audio.createGain();
     gain.gain.setValueAtTime(.0001,t);
-    gain.gain.exponentialRampToValueAtTime(.018,t+.01);
+    gain.gain.exponentialRampToValueAtTime(.01,t+.01);
     gain.gain.exponentialRampToValueAtTime(.0001,t+d);
     gain.connect(audio.destination);
 
@@ -1361,14 +1466,15 @@
       high.type="triangle";
       high.frequency.setValueAtTime(baseFreq*2.02,t);
       highGain.gain.setValueAtTime(.0001,t);
-      highGain.gain.exponentialRampToValueAtTime(overtone*.018,t+.008);
+      highGain.gain.exponentialRampToValueAtTime(overtone*.01,t+.008);
       highGain.gain.exponentialRampToValueAtTime(.0001,t+d*.7);
       high.connect(highGain).connect(audio.destination);
       high.start(t);
       high.stop(t+d*.72);
     }
   }
-  function playGiantExplosionSound({startFreq=80,duration=.1,noiseGain=0,rippleSpeed=10,jitterDepth=10}={}){
+  function playGiantExplosionSound({startFreq=80,duration=.14,noiseGain=.18,rippleSpeed=12,jitterDepth=10}={}){
+    if(playExternalAudio("giantExplosion",.72,1))return;
     if(!audio||muted)return;
     const t=audio.currentTime;
     const d=Math.max(.08,duration);
@@ -1385,7 +1491,7 @@
       osc.frequency.linearRampToValueAtTime(wobble,at);
     }
     oscGain.gain.setValueAtTime(.0001,t);
-    oscGain.gain.exponentialRampToValueAtTime(.055,t+.012);
+    oscGain.gain.exponentialRampToValueAtTime(.085,t+.01);
     oscGain.gain.exponentialRampToValueAtTime(.0001,t+d);
     osc.connect(oscGain).connect(audio.destination);
     osc.start(t);
@@ -1762,10 +1868,10 @@
           r:18*player.area,life:2.2,damage:player.damage*12.8*player.areaDamage,pierce:0,angle:a
         });
         giantCarrotCooldown=3;
-        beep(170,.14,.035,"sawtooth");
+        playGiantLaunchSound();
       }
     }
-    if(firedCount>0)beep(360,.035,.012);
+    if(firedCount>0)playSmallCarrotSound();
   }
 
   function firePet(){
