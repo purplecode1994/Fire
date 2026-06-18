@@ -794,6 +794,8 @@
   let bossArena={active:false,x:0,y:0,r:360};
   let audio=null,muted=false;
   let critSampleBuffer=null,critSampleLoading=false;
+  let xpSoundLastTime=0,gemMergeTimer=0;
+  let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
 
   const META_KEY="bunnyCarrotSurvivorsMetaV1";
   const BASE_META_DAMAGE=18;
@@ -832,7 +834,7 @@
   muted=!!meta.muted;
 
   function defaultMeta(){
-    return{points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,desertUnlocked:false,muted:false};
+    return{points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,desertUnlocked:false,muted:false,cheat8888Used:false};
   }
 
   function scaledMetaGain(levels,baseStep,tierGrowth){
@@ -1467,6 +1469,9 @@
   }
   function playXpPickupSound({waveform="sine",baseFreq=2169,duration=.2,overtone=.05,rippleCount=1}={}){
     if(!audio||muted)return;
+    const now=performance.now();
+    if(now-xpSoundLastTime<45)return;
+    xpSoundLastTime=now;
     const t=audio.currentTime;
     const d=Math.max(.04,duration);
     const gain=audio.createGain();
@@ -1553,6 +1558,51 @@
     o.connect(g).connect(audio.destination);
     o.start(t);
     o.stop(t+d+.02);
+  }
+  function gemStackTier(count){
+    if(count<=10)return {color:"#73c8ff",leaf:"#dff6ff",glow:"#73c8ff"};
+    if(count<=20)return {color:"#f5d253",leaf:"#fff6bd",glow:"#ffe15b"};
+    return {color:"#ef5b62",leaf:"#ffd0d5",glow:"#ff7a86"};
+  }
+  function mergeNearbyGems(){
+    if(gems.length<2)return;
+    const cellSize=26;
+    const buckets=new Map();
+    const candidates=[];
+    for(const g of gems){
+      if(g.dead||g.stackCount>=30||time-(g.spawnTime||time)<3)continue;
+      candidates.push(g);
+      const cx=Math.floor(g.x/cellSize),cy=Math.floor(g.y/cellSize);
+      const key=`${cx},${cy}`;
+      if(!buckets.has(key))buckets.set(key,[]);
+      buckets.get(key).push(g);
+    }
+    for(const g of candidates){
+      if(g.dead||g.stackCount>=30)continue;
+      const cx=Math.floor(g.x/cellSize),cy=Math.floor(g.y/cellSize);
+      for(let ox=-1;ox<=1;ox++){
+        for(let oy=-1;oy<=1;oy++){
+          const bucket=buckets.get(`${cx+ox},${cy+oy}`);
+          if(!bucket)continue;
+          for(const other of bucket){
+            if(other===g||other.dead||other.stackCount>=30)continue;
+            if(time-(other.spawnTime||time)<3)continue;
+            if(dist(g,other)>10)continue;
+            const room=30-g.stackCount;
+            if(room<=0)break;
+            const transfer=Math.min(room,other.stackCount||1);
+            if(transfer<=0)continue;
+            g.value+=other.value*(transfer/(other.stackCount||1));
+            g.stackCount+=transfer;
+            g.spawnTime=Math.min(g.spawnTime||time,other.spawnTime||time);
+            other.stackCount-=transfer;
+            other.value*=other.stackCount>0?other.stackCount/(other.stackCount+transfer):0;
+            if(other.stackCount<=0)other.dead=true;
+            if(g.stackCount>=30)break;
+          }
+        }
+      }
+    }
   }
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const rand=(a,b)=>a+Math.random()*(b-a);
@@ -1876,14 +1926,27 @@
   function fireCarrots(){
     if(!enemies.length&&!chests.some(c=>!c.opened))return;
     carrotVolley++;
-    const used=new Set();
     let firedCount=0;
-    for(let i=0;i<player.projectiles;i++){
-      let target=nearest(player.x,player.y,used);if(!target){used.clear();target=nearest(player.x,player.y,used);}if(!target)break;
-      used.add(target.id);
-      const a=Math.atan2(target.y-player.y,target.x-player.x)+rand(-.025,.025);
-      shots.push({x:player.x,y:player.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:6*player.area,life:1.8,damage:player.damage*player.areaDamage,pierce:player.pierce,angle:a});
-      firedCount++;
+    const target=nearest(player.x,player.y);
+    if(target){
+      const baseAngle=Math.atan2(target.y-player.y,target.x-player.x);
+      const spreadStep=player.projectiles<=3?.09:player.projectiles<=6?.12:.14;
+      const centerOffset=(player.projectiles-1)/2;
+      for(let i=0;i<player.projectiles;i++){
+        const spread=(i-centerOffset)*spreadStep;
+        const a=baseAngle+spread+rand(-.012,.012);
+        shots.push({x:player.x,y:player.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:6*player.area,life:1.8,damage:player.damage*player.areaDamage,pierce:player.pierce,angle:a});
+        firedCount++;
+      }
+    }else{
+      const fallbackAngle=player.facing<0?Math.PI:0;
+      const spreadStep=player.projectiles<=3?.09:player.projectiles<=6?.12:.14;
+      const centerOffset=(player.projectiles-1)/2;
+      for(let i=0;i<player.projectiles;i++){
+        const a=fallbackAngle+(i-centerOffset)*spreadStep;
+        shots.push({x:player.x,y:player.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:6*player.area,life:1.8,damage:player.damage*player.areaDamage,pierce:player.pierce,angle:a});
+        firedCount++;
+      }
     }
     if(player.projectiles>=5&&giantCarrotCooldown<=0){
       const target=nearest(player.x,player.y);
@@ -2020,7 +2083,7 @@
     if(e.kind==="elite")eliteKills++;if(e.kind==="boss"||e.kind==="final")bossKills++;
     if(player.level<MAX_PLAYER_LEVEL){
       const count=e.kind==="normal"?1:e.kind==="elite"?5:e.kind==="boss"?12:25;
-      for(let i=0;i<count;i++)gems.push({id:nextId++,x:e.x+rand(-e.r,e.r),y:e.y+rand(-e.r,e.r),value:e.xp/count,type:Math.floor(Math.random()*5),r:9,phase:Math.random()*6.28});
+      for(let i=0;i<count;i++)gems.push({id:nextId++,x:e.x+rand(-e.r,e.r),y:e.y+rand(-e.r,e.r),value:e.xp/count,type:Math.floor(Math.random()*5),r:9,phase:Math.random()*6.28,spawnTime:time,stackCount:1});
     }
     burst(e.x,e.y,e.kind==="normal"?"#ffe174":"#ff6b68",e.kind==="normal"?5:18);
     if(source==="orbit"&&skills.orbit>=5){
@@ -2565,12 +2628,21 @@
       if(magnetAll||d<player.magnet){const a=Math.atan2(player.y-g.y,player.x-g.x),sp=magnetAll?650:180+(player.magnet-d)*4;g.x+=Math.cos(a)*sp*dt;g.y+=Math.sin(a)*sp*dt;}
       if(d<player.r+9){g.dead=true;gainXp(g.value);playXpPickupSound({waveform:"sine",baseFreq:2169,duration:.2,overtone:.05,rippleCount:1});}
     }
+    gemMergeTimer+=dt;
+    if(gemMergeTimer>=.45){
+      gemMergeTimer=0;
+      mergeNearbyGems();
+    }
     gems=gems.filter(g=>!g.dead&&(magnetAll||dist(g,player)<1300));
     if(!gems.length){magnetAll=false;magnetTimer=0;}
   }
 
   function update(dt){
     if(!running||paused||ended)return;
+    debugFrameMs=debugFrameMs*.88+dt*1000*.12;
+    debugPeakFrameMs=Math.max(debugFrameMs,debugPeakFrameMs*.965);
+    debugFps=1000/Math.max(1,debugFrameMs);
+    if(performance&&performance.memory&&performance.memory.usedJSHeapSize)debugHeapMb=performance.memory.usedJSHeapSize/1048576;
     time+=dt;timeline();updateAnnouncements(dt);
     kpsWindowTime+=dt;
     if(kpsWindowTime>=.5){
@@ -2965,15 +3037,28 @@
 
   function drawGem(g){
     const p=worldToScreen(g.x,g.y),colors=["#f07a32","#7fc957","#d54743","#f5d253","#a8da73"];
+    const stack=Math.max(1,g.stackCount||1);
+    const tier=gemStackTier(stack);
     const bob=Math.round(Math.sin(time*5+g.phase)*2),x=p.x,y=p.y+bob;
+    ctx.globalAlpha=.18+.08*Math.sin(time*6+g.phase);
+    ctx.fillStyle=tier.glow;
+    ctx.beginPath();ctx.arc(x,y,stack>=21?15:stack>=11?13:11,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
     rect(x-8,y-8,16,16,"#273c36");
-    rect(x-6,y-6,12,12,colors[g.type]);
-    rect(x-3,y-10,6,5,"#3f9548");
-    rect(x-1,y-12,4,5,"#78d260");
+    rect(x-6,y-6,12,12,stack>1?tier.color:colors[g.type]);
+    rect(x-3,y-10,6,5,stack>1?tier.leaf:"#3f9548");
+    rect(x-1,y-12,4,5,stack>1?"#ffffff":"#78d260");
     rect(x-4,y-4,4,4,"#fff4a0");
     if(Math.sin(time*7+g.phase)>.55){
       rect(x-12,y-1,4,2,"#fff8bd");rect(x+9,y-1,4,2,"#fff8bd");
       rect(x-1,y-15,2,4,"#fff8bd");rect(x-1,y+10,2,4,"#fff8bd");
+    }
+    if(stack>1){
+      ctx.fillStyle="#0f1224";
+      ctx.font="bold 11px monospace";
+      ctx.textAlign="center";
+      ctx.fillText(`+${stack}`,x,y+22);
+      ctx.textAlign="left";
     }
   }
 
@@ -3322,6 +3407,59 @@
     if(time<4){ctx.textAlign="center";ctx.font="bold 20px sans-serif";ctx.fillStyle="#fff";ctx.fillText("WASD / 方向鍵移動，武器自動攻擊",W/2,H-34);ctx.textAlign="left";}
   }
 
+  function debugColor(value,warn,danger,invert=false){
+    if(invert){
+      if(value<=warn)return "#7eff8f";
+      if(value<=danger)return "#ffe57a";
+      return "#ff6d78";
+    }
+    if(value>=danger)return "#ff6d78";
+    if(value>=warn)return "#ffe57a";
+    return "#7eff8f";
+  }
+
+  function drawDebugOverlay(){
+    if(!debugOverlayEnabled||!running)return;
+    const heapSupported=!!(performance&&performance.memory&&performance.memory.usedJSHeapSize);
+    const heapText=heapSupported?`${debugHeapMb.toFixed(1)} MB`:"N/A";
+    const rows=[
+      ["FPS",`${debugFps.toFixed(1)}`,debugColor(debugFps,55,40,true)],
+      ["Frame",`${debugFrameMs.toFixed(1)} ms`,debugColor(debugFrameMs,18,28)],
+      ["Peak",`${debugPeakFrameMs.toFixed(1)} ms`,debugColor(debugPeakFrameMs,24,40)],
+      ["壓力",`${Math.round(encirclementPressure*100)}%`,debugColor(encirclementPressure*100,45,75)],
+      ["KPS",`${kps.toFixed(1)}`,debugColor(kps,10,25)],
+      ["怪物",`${livingEnemyCount()}`,debugColor(livingEnemyCount(),120,180)],
+      ["經驗球",`${gems.length}`,debugColor(gems.length,120,220)],
+      ["特效",`${effects.length}`,debugColor(effects.length,100,180)],
+      ["文字",`${texts.length}`,debugColor(texts.length,30,60)],
+      ["射彈",`${shots.length+petShots.length+enemyShots.length}`,debugColor(shots.length+petShots.length+enemyShots.length,60,120)],
+      ["Heap",heapText,heapSupported?debugColor(debugHeapMb,80,140):"#d7d0ec"]
+    ];
+    const x=12,y=132,rowH=18,w=170,h=rows.length*rowH+18;
+    ctx.save();
+    ctx.globalAlpha=.88;
+    rect(x,y,w,h,"#0f1024");
+    ctx.globalAlpha=1;
+    ctx.strokeStyle="#7b67a7";
+    ctx.lineWidth=2;
+    ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+    ctx.fillStyle="#b8f1ff";
+    ctx.font="bold 13px monospace";
+    ctx.fillText("DEV MONITOR",x+10,y+16);
+    ctx.font="bold 12px monospace";
+    for(let i=0;i<rows.length;i++){
+      const [label,value,color]=rows[i];
+      const py=y+34+i*rowH;
+      ctx.fillStyle="#f4efff";
+      ctx.fillText(label,x+10,py);
+      ctx.textAlign="right";
+      ctx.fillStyle=color;
+      ctx.fillText(value,x+w-10,py);
+      ctx.textAlign="left";
+    }
+    ctx.restore();
+  }
+
   function drawFinalBossBar(){
     const boss=enemies.find(e=>e.kind==="final"&&!e.dead);
     if(!boss)return;
@@ -3395,6 +3533,7 @@
     }
     ctx.globalAlpha=1;ctx.textAlign="left";ctx.textBaseline="alphabetic";
     drawHUD();
+    drawDebugOverlay();
     drawFinalBossBar();
     drawChestHints();
     drawAnnouncement();
@@ -3620,12 +3759,30 @@
   shopBtn.addEventListener("click",()=>{beep(220,.08,.02);alert("商城尚未開放");});
   devModeBtn.addEventListener("click",()=>{
     const password=prompt("輸入開發密碼");
-    if(password!=="00516"){beep(140,.08,.02,"sawtooth");return;}
-    devModeActive=true;
-    rewardScreen.classList.add("hidden");
-    renderMeta();
-    characterScreen.classList.remove("hidden");
-    beep(760,.1,.03,"triangle");
+    if(password==="00516"){
+      devModeActive=true;
+      debugOverlayEnabled=true;
+      rewardScreen.classList.add("hidden");
+      renderMeta();
+      characterScreen.classList.remove("hidden");
+      beep(760,.1,.03,"triangle");
+      return;
+    }
+    if(password==="8888"){
+      if(meta.cheat8888Used){
+        beep(140,.08,.02,"sawtooth");
+        alert("8888 已經使用過了，除非刪除紀錄。");
+        return;
+      }
+      meta.cheat8888Used=true;
+      meta.points+=20000;
+      saveMeta();
+      renderMeta();
+      beep(980,.14,.04,"triangle");
+      alert("已獲得 20000 強化點數。");
+      return;
+    }
+    beep(140,.08,.02,"sawtooth");
   });
   devResetBtn.addEventListener("click",()=>{
     if(!devModeActive)return;
