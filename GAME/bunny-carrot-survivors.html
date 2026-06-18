@@ -786,6 +786,7 @@
   let carrotVolley=0,pinkyBoostTimer=0,pinkyDamageBoost=1;
   let poisonTimer=0,poisonRate=0,stunTimer=0,potionHealTimer=0,currentStage=1,infiniteBossZone=0;
   let encirclementPressure=0,encirclementTick=0,encirclementDotTimer=0,encirclementDotRate=0;
+  let encirclementReservedHp=0,encirclementSectorBits=0,encirclementSectorCount=0,encirclementEvalTimer=0,encirclementFullHold=0,encirclementPrewarn=false;
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
   let runRewarded=false,transitioning=false;
   let escalationStart=null;
@@ -796,6 +797,8 @@
   let critSampleBuffer=null,critSampleLoading=false;
   let xpSoundLastTime=0,gemMergeTimer=0;
   let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
+  let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
+  let petTargetCache=null,petTargetTimer=0,bananaTargetCache=null,bananaTargetTimer=0;
 
   const META_KEY="bunnyCarrotSurvivorsMetaV1";
   const BASE_META_DAMAGE=18;
@@ -812,6 +815,7 @@
   const MAX_PLAYER_LEVEL=100;
   const FIXED_MAGNET_RANGE=120;
   const BURST_RADIUS_CAP=170;
+  const MAX_NORMAL_TEXTS=42;
 
   function metaCritChance(levels){
     const level=Math.max(0,Math.min(100,levels));
@@ -846,11 +850,11 @@
     return 55*player.area;
   }
   function encirclementStagePercent(fill){
-    if(fill<.2)return .01;
-    if(fill<.4)return .03;
-    if(fill<.6)return .10;
-    if(fill<.8)return .20;
-    return .50;
+    if(fill<.2)return 0;
+    if(fill<.4)return .01;
+    if(fill<.6)return .05;
+    if(fill<.8)return .12;
+    return .20;
   }
 
   function loadMeta(){
@@ -1566,7 +1570,7 @@
   }
   function mergeNearbyGems(){
     if(gems.length<2)return;
-    const cellSize=26;
+    const cellSize=42;
     const buckets=new Map();
     const candidates=[];
     for(const g of gems){
@@ -1587,7 +1591,7 @@
           for(const other of bucket){
             if(other===g||other.dead||other.stackCount>=30)continue;
             if(time-(other.spawnTime||time)<3)continue;
-            if(dist(g,other)>10)continue;
+            if(dist(g,other)>26)continue;
             const room=30-g.stackCount;
             if(room<=0)break;
             const transfer=Math.min(room,other.stackCount||1);
@@ -1706,6 +1710,7 @@
     giantCarrotCooldown=0;
     chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;
     encirclementPressure=0;encirclementTick=0;encirclementDotTimer=0;encirclementDotRate=0;
+    encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementEvalTimer=0;encirclementFullHold=0;encirclementPrewarn=false;
     infiniteClearCount=0;
     poisonTimer=poisonRate=stunTimer=0;
     potionHealTimer=0;
@@ -1964,7 +1969,12 @@
   }
 
   function firePet(){
-    const target=nearest(player.x,player.y);if(!target)return;
+    petTargetTimer-=1/60;
+    if(!petTargetCache||petTargetTimer<=0||petTargetCache.dead||petTargetCache.hp<=0||!inTargetView(petTargetCache)){
+      petTargetCache=nearest(player.x,player.y);
+      petTargetTimer=.12;
+    }
+    const target=petTargetCache;if(!target)return;
     const a=Math.atan2(target.y-player.y,target.x-player.x);
     const evolved=skills.peanut>=5;
     petShots.push({
@@ -1977,7 +1987,12 @@
 
   function fireBanana(){
     const level=skills.pinky;
-    const target=nearest(player.x,player.y);
+    bananaTargetTimer-=1/60;
+    if(!bananaTargetCache||bananaTargetTimer<=0||bananaTargetCache.dead||bananaTargetCache.hp<=0||!inTargetView(bananaTargetCache)){
+      bananaTargetCache=nearest(player.x,player.y);
+      bananaTargetTimer=.14;
+    }
+    const target=bananaTargetCache;
     const angle=target?Math.atan2(target.y-player.y,target.x-player.x):(player.facing<0?Math.PI:0);
     const startX=player.x+Math.cos(angle)*30,startY=player.y+Math.sin(angle)*30;
     const speed=310+level*24,range=(170+level*18)*player.area;
@@ -2292,17 +2307,10 @@
   function startEncirclementDot(percent){
     encirclementDotRate=Math.max(encirclementDotRate,percent/5);
     encirclementDotTimer=5;
+    encirclementReservedHp=Math.max(encirclementReservedHp,player.maxHp*percent);
     burst(player.x,player.y,"#ff7b96",7);
     text(player.x,player.y-52,`窒息 ${Math.round(percent*100)}% / 5秒`,"#ffb0cb",18,"pickup");
     beep(95,.18,.032,"sawtooth");
-  }
-  function applyEncirclementDamage(percent){
-    const damage=Math.max(1,player.maxHp*percent);
-    player.hp-=damage;
-    burst(player.x,player.y,"#ff7b96",7);
-    text(player.x,player.y-52,`窒息 -${Math.round(percent*100)}%`,"#ffb0cb",18,"pickup");
-    beep(95,.18,.032,"sawtooth");
-    if(player.hp<=0)lose();
   }
 
   function giantCarrotImpact(shot){
@@ -2379,9 +2387,21 @@
 
   function updateEnemies(dt){
     const dangerRadius=encirclementRadius();
-    let encirclementLoad=0;
-    for(const e of enemies){
+    let sectorBits=0;
+    for(let enemyIndex=0;enemyIndex<enemies.length;enemyIndex++){
+      const e=enemies[enemyIndex];
       if(e.dead)continue;e.hit=Math.max(0,e.hit-dt);e.attack-=dt;e.shoot-=dt;e.slow=Math.max(0,e.slow-dt);
+      const screenPos=worldToScreen(e.x,e.y);
+      const nearScreen=screenPos.x>-90&&screenPos.x<W+90&&screenPos.y>-90&&screenPos.y<H+90;
+      const farBucket=((e.id||enemyIndex)+Math.floor(time*60))%3;
+      if(!nearScreen&&farBucket!==0){
+        const aLite=Math.atan2(player.y-e.y,player.x-e.x);
+        let speedLite=e.speed;
+        if(e.slow>0)speedLite*=.48;
+        e.x+=Math.cos(aLite)*speedLite*dt*.34;
+        e.y+=Math.sin(aLite)*speedLite*dt*.34;
+        continue;
+      }
       let a=Math.atan2(player.y-e.y,player.x-e.x),speed=e.speed;
       if(e.type==="bombcloud")a+=Math.sin(time*2+e.id)*.5;
       if(e.type==="snake")a+=Math.sin(time*5+e.id)*.32;
@@ -2453,24 +2473,40 @@
       }else{
         e.cling=Math.max(0,e.cling-dt*2.5);
       }
-      const closeDist=dist(e,player)-e.r-player.r;
+      const centerDist=dist(e,player);
+      const closeDist=centerDist-e.r-player.r;
       if(closeDist<dangerRadius){
-        const proximity=clamp(1-Math.max(0,closeDist)/Math.max(24,dangerRadius),0,1);
-        const weight=e.kind==="final"?5:e.kind==="boss"?3:e.kind==="elite"?1.8:1;
-        encirclementLoad+=proximity*weight;
+        let ang=Math.atan2(e.y-player.y,e.x-player.x);
+        if(ang<0)ang+=Math.PI*2;
+        const sector=Math.min(7,Math.floor(ang/(Math.PI/4)));
+        sectorBits|=(1<<sector);
       }
     }
     enemies=enemies.filter(e=>!e.dead&&dist(e,player)<1500);
-    const pressureTarget=clamp(encirclementLoad/10,0,1);
-    const riseSpeed=pressureTarget>encirclementPressure?1.9:0;
-    const fallSpeed=pressureTarget<encirclementPressure?0.38:0;
-    if(riseSpeed)encirclementPressure=Math.min(1,encirclementPressure+(pressureTarget-encirclementPressure)*dt*riseSpeed);
-    else if(fallSpeed)encirclementPressure=Math.max(0,encirclementPressure-(encirclementPressure-pressureTarget)*dt*fallSpeed);
-    if(encirclementPressure>.02){
+    encirclementSectorBits=sectorBits;
+    encirclementSectorCount=sectorBits.toString(2).replace(/0/g,"").length;
+    encirclementPrewarn=encirclementSectorCount>=7;
+    const pressureTarget=encirclementSectorCount/8;
+    const riseLerp=pressureTarget>encirclementPressure?Math.min(1,dt*4.2):0;
+    const fallLerp=pressureTarget<encirclementPressure?Math.min(1,dt*2.1):0;
+    if(riseLerp)encirclementPressure+= (pressureTarget-encirclementPressure)*riseLerp;
+    else if(fallLerp)encirclementPressure+= (pressureTarget-encirclementPressure)*fallLerp;
+    if(pressureTarget<=0.01){
+      encirclementPressure=Math.max(0,encirclementPressure-dt*.1);
+      encirclementFullHold=0;
+    }
+    encirclementEvalTimer+=dt;
+    if(encirclementEvalTimer>=.2){
+      encirclementEvalTimer=0;
+      if(encirclementSectorCount>=8)encirclementFullHold+=.2;
+      else encirclementFullHold=Math.max(0,encirclementFullHold-.4);
+    }
+    if(encirclementFullHold>=.6){
       encirclementTick+=dt;
       if(encirclementTick>=5){
         encirclementTick=0;
-        startEncirclementDot(encirclementStagePercent(encirclementPressure));
+        const percent=encirclementStagePercent(encirclementPressure);
+        if(percent>0)startEncirclementDot(percent);
       }
     }else{
       encirclementTick=0;
@@ -2478,12 +2514,13 @@
     if(encirclementDotTimer>0&&encirclementDotRate>0){
       const tickDamage=Math.max(1,player.maxHp*encirclementDotRate*dt);
       player.hp-=tickDamage;
+      encirclementReservedHp=Math.max(0,encirclementReservedHp-tickDamage);
       encirclementDotTimer=Math.max(0,encirclementDotTimer-dt);
       if(player.hp<=0){
         lose();
         return;
       }
-      if(encirclementDotTimer<=0)encirclementDotRate=0;
+      if(encirclementDotTimer<=0){encirclementDotRate=0;encirclementReservedHp=0;}
     }
     if(potionHealTimer>0){
       player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.02*dt);
@@ -2623,8 +2660,12 @@
       magnetTimer=Math.max(0,magnetTimer-dt);
       if(magnetTimer<=0)magnetAll=false;
     }
-    for(const g of gems){
+    for(let i=0;i<gems.length;i++){
+      const g=gems[i];
       const d=dist(g,player);
+      const near=d<340||magnetAll||d<player.magnet;
+      const bucket=((g.id||i)+Math.floor(time*60))%3;
+      if(!near&&bucket!==0)continue;
       if(magnetAll||d<player.magnet){const a=Math.atan2(player.y-g.y,player.x-g.x),sp=magnetAll?650:180+(player.magnet-d)*4;g.x+=Math.cos(a)*sp*dt;g.y+=Math.sin(a)*sp*dt;}
       if(d<player.r+9){g.dead=true;gainXp(g.value);playXpPickupSound({waveform:"sine",baseFreq:2169,duration:.2,overtone:.05,rippleCount:1});}
     }
@@ -2644,6 +2685,13 @@
     debugFps=1000/Math.max(1,debugFrameMs);
     if(performance&&performance.memory&&performance.memory.usedJSHeapSize)debugHeapMb=performance.memory.usedJSHeapSize/1048576;
     time+=dt;timeline();updateAnnouncements(dt);
+    hudSampleTimer+=dt;
+    if(hudSampleTimer>=.1){
+      hudSampleTimer=0;
+      hudEnemyCount=livingEnemyCount();
+      hudKills=kills;
+      hudKps=kps;
+    }
     kpsWindowTime+=dt;
     if(kpsWindowTime>=.5){
       const sample=kpsWindowKills/kpsWindowTime;
@@ -2735,7 +2783,14 @@
   }
 
   function burst(x,y,color,n){for(let i=0;i<n;i++)effects.push({kind:"particle",x,y,vx:rand(-140,140),vy:rand(-140,140),life:rand(.25,.65),color,r:rand(2,6)});}
-  function text(x,y,value,color="#fff",size=14,kind="normal"){texts.push({x,y,value:String(value),color,size,kind,life:1});}
+  function text(x,y,value,color="#fff",size=14,kind="normal"){
+    if(kind==="normal"){
+      let normalCount=0;
+      for(const t of texts)if(t.kind==="normal")normalCount++;
+      if(normalCount>=MAX_NORMAL_TEXTS)return;
+    }
+    texts.push({x,y,value:String(value),color,size,kind,life:1});
+  }
 
   function compactDamageNumber(value,unit){
     const compacted=value<10?Math.floor(value*10)/10:Math.floor(value);
@@ -2922,25 +2977,26 @@
     ctx.restore();
   }
   function drawEncirclementWarning(){
-    if(encirclementPressure<.7)return;
-    const alpha=clamp((encirclementPressure-.7)/.3,0,1)*.22;
+    if(!encirclementPrewarn)return;
+    const alpha=.16+Math.max(0,encirclementPressure-.7)*.22;
+    const thickness=30;
     ctx.save();
-    ctx.globalAlpha=alpha;
-    const cornerSize=Math.min(W,H)*.28;
-    const gradients=[
-      {x:0,y:0,dx:cornerSize,dy:cornerSize},
-      {x:W,y:0,dx:W-cornerSize,dy:cornerSize},
-      {x:0,y:H,dx:cornerSize,dy:H-cornerSize},
-      {x:W,y:H,dx:W-cornerSize,dy:H-cornerSize}
-    ];
-    for(const g of gradients){
-      const grad=ctx.createRadialGradient(g.x,g.y,0,g.x,g.y,cornerSize);
-      grad.addColorStop(0,"#ff5b76");
-      grad.addColorStop(.55,"rgba(255,91,118,.22)");
-      grad.addColorStop(1,"rgba(255,91,118,0)");
-      ctx.fillStyle=grad;
-      ctx.fillRect(Math.min(g.x,g.dx)-cornerSize,Math.min(g.y,g.dy)-cornerSize,cornerSize*2,cornerSize*2);
-    }
+    const topGrad=ctx.createLinearGradient(0,0,0,thickness);
+    topGrad.addColorStop(0,`rgba(180,0,24,${alpha})`);
+    topGrad.addColorStop(1,"rgba(180,0,24,0)");
+    ctx.fillStyle=topGrad;ctx.fillRect(0,0,W,thickness);
+    const bottomGrad=ctx.createLinearGradient(0,H,0,H-thickness);
+    bottomGrad.addColorStop(0,`rgba(180,0,24,${alpha})`);
+    bottomGrad.addColorStop(1,"rgba(180,0,24,0)");
+    ctx.fillStyle=bottomGrad;ctx.fillRect(0,H-thickness,W,thickness);
+    const leftGrad=ctx.createLinearGradient(0,0,thickness,0);
+    leftGrad.addColorStop(0,`rgba(180,0,24,${alpha})`);
+    leftGrad.addColorStop(1,"rgba(180,0,24,0)");
+    ctx.fillStyle=leftGrad;ctx.fillRect(0,0,thickness,H);
+    const rightGrad=ctx.createLinearGradient(W,0,W-thickness,0);
+    rightGrad.addColorStop(0,`rgba(180,0,24,${alpha})`);
+    rightGrad.addColorStop(1,"rgba(180,0,24,0)");
+    ctx.fillStyle=rightGrad;ctx.fillRect(W-thickness,0,thickness,H);
     ctx.restore();
   }
 
@@ -3006,11 +3062,6 @@
       rect(-18,-22,36,44,"#22101c");rect(-12,-15,24,25,"#331421");rect(-7,-9,5,5,"#ff3e58");rect(3,-9,5,5,"#ff3e58");rect(-24,10,48,6,"#171019");rect(20,-18,5,48,"#8d7b68");rect(18,-23,18,6,"#c8c0b2");
     }else{
       rect(-5,4,10,20,"#47974b");rect(-17,-13,34,26,"#d84d48");rect(-11,-8,22,17,"#f0e6b4");rect(-8,-6,5,5,"#191624");rect(4,-6,5,5,"#191624");rect(-14,-17,8,7,"#f3e8a9");rect(6,-17,8,7,"#f3e8a9");
-    }
-    if(e.kpsSpawned){
-      ctx.strokeStyle="#fff";
-      ctx.lineWidth=2;
-      ctx.strokeRect(-26,-26,52,52);
     }
     if(e.kind!=="normal"){ctx.strokeStyle=e.kind==="elite"?"#ffe767":e.kind==="final"?"#ff405d":"#ff875d";ctx.lineWidth=3;ctx.strokeRect(-22,-22,44,44);}
     ctx.restore();
@@ -3314,11 +3365,18 @@
   }
 
   function drawMobileHUD(){
-    const enemyCount=livingEnemyCount();
+    const enemyCount=hudEnemyCount;
     if(H>W){
       const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
       ctx.save();
-      rect(12,14,W-24,24,"#3a2435");rect(15,17,(W-30)*(player.hp/player.maxHp),18,"#df4b4f");
+      rect(12,14,W-24,24,"#3a2435");
+      const hpBarWidth=(W-30);
+      const reservedRatio=Math.min(1,encirclementReservedHp/player.maxHp);
+      const hpRatio=player.hp/player.maxHp;
+      rect(15,17,hpBarWidth*hpRatio,18,"#df4b4f");
+      if(encirclementReservedHp>0){
+        rect(15+hpBarWidth*Math.max(0,hpRatio-reservedRatio),17,hpBarWidth*Math.min(reservedRatio,hpRatio),18,"#6c1424");
+      }
       rect(12,42,W-24,22,"#302344");rect(15,45,(W-30)*(player.xp/player.nextXp),16,"#6ed7df");
       rect(12,66,W-24,8,"#2c2040");rect(15,68,(W-30)*encirclementPressure,4,"#de79ff");
       ctx.textBaseline="middle";ctx.font="bold 15px monospace";ctx.lineWidth=4;ctx.strokeStyle="#111";ctx.fillStyle="#fff";
@@ -3326,9 +3384,9 @@
       ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);
       ctx.font="bold 18px monospace";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":"#fff4b2";ctx.fillText(isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":`${m}:${String(s).padStart(2,"0")}`,14,101);
       ctx.textAlign="right";ctx.font="bold 15px monospace";ctx.fillStyle="#fff";
-      ctx.fillText(`擊倒 ${kills}`,W-14,100);
+      ctx.fillText(`擊倒 ${hudKills}`,W-14,100);
       ctx.fillStyle=kpsPressure>0?"#ffe15b":"#d8f2ff";
-      ctx.fillText(`KPS ${Math.round(kps)}  怪物 ${enemyCount}`,W-14,124);
+      ctx.fillText(`KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,W-14,124);
       ctx.fillStyle="#fff";
       ctx.fillText(`🥕×${player.projectiles} 穿透${player.pierce} 爆擊${Math.round(player.critStack*100)}%`,W-14,148);
       ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut} PINKY${skills.pinky}`,W-14,172);
@@ -3339,13 +3397,20 @@
     }
     const scale=1.22,VW=W/scale,VH=H/scale,barWidth=218;
     ctx.save();ctx.scale(scale,scale);
-    rect(14,14,barWidth,21,"#3a2435");rect(16,16,(barWidth-4)*(player.hp/player.maxHp),17,"#df4b4f");
+    rect(14,14,barWidth,21,"#3a2435");
+    const innerHpWidth=barWidth-4;
+    const reservedRatio=Math.min(1,encirclementReservedHp/player.maxHp);
+    const hpRatio=player.hp/player.maxHp;
+    rect(16,16,innerHpWidth*hpRatio,17,"#df4b4f");
+    if(encirclementReservedHp>0){
+      rect(16+innerHpWidth*Math.max(0,hpRatio-reservedRatio),16,innerHpWidth*Math.min(reservedRatio,hpRatio),17,"#6c1424");
+    }
     rect(14,39,barWidth,19,"#302344");rect(16,41,(barWidth-4)*(player.xp/player.nextXp),15,"#6ed7df");
     rect(14,59,barWidth,7,"#2c2040");rect(16,61,(barWidth-4)*encirclementPressure,3,"#de79ff");
     ctx.textBaseline="middle";ctx.font="bold 14px monospace";ctx.lineWidth=4;ctx.strokeStyle="#111";ctx.fillStyle="#fff";
     ctx.strokeText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,23,24);ctx.fillText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,23,24);
     ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,23,49);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,23,49);
-    ctx.font="bold 15px monospace";ctx.fillText(`擊倒 ${kills}  KPS ${Math.round(kps)}  怪物 ${enemyCount}`,14,88);
+    ctx.font="bold 15px monospace";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,14,88);
     const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
     ctx.textAlign="center";ctx.font="bold 25px monospace";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":time>=480?"#ff6270":"#fff4b2";
     ctx.fillText(isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":`${m}:${String(s).padStart(2,"0")}`,VW/2,22);
@@ -3363,9 +3428,15 @@
   }
 
   function drawHUD(){
-    const enemyCount=livingEnemyCount();
+    const enemyCount=hudEnemyCount;
     if(H>W||matchMedia("(pointer:coarse)").matches||innerWidth<=620){drawMobileHUD();return;}
-    rect(18,18,260,20,"#3a2435");rect(20,20,256*(player.hp/player.maxHp),16,"#df4b4f");
+    rect(18,18,260,20,"#3a2435");
+    const reservedRatio=Math.min(1,encirclementReservedHp/player.maxHp);
+    const hpRatio=player.hp/player.maxHp;
+    rect(20,20,256*hpRatio,16,"#df4b4f");
+    if(encirclementReservedHp>0){
+      rect(20+256*Math.max(0,hpRatio-reservedRatio),20,256*Math.min(reservedRatio,hpRatio),16,"#6c1424");
+    }
     rect(18,43,260,18,"#302344");rect(20,45,256*(player.xp/player.nextXp),14,"#6ed7df");
     rect(18,63,260,7,"#2c2040");rect(20,65,256*encirclementPressure,3,"#de79ff");
     ctx.save();
@@ -3375,8 +3446,8 @@
     ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,28,52);
     ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,28,52);
     ctx.restore();
-    ctx.font="bold 16px monospace";ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${kills}  KPS ${Math.round(kps)}  怪物 ${enemyCount}`,18,92);
-    if(kills<200){ctx.font="bold 12px monospace";ctx.fillStyle="#bff58a";ctx.fillText(`前期經驗減免 ${Math.round((1-(.45+.55*kills/200))*100)}%`,18,114);}
+    ctx.font="bold 16px monospace";ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,18,92);
+    if(hudKills<200){ctx.font="bold 12px monospace";ctx.fillStyle="#bff58a";ctx.fillText(`前期經驗減免 ${Math.round((1-(.45+.55*hudKills/200))*100)}%`,18,114);}
     if(killSurgeActive){ctx.font="bold 13px monospace";ctx.fillStyle="#ff6978";ctx.fillText("狂暴怪潮：數量+75%・生命+60%",18,135);}
     const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
     ctx.font="bold 28px monospace";ctx.textAlign="center";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":time>=480?"#ff6270":"#fff4b2";
