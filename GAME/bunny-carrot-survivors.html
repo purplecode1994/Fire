@@ -1317,45 +1317,54 @@
     giantExplosion:"audio/giant-explosion.wav"
   };
   const externalAudioConfig={
-    crit:{pool:3,minInterval:70},
-    smallCarrot:{pool:2,minInterval:24},
-    giantLaunch:{pool:2,minInterval:120},
-    giantExplosion:{pool:2,minInterval:120}
+    crit:{minInterval:70},
+    smallCarrot:{minInterval:24},
+    giantLaunch:{minInterval:120},
+    giantExplosion:{minInterval:120}
   };
   const externalAudio={};
 
   function initExternalAudio(){
+    if(!audio)return;
     for(const [key,src] of Object.entries(externalAudioDefs)){
-      if(externalAudio[key])continue;
-      const config=externalAudioConfig[key]||{pool:2,minInterval:60};
-      const pool=[];
-      for(let i=0;i<config.pool;i++){
-        const el=new Audio(src);
-        el.preload="auto";
-        pool.push(el);
-      }
-      externalAudio[key]={pool,ok:null,index:0,lastPlayed:0,minInterval:config.minInterval};
-      pool[0].addEventListener("canplaythrough",()=>{ if(externalAudio[key])externalAudio[key].ok=true; },{once:true});
-      pool[0].addEventListener("error",()=>{ if(externalAudio[key])externalAudio[key].ok=false; },{once:true});
-      for(const el of pool)el.load();
+      if(externalAudio[key]?.loading||externalAudio[key]?.ok!==undefined)continue;
+      const config=externalAudioConfig[key]||{minInterval:60};
+      externalAudio[key]={buffer:null,ok:null,lastPlayed:0,minInterval:config.minInterval,loading:true};
+      fetch(src)
+        .then(res=>{
+          if(!res.ok)throw new Error(`audio fetch failed: ${src}`);
+          return res.arrayBuffer();
+        })
+        .then(buf=>audio.decodeAudioData(buf.slice(0)))
+        .then(buffer=>{
+          if(externalAudio[key]){
+            externalAudio[key].buffer=buffer;
+            externalAudio[key].ok=true;
+          }
+        })
+        .catch(()=>{
+          if(externalAudio[key])externalAudio[key].ok=false;
+        })
+        .finally(()=>{
+          if(externalAudio[key])externalAudio[key].loading=false;
+        });
     }
   }
 
   function playExternalAudio(key,volume=1,rate=1){
     const entry=externalAudio[key];
-    if(!entry||entry.ok!==true||muted)return false;
+    if(!entry||entry.ok!==true||!entry.buffer||muted||!audio)return false;
     const now=performance.now();
     if(now-entry.lastPlayed<entry.minInterval)return false;
     try{
-      const el=entry.pool[entry.index];
-      entry.index=(entry.index+1)%entry.pool.length;
+      const source=audio.createBufferSource();
+      const gain=audio.createGain();
       entry.lastPlayed=now;
-      el.pause();
-      el.currentTime=0;
-      el.volume=Math.max(0,Math.min(1,volume));
-      el.playbackRate=Math.max(.5,Math.min(2,rate));
-      const p=el.play();
-      if(p&&typeof p.catch==="function")p.catch(()=>{});
+      source.buffer=entry.buffer;
+      source.playbackRate.setValueAtTime(Math.max(.5,Math.min(2,rate)),audio.currentTime);
+      gain.gain.setValueAtTime(Math.max(0,Math.min(1,volume)),audio.currentTime);
+      source.connect(gain).connect(audio.destination);
+      source.start();
       return true;
     }catch{
       return false;
