@@ -1564,8 +1564,9 @@
     o.stop(t+d+.02);
   }
   function gemStackTier(count){
-    if(count<=10)return {color:"#73c8ff",leaf:"#dff6ff",glow:"#73c8ff"};
-    if(count<=20)return {color:"#f5d253",leaf:"#fff6bd",glow:"#ffe15b"};
+    if(count<5)return {color:"#73c8ff",leaf:"#dff6ff",glow:"#73c8ff"};
+    if(count<10)return {color:"#f2d15a",leaf:"#fff4b0",glow:"#ffe15b"};
+    if(count<15)return {color:"#f29a3f",leaf:"#ffd4a6",glow:"#ffb15f"};
     return {color:"#ef5b62",leaf:"#ffd0d5",glow:"#ff7a86"};
   }
   function mergeNearbyGems(){
@@ -3091,10 +3092,12 @@
     const stack=Math.max(1,g.stackCount||1);
     const tier=gemStackTier(stack);
     const bob=Math.round(Math.sin(time*5+g.phase)*2),x=p.x,y=p.y+bob;
-    ctx.globalAlpha=.18+.08*Math.sin(time*6+g.phase);
-    ctx.fillStyle=tier.glow;
-    ctx.beginPath();ctx.arc(x,y,stack>=21?15:stack>=11?13:11,0,Math.PI*2);ctx.fill();
-    ctx.globalAlpha=1;
+    if(stack>=15){
+      ctx.globalAlpha=.18+.08*Math.sin(time*6+g.phase);
+      ctx.fillStyle=tier.glow;
+      ctx.beginPath();ctx.arc(x,y,15,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+    }
     rect(x-8,y-8,16,16,"#273c36");
     rect(x-6,y-6,12,12,stack>1?tier.color:colors[g.type]);
     rect(x-3,y-10,6,5,stack>1?tier.leaf:"#3f9548");
