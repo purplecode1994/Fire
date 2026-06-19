@@ -778,6 +778,7 @@
   let running=false,paused=false,ended=false,last=0,time=0,spawnClock=0,shotClock=0;
   let giantCarrotCooldown=0;
   let enemies=[],shots=[],enemyShots=[],gems=[],effects=[],texts=[],areas=[],petShots=[],bananas=[],chests=[],pickups=[];
+  let enemyGrid=new Map();
   let announcements=[],activeAnnouncement=null;
   let kills=0,score=0,eliteKills=0,bossKills=0,nextId=1,levelQueue=0;
   let eligibleKills=0,instantKills=0,instantKillTimer=0;
@@ -816,6 +817,8 @@
   const FIXED_MAGNET_RANGE=120;
   const BURST_RADIUS_CAP=170;
   const MAX_NORMAL_TEXTS=42;
+  const ENEMY_GRID_SIZE=96;
+  const ENEMY_QUERY_PADDING=80;
 
   function metaCritChance(levels){
     const level=Math.max(0,Math.min(100,levels));
@@ -845,6 +848,36 @@
     let total=0;
     for(let i=0;i<levels;i++)total+=baseStep*(1+Math.floor(i/10)*tierGrowth);
     return total;
+  }
+  function enemyGridKey(cx,cy){
+    return `${cx},${cy}`;
+  }
+  function rebuildEnemyGrid(){
+    enemyGrid.clear();
+    for(const e of enemies){
+      if(e.dead||e.hp<=0)continue;
+      const cx=Math.floor(e.x/ENEMY_GRID_SIZE),cy=Math.floor(e.y/ENEMY_GRID_SIZE);
+      const key=enemyGridKey(cx,cy);
+      let bucket=enemyGrid.get(key);
+      if(!bucket){
+        bucket=[];
+        enemyGrid.set(key,bucket);
+      }
+      bucket.push(e);
+    }
+  }
+  function forEachEnemyNear(x,y,radius,fn){
+    const minX=Math.floor((x-radius)/ENEMY_GRID_SIZE);
+    const maxX=Math.floor((x+radius)/ENEMY_GRID_SIZE);
+    const minY=Math.floor((y-radius)/ENEMY_GRID_SIZE);
+    const maxY=Math.floor((y+radius)/ENEMY_GRID_SIZE);
+    for(let cy=minY;cy<=maxY;cy++){
+      for(let cx=minX;cx<=maxX;cx++){
+        const bucket=enemyGrid.get(enemyGridKey(cx,cy));
+        if(!bucket)continue;
+        for(const e of bucket)fn(e);
+      }
+    }
   }
   function encirclementRadius(){
     return 55*player.area;
@@ -1966,7 +1999,6 @@
         playGiantLaunchSound();
       }
     }
-    if(firedCount>0)playSmallCarrotSound();
   }
 
   function firePet(){
@@ -2045,10 +2077,10 @@
           continue;
         }
       }
-      for(const e of enemies){
-        if(e.dead||b.hit.has(e.id)||dist(b,e)>b.r+e.r)continue;
+      forEachEnemyNear(b.x,b.y,b.r+ENEMY_QUERY_PADDING,e=>{
+        if(e.dead||b.hit.has(e.id)||dist(b,e)>b.r+e.r)return;
         b.hit.add(e.id);damageEnemy(e,b.damage,false,"banana");
-      }
+      });
     }
     bananas=bananas.filter(b=>!b.dead);
   }
@@ -2094,7 +2126,6 @@
     if(!killSurgeActive&&eligibleKills>=KILL_SURGE_THRESHOLD){
       killSurgeActive=true;
       announce("500 有效擊殺：狂暴怪潮！","寶箱炸彈不計；往後怪潮 +75%・生命 +60%","#ff596f",5);
-      beep(72,.75,.065,"sawtooth");
     }
     if(e.kind==="elite")eliteKills++;if(e.kind==="boss"||e.kind==="final")bossKills++;
     if(player.level<MAX_PLAYER_LEVEL){
@@ -2108,9 +2139,7 @@
         {kind:"half",x:e.x+e.r*.25,y:e.y,vx:90,vy:-70,life:.55,r:e.r,color:enemyData[e.type].color,side:1}
       );
       effects.push({kind:"slash",x:e.x,y:e.y,life:.22,r:e.r*1.8});
-      beep(820,.06,.025,"sawtooth");
     }
-    beep(e.kind==="normal"?140:90,.08,.02);
     if(e.kind==="final"){
       if(isInfiniteMode())finishInfiniteBoss();
       else win();
@@ -2324,9 +2353,9 @@
       {kind:"shockwave",x:shot.x,y:shot.y,r:15,max:radius,life:.45}
     );
     burst(shot.x,shot.y,"#8a5b36",24);
-    for(const e of enemies){
+    forEachEnemyNear(shot.x,shot.y,radius+ENEMY_QUERY_PADDING,e=>{
       if(!e.dead&&dist(shot,e)<radius+e.r)damageEnemy(e,shot.damage,false,"giant");
-    }
+    });
     playGiantExplosionSound({startFreq:80,duration:.1,noiseGain:0,rippleSpeed:10,jitterDepth:10});
   }
 
@@ -2484,6 +2513,7 @@
       }
     }
     enemies=enemies.filter(e=>!e.dead&&dist(e,player)<1500);
+    rebuildEnemyGrid();
     encirclementSectorBits=sectorBits;
     encirclementSectorCount=sectorBits.toString(2).replace(/0/g,"").length;
     encirclementPrewarn=encirclementSectorCount>=7;
@@ -2542,7 +2572,6 @@
           if(dist(shot,guard)<shot.r+12){
             shot.life=0;
             burst(shot.x,shot.y,"#ffb14e",5);
-            beep(920,.045,.012,"square");
             break;
           }
         }
@@ -2571,7 +2600,6 @@
         z:rand(14,26),vz:rand(150,230),r:rand(4,7),life:2,damage:(14+skills.peanut*2)*player.areaDamage
       });
     }
-    beep(115,.18,.045,"square");
   }
 
   function updateShots(dt,list,isPet=false){
@@ -2588,16 +2616,20 @@
 
       if(s.kind==="giant"){
         let impact=s.life<=0;
-        for(const e of enemies){
-          if(!e.dead&&dist(s,e)<=s.r+e.r){impact=true;break;}
+        if(!impact){
+        forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
+          if(impact||e.dead)return;
+          if(dist(s,e)<=s.r+e.r)impact=true;
+        });
         }
         if(impact)giantCarrotImpact(s);
         if(s.life<=0)continue;
       }
 
-      for(const e of enemies){
-        if(e.dead||s.life<=0||dist(s,e)>s.r+e.r)continue;
-        if(s.kind==="rolling"&&s.hit.has(e.id))continue;
+      let hitEnemy=false;
+      forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
+        if(hitEnemy||e.dead||s.life<=0||dist(s,e)>s.r+e.r)return;
+        if(s.kind==="rolling"&&s.hit.has(e.id))return;
         let crit=false;
         if(!isPet){
           crit=Math.random()<player.critStack;
@@ -2608,11 +2640,12 @@
         if(s.kind==="rolling"){
           s.hit.add(e.id);
           shatterRollingStone(s,e);
-          break;
+          hitEnemy=true;
+          return;
         }
         if(isPet||s.pierce--<=0)s.life=0;else{s.x+=s.vx*dt*2;s.y+=s.vy*dt*2;}
-        break;
-      }
+        hitEnemy=true;
+      });
       if(s.life>0&&!isPet&&!s.kind){
         for(const chest of chests){
           if(chest.opened||dist(s,chest)>s.r+chest.r)continue;
@@ -2632,7 +2665,14 @@
       const hitDelay=skills.orbit>=5?.22:.45;
       for(let i=0;i<count;i++){
         const a=time*orbitSpeed+i*Math.PI*2/count,x=player.x+Math.cos(a)*rad,y=player.y+Math.sin(a)*rad;
-        for(const e of enemies)if(!e.dead&&dist({x,y},e)<e.r+9&&(!e.orbitHit||time-e.orbitHit>hitDelay)){e.orbitHit=time;damageEnemy(e,(skills.orbit>=5?46:8+skills.orbit*5)*player.areaDamage,false,"orbit");}
+        forEachEnemyNear(x,y,rad+ENEMY_QUERY_PADDING,e=>{
+          if(e.dead||e.orbitHit&&time-e.orbitHit<=hitDelay)return;
+          const dx=e.x-x,dy=e.y-y,reach=e.r+9;
+          if(dx*dx+dy*dy<reach*reach){
+            e.orbitHit=time;
+            damageEnemy(e,(skills.orbit>=5?46:8+skills.orbit*5)*player.areaDamage,false,"orbit");
+          }
+        });
       }
     }
     for(const a of areas){
@@ -2644,14 +2684,14 @@
       a.life-=dt;
       a.r+=(a.max-a.r)*dt*(a.evolved?4.2:3.5);
       const band=Math.max(24,a.max*.16);
-      for(const e of enemies){
-        if(e.dead||a.hit.has(e.id))continue;
+      forEachEnemyNear(a.x,a.y,a.r+band+ENEMY_QUERY_PADDING,e=>{
+        if(e.dead||a.hit.has(e.id))return;
         const d=dist(a,e);
         if(d<=a.r+e.r&&d>=Math.max(0,a.r-band-e.r)){
           a.hit.add(e.id);
           damageEnemy(e,a.damage,false,"burst");
         }
-      }
+      });
     }
     areas=areas.filter(a=>a.delay>0||a.life>0);
   }
