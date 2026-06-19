@@ -1021,11 +1021,11 @@
   }
 
   const metaDefs=[
-    {id:"damage",name:"攻擊力",cost:5,desc:`+${META_DAMAGE_STEP} 初始攻擊力（每 10 級 +0.2%）`,value:m=>`+${scaledMetaGain(m.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
+    {id:"damage",name:"攻擊力",cost:5,desc:`每級 +${META_DAMAGE_STEP} 攻擊力；每10級成長 +${(META_DAMAGE_TIER_GROWTH*100).toFixed(1)}%`,value:m=>`+${scaledMetaGain(m.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
     {id:"crit",name:"爆擊率",cost:8,cap:100,desc:"分3階段成長，LV100 = 100%",value:m=>`${Math.round(metaCritChance(m.crit)*1000)/10}%`},
     {id:"speed",name:"攻擊速度",cost:7,cap:100,desc:"+3% 初始攻速，最高 LV100",value:m=>`+${Math.min(100,m.speed)*3}%`},
     {id:"critDamage",name:"爆擊傷害",cost:6,cap:MAX_CRIT_DAMAGE_LEVEL,desc:"分3階段成長，LV100 = 300%",value:m=>`${Math.round(baseMetaCritDamageMultiplier(m.critDamage)*100)}%`},
-    {id:"life",name:"生命力",cost:4,desc:`+${META_LIFE_STEP} 最大生命（每 10 級 +0.5%）`,value:m=>`+${scaledMetaGain(m.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
+    {id:"life",name:"生命力",cost:4,desc:`每級 +${META_LIFE_STEP} 最大生命；每10級成長 +${(META_LIFE_TIER_GROWTH*100).toFixed(1)}%`,value:m=>`+${scaledMetaGain(m.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
     {id:"regen",name:"回復力",cost:10,desc:`每級 +${META_REGEN_BASE_STEP.toFixed(2)} HP/秒；每10級成長 +${META_REGEN_STAGE_STEP.toFixed(2)}`,value:m=>formatMetaRegenValue(Math.max(0,m.regen||0))},
     {id:"armorPen",name:"無視防禦",cost:12,cap:100,unlock:m=>m.crit>=48,desc:"+0.7% 無視敵人防禦，最高 LV100（70%）",value:m=>`${(Math.min(100,m.armorPen)*0.7).toFixed(1).replace(/\\.0$/,"")}%`}
   ];
@@ -1037,6 +1037,7 @@
     return{
       points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,
       totalDeathKills:0,totalDeaths:0,bestInfiniteSeconds:0,
+      infiniteTotalKills:0,
       claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,
       desertUnlocked:false,snowUnlocked:false,muted:false,cheat8888Used:false
     };
@@ -1244,7 +1245,7 @@
   function renderMeta(){
     renderAccount();
     metaPointsEl.innerHTML=`<span class="pointDiamond"></span><span>強化點數 ${formatCostShort(meta.points)}</span>`;
-    metaRecordEl.innerHTML=`死亡總擊破 ${meta.totalDeathKills||0}｜死亡次數 ${meta.totalDeaths||0}<br>輪迴最長 ${formatStageTime(meta.bestInfiniteSeconds||0)}`;
+    metaRecordEl.innerHTML=`總擊破 ${meta.totalKills||0}｜菁英 ${meta.totalElites||0}｜BOSS ${meta.totalBosses||0}`;
     metaStatsEl.innerHTML="";
     for(const def of metaDefs){
       if(def.unlock&&!def.unlock(meta))continue;
@@ -1334,8 +1335,11 @@
 
   function formatStageTime(seconds){
     const total=Math.max(0,Math.floor(seconds));
+    const h=Math.floor(total/3600);
     const m=Math.floor(total/60);
+    const mm=Math.floor((total%3600)/60);
     const s=total%60;
+    if(h>0)return `${h}:${String(mm).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
     return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
   }
 
@@ -1351,7 +1355,7 @@
   function infiniteZoneName(zone=infiniteZoneAt()){
     if(zone===0)return "菜園";
     if(zone===1)return "沙漠";
-    if(zone===2)return "冰雪城";
+    if(zone===2)return "雪原";
     return "惡魔城";
   }
 
@@ -1385,7 +1389,7 @@
       stageArt.className="stageInfinite";
       stageArt.innerHTML='<div class="trail1"></div><div class="trail2"></div><div class="trail3"></div><div class="rift"></div><div class="spark1"></div><div class="spark2"></div><div class="spark3"></div>';
       stageName.textContent="無限輪迴模式";
-      stagePower.innerHTML=`建議戰力 ∞｜每 10 分鐘進入擂台<br>目前生存時間：${formatStageTime(infiniteDisplayedTime())}<br>敵人擊破數：${kills}`;
+      stagePower.innerHTML=`建議戰力 ∞｜每 10 分鐘進入擂台<br>目前最高生存時間：${formatStageTime(meta.bestInfiniteSeconds||0)}<br>敵人擊破總數：${meta.infiniteTotalKills||0}`;
       return;
     }
     if(stage===3){
@@ -1433,13 +1437,13 @@
     const tier=Math.floor(meta[def.id]/10)+1;
     if(def.id==="damage")return [
       `每級 +${metaDamagePerLevel(meta.damage).toFixed(3).replace(/\.?0+$/,"")} 攻擊`,
-      "每10級 +0.2%",
+      "每10級成長 +0.2%",
       `目前 ${def.value(meta)}`,
       `費用階段 ${tier}`
     ];
     if(def.id==="life")return [
       `每級 +${metaLifePerLevel(meta.life).toFixed(2).replace(/\.?0+$/,"")} 生命`,
-      "每10級 +0.5%",
+      "每10級成長 +0.5%",
       `目前 ${def.value(meta)}`,
       `費用階段 ${tier}`
     ];
@@ -1511,7 +1515,7 @@
     characterBtn.textContent="角色資訊";
     shopBtn.textContent="商城（未開放）";
     metaPointsEl.innerHTML=`<span class="pointDiamond"></span><span>強化點數 ${formatCostShort(meta.points)}</span>`;
-    metaRecordEl.innerHTML=`死亡總擊破 ${meta.totalDeathKills||0}｜死亡次數 ${meta.totalDeaths||0}<br>輪迴最長 ${formatStageTime(meta.bestInfiniteSeconds||0)}`;
+    metaRecordEl.innerHTML=`總擊破 ${meta.totalKills||0}｜菁英 ${meta.totalElites||0}｜BOSS ${meta.totalBosses||0}`;
     powerBox.innerHTML=`<span class="powerLabel">戰力</span><span class="powerValue">${combatPower()}</span>`;
     devResetBtn.classList.toggle("hidden",!devModeActive);
     renderStageArt(currentStage);
@@ -4126,9 +4130,7 @@
       const earned=Math.floor(baseEarned*.3);
       meta.points+=earned;
       meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
-      meta.totalKills+=kills;
-      meta.totalElites+=eliteKills;
-      meta.totalBosses+=bossKills;
+      meta.infiniteTotalKills=(meta.infiniteTotalKills||0)+kills;
       saveMeta();
       return earned;
     }
