@@ -441,6 +441,7 @@
       font-weight: bold;
     }
     #pauseScreen .panel {
+      position: relative;
       height: min(88%,760px); display: flex; flex-direction: column; overflow: hidden;
     }
     #pauseScreen .panelBody { min-height: 0; overflow-y: auto; padding-right: 4px; }
@@ -451,6 +452,45 @@
     #pauseScreen .panelFooter button {
       width: auto; min-width: 0; margin-top: 0; padding-left: 34px; padding-right: 34px;
       white-space: nowrap;
+    }
+    #reloadAudioBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      aspect-ratio: 1 / 1;
+      padding: 0;
+      margin: 0;
+      background: #6d86c9;
+      color: #f8fbff;
+      box-shadow: inset -3px -3px #3f4f8e,3px 3px #0b0920;
+      display: grid;
+      place-items: center;
+      z-index: 2;
+      overflow: hidden;
+    }
+    #reloadAudioBtn::before {
+      content: "↻";
+      font: bold 21px/1 monospace;
+      transform: translateY(-1px);
+    }
+    #reloadAudioBtn.loading::before {
+      animation: reloadSpin .7s linear infinite;
+    }
+    #reloadAudioBtn.success {
+      background: #5aa27d;
+      box-shadow: inset -3px -3px #2d6b4b,3px 3px #0b0920;
+    }
+    #reloadAudioBtn.fail {
+      background: #b56471;
+      box-shadow: inset -3px -3px #7c3341,3px 3px #0b0920;
+    }
+    @keyframes reloadSpin {
+      from { transform: translateY(-1px) rotate(0deg); }
+      to { transform: translateY(-1px) rotate(360deg); }
     }
     #leaveStageBtn {
       margin-top: 0;
@@ -833,6 +873,7 @@
   </div>
   <div id="pauseScreen" class="screen hidden">
     <div class="panel">
+      <button id="reloadAudioBtn" type="button" aria-label="重新載入音效" title="重新載入音效"></button>
       <h1>遊戲暫停</h1>
       <h2>角色目前能力</h2>
       <div class="panelBody">
@@ -906,7 +947,7 @@
   let xpSoundLastTime=0,gemMergeTimer=0;
   let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
-  let petTargetCache=null,petTargetTimer=0,bananaTargetCache=null,bananaTargetTimer=0;
+  let sharedTargetCache=null,sharedTargetTimer=0;
   let debugPanelMode="perf",audioDebugTimer=0;
   let audioDebugCurrent={
     total:0,beep:0,external:0,xp:0,crit:0,
@@ -918,7 +959,8 @@
   let perfDebugLast={frameMs:16.7,fps:60,peak:16.7};
   let perfWorkCurrent={
     targetSearch:0,gridRebuild:0,nearQuery:0,collision:0,
-    enemyMove:0,gemUpdate:0,spawn:0,groundDraw:0,enemyDraw:0,projectileDraw:0
+    enemyMove:0,gemUpdate:0,spawn:0,groundDraw:0,enemyDraw:0,projectileDraw:0,
+    gridCells:0,gridEntries:0,effectDraw:0,textDraw:0
   };
   let perfWorkLast={...perfWorkCurrent};
 
@@ -1022,7 +1064,9 @@
       }
       bucket.push(e);
       countPerfWork("gridRebuild");
+      countPerfWork("gridEntries");
     }
+    countPerfWork("gridCells",enemyGrid.size);
   }
   function forEachEnemyNear(x,y,radius,fn){
     countPerfWork("nearQuery");
@@ -1622,6 +1666,10 @@
   };
   const externalAudio={};
 
+  function resetExternalAudioState(){
+    for(const key of Object.keys(externalAudio))delete externalAudio[key];
+  }
+
   function initExternalAudio(){
     if(!audio)return;
     for(const [key,src] of Object.entries(externalAudioDefs)){
@@ -1688,6 +1736,26 @@
       });
     }
   }
+  async function reloadAudioEngine(){
+    try{
+      if(audio&&audio.state!=="closed"){
+        try{await audio.close();}catch(_error){}
+      }
+      audio=null;
+      critSampleBuffer=null;
+      critSampleLoading=false;
+      resetExternalAudioState();
+      initAudio();
+      if(audio&&audio.state==="suspended"){
+        try{await audio.resume();}catch(_error){}
+      }
+      text(player.x||0,(player.y||0)-54,"音效已重新載入","#9eeaff",18,"pickup");
+      return true;
+    }catch(_error){
+      text(player.x||0,(player.y||0)-54,"音效重新載入失敗","#ff9aa8",18,"pickup");
+      return false;
+    }
+  }
   function countAudioDebug(kind){
     audioDebugCurrent.total++;
     if(audioDebugCurrent[kind]!==undefined)audioDebugCurrent[kind]++;
@@ -1724,6 +1792,8 @@
     const labelMap={
       targetSearch:"索敵判定",
       gridRebuild:"格網重建",
+      gridCells:"格網格數累計",
+      gridEntries:"格網填入累計",
       nearQuery:"附近查詢",
       collision:"碰撞判定",
       enemyMove:"怪物移動",
@@ -1731,7 +1801,9 @@
       spawn:"補怪批次",
       groundDraw:"地板繪製",
       enemyDraw:"敵人繪製",
-      projectileDraw:"射彈繪製"
+      projectileDraw:"射彈繪製",
+      effectDraw:"特效繪製",
+      textDraw:"文字繪製"
     };
     return Object.entries(perfWorkLast)
       .map(([key,count])=>({
@@ -2036,6 +2108,7 @@
     kills=score=eliteKills=bossKills=eligibleKills=instantKills=0;instantKillTimer=0;time=spawnClock=shotClock=0;nextId=1;levelQueue=0;
     kps=kpsWindowKills=kpsWindowTime=kpsPressure=0;
     giantCarrotCooldown=0;
+    sharedTargetCache=null;sharedTargetTimer=0;
     chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;
     encirclementPressure=0;encirclementTick=0;encirclementDotTimer=0;encirclementDotRate=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementEvalTimer=0;encirclementFullHold=0;encirclementPrewarn=false;
@@ -2271,12 +2344,24 @@
     }
     return best;
   }
+  function targetInvalid(target){
+    if(!target)return true;
+    if("opened" in target)return target.opened||!inTargetView(target);
+    return target.dead||target.hp<=0||!inTargetView(target);
+  }
+  function getSharedTarget(force=false){
+    if(force||sharedTargetTimer<=0||targetInvalid(sharedTargetCache)){
+      sharedTargetCache=nearest(player.x,player.y);
+      sharedTargetTimer=.12;
+    }
+    return sharedTargetCache;
+  }
 
   function fireCarrots(){
     if(!enemies.length&&!chests.some(c=>!c.opened))return;
     carrotVolley++;
     let firedCount=0;
-    const target=nearest(player.x,player.y);
+    const target=getSharedTarget();
     if(target){
       const baseAngle=Math.atan2(target.y-player.y,target.x-player.x);
       const spreadStep=player.projectiles<=3?.09:player.projectiles<=6?.12:.14;
@@ -2298,7 +2383,7 @@
       }
     }
     if(player.projectiles>=5&&giantCarrotCooldown<=0){
-      const target=nearest(player.x,player.y);
+      const target=getSharedTarget();
       if(target){
         const a=Math.atan2(target.y-player.y,target.x-player.x);
         shots.push({
@@ -2312,12 +2397,7 @@
   }
 
   function firePet(){
-    petTargetTimer-=1/60;
-    if(!petTargetCache||petTargetTimer<=0||petTargetCache.dead||petTargetCache.hp<=0||!inTargetView(petTargetCache)){
-      petTargetCache=nearest(player.x,player.y);
-      petTargetTimer=.12;
-    }
-    const target=petTargetCache;if(!target)return;
+    const target=getSharedTarget();if(!target)return;
     const a=Math.atan2(target.y-player.y,target.x-player.x);
     const evolved=skills.peanut>=5;
     petShots.push({
@@ -2330,12 +2410,7 @@
 
   function fireBanana(){
     const level=skills.pinky;
-    bananaTargetTimer-=1/60;
-    if(!bananaTargetCache||bananaTargetTimer<=0||bananaTargetCache.dead||bananaTargetCache.hp<=0||!inTargetView(bananaTargetCache)){
-      bananaTargetCache=nearest(player.x,player.y);
-      bananaTargetTimer=.14;
-    }
-    const target=bananaTargetCache;
+    const target=getSharedTarget();
     const angle=target?Math.atan2(target.y-player.y,target.x-player.x):(player.facing<0?Math.PI:0);
     const startX=player.x+Math.cos(angle)*30,startY=player.y+Math.sin(angle)*30;
     const speed=310+level*24,range=(170+level*18)*player.area;
@@ -3051,6 +3126,7 @@
 
   function update(dt){
     if(!running||paused||ended)return;
+    sharedTargetTimer=Math.max(0,sharedTargetTimer-dt);
     debugFrameMs=debugFrameMs*.88+dt*1000*.12;
     debugPeakFrameMs=Math.max(debugFrameMs,debugPeakFrameMs*.965);
     debugFps=1000/Math.max(1,debugFrameMs);
@@ -3070,7 +3146,7 @@
       perfWorkLast={...perfWorkCurrent};
       perfDebugTimer=0;
       perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0};
-      perfWorkCurrent={targetSearch:0,gridRebuild:0,nearQuery:0,collision:0,enemyMove:0,gemUpdate:0,spawn:0,groundDraw:0,enemyDraw:0,projectileDraw:0};
+      perfWorkCurrent={targetSearch:0,gridRebuild:0,nearQuery:0,collision:0,enemyMove:0,gemUpdate:0,spawn:0,groundDraw:0,enemyDraw:0,projectileDraw:0,gridCells:0,gridEntries:0,effectDraw:0,textDraw:0};
     }
     audioDebugTimer+=dt;
     if(audioDebugTimer>=.5){
@@ -3319,6 +3395,10 @@
         if(hash===5){rect(x+24,y+28,22,10,"#69aa51");rect(x+29,y+22,12,16,"#69aa51");}
       }
     }
+  }
+  function currentGroundTileCount(){
+    const grid=64;
+    return (Math.ceil(W/grid)+3)*(Math.ceil(H/grid)+3);
   }
 
   function drawBossArena(){
@@ -3896,6 +3976,8 @@
     const heapText=heapSupported?`${debugHeapMb.toFixed(1)} MB`:"N/A";
     const audioRows=audioMonitorRows();
     const perfRows=perfMonitorRows();
+    const liveProjectileCount=shots.length+petShots.length+enemyShots.length+bananas.length;
+    const liveEnemyCount=livingEnemyCount();
     const rows=debugPanelMode==="audio"
       ?[
         ["總開關",muted?"靜音":"開啟",muted?"#ff6d78":"#7eff8f"],
@@ -3909,14 +3991,16 @@
         ["2秒平均FPS",`${perfDebugLast.fps.toFixed(1)}`,debugColor(perfDebugLast.fps,55,40,true)],
         ["2秒平均Frame",`${perfDebugLast.frameMs.toFixed(1)} ms`,debugColor(perfDebugLast.frameMs,18,28)],
         ["2秒最高Frame",`${perfDebugLast.peak.toFixed(1)} ms`,debugColor(perfDebugLast.peak,24,40)],
-        ...perfRows.slice(0,7).map(row=>[row.label,`${row.value}`,row.color]),
+        ...perfRows.map(row=>[row.label,`${row.value}`,row.color]),
         ["壓力",`${Math.round(encirclementPressure*100)}%`,debugColor(encirclementPressure*100,45,75)],
         ["KPS",`${kps.toFixed(1)}`,debugColor(kps,10,25)],
-        ["怪物",`${livingEnemyCount()}`,debugColor(livingEnemyCount(),120,180)],
+        ["怪物",`${liveEnemyCount}`,debugColor(liveEnemyCount,120,180)],
+        ["格網格數",`${enemyGrid.size}`,"#d7d0ec"],
+        ["地板格數",`${currentGroundTileCount()}`,"#d7d0ec"],
         ["經驗球數",`${gems.length}`,debugColor(gems.length,120,220)],
         ["特效數",`${effects.length}`,debugColor(effects.length,100,180)],
         ["文字數",`${texts.length}`,debugColor(texts.length,30,60)],
-        ["射彈數",`${shots.length+petShots.length+enemyShots.length}`,debugColor(shots.length+petShots.length+enemyShots.length,60,120)],
+        ["射彈數",`${liveProjectileCount}`,debugColor(liveProjectileCount,60,120)],
         ["Heap",heapText,heapSupported?debugColor(debugHeapMb,80,140):"#d7d0ec"]
       ];
     const x=12,y=182,rowH=18,w=170,h=rows.length*rowH+18;
@@ -3965,6 +4049,8 @@
   function draw(){
     countPerfWork("enemyDraw",enemies.length);
     countPerfWork("projectileDraw",shots.length+petShots.length+enemyShots.length+bananas.length);
+    countPerfWork("effectDraw",effects.length);
+    countPerfWork("textDraw",texts.length);
     drawGround();drawBossArena();drawGroundEffects();drawBeamWarnings();for(const g of gems)drawGem(g);for(const chest of chests)drawChest(chest);for(const pickup of pickups)drawPickup(pickup);drawSkills();
     for(const e of enemies)drawEnemy(e);
     for(const s of shots)drawCarrot(s);
@@ -4121,7 +4207,7 @@
   function loop(now){const dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw();requestAnimationFrame(loop);}
   function setKey(k,v){keys[k]=v;}
   const touch=document.getElementById("touch"),touchKnob=document.getElementById("touchKnob"),touchHint=document.getElementById("touchHint");
-  const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn"),leaveStageBtn=document.getElementById("leaveStageBtn"),muteBtn=document.getElementById("muteBtn");
+  const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn"),leaveStageBtn=document.getElementById("leaveStageBtn"),muteBtn=document.getElementById("muteBtn"),reloadAudioBtn=document.getElementById("reloadAudioBtn");
   const monitorTabs=document.getElementById("monitorTabs"),perfMonitorBtn=document.getElementById("perfMonitorBtn"),audioMonitorBtn=document.getElementById("audioMonitorBtn");
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
   const characterBtn=document.getElementById("characterBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter");
@@ -4291,6 +4377,18 @@
   });
   confirmLeaveBtn.addEventListener("click",leaveStage);
   muteBtn.addEventListener("click",toggleMute);
+  reloadAudioBtn.addEventListener("click",async()=>{
+    reloadAudioBtn.disabled=true;
+    reloadAudioBtn.classList.remove("success","fail");
+    reloadAudioBtn.classList.add("loading");
+    const ok=await reloadAudioEngine();
+    reloadAudioBtn.classList.remove("loading");
+    reloadAudioBtn.classList.add(ok?"success":"fail");
+    setTimeout(()=>{
+      reloadAudioBtn.disabled=false;
+      reloadAudioBtn.classList.remove("success","fail");
+    },1200);
+  });
   accountBox.addEventListener("click",()=>{renderMeta();rewardScreen.classList.remove("hidden");});
   accountBox.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();renderMeta();rewardScreen.classList.remove("hidden");}});
   closeRewards.addEventListener("click",()=>{rewardScreen.classList.add("hidden");renderMeta();});
