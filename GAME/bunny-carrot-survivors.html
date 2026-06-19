@@ -923,7 +923,7 @@
   const stageArt=document.getElementById("stageArt"),stageName=document.getElementById("stageName"),stagePower=document.getElementById("stagePower");
   const keys={up:false,down:false,left:false,right:false};
   const stick={active:false,pointerId:null,x:0,y:0,startX:0,startY:0};
-  let running=false,paused=false,ended=false,last=0,time=0,spawnClock=0,shotClock=0;
+  let running=false,paused=false,ended=false,last=0,time=0,spawnClock=0,shotClock=0,battleStartDelay=0;
   let giantCarrotCooldown=0;
   let enemies=[],shots=[],enemyShots=[],gems=[],effects=[],texts=[],areas=[],petShots=[],bananas=[],chests=[],pickups=[];
   let enemyGrid=new Map();
@@ -938,6 +938,7 @@
   let encirclementReservedHp=0,encirclementSectorBits=0,encirclementSectorCount=0,encirclementEvalTimer=0,encirclementFullHold=0,encirclementPrewarn=false;
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
   let runRewarded=false,transitioning=false;
+  const BATTLE_START_DELAY=1.6;
   let escalationStart=null;
   let killSurgeActive=false;
   let finalPhase="none",finalTimer=0;
@@ -1725,8 +1726,8 @@
 
   function initAudio(){
     if(muted)return;
-    if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();
-    if(audio.state==="suspended")audio.resume();
+    if(!audio||audio.state==="closed")audio=new(window.AudioContext||window.webkitAudioContext)();
+    if(audio.state==="suspended")audio.resume().catch(()=>{});
     initExternalAudio();
     if(!critSampleBuffer&&!critSampleLoading&&window.RO_CRIT_WAV_BASE64){
       critSampleLoading=true;
@@ -1738,6 +1739,17 @@
       }).catch(()=>{}).finally(()=>{
         critSampleLoading=false;
       });
+    }
+  }
+  function ensureAudioReady(){
+    if(muted)return false;
+    try{
+      if(!audio||audio.state==="closed")initAudio();
+      if(!audio)return false;
+      if(audio.state==="suspended")audio.resume().catch(()=>{});
+      return audio.state!=="closed";
+    }catch{
+      return false;
     }
   }
   async function reloadAudioEngine(){
@@ -1827,10 +1839,10 @@
       }))
       .sort((a,b)=>(b.value-a.value)||a.label.localeCompare(b.label,"zh-Hant"));
   }
-  function beep(f,d=.06,v=.025,type="square"){if(!audio||muted)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);countAudioDebug("beep");}
+  function beep(f,d=.06,v=.025,type="square"){if(!ensureAudioReady())return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);countAudioDebug("beep");}
   function playSmallCarrotSound(){
     if(playExternalAudio("smallCarrot",.42,1))return;
-    if(!audio||muted)return;
+    if(!ensureAudioReady())return;
     countAudioDebug("smallCarrot");
     const t=audio.currentTime;
     const osc=audio.createOscillator();
@@ -1852,7 +1864,7 @@
   }
   function playGiantLaunchSound(){
     if(playExternalAudio("giantLaunch",.56,1))return;
-    if(!audio||muted)return;
+    if(!ensureAudioReady())return;
     countAudioDebug("giantLaunch");
     const t=audio.currentTime;
     const osc=audio.createOscillator();
@@ -1868,12 +1880,12 @@
     osc.stop(t+.13);
   }
   function playCritSample(volume=1,rate=1){
-    if(muted||!audio)return;
+    if(!ensureAudioReady())return;
     if(playExternalAudio("crit",Math.max(.25,Math.min(.85,volume*.9)),rate))return;
     return;
   }
   function playXpPickupSound({waveform="sine",baseFreq=2169,duration=.2,overtone=.05,rippleCount=1}={}){
-    if(!audio||muted)return;
+    if(!ensureAudioReady())return;
     const now=performance.now();
     if(now-xpSoundLastTime<45)return;
     xpSoundLastTime=now;
@@ -1912,7 +1924,7 @@
   }
   function playGiantExplosionSound({startFreq=80,duration=.14,noiseGain=.18,rippleSpeed=12,jitterDepth=10}={}){
     if(playExternalAudio("giantExplosion",.72,1))return;
-    if(!audio||muted)return;
+    if(!ensureAudioReady())return;
     countAudioDebug("giantExplosion");
     const t=audio.currentTime;
     const d=Math.max(.08,duration);
@@ -1953,7 +1965,7 @@
     noise.stop(t+d);
   }
   function playSweep(fromFreq,toFreq,durationMs,volume=.028,type="triangle"){
-    if(!audio||muted)return;
+    if(!ensureAudioReady())return;
     const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime,d=Math.max(.05,durationMs/1000);
     o.type=type;
     o.frequency.setValueAtTime(Math.max(40,fromFreq),t);
@@ -2088,6 +2100,7 @@
       transitionMask.style.opacity="0";
       transitionMask.style.background="radial-gradient(circle at 50% 50%, transparent 0, transparent 120vmax, #06040d 120vmax, #06040d 100%)";
       transitioning=false;
+      if(running&&!ended)battleStartDelay=BATTLE_START_DELAY;
     }
 
     requestAnimationFrame(animate);
@@ -2109,7 +2122,7 @@
     for(const id of Object.keys(upgradeLevels))upgradeLevels[id]=0;
     enemies=[];shots=[];enemyShots=[];gems=[];effects=[];texts=[];areas=[];petShots=[];bananas=[];chests=[];pickups=[];
     announcements=[];activeAnnouncement=null;
-    kills=score=eliteKills=bossKills=eligibleKills=instantKills=0;instantKillTimer=0;time=spawnClock=shotClock=0;nextId=1;levelQueue=0;
+    kills=score=eliteKills=bossKills=eligibleKills=instantKills=0;instantKillTimer=0;time=spawnClock=shotClock=0;battleStartDelay=0;nextId=1;levelQueue=0;
     kps=kpsWindowKills=kpsWindowTime=kpsPressure=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
@@ -2719,13 +2732,13 @@
     if(player.invuln>0)return;player.hp-=amount;player.invuln=.7;burst(player.x,player.y,"#ff776e",8);if(player.hp<=0)lose();
   }
 
-  function hurtPercent(percent,lethal=false){
-    if(player.invuln>0)return;
+  function hurtPercent(percent,lethal=false,ignoreInvuln=false,grantInvuln=true){
+    if(!ignoreInvuln&&player.invuln>0)return;
     const damage=Math.max(1,player.maxHp*percent);
     if(lethal)hurt(damage);
     else{
       player.hp=Math.max(1,player.hp-damage);
-      player.invuln=.55;
+      if(grantInvuln)player.invuln=.55;
       burst(player.x,player.y,"#cf2648",10);
       text(player.x,player.y-52,`-${Math.round(percent*100)}% HP`,"#ff6680",18);
     }
@@ -2896,7 +2909,7 @@
           const pressureStep=Math.floor(e.cling/1.2);
           const percent=Math.min(.03,.008+pressureStep*.004);
           e.attack=.65;
-          hurtPercent(percent,false);
+          hurtPercent(percent,false,false,false);
         }
       }else{
         e.cling=Math.max(0,e.cling-dt*2.5);
@@ -3156,6 +3169,15 @@
       audioDebugTimer=0;
       audioDebugLast={...audioDebugCurrent};
       audioDebugCurrent={total:0,beep:0,external:0,xp:0,crit:0,ui:0,pickup:0,smallCarrot:0,giantLaunch:0,giantExplosion:0,externalFail:0};
+    }
+    if(transitioning){
+      updateAnnouncements(dt);
+      return;
+    }
+    if(battleStartDelay>0){
+      battleStartDelay=Math.max(0,battleStartDelay-dt);
+      updateAnnouncements(dt);
+      return;
     }
     time+=dt;timeline();updateAnnouncements(dt);
     hudSampleTimer+=dt;
@@ -4370,6 +4392,9 @@
   addEventListener("keydown",e=>{if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],true);}});
   addEventListener("keyup",e=>{if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],false);}});
   addEventListener("blur",()=>{Object.keys(keys).forEach(k=>keys[k]=false);resetStick();});
+  addEventListener("focus",()=>{ensureAudioReady();});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)ensureAudioReady();});
+  addEventListener("pageshow",()=>{ensureAudioReady();});
   addEventListener("resize",positionMonitorTabs);
   pauseBtn.addEventListener("click",pauseGame);
   resumeBtn.addEventListener("click",resumeGame);
