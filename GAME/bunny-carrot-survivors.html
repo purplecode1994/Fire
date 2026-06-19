@@ -908,10 +908,19 @@
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
   let petTargetCache=null,petTargetTimer=0,bananaTargetCache=null,bananaTargetTimer=0;
   let debugPanelMode="perf",audioDebugTimer=0;
-  let audioDebugCurrent={total:0,beep:0,external:0,xp:0,crit:0};
-  let audioDebugLast={total:0,beep:0,external:0,xp:0,crit:0};
+  let audioDebugCurrent={
+    total:0,beep:0,external:0,xp:0,crit:0,
+    ui:0,pickup:0,smallCarrot:0,giantLaunch:0,giantExplosion:0,
+    externalFail:0
+  };
+  let audioDebugLast={...audioDebugCurrent};
   let perfDebugTimer=0,perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0};
   let perfDebugLast={frameMs:16.7,fps:60,peak:16.7};
+  let perfWorkCurrent={
+    targetSearch:0,gridRebuild:0,nearQuery:0,collision:0,
+    enemyMove:0,gemUpdate:0,spawn:0,groundDraw:0,enemyDraw:0,projectileDraw:0
+  };
+  let perfWorkLast={...perfWorkCurrent};
 
   const META_KEY="bunnyCarrotSurvivorsMetaV1";
   const BASE_META_DAMAGE=18;
@@ -1001,6 +1010,7 @@
   }
   function rebuildEnemyGrid(){
     enemyGrid.clear();
+    countPerfWork("gridRebuild");
     for(const e of enemies){
       if(e.dead||e.hp<=0)continue;
       const cx=Math.floor(e.x/ENEMY_GRID_SIZE),cy=Math.floor(e.y/ENEMY_GRID_SIZE);
@@ -1011,9 +1021,11 @@
         enemyGrid.set(key,bucket);
       }
       bucket.push(e);
+      countPerfWork("gridRebuild");
     }
   }
   function forEachEnemyNear(x,y,radius,fn){
+    countPerfWork("nearQuery");
     const minX=Math.floor((x-radius)/ENEMY_GRID_SIZE);
     const maxX=Math.floor((x+radius)/ENEMY_GRID_SIZE);
     const minY=Math.floor((y-radius)/ENEMY_GRID_SIZE);
@@ -1022,6 +1034,7 @@
       for(let cx=minX;cx<=maxX;cx++){
         const bucket=enemyGrid.get(enemyGridKey(cx,cy));
         if(!bucket)continue;
+        countPerfWork("nearQuery",bucket.length);
         for(const e of bucket)fn(e);
       }
     }
@@ -1439,7 +1452,8 @@
         meta.claimedRewards.push(lv);
         saveMeta();
         renderMeta();
-        beep(760,.08,.025);
+      beep(760,.08,.025);
+      countAudioSubtype("ui");
       };
       node.appendChild(btn);
       rewardTrack.appendChild(node);
@@ -1481,6 +1495,7 @@
         setTimeout(()=>singleButton.classList.remove("flash"),110);
         renderMeta();
         beep(620,.09,.025);
+        countAudioSubtype("ui");
       };
       const bulkInfo=metaBulkUpgradeInfo(def,10);
       const bulkButton=document.createElement("button");
@@ -1503,6 +1518,7 @@
           setTimeout(()=>bulkButton.classList.remove("flash"),110);
           renderMeta();
           beep(700,.11,.03);
+          countAudioSubtype("ui");
         };
       }
       actions.appendChild(singleButton);
@@ -1650,6 +1666,7 @@
       countAudioDebug("external");
       return true;
     }catch{
+      countAudioDebug("externalFail");
       return false;
     }
   }
@@ -1675,12 +1692,24 @@
     audioDebugCurrent.total++;
     if(audioDebugCurrent[kind]!==undefined)audioDebugCurrent[kind]++;
   }
+  function countAudioSubtype(kind){
+    if(audioDebugCurrent[kind]!==undefined)audioDebugCurrent[kind]++;
+  }
+  function countPerfWork(kind,amount=1){
+    if(perfWorkCurrent[kind]!==undefined)perfWorkCurrent[kind]+=amount;
+  }
   function audioMonitorRows(){
     const labelMap={
       crit:"爆擊音",
       xp:"吸經驗音",
       external:"外部音檔",
-      beep:"系統提示音"
+      beep:"系統提示音",
+      ui:"介面提示",
+      pickup:"拾取/獎勵",
+      smallCarrot:"小蘿蔔",
+      giantLaunch:"巨蘿蔔發射",
+      giantExplosion:"巨蘿蔔爆炸",
+      externalFail:"外部失敗"
     };
     return Object.entries(audioDebugLast)
       .filter(([key])=>key!=="total")
@@ -1689,12 +1718,44 @@
         value:count,
         color:debugColor(count,key==="xp"?8:4,key==="xp"?16:10)
       }))
-      .sort((a,b)=>b.value-a.value);
+      .sort((a,b)=>(b.value-a.value)||a.label.localeCompare(b.label,"zh-Hant"));
+  }
+  function perfMonitorRows(){
+    const labelMap={
+      targetSearch:"索敵判定",
+      gridRebuild:"格網重建",
+      nearQuery:"附近查詢",
+      collision:"碰撞判定",
+      enemyMove:"怪物移動",
+      gemUpdate:"經驗球更新",
+      spawn:"補怪批次",
+      groundDraw:"地板繪製",
+      enemyDraw:"敵人繪製",
+      projectileDraw:"射彈繪製"
+    };
+    return Object.entries(perfWorkLast)
+      .map(([key,count])=>({
+        label:labelMap[key]||key,
+        value:count,
+        color:debugColor(count,
+          key==="groundDraw"?180:
+          key==="enemyDraw"?200:
+          key==="projectileDraw"?140:
+          key==="collision"?160:
+          key==="gemUpdate"?120:90,
+          key==="groundDraw"?320:
+          key==="enemyDraw"?360:
+          key==="projectileDraw"?260:
+          key==="collision"?320:
+          key==="gemUpdate"?240:180)
+      }))
+      .sort((a,b)=>(b.value-a.value)||a.label.localeCompare(b.label,"zh-Hant"));
   }
   function beep(f,d=.06,v=.025,type="square"){if(!audio||muted)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);countAudioDebug("beep");}
   function playSmallCarrotSound(){
     if(playExternalAudio("smallCarrot",.42,1))return;
     if(!audio||muted)return;
+    countAudioDebug("smallCarrot");
     const t=audio.currentTime;
     const osc=audio.createOscillator();
     const gain=audio.createGain();
@@ -1716,6 +1777,7 @@
   function playGiantLaunchSound(){
     if(playExternalAudio("giantLaunch",.56,1))return;
     if(!audio||muted)return;
+    countAudioDebug("giantLaunch");
     const t=audio.currentTime;
     const osc=audio.createOscillator();
     const gain=audio.createGain();
@@ -1729,45 +1791,10 @@
     osc.start(t);
     osc.stop(t+.13);
   }
-  function playCritFallback(volume=1,rate=1){
-    if(!audio||muted)return;
-    const t=audio.currentTime;
-    const main=audio.createOscillator();
-    const harm=audio.createOscillator();
-    const gain=audio.createGain();
-    const boost=Math.max(.75,Math.min(1.25,rate));
-    main.type="triangle";
-    harm.type="square";
-    main.frequency.setValueAtTime(880*boost,t);
-    main.frequency.exponentialRampToValueAtTime(1420*boost,t+.06);
-    harm.frequency.setValueAtTime(1320*boost,t);
-    harm.frequency.exponentialRampToValueAtTime(1880*boost,t+.045);
-    gain.gain.setValueAtTime(.0001,t);
-    gain.gain.exponentialRampToValueAtTime(.05*Math.max(.35,Math.min(1,volume)),t+.004);
-    gain.gain.exponentialRampToValueAtTime(.0001,t+.085);
-    main.connect(gain);
-    harm.connect(gain);
-    gain.connect(audio.destination);
-    main.start(t);
-    harm.start(t);
-    main.stop(t+.09);
-    harm.stop(t+.07);
-  }
   function playCritSample(volume=1,rate=1){
     if(muted||!audio)return;
     if(playExternalAudio("crit",Math.max(.25,Math.min(.85,volume*.9)),rate))return;
-    if(!critSampleBuffer){
-      playCritFallback(volume,rate);
-      return;
-    }
-    const source=audio.createBufferSource();
-    const gain=audio.createGain();
-    source.buffer=critSampleBuffer;
-    source.playbackRate.setValueAtTime(Math.max(.7,Math.min(1.2,rate)),audio.currentTime);
-    gain.gain.setValueAtTime(Math.max(0,Math.min(1,volume)),audio.currentTime);
-    source.connect(gain).connect(audio.destination);
-    source.start();
-    countAudioDebug("crit");
+    return;
   }
   function playXpPickupSound({waveform="sine",baseFreq=2169,duration=.2,overtone=.05,rippleCount=1}={}){
     if(!audio||muted)return;
@@ -1810,6 +1837,7 @@
   function playGiantExplosionSound({startFreq=80,duration=.14,noiseGain=.18,rippleSpeed=12,jitterDepth=10}={}){
     if(playExternalAudio("giantExplosion",.72,1))return;
     if(!audio||muted)return;
+    countAudioDebug("giantExplosion");
     const t=audio.currentTime;
     const d=Math.max(.08,duration);
 
@@ -2232,9 +2260,11 @@
   }
 
   function nearest(x,y,exclude=new Set()){
+    countPerfWork("targetSearch");
     let best=null,bd=Infinity;
-    for(const e of enemies){if(e.hp<=0||exclude.has(e.id)||!inTargetView(e))continue;const d=(e.x-x)**2+(e.y-y)**2;if(d<bd){bd=d;best=e;}}
+    for(const e of enemies){countPerfWork("targetSearch");if(e.hp<=0||exclude.has(e.id)||!inTargetView(e))continue;const d=(e.x-x)**2+(e.y-y)**2;if(d<bd){bd=d;best=e;}}
     for(const chest of chests){
+      countPerfWork("targetSearch");
       if(chest.opened||exclude.has(chest.id)||!inTargetView(chest))continue;
       const d=(chest.x-x)**2+(chest.y-y)**2;
       if(d<bd){bd=d;best=chest;}
@@ -2358,6 +2388,7 @@
         }
       }
       forEachEnemyNear(b.x,b.y,b.r+ENEMY_QUERY_PADDING,e=>{
+        countPerfWork("collision");
         if(e.dead||b.hit.has(e.id)||dist(b,e)>b.r+e.r)return;
         b.hit.add(e.id);damageEnemy(e,b.damage,false,"banana");
       });
@@ -2467,6 +2498,7 @@
 
   function showLevelUp(){
     paused=true;levelScreen.classList.remove("hidden");choicesEl.innerHTML="";
+    updateMonitorButtons();
     const pool=upgrades.filter(u=>{
       if(u.basic&&upgradeLevels[u.id]>=BASIC_UPGRADE_CAP)return false;
       if(u.cap&&upgradeLevels[u.id]>=u.cap)return false;
@@ -2490,6 +2522,7 @@
         if(!gems.length){magnetAll=false;magnetTimer=0;}
         levelScreen.classList.add("hidden");
         paused=false;
+        updateMonitorButtons();
         beep(660,.1,.04);
         if(levelQueue)setTimeout(showLevelUp,80);
       };
@@ -2533,6 +2566,7 @@
       magnetTimer=8;
       text(player.x,player.y-42,"強力磁鐵：吸取全部經驗！","#78efff",24,"pickup");
       beep(760,.35,.04,"triangle");
+      countAudioSubtype("pickup");
       return;
     }
     if(pickup.type==="heal"){
@@ -2540,6 +2574,7 @@
       text(player.x,player.y-42,"生命完全恢復！","#8cff9b",24,"pickup");
       burst(player.x,player.y,"#8cff9b",18);
       beep(620,.4,.04,"sine");
+      countAudioSubtype("pickup");
       return;
     }
     if(pickup.type==="potion"){
@@ -2547,10 +2582,12 @@
       text(player.x,player.y-42,"恢復藥水：10 秒回復 20% HP！","#ff9fc7",22,"pickup");
       burst(player.x,player.y,"#ff9fc7",16);
       beep(700,.3,.04,"triangle");
+      countAudioSubtype("pickup");
       return;
     }
     text(player.x,player.y-42,"畫面炸彈！","#ff9a55",24,"pickup");
     beep(105,.5,.055,"sawtooth");
+    countAudioSubtype("pickup");
     for(const e of enemies){
       if(e.dead)continue;
       const p=worldToScreen(e.x,e.y);
@@ -2601,7 +2638,7 @@
   }
 
   function hurt(amount){
-    if(player.invuln>0)return;player.hp-=amount;player.invuln=.7;beep(130,.18,.045,"sawtooth");burst(player.x,player.y,"#ff776e",8);if(player.hp<=0)lose();
+    if(player.invuln>0)return;player.hp-=amount;player.invuln=.7;burst(player.x,player.y,"#ff776e",8);if(player.hp<=0)lose();
   }
 
   function hurtPercent(percent,lethal=false){
@@ -2611,7 +2648,6 @@
     else{
       player.hp=Math.max(1,player.hp-damage);
       player.invuln=.55;
-      beep(95,.22,.045,"sawtooth");
       burst(player.x,player.y,"#cf2648",10);
       text(player.x,player.y-52,`-${Math.round(percent*100)}% HP`,"#ff6680",18);
     }
@@ -2622,7 +2658,6 @@
     encirclementReservedHp=Math.max(encirclementReservedHp,player.maxHp*percent);
     burst(player.x,player.y,"#ff7b96",7);
     text(player.x,player.y-52,`窒息 ${Math.round(percent*100)}% / 5秒`,"#ffb0cb",18,"pickup");
-    beep(95,.18,.032,"sawtooth");
   }
 
   function giantCarrotImpact(shot){
@@ -2701,6 +2736,7 @@
     const dangerRadius=encirclementRadius();
     let sectorBits=0;
     for(let enemyIndex=0;enemyIndex<enemies.length;enemyIndex++){
+      countPerfWork("enemyMove");
       const e=enemies[enemyIndex];
       if(e.dead)continue;e.hit=Math.max(0,e.hit-dt);e.attack-=dt;e.shoot-=dt;e.slow=Math.max(0,e.slow-dt);
       const screenPos=worldToScreen(e.x,e.y);
@@ -2720,6 +2756,7 @@
       if(e.type==="vulture"){a+=Math.sin(time*3.2+e.id)*.22;speed*=1+.18*Math.sin(time*4+e.id);}
       if(e.type==="centipede")a+=Math.sin(time*7+e.id)*.18;
       for(const crater of effects){
+        countPerfWork("collision");
         if(crater.kind==="crater"&&dist(e,crater)<crater.r+e.r*.35){
           e.slow=Math.max(e.slow,1.25);
           break;
@@ -2774,6 +2811,7 @@
         }
       }
       const contactDepth=e.r+player.r-dist(e,player);
+      countPerfWork("collision");
       if(contactDepth>4){
         e.cling+=dt;
         if(e.attack<=0){
@@ -2846,9 +2884,11 @@
     const orbitRadius=55*player.area;
     const orbitSpeed=skills.orbit>=5?4.6:1.8+skills.orbit*.1;
     for(const shot of enemyShots){
+      countPerfWork("projectileDraw");
       shot.x+=shot.vx*dt;shot.y+=shot.vy*dt;shot.life-=dt;
       if(orbitCount){
         for(let i=0;i<orbitCount;i++){
+          countPerfWork("collision");
           const a=time*orbitSpeed+i*Math.PI*2/orbitCount;
           const guard={x:player.x+Math.cos(a)*orbitRadius,y:player.y+Math.sin(a)*orbitRadius};
           if(dist(shot,guard)<shot.r+12){
@@ -2858,6 +2898,7 @@
           }
         }
       }
+      countPerfWork("collision");
       if(shot.life>0&&dist(shot,player)<shot.r+player.r){
         shot.life=0;
         hurt(shot.damage);
@@ -2886,6 +2927,7 @@
 
   function updateShots(dt,list,isPet=false){
     for(const s of list){
+      countPerfWork("projectileDraw");
       s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;
 
       if(s.kind==="rolling"){
@@ -2900,6 +2942,7 @@
         let impact=s.life<=0;
         if(!impact){
         forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
+          countPerfWork("collision");
           if(impact||e.dead)return;
           if(dist(s,e)<=s.r+e.r)impact=true;
         });
@@ -2910,6 +2953,7 @@
 
       let hitEnemy=false;
       forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
+        countPerfWork("collision");
         if(hitEnemy||e.dead||s.life<=0||dist(s,e)>s.r+e.r)return;
         if(s.kind==="rolling"&&s.hit.has(e.id))return;
         let crit=false;
@@ -2930,6 +2974,7 @@
       });
       if(s.life>0&&!isPet&&!s.kind){
         for(const chest of chests){
+          countPerfWork("collision");
           if(chest.opened||dist(s,chest)>s.r+chest.r)continue;
           openChest(chest);
           s.life=0;
@@ -2948,6 +2993,7 @@
       for(let i=0;i<count;i++){
         const a=time*orbitSpeed+i*Math.PI*2/count,x=player.x+Math.cos(a)*rad,y=player.y+Math.sin(a)*rad;
         forEachEnemyNear(x,y,rad+ENEMY_QUERY_PADDING,e=>{
+          countPerfWork("collision");
           if(e.dead||e.orbitHit&&time-e.orbitHit<=hitDelay)return;
           const dx=e.x-x,dy=e.y-y,reach=e.r+9;
           if(dx*dx+dy*dy<reach*reach){
@@ -2967,6 +3013,7 @@
       a.r+=(a.max-a.r)*dt*(a.evolved?4.2:3.5);
       const band=Math.max(24,a.max*.16);
       forEachEnemyNear(a.x,a.y,a.r+band+ENEMY_QUERY_PADDING,e=>{
+        countPerfWork("collision");
         if(e.dead||a.hit.has(e.id))return;
         const d=dist(a,e);
         if(d<=a.r+e.r&&d>=Math.max(0,a.r-band-e.r)){
@@ -2984,6 +3031,7 @@
       if(magnetTimer<=0)magnetAll=false;
     }
     for(let i=0;i<gems.length;i++){
+      countPerfWork("gemUpdate");
       const g=gems[i];
       const d=dist(g,player);
       const near=d<340||magnetAll||d<player.magnet;
@@ -3019,14 +3067,16 @@
         fps:perfDebugAccumulator.fps/sampleCount,
         peak:perfDebugAccumulator.peak
       };
+      perfWorkLast={...perfWorkCurrent};
       perfDebugTimer=0;
       perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0};
+      perfWorkCurrent={targetSearch:0,gridRebuild:0,nearQuery:0,collision:0,enemyMove:0,gemUpdate:0,spawn:0,groundDraw:0,enemyDraw:0,projectileDraw:0};
     }
     audioDebugTimer+=dt;
     if(audioDebugTimer>=.5){
       audioDebugTimer=0;
       audioDebugLast={...audioDebugCurrent};
-      audioDebugCurrent={total:0,beep:0,external:0,xp:0,crit:0};
+      audioDebugCurrent={total:0,beep:0,external:0,xp:0,crit:0,ui:0,pickup:0,smallCarrot:0,giantLaunch:0,giantExplosion:0,externalFail:0};
     }
     time+=dt;timeline();updateAnnouncements(dt);
     hudSampleTimer+=dt;
@@ -3051,6 +3101,7 @@
     spawnClock-=dt;
     const intensity=1+time/150;
     if(finalPhase==="none"&&(isInfiniteMode()||time<DURATION)&&spawnClock<=0){
+      countPerfWork("spawn");
       const livingCount=enemies.length;
       let targetEnemyCount=0;
       let variance=.12;
@@ -3243,6 +3294,7 @@
     const left=camera.x-W/2-grid,top=camera.y-H/2-grid;
     const firstX=Math.floor(left/grid),firstY=Math.floor(top/grid);
     const cols=Math.ceil(W/grid)+3,rows=Math.ceil(H/grid)+3;
+    countPerfWork("groundDraw",cols*rows);
     for(let gx=firstX;gx<firstX+cols;gx++)for(let gy=firstY;gy<firstY+rows;gy++){
       const x=gx*grid-camera.x+W/2,y=gy*grid-camera.y+H/2;
       const hash=((gx*928371+gy*1237)%7+7)%7;
@@ -3843,12 +3895,13 @@
     const heapSupported=!!(performance&&performance.memory&&performance.memory.usedJSHeapSize);
     const heapText=heapSupported?`${debugHeapMb.toFixed(1)} MB`:"N/A";
     const audioRows=audioMonitorRows();
+    const perfRows=perfMonitorRows();
     const rows=debugPanelMode==="audio"
       ?[
         ["總開關",muted?"靜音":"開啟",muted?"#ff6d78":"#7eff8f"],
         ["音訊引擎",audio?audio.state:"未建立",audio&&audio.state==="running"?"#7eff8f":"#ffe57a"],
         ["0.5秒總數",`${audioDebugLast.total}`,debugColor(audioDebugLast.total,18,36)],
-        ...audioRows.slice(0,4).map(row=>[row.label,`${row.value}`,row.color]),
+        ...audioRows.map(row=>[row.label,`${row.value}`,row.value>0?row.color:"#615a79"]),
         ["XP節流",`45 ms`,"#d7d0ec"],
         ["外部載入",`${Object.values(externalAudio).filter(entry=>entry.ok===true).length}/4`,"#d7d0ec"]
       ]
@@ -3856,16 +3909,17 @@
         ["2秒平均FPS",`${perfDebugLast.fps.toFixed(1)}`,debugColor(perfDebugLast.fps,55,40,true)],
         ["2秒平均Frame",`${perfDebugLast.frameMs.toFixed(1)} ms`,debugColor(perfDebugLast.frameMs,18,28)],
         ["2秒最高Frame",`${perfDebugLast.peak.toFixed(1)} ms`,debugColor(perfDebugLast.peak,24,40)],
+        ...perfRows.slice(0,7).map(row=>[row.label,`${row.value}`,row.color]),
         ["壓力",`${Math.round(encirclementPressure*100)}%`,debugColor(encirclementPressure*100,45,75)],
         ["KPS",`${kps.toFixed(1)}`,debugColor(kps,10,25)],
         ["怪物",`${livingEnemyCount()}`,debugColor(livingEnemyCount(),120,180)],
-        ["經驗球",`${gems.length}`,debugColor(gems.length,120,220)],
-        ["特效",`${effects.length}`,debugColor(effects.length,100,180)],
-        ["文字",`${texts.length}`,debugColor(texts.length,30,60)],
-        ["射彈",`${shots.length+petShots.length+enemyShots.length}`,debugColor(shots.length+petShots.length+enemyShots.length,60,120)],
+        ["經驗球數",`${gems.length}`,debugColor(gems.length,120,220)],
+        ["特效數",`${effects.length}`,debugColor(effects.length,100,180)],
+        ["文字數",`${texts.length}`,debugColor(texts.length,30,60)],
+        ["射彈數",`${shots.length+petShots.length+enemyShots.length}`,debugColor(shots.length+petShots.length+enemyShots.length,60,120)],
         ["Heap",heapText,heapSupported?debugColor(debugHeapMb,80,140):"#d7d0ec"]
       ];
-    const x=12,y=132,rowH=18,w=170,h=rows.length*rowH+18;
+    const x=12,y=182,rowH=18,w=170,h=rows.length*rowH+18;
     ctx.save();
     ctx.globalAlpha=.88;
     rect(x,y,w,h,"#0f1024");
@@ -3909,6 +3963,8 @@
   }
 
   function draw(){
+    countPerfWork("enemyDraw",enemies.length);
+    countPerfWork("projectileDraw",shots.length+petShots.length+enemyShots.length+bananas.length);
     drawGround();drawBossArena();drawGroundEffects();drawBeamWarnings();for(const g of gems)drawGem(g);for(const chest of chests)drawChest(chest);for(const pickup of pickups)drawPickup(pickup);drawSkills();
     for(const e of enemies)drawEnemy(e);
     for(const s of shots)drawCarrot(s);
@@ -4078,12 +4134,21 @@
     const canvasRect=canvas.getBoundingClientRect();
     const wrapRect=wrap.getBoundingClientRect();
     const panelLeft=canvasRect.left-wrapRect.left+12;
-    const panelTop=canvasRect.top-wrapRect.top+136;
+    const panelTop=canvasRect.top-wrapRect.top+92;
     monitorTabs.style.left=`${Math.round(panelLeft)}px`;
     monitorTabs.style.top=`${Math.round(panelTop)}px`;
   }
   function updateMonitorButtons(){
-    const visible=debugOverlayEnabled&&running;
+    const gameplayVisible=
+      running &&
+      intro.classList.contains("hidden") &&
+      levelScreen.classList.contains("hidden") &&
+      pauseScreen.classList.contains("hidden") &&
+      endScreen.classList.contains("hidden") &&
+      rewardScreen.classList.contains("hidden") &&
+      stageScreen.classList.contains("hidden") &&
+      characterScreen.classList.contains("hidden");
+    const visible=debugOverlayEnabled&&gameplayVisible;
     monitorTabs.classList.toggle("visible",visible);
     perfMonitorBtn.classList.toggle("active",debugPanelMode==="perf");
     audioMonitorBtn.classList.toggle("active",debugPanelMode==="audio");
