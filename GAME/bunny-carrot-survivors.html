@@ -57,7 +57,8 @@
       position: absolute; left: 62px; bottom: 10px; z-index: 9; display: grid;
       width: 44px; height: 44px; min-height: 0; margin: 0; padding: 0;
       place-items: center; border: 2px solid #fff8; border-radius: 50%;
-      color: #fff; background: #17142fbb; font-size: 20px; box-shadow: 0 3px 10px #0008;
+      color: #fff; background: #17142fbb; font-size: 22px; line-height: 1; box-shadow: 0 3px 10px #0008;
+      font-family: "Segoe UI Symbol","Apple Color Emoji","Noto Color Emoji",sans-serif;
     }
     #muteBtn.muted { background: #a83e55cc; }
     #monitorTabs {
@@ -101,40 +102,13 @@
     }
     .pixelPause::before { left: 2px; }
     .pixelPause::after { right: 2px; }
-    .pixelSound::before {
-      content: "";
-      position: absolute;
-      left: 2px;
-      top: 4px;
-      width: 0;
-      height: 0;
-      border-top: 5px solid transparent;
-      border-bottom: 5px solid transparent;
-      border-right: 9px solid #fff6dc;
-    }
-    .pixelSound::after {
-      content: "";
-      position: absolute;
-      left: 10px;
-      top: 5px;
-      width: 8px;
-      height: 8px;
-      background:
-        linear-gradient(#fff6dc,#fff6dc) 0 0/2px 8px no-repeat,
-        linear-gradient(#fff6dc,#fff6dc) 3px 0/2px 8px no-repeat,
-        linear-gradient(#fff6dc,#fff6dc) 6px 0/2px 8px no-repeat;
-    }
-    #muteBtn.muted .pixelSound::before {
-      left: 1px;
-      top: 3px;
-      border-top-width: 6px;
-      border-bottom-width: 6px;
-      border-right-width: 11px;
-    }
-    #muteBtn.muted .pixelSound::after {
-      background: none;
-      width: 0;
-      height: 0;
+    .systemSoundIcon {
+      display: block;
+      width: 1em;
+      height: 1em;
+      line-height: 1;
+      font-style: normal;
+      font-size: 1em;
     }
     #accountBox {
       position: absolute; left: 12px; top: 12px; z-index: 2;
@@ -895,7 +869,7 @@
   <div id="touch"><div id="touchKnob"></div></div>
   <div id="touchHint">按住畫面任意位置拖曳即可移動</div>
   <button id="pauseBtn" type="button" aria-label="暫停遊戲"><span class="pixelIcon pixelPause" aria-hidden="true"></span></button>
-  <button id="muteBtn" type="button" aria-label="切換音效"><span class="pixelIcon pixelSound" aria-hidden="true"></span></button>
+  <button id="muteBtn" type="button" aria-label="切換音效"><span class="systemSoundIcon" aria-hidden="true">🔊</span></button>
   <div id="monitorTabs" aria-label="監控分頁">
     <button id="perfMonitorBtn" class="monitorTag" type="button" aria-label="切換效能監控">效能監控</button>
     <button id="audioMonitorBtn" class="monitorTag" type="button" aria-label="切換音效監控">音效監控</button>
@@ -1612,17 +1586,17 @@
   const KILL_SURGE_WAVE_MULTIPLIER=1.75;
 
   const upgrades=[
-    {id:"speed",icon:"💨",name:"兔兔快跑",desc:"+12% 移動速度",basic:true,apply(){player.speed*=1.12;}},
+    {id:"speed",icon:"👟",name:"兔兔快跑",desc:"+12% 移動速度",basic:true,apply(){player.speed*=1.12;}},
     {id:"heal",icon:"💚",name:"生命回復",desc:"基礎回復 +20%・每秒回復最大生命 1.2%",cap:5,apply(){player.regen+=0.012;player.regenBoost+=0.2;}},
-    {id:"haste",icon:"⏱",name:"攻擊速度",desc:"+15% 攻擊速度",basic:true,apply(){player.attackSpeed*=1.15;}},
-    {id:"damage",icon:"🥕",name:"胡蘿蔔威力",desc:"+18% 攻擊力",basic:true,apply(){player.damage*=1.18;}},
-    {id:"crit",icon:"✦",name:"幸運一擊",desc:"+7% 基礎爆擊率",basic:true,valid(){return player.crit<1;},apply(){const old=player.crit;player.crit=Math.min(1,player.crit+.07);player.critStack=Math.min(1,player.critStack+player.crit-old);}},
+    {id:"haste",icon:"⏩",name:"攻擊速度",desc:"+15% 攻擊速度",basic:true,apply(){player.attackSpeed*=1.15;}},
+    {id:"damage",icon:"⚔",name:"胡蘿蔔威力",desc:"+18% 攻擊力",basic:true,apply(){player.damage*=1.18;}},
+    {id:"crit",icon:"🍀",name:"幸運一擊",desc:"+7% 基礎爆擊率",basic:true,valid(){return player.crit<1;},apply(){const old=player.crit;player.crit=Math.min(1,player.crit+.07);player.critStack=Math.min(1,player.critStack+player.crit-old);}},
     {id:"critd",icon:"💥",name:"爆擊強化",desc:"+30% 場內爆擊傷害",basic:true,apply(){player.critDamage+=.3;}},
     {id:"pierce",icon:"➶",name:"銳利蘿蔔",desc:"+1 穿透敵人數",basic:true,apply(){player.pierce++;}},
     {id:"multi",icon:"🥕",name:"胡蘿蔔連發",desc:"同時發射 +1；達5根後每3輪投下巨型胡蘿蔔",valid(){return player.projectiles<10;},apply(){player.projectiles++;}},
     {id:"vital",icon:"❤",name:"強健兔兔",desc:"+20% 最大生命並回復",basic:true,apply(){player.maxHp*=1.2;player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.3);}},
     {id:"area",icon:"⭕",name:"範圍性胡蘿蔔",desc:"+18% 攻擊/技能範圍、+4% 全武器與技能傷害",basic:true,apply(){player.area*=1.18;player.areaDamage*=1.04;}},
-    {id:"orbit",icon:"🥕",name:"蘿蔔旋風",desc:"環繞胡蘿蔔傷害敵人；LV5進化高速切割",valid(){return skills.orbit<5;},apply(){skills.orbit++;}},
+    {id:"orbit",icon:"🌀",name:"蘿蔔旋風",desc:"環繞胡蘿蔔傷害敵人；LV5進化高速切割",valid(){return skills.orbit<5;},apply(){skills.orbit++;}},
     {id:"burst",icon:"🌱",name:"菜園爆發",desc:"定時造成範圍傷害；LV5進化巨大衝擊圈",valid(){return skills.burst<5;},apply(){skills.burst++;}},
     {id:"peanut",icon:"🥜",name:"花生跟班",desc:"花生自動丟石頭；LV5進化貫穿滾石",valid(){return skills.peanut<5;},apply(){skills.peanut++;}},
     {id:"pinky",icon:"🍌",name:"PINKY 跟班",desc:"香蕉直線穿透後原路返回；接回強化攻擊與移速",valid(){return skills.pinky<5;},apply(){skills.pinky++;}},
@@ -4241,6 +4215,9 @@
   const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),infiniteStage=document.getElementById("infiniteStageModal");
   function updateMuteButton(){
     muteBtn.classList.toggle("muted",muted);
+    muteBtn.innerHTML=`<span class="systemSoundIcon" aria-hidden="true">${muted?"🔇":"🔊"}</span>`;
+    muteBtn.setAttribute("aria-label",muted?"開啟音效":"關閉音效");
+    muteBtn.title=muted?"開啟音效":"關閉音效";
   }
   function positionMonitorTabs(){
     const canvasRect=canvas.getBoundingClientRect();
