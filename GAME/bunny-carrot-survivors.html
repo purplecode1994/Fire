@@ -60,6 +60,29 @@
       color: #fff; background: #17142fbb; font-size: 20px; box-shadow: 0 3px 10px #0008;
     }
     #muteBtn.muted { background: #a83e55cc; }
+    #monitorTabs {
+      position: absolute;
+      left: 12px;
+      top: 92px;
+      z-index: 10;
+      display: none;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    #monitorTabs.visible { display: flex; }
+    .monitorTag {
+      position: static; display: block;
+      min-height: 0; margin: 0; padding: 6px 12px;
+      border: 2px solid #8d7ab6; color: #fff7d8; background: #1b1533e8;
+      font-size: 12px; line-height: 1; box-shadow: 3px 3px #0007;
+      white-space: nowrap;
+    }
+    .monitorTag.active {
+      color: #181227;
+      background: #9eeaff;
+      border-color: #fff7d8;
+      box-shadow: inset -3px -3px #4d9fbc,3px 3px #0007;
+    }
     .pixelIcon {
       position: relative;
       width: 18px;
@@ -263,6 +286,37 @@
     .stageDesert .cactus::before,.stageDesert .cactus::after { content:""; position:absolute; width: 12px; height: 22px; border: 6px solid #4b9a57; border-top: 0; }
     .stageDesert .cactus::before { left: -19px; top: 12px; border-right: 0; }
     .stageDesert .cactus::after { right: -19px; top: 18px; border-left: 0; }
+    .stageSnow .snowHill1,.stageSnow .snowHill2 {
+      position: absolute; bottom: 16px; border-radius: 50% 50% 0 0;
+      background: #dff4ff;
+      box-shadow: inset 0 -8px #b7d8ec;
+    }
+    .stageSnow .snowHill1 { left: 18px; width: 86px; height: 38px; }
+    .stageSnow .snowHill2 { left: 72px; width: 66px; height: 48px; background: #f1fbff; }
+    .stageSnow .iceRock {
+      position: absolute; left: 34px; top: 58px; width: 18px; height: 28px;
+      background: #9ed7f6; box-shadow: inset -5px 0 #6fb1d6;
+      transform: skew(-10deg);
+    }
+    .stageSnow .pine {
+      position: absolute; left: 78px; top: 28px; width: 0; height: 0;
+      border-left: 18px solid transparent; border-right: 18px solid transparent;
+      border-bottom: 28px solid #69a7b8;
+    }
+    .stageSnow .pine::before,.stageSnow .pine::after {
+      content:""; position:absolute; left:-14px; width:0; height:0;
+      border-left: 14px solid transparent; border-right: 14px solid transparent;
+      border-bottom: 22px solid #7dbfd1;
+    }
+    .stageSnow .pine::before { top: 12px; }
+    .stageSnow .pine::after { top: 24px; }
+    .stageSnow .flake1,.stageSnow .flake2,.stageSnow .flake3 {
+      position: absolute; width: 6px; height: 6px; background: #f7fdff;
+      box-shadow: 0 0 6px #f7fdff;
+    }
+    .stageSnow .flake1 { left: 26px; top: 18px; }
+    .stageSnow .flake2 { left: 112px; top: 20px; width: 5px; height: 5px; }
+    .stageSnow .flake3 { left: 108px; top: 54px; width: 4px; height: 4px; }
     .stageInfinite .rift {
       position: absolute; left: 41px; top: 12px; width: 68px; height: 84px;
       border-radius: 50%;
@@ -520,6 +574,10 @@
       white-space: nowrap;
       padding-right: 0;
     }
+    .detailLine.current .detailText,
+    .detailLine.current .detailClone {
+      color: #ffbf6a;
+    }
     .detailClone {
       display: none;
       padding-left: 30px;
@@ -694,6 +752,7 @@
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
         <button id="desertStage" type="button">第二關・沙漠</button>
+        <button id="snowStage" type="button">第三關・雪原</button>
         <button id="infiniteStage" type="button">無限輪迴模式</button>
       </div>
       <div class="help">
@@ -736,6 +795,7 @@
         <div id="stageSelectModal">
           <button id="gardenStageModal" type="button">第一關・菜園｜普通</button>
           <button id="desertStageModal" type="button">第二關・沙漠｜挑戰</button>
+          <button id="snowStageModal" type="button">第三關・雪原｜挑戰</button>
           <button id="infiniteStageModal" type="button">無限輪迴模式｜危險</button>
         </div>
       </div>
@@ -795,6 +855,10 @@
   <div id="touchHint">按住畫面任意位置拖曳即可移動</div>
   <button id="pauseBtn" type="button" aria-label="暫停遊戲"><span class="pixelIcon pixelPause" aria-hidden="true"></span></button>
   <button id="muteBtn" type="button" aria-label="切換音效"><span class="pixelIcon pixelSound" aria-hidden="true"></span></button>
+  <div id="monitorTabs" aria-label="監控分頁">
+    <button id="perfMonitorBtn" class="monitorTag" type="button" aria-label="切換效能監控">效能監控</button>
+    <button id="audioMonitorBtn" class="monitorTag" type="button" aria-label="切換音效監控">音效監控</button>
+  </div>
 </div>
 <script>
 (() => {
@@ -843,6 +907,11 @@
   let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
   let petTargetCache=null,petTargetTimer=0,bananaTargetCache=null,bananaTargetTimer=0;
+  let debugPanelMode="perf",audioDebugTimer=0;
+  let audioDebugCurrent={total:0,beep:0,external:0,xp:0,crit:0};
+  let audioDebugLast={total:0,beep:0,external:0,xp:0,crit:0};
+  let perfDebugTimer=0,perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0};
+  let perfDebugLast={frameMs:16.7,fps:60,peak:16.7};
 
   const META_KEY="bunnyCarrotSurvivorsMetaV1";
   const BASE_META_DAMAGE=18;
@@ -851,7 +920,8 @@
   const META_LIFE_STEP=8;
   const META_DAMAGE_TIER_GROWTH=.002;
   const META_LIFE_TIER_GROWTH=.005;
-  const META_REGEN_STEP=.12;
+  const META_REGEN_BASE_STEP=.32;
+  const META_REGEN_STAGE_STEP=.02;
   const MAX_CRIT_DAMAGE_LEVEL=100;
   const MAX_CRIT_DAMAGE_MULTIPLIER=3;
   const META_CRIT_DAMAGE_STEP=(MAX_CRIT_DAMAGE_MULTIPLIER-1.6)/MAX_CRIT_DAMAGE_LEVEL;
@@ -867,16 +937,45 @@
     const level=Math.max(0,Math.min(100,levels));
     if(level<=30)return Math.min(1,.05+level*.015);
     if(level<=60)return Math.min(1,.5+(level-30)*.004);
-    return Math.min(1,.62+(level-60)*.0035);
+    return Math.min(1,.62+(level-60)*.0095);
+  }
+  function metaCritDamageBonusPercent(levels){
+    const level=Math.max(0,Math.min(100,levels));
+    if(level<=30)return level*1.8;
+    if(level<=60)return 54+(level-30)*1.2;
+    return 90+(level-60)*1.25;
+  }
+  function baseMetaCritDamageMultiplier(levels=meta.critDamage){
+    return Math.min(MAX_CRIT_DAMAGE_MULTIPLIER,1.6+metaCritDamageBonusPercent(levels)/100);
+  }
+  function metaDamagePerLevel(level){
+    const stage=Math.floor(Math.max(0,level)/10);
+    return META_DAMAGE_STEP*(1+stage*META_DAMAGE_TIER_GROWTH);
+  }
+  function metaLifePerLevel(level){
+    const stage=Math.floor(Math.max(0,level)/10);
+    return META_LIFE_STEP*(1+stage*META_LIFE_TIER_GROWTH);
+  }
+  function metaCritPerLevel(level){
+    const safeLevel=Math.max(0,Math.min(100,level));
+    if(safeLevel<30)return 1.5;
+    if(safeLevel<60)return 0.4;
+    return 0.95;
+  }
+  function metaCritDamagePerLevel(level){
+    const safeLevel=Math.max(0,Math.min(100,level));
+    if(safeLevel<30)return 1.8;
+    if(safeLevel<60)return 1.2;
+    return 1.25;
   }
 
   const metaDefs=[
     {id:"damage",name:"攻擊力",cost:5,desc:`+${META_DAMAGE_STEP} 初始攻擊力（每 10 級 +0.2%）`,value:m=>`+${scaledMetaGain(m.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
-    {id:"crit",name:"爆擊率",cost:8,cap:100,desc:"LV30 前每級 +1.5%，LV31-60 每級 +0.4%，LV61 後更慢",value:m=>`${Math.round(metaCritChance(m.crit)*1000)/10}%`},
+    {id:"crit",name:"爆擊率",cost:8,cap:100,desc:"分3階段成長，LV100 = 100%",value:m=>`${Math.round(metaCritChance(m.crit)*1000)/10}%`},
     {id:"speed",name:"攻擊速度",cost:7,cap:100,desc:"+3% 初始攻速，最高 LV100",value:m=>`+${Math.min(100,m.speed)*3}%`},
-    {id:"critDamage",name:"爆擊傷害",cost:6,cap:MAX_CRIT_DAMAGE_LEVEL,desc:`+${(META_CRIT_DAMAGE_STEP*100).toFixed(1)}% 爆擊傷害，最高 LV${MAX_CRIT_DAMAGE_LEVEL}（最終 300%）`,value:m=>`${Math.round(Math.min(MAX_CRIT_DAMAGE_MULTIPLIER,1.6+Math.min(MAX_CRIT_DAMAGE_LEVEL,m.critDamage)*META_CRIT_DAMAGE_STEP)*100)}%`},
+    {id:"critDamage",name:"爆擊傷害",cost:6,cap:MAX_CRIT_DAMAGE_LEVEL,desc:"分3階段成長，LV100 = 300%",value:m=>`${Math.round(baseMetaCritDamageMultiplier(m.critDamage)*100)}%`},
     {id:"life",name:"生命力",cost:4,desc:`+${META_LIFE_STEP} 最大生命（每 10 級 +0.5%）`,value:m=>`+${scaledMetaGain(m.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
-    {id:"regen",name:"回復力",cost:10,desc:`+${META_REGEN_STEP.toFixed(2)} HP/秒；每 10 級再 +0.2% 最大生命/秒`,value:m=>formatMetaRegenValue(Math.max(0,m.regen||0))},
+    {id:"regen",name:"回復力",cost:10,desc:`每級 +${META_REGEN_BASE_STEP.toFixed(2)} HP/秒；每10級成長 +${META_REGEN_STAGE_STEP.toFixed(2)}`,value:m=>formatMetaRegenValue(Math.max(0,m.regen||0))},
     {id:"armorPen",name:"無視防禦",cost:12,cap:100,unlock:m=>m.crit>=48,desc:"+0.7% 無視敵人防禦，最高 LV100（70%）",value:m=>`${(Math.min(100,m.armorPen)*0.7).toFixed(1).replace(/\\.0$/,"")}%`}
   ];
   let meta=loadMeta();
@@ -884,7 +983,12 @@
   muted=!!meta.muted;
 
   function defaultMeta(){
-    return{points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,desertUnlocked:false,muted:false,cheat8888Used:false};
+    return{
+      points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,
+      totalDeathKills:0,totalDeaths:0,bestInfiniteSeconds:0,
+      claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,
+      desertUnlocked:false,snowUnlocked:false,muted:false,cheat8888Used:false
+    };
   }
 
   function scaledMetaGain(levels,baseStep,tierGrowth){
@@ -957,11 +1061,30 @@
 
   function metaUpgradeCost(def){
     const level=meta[def.id]||0;
+    return metaUpgradeCostAtLevel(def,level);
+  }
+
+  function metaUpgradeCostAtLevel(def,level){
     const tier=Math.floor(level/10);
     let multiplier=1+tier*.5;
-    if(["damage","life","regen"].includes(def.id)&&level>=20){
+    if(["damage","regen"].includes(def.id)&&level>=20){
       const extra=level-19;
       multiplier+=extra*.18+extra*extra*.028;
+    }
+    if(def.id==="life"){
+      if(level>=20){
+        const extra=level-19;
+        multiplier+=extra*.08+extra*extra*.012;
+      }
+      if(level>=70){
+        multiplier+=(level-69)*2;
+      }
+      if(level>=80){
+        multiplier+=(level-79)*3.2;
+      }
+      if(level>=90){
+        multiplier+=(level-89)*2.2;
+      }
     }
     if(["speed","crit","critDamage"].includes(def.id)&&level>=30){
       const extra=level-29;
@@ -973,17 +1096,7 @@
   function metaSpentCost(def,levels){
     let total=0;
     for(let level=0;level<levels;level++){
-      const tier=Math.floor(level/10);
-      let multiplier=1+tier*.5;
-      if(["damage","life","regen"].includes(def.id)&&level>=20){
-        const extra=level-19;
-        multiplier+=extra*.18+extra*extra*.028;
-      }
-      if(["speed","crit","critDamage"].includes(def.id)&&level>=30){
-        const extra=level-29;
-        multiplier+=extra*.16+extra*extra*.022;
-      }
-      total+=Math.ceil(def.cost*multiplier);
+      total+=metaUpgradeCostAtLevel(def,level);
     }
     return total;
   }
@@ -995,13 +1108,7 @@
     let totalCost=0;
     while(count<targetCount){
       if(def.cap!==undefined&&level>=def.cap)break;
-      const tier=Math.floor(level/10);
-      let multiplier=1+tier*.5;
-      if(["damage","life","regen"].includes(def.id)&&level>=20){
-        const extra=level-19;
-        multiplier+=extra*.18+extra*extra*.028;
-      }
-      const cost=Math.ceil(def.cost*multiplier);
+      const cost=metaUpgradeCostAtLevel(def,level);
       if(points<cost)break;
       points-=cost;
       totalCost+=cost;
@@ -1022,14 +1129,21 @@
     return{level,exp,next,total:Math.floor((meta.totalPlaySeconds||0)/60)};
   }
 
-  function metaRegenPercentBonus(level){
-    return Math.floor(Math.max(0,level)/10)*0.002;
+  function metaRegenPerLevel(level){
+    const safeLevel=Math.max(1,Math.floor(level));
+    const stage=Math.floor((safeLevel-1)/10);
+    return META_REGEN_BASE_STEP+stage*META_REGEN_STAGE_STEP;
+  }
+
+  function metaRegenFlatTotal(level){
+    let total=0;
+    const safeLevel=Math.max(0,Math.floor(level));
+    for(let currentLevel=1;currentLevel<=safeLevel;currentLevel++)total+=metaRegenPerLevel(currentLevel);
+    return Math.round(total*1000)/1000;
   }
 
   function formatMetaRegenValue(level){
-    const flat=level*META_REGEN_STEP;
-    const percent=metaRegenPercentBonus(level)*100;
-    return percent>0?`+${flat.toFixed(2)} HP/秒 + ${percent.toFixed(1)}%/秒`:`+${flat.toFixed(2)} HP/秒`;
+    return `+${metaRegenFlatTotal(level).toFixed(3)} HP/秒`;
   }
 
   function formatCostShort(value){
@@ -1073,7 +1187,7 @@
   function renderMeta(){
     renderAccount();
     metaPointsEl.innerHTML=`<span class="pointDiamond"></span><span>強化點數 ${formatCostShort(meta.points)}</span>`;
-    metaRecordEl.innerHTML=`累計擊殺 ${formatCompactCount(meta.totalKills)}｜菁英 ${formatCompactCount(meta.totalElites)}<br>BOSS ${formatCompactCount(meta.totalBosses)}`;
+    metaRecordEl.innerHTML=`死亡總擊破 ${meta.totalDeathKills||0}｜死亡次數 ${meta.totalDeaths||0}<br>輪迴最長 ${formatStageTime(meta.bestInfiniteSeconds||0)}`;
     metaStatsEl.innerHTML="";
     for(const def of metaDefs){
       if(def.unlock&&!def.unlock(meta))continue;
@@ -1102,11 +1216,14 @@
     }
     gardenStage.classList.toggle("active",currentStage===1);
     desertStage.classList.toggle("active",currentStage===2);
-    infiniteStage.classList.toggle("active",currentStage===3);
+    snowStage.classList.toggle("active",currentStage===3);
+    infiniteStage.classList.toggle("active",currentStage===4);
     desertStage.disabled=!meta.desertUnlocked;
+    snowStage.disabled=!meta.snowUnlocked;
     gardenStage.innerHTML=stageButtonMarkup("第一關・菜園",1);
     desertStage.innerHTML=meta.desertUnlocked?stageButtonMarkup("第二關・沙漠",2):stageButtonMarkup("第二關・沙漠（未解鎖）",2);
-    infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",3);
+    snowStage.innerHTML=meta.snowUnlocked?stageButtonMarkup("第三關・雪原",3):stageButtonMarkup("第三關・雪原（未解鎖）",3);
+    infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",4);
     document.getElementById("start").textContent="開始割草";
   }
 
@@ -1134,13 +1251,13 @@
     const critExpected=1+critChance*(critDamage-1);
     const armorPenExpected=1+Math.min(MAX_META_ARMOR_PEN,armorPenLevel*.007)*.85;
     const dpsPower=baseDamage*attackRate*critExpected*armorPenExpected*5.8;
-    const survivalPower=(BASE_META_LIFE+scaledMetaGain(lifeLevel,META_LIFE_STEP,META_LIFE_TIER_GROWTH))*.55+regenLevel*META_REGEN_STEP*32+metaRegenPercentBonus(regenLevel)*1200;
+    const survivalPower=(BASE_META_LIFE+scaledMetaGain(lifeLevel,META_LIFE_STEP,META_LIFE_TIER_GROWTH))*.55+metaRegenFlatTotal(regenLevel)*32;
     const utilityPower=armorPenLevel*4+critChance*200;
     return Math.floor(100+dpsPower+survivalPower+utilityPower);
   }
 
   function stageRecommendedPower(stage){
-    return stage===3?2000:stage===2?850:120;
+    return stage===4?2000:stage===3?2800:stage===2?850:120;
   }
 
   function stageDifficultyInfo(stage){
@@ -1166,11 +1283,11 @@
   }
 
   function isInfiniteMode(){
-    return currentStage===3;
+    return currentStage===4;
   }
 
   function infiniteZoneAt(value=time){
-    if(!isInfiniteMode())return currentStage===2?1:0;
+    if(!isInfiniteMode())return currentStage===3?2:currentStage===2?1:0;
     return Math.max(0,Math.floor(value/600));
   }
 
@@ -1182,7 +1299,11 @@
   }
 
   function effectiveZone(){
-    return isInfiniteMode()?infiniteZoneAt():currentStage===2?1:0;
+    if(isInfiniteMode()){
+      if(finalPhase!=="none")return Math.max(0,infiniteBossZone);
+      return infiniteZoneAt();
+    }
+    return currentStage===3?2:currentStage===2?1:0;
   }
 
   function infiniteGrowth(){
@@ -1203,14 +1324,18 @@
   }
 
   function renderStageArt(stage){
-    if(stage===3){
+    if(stage===4){
       stageArt.className="stageInfinite";
       stageArt.innerHTML='<div class="trail1"></div><div class="trail2"></div><div class="trail3"></div><div class="rift"></div><div class="spark1"></div><div class="spark2"></div><div class="spark3"></div>';
       stageName.textContent="無限輪迴模式";
       stagePower.innerHTML=`建議戰力 ∞｜每 10 分鐘進入擂台<br>目前生存時間：${formatStageTime(infiniteDisplayedTime())}<br>敵人擊破數：${kills}`;
       return;
     }
-    if(stage===2){
+    if(stage===3){
+      stageArt.className="stageSnow";
+      stageArt.innerHTML='<div class="snowHill1"></div><div class="snowHill2"></div><div class="iceRock"></div><div class="pine"></div><div class="flake1"></div><div class="flake2"></div><div class="flake3"></div>';
+      stageName.textContent="第三關・雪原";
+    }else if(stage===2){
       stageArt.className="stageDesert";
       stageArt.innerHTML='<div class="sun"></div><div class="dune1"></div><div class="dune2"></div><div class="cactus"></div>';
       stageName.textContent="第二關・沙漠";
@@ -1223,7 +1348,8 @@
   }
 
   function detailLineMarkup(text){
-    return `<div class="detailLine"><span class="detailTrack"><span class="detailText">${text}</span><span class="detailClone" aria-hidden="true">${text}</span></span></div>`;
+    const currentClass=text.startsWith("目前 ")?" current":"";
+    return `<div class="detailLine${currentClass}"><span class="detailTrack"><span class="detailText">${text}</span><span class="detailClone" aria-hidden="true">${text}</span></span></div>`;
   }
 
   function setupMetaMarquees(){
@@ -1249,20 +1375,20 @@
   function metaDetailLines(def){
     const tier=Math.floor(meta[def.id]/10)+1;
     if(def.id==="damage")return [
-      `每等級 +${META_DAMAGE_STEP} 攻擊`,
+      `每級 +${metaDamagePerLevel(meta.damage).toFixed(3).replace(/\.?0+$/,"")} 攻擊`,
       "每10級 +0.2%",
       `目前 ${def.value(meta)}`,
       `費用階段 ${tier}`
     ];
     if(def.id==="life")return [
-      `每等級 +${META_LIFE_STEP} 生命`,
+      `每級 +${metaLifePerLevel(meta.life).toFixed(2).replace(/\.?0+$/,"")} 生命`,
       "每10級 +0.5%",
       `目前 ${def.value(meta)}`,
       `費用階段 ${tier}`
     ];
     if(def.id==="regen")return [
-      `每等級 +${META_REGEN_STEP.toFixed(2)} HP/秒`,
-      "每10級 +0.2%生命/秒",
+      `每級 +${metaRegenPerLevel(Math.max(1,meta.regen||1)).toFixed(2)} HP/秒`,
+      `每10級成長 +${META_REGEN_STAGE_STEP.toFixed(2)}`,
       `目前 ${def.value(meta)}`,
       `費用階段 ${tier}`
     ];
@@ -1272,12 +1398,12 @@
       `費用階段 ${tier}`
     ];
     if(def.id==="crit")return [
-      "每等級 爆率成長",
+      `每級 +${metaCritPerLevel(meta.crit).toFixed(2).replace(/\.?0+$/,"")}%`,
       `目前 ${def.value(meta)}`,
       `費用階段 ${tier}`
     ];
     if(def.id==="critDamage")return [
-      `每等級 +${(META_CRIT_DAMAGE_STEP*100).toFixed(1)}%爆傷`,
+      `每級 +${metaCritDamagePerLevel(meta.critDamage).toFixed(2).replace(/\.?0+$/,"")}%爆傷`,
       `目前 ${def.value(meta)}`,
       `費用階段 ${tier}`
     ];
@@ -1327,7 +1453,7 @@
     characterBtn.textContent="角色資訊";
     shopBtn.textContent="商城（未開放）";
     metaPointsEl.innerHTML=`<span class="pointDiamond"></span><span>強化點數 ${formatCostShort(meta.points)}</span>`;
-    metaRecordEl.innerHTML=`總擊破 ${formatCompactCount(meta.totalKills)}｜菁英 ${formatCompactCount(meta.totalElites)}<br>BOSS ${formatCompactCount(meta.totalBosses)}`;
+    metaRecordEl.innerHTML=`死亡總擊破 ${meta.totalDeathKills||0}｜死亡次數 ${meta.totalDeaths||0}<br>輪迴最長 ${formatStageTime(meta.bestInfiniteSeconds||0)}`;
     powerBox.innerHTML=`<span class="powerLabel">戰力</span><span class="powerValue">${combatPower()}</span>`;
     devResetBtn.classList.toggle("hidden",!devModeActive);
     renderStageArt(currentStage);
@@ -1387,18 +1513,25 @@
     setupMetaMarquees();
     gardenStage.classList.toggle("active",currentStage===1);
     desertStage.classList.toggle("active",currentStage===2);
-    infiniteStage.classList.toggle("active",currentStage===3);
+    snowStage.classList.toggle("active",currentStage===3);
+    infiniteStage.classList.toggle("active",currentStage===4);
     desertStage.disabled=!meta.desertUnlocked;
+    snowStage.disabled=!meta.snowUnlocked;
     desertStage.classList.toggle("locked",!meta.desertUnlocked);
+    snowStage.classList.toggle("locked",!meta.snowUnlocked);
     gardenStage.innerHTML=stageButtonMarkup("第一關・菜園",1);
     desertStage.innerHTML=meta.desertUnlocked?
       stageButtonMarkup("第二關・沙漠",2):
       stageButtonMarkup("第二關・沙漠（未解鎖）",2);
-    infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",3);
+    snowStage.innerHTML=meta.snowUnlocked?
+      stageButtonMarkup("第三關・雪原",3):
+      stageButtonMarkup("第三關・雪原（未解鎖）",3);
+    infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",4);
   };
 
   const player={
     x:0,y:0,r:18,speed:210,hp:100,maxHp:100,regen:0,regenFlat:0,
+    regenBoost:1,
     level:1,xp:0,nextXp:18,damage:18,attackSpeed:1,projectiles:1,
     crit:0.05,critStack:0.05,critDamage:1.6,pierce:0,magnet:FIXED_MAGNET_RANGE,area:1,areaDamage:1,invuln:0,
     armorPen:0,facing:1
@@ -1415,11 +1548,11 @@
 
   const upgrades=[
     {id:"speed",icon:"💨",name:"兔兔快跑",desc:"+12% 移動速度",basic:true,apply(){player.speed*=1.12;}},
-    {id:"heal",icon:"💚",name:"生命回復",desc:"+0.6% 最大生命/秒（最高 LV5）",cap:5,apply(){player.regen+=0.006;}},
+    {id:"heal",icon:"💚",name:"生命回復",desc:"基礎回復 +20%・每秒回復最大生命 1.2%",cap:5,apply(){player.regen+=0.012;player.regenBoost+=0.2;}},
     {id:"haste",icon:"⏱",name:"攻擊速度",desc:"+15% 攻擊速度",basic:true,apply(){player.attackSpeed*=1.15;}},
     {id:"damage",icon:"🥕",name:"胡蘿蔔威力",desc:"+18% 攻擊力",basic:true,apply(){player.damage*=1.18;}},
     {id:"crit",icon:"✦",name:"幸運一擊",desc:"+7% 基礎爆擊率",basic:true,valid(){return player.crit<1;},apply(){const old=player.crit;player.crit=Math.min(1,player.crit+.07);player.critStack=Math.min(1,player.critStack+player.crit-old);}},
-    {id:"critd",icon:"💥",name:"爆擊強化",desc:"+30% 爆擊傷害（最高 300%）",basic:true,apply(){player.critDamage=Math.min(MAX_CRIT_DAMAGE_MULTIPLIER,player.critDamage+.3);}},
+    {id:"critd",icon:"💥",name:"爆擊強化",desc:"+30% 場內爆擊傷害",basic:true,apply(){player.critDamage+=.3;}},
     {id:"pierce",icon:"➶",name:"銳利蘿蔔",desc:"+1 穿透敵人數",basic:true,apply(){player.pierce++;}},
     {id:"multi",icon:"🥕",name:"胡蘿蔔連發",desc:"同時發射 +1；達5根後每3輪投下巨型胡蘿蔔",valid(){return player.projectiles<10;},apply(){player.projectiles++;}},
     {id:"vital",icon:"❤",name:"強健兔兔",desc:"+20% 最大生命並回復",basic:true,apply(){player.maxHp*=1.2;player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.3);}},
@@ -1428,7 +1561,7 @@
     {id:"burst",icon:"🌱",name:"菜園爆發",desc:"定時造成範圍傷害；LV5進化巨大衝擊圈",valid(){return skills.burst<5;},apply(){skills.burst++;}},
     {id:"peanut",icon:"🥜",name:"花生跟班",desc:"花生自動丟石頭；LV5進化貫穿滾石",valid(){return skills.peanut<5;},apply(){skills.peanut++;}},
     {id:"pinky",icon:"🍌",name:"PINKY 跟班",desc:"香蕉直線穿透後原路返回；接回強化攻擊與移速",valid(){return skills.pinky<5;},apply(){skills.pinky++;}},
-    {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+8% 無視防禦（第二關 / 無限輪迴）",cap:5,valid(){return (currentStage===2||isInfiniteMode())&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.08;}}
+    {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+8% 無視防禦（第二關 / 第三關 / 無限輪迴）",cap:5,valid(){return (currentStage===2||currentStage===3||isInfiniteMode())&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.08;}}
   ];
 
   const enemyData={
@@ -1442,11 +1575,11 @@
     vulture:{hp:62,speed:72,damage:14,xp:7,r:20,color:"#6b5a4a",defense:10},
     centipede:{hp:70,speed:58,damage:16,xp:8,r:19,color:"#b5793b",defense:14},
     stoneface:{hp:40000,speed:30,damage:30,xp:300,r:64,color:"#7d7162",defense:45},
-    penguin:{hp:95,speed:105,damage:16,xp:9,r:16,color:"#263d52",defense:12},
-    snowman:{hp:180,speed:44,damage:24,xp:14,r:23,color:"#edf8ff",defense:18},
-    polarbear:{hp:260,speed:62,damage:32,xp:18,r:25,color:"#e7f1f3",defense:24},
-    seal:{hp:130,speed:88,damage:20,xp:12,r:19,color:"#91aebe",defense:14},
-    whale:{hp:72000,speed:24,damage:36,xp:420,r:72,color:"#568caa",defense:52},
+    penguin:{hp:120,speed:102,damage:18,xp:4,r:16,color:"#263d52",defense:14},
+    snowman:{hp:260,speed:42,damage:30,xp:6,r:23,color:"#edf8ff",defense:24},
+    polarbear:{hp:360,speed:60,damage:38,xp:7,r:25,color:"#e7f1f3",defense:30},
+    seal:{hp:180,speed:84,damage:24,xp:4,r:19,color:"#91aebe",defense:18},
+    whale:{hp:120000,speed:24,damage:52,xp:340,r:72,color:"#568caa",defense:70},
     skeleton:{hp:160,speed:70,damage:24,xp:14,r:18,color:"#d8d0c0",defense:18},
     wisp:{hp:125,speed:100,damage:22,xp:13,r:16,color:"#4db6ff",defense:8},
     bat:{hp:105,speed:128,damage:18,xp:12,r:15,color:"#4b304e",defense:8},
@@ -1514,6 +1647,7 @@
       gain.gain.setValueAtTime(Math.max(0,Math.min(1,volume)),audio.currentTime);
       source.connect(gain).connect(audio.destination);
       source.start();
+      countAudioDebug("external");
       return true;
     }catch{
       return false;
@@ -1537,7 +1671,27 @@
       });
     }
   }
-  function beep(f,d=.06,v=.025,type="square"){if(!audio||muted)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);}
+  function countAudioDebug(kind){
+    audioDebugCurrent.total++;
+    if(audioDebugCurrent[kind]!==undefined)audioDebugCurrent[kind]++;
+  }
+  function audioMonitorRows(){
+    const labelMap={
+      crit:"爆擊音",
+      xp:"吸經驗音",
+      external:"外部音檔",
+      beep:"系統提示音"
+    };
+    return Object.entries(audioDebugLast)
+      .filter(([key])=>key!=="total")
+      .map(([key,count])=>({
+        label:labelMap[key]||key,
+        value:count,
+        color:debugColor(count,key==="xp"?8:4,key==="xp"?16:10)
+      }))
+      .sort((a,b)=>b.value-a.value);
+  }
+  function beep(f,d=.06,v=.025,type="square"){if(!audio||muted)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);countAudioDebug("beep");}
   function playSmallCarrotSound(){
     if(playExternalAudio("smallCarrot",.42,1))return;
     if(!audio||muted)return;
@@ -1613,6 +1767,7 @@
     gain.gain.setValueAtTime(Math.max(0,Math.min(1,volume)),audio.currentTime);
     source.connect(gain).connect(audio.destination);
     source.start();
+    countAudioDebug("crit");
   }
   function playXpPickupSound({waveform="sine",baseFreq=2169,duration=.2,overtone=.05,rippleCount=1}={}){
     if(!audio||muted)return;
@@ -1650,6 +1805,7 @@
       high.start(t);
       high.stop(t+d*.72);
     }
+    countAudioDebug("xp");
   }
   function playGiantExplosionSound({startFreq=80,duration=.14,noiseGain=.18,rippleSpeed=12,jitterDepth=10}={}){
     if(playExternalAudio("giantExplosion",.72,1))return;
@@ -1837,10 +1993,10 @@
     const maxHp=BASE_META_LIFE+scaledMetaGain(meta.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH);
     const baseCrit=metaCritChance(meta.crit);
     Object.assign(player,{
-      x:0,y:0,r:18,speed:210,hp:maxHp,maxHp,regen:metaRegenPercentBonus(meta.regen),regenFlat:meta.regen*META_REGEN_STEP,
+      x:0,y:0,r:18,speed:210,hp:maxHp,maxHp,regen:0,regenFlat:metaRegenFlatTotal(meta.regen),regenBoost:1,
       level:1,xp:0,nextXp:xpRequirement(1,0),damage:BASE_META_DAMAGE+scaledMetaGain(meta.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH),
       attackSpeed:1+meta.speed*.03,projectiles:1,
-      crit:baseCrit,critStack:baseCrit,critDamage:Math.min(MAX_CRIT_DAMAGE_MULTIPLIER,1.6+Math.min(MAX_CRIT_DAMAGE_LEVEL,meta.critDamage)*META_CRIT_DAMAGE_STEP),
+      crit:baseCrit,critStack:baseCrit,critDamage:baseMetaCritDamageMultiplier(meta.critDamage),
       pierce:0,magnet:FIXED_MAGNET_RANGE,area:1,areaDamage:1,invuln:0,
       armorPen:Math.min(MAX_META_ARMOR_PEN,meta.armorPen*.007),facing:1
     });
@@ -1859,7 +2015,7 @@
     poisonTimer=poisonRate=stunTimer=0;
     potionHealTimer=0;
     running=true;paused=false;ended=false;runRewarded=false;escalationStart=null;killSurgeActive=false;
-    finalPhase="none";finalTimer=0;bossArena.active=false;bossArena.zone=effectiveZone();bossArena.r=currentStage===2||isInfiniteMode()?470:430;bossArena.x=player.x;bossArena.y=player.y;
+    finalPhase="none";finalTimer=0;bossArena.active=false;bossArena.zone=effectiveZone();bossArena.r=currentStage>=2||isInfiniteMode()?470:430;bossArena.x=player.x;bossArena.y=player.y;
     keys.up=keys.down=keys.left=keys.right=false;
     resetStick();
   }
@@ -1868,6 +2024,8 @@
     initAudio();reset();
     intro.classList.add("hidden");endScreen.classList.add("hidden");levelScreen.classList.add("hidden");pauseScreen.classList.add("hidden");
     pauseBtn.classList.add("visible");
+    positionMonitorTabs();
+    updateMonitorButtons();
     last=performance.now();
   }
 
@@ -1880,8 +2038,8 @@
     }
     if(type==="whale"){
       return {
-        hp:[72000,72000,118000],
-        defense:[52,66,82]
+        hp:[120000,120000,186000],
+        defense:[70,86,104]
       };
     }
     if(type==="reaper"){
@@ -1922,11 +2080,12 @@
         const bossZone=Math.max(0,infiniteBossZone);
         const bossHpMult=infiniteBossHpMultiplier(bossZone);
         const bossDamageMult=1+bossZone*.18;
-        if(type==="whale"){hp=72000*bossHpMult;size=72;speed=24;damage=36*bossDamageMult;xp=420;defense=52+bossZone*4;}
+        if(type==="whale"){hp=120000*bossHpMult;size=72;speed=24;damage=52*bossDamageMult;xp=420;defense=70+bossZone*4;}
         else if(type==="reaper"){hp=98000*bossHpMult;size=68;speed=36;damage=42*bossDamageMult;xp=520;defense=60+bossZone*5;}
         else if(type==="stoneface"){hp=120000*bossHpMult;size=64;speed=30;damage=30*bossDamageMult;xp=340;defense=45+bossZone*4;}
         else{hp=70000*bossHpMult;size=62;speed=52;damage=32*bossDamageMult;xp=280;defense=15+bossZone*3;}
-      }else if(currentStage===2){hp=120000;size=64;speed=30;damage=30;xp=300;defense=45;}
+      }else if(currentStage===3){hp=120000;size=72;speed=24;damage=52;xp=420;defense=70;}
+      else if(currentStage===2){hp=120000;size=64;speed=30;damage=30;xp=300;defense=45;}
       else{hp=70000;size=62;speed=52;damage=32;xp=250;defense=15;}
     }
     if(kind==="normal"&&kpsPressure>0)hp*=1+kpsPressure*.35;
@@ -1946,6 +2105,9 @@
 
   function enemyPoolForCurrentTime(){
     if(!isInfiniteMode()){
+      if(currentStage===3){
+        return time<60?["penguin","seal"]:time<240?["penguin","seal","snowman"]:["penguin","seal","snowman","polarbear"];
+      }
       return currentStage===2
         ?(time<60?["snake","mouse"]:time<240?["snake","mouse","vulture"]:["snake","mouse","vulture","centipede","scorpion"])
         :(time<60?["turtle","mushroom"]:time<240?["turtle","mushroom","bombcloud"]:["turtle","mushroom","bombcloud","plant"]);
@@ -2010,7 +2172,11 @@
     if(escalationStart===null){
       if(sec>0&&sec%60===0&&!timeline.seen.has("early-wave"+sec)){timeline.seen.add("early-wave"+sec);spawnWave(12+sec/10);}
       if([120,270,420].includes(sec)&&!timeline.seen.has("early-elite"+sec)){timeline.seen.add("early-elite"+sec);spawnWave(2,"elite");}
-      if([180,360].includes(sec)&&!timeline.seen.has("early-boss"+sec)){timeline.seen.add("early-boss"+sec);spawnEnemy(currentStage===2?(sec===360?"scorpion":"centipede"):(sec===360?"bombcloud":"plant"),"boss");announce("BOSS 出現！",currentStage===2?"沙漠強敵正在逼近":"強敵已進入菜園","#ff775e");}
+      if([180,360].includes(sec)&&!timeline.seen.has("early-boss"+sec)){
+        timeline.seen.add("early-boss"+sec);
+        spawnEnemy(currentStage===3?(sec===360?"polarbear":"snowman"):currentStage===2?(sec===360?"scorpion":"centipede"):(sec===360?"bombcloud":"plant"),"boss");
+        announce("BOSS 出現！",currentStage===3?"雪原強敵正在逼近":currentStage===2?"沙漠強敵正在逼近":"強敵已進入菜園","#ff775e");
+      }
     }else if(sec<DURATION){
       const elapsed=Math.floor(time-escalationStart);
       const waveSlot=Math.floor(elapsed/30);
@@ -2018,7 +2184,11 @@
       const bossSlot=Math.floor(elapsed/120);
       if(waveSlot>0&&!timeline.seen.has("rush-wave"+waveSlot)){timeline.seen.add("rush-wave"+waveSlot);spawnWave(20+Math.floor(time/30));}
       if(eliteSlot>0&&!timeline.seen.has("rush-elite"+eliteSlot)){timeline.seen.add("rush-elite"+eliteSlot);spawnWave(2+Math.floor(time/240),"elite");}
-      if(bossSlot>0&&!timeline.seen.has("rush-boss"+bossSlot)){timeline.seen.add("rush-boss"+bossSlot);spawnEnemy(currentStage===2?(bossSlot%2?"scorpion":"vulture"):(bossSlot%2?"plant":"bombcloud"),"boss");announce("終盤 BOSS 出現！","高威脅敵人加入戰場","#ff775e");}
+      if(bossSlot>0&&!timeline.seen.has("rush-boss"+bossSlot)){
+        timeline.seen.add("rush-boss"+bossSlot);
+        spawnEnemy(currentStage===3?(bossSlot%2?"polarbear":"snowman"):currentStage===2?(bossSlot%2?"scorpion":"vulture"):(bossSlot%2?"plant":"bombcloud"),"boss");
+        announce("終盤 BOSS 出現！","高威脅敵人加入戰場","#ff775e");
+      }
     }
 
     if(sec>=DURATION&&!timeline.seen.has("final")){
@@ -2044,7 +2214,7 @@
   }
 
   function spawnFinalBoss(){
-    spawnEnemy(isInfiniteMode()?bossTypeForZone(infiniteBossZone):(currentStage===2?"stoneface":"plant"),"final");
+    spawnEnemy(isInfiniteMode()?bossTypeForZone(infiniteBossZone):(currentStage===3?"whale":currentStage===2?"stoneface":"plant"),"final");
     const boss=enemies[enemies.length-1];
     boss.x=bossArena.x+Math.min(210,bossArena.r*.58);
     boss.y=bossArena.y;
@@ -2160,10 +2330,10 @@
       player.hp=Math.min(player.maxHp,player.hp+healed);
       effects.push({kind:"shockwave",x:player.x,y:player.y,r:10,max:70*player.area,life:.5});
       for(let i=0;i<6;i++)effects.push({kind:"heart",x:player.x+rand(-28,28),y:player.y+rand(-5,28),vx:rand(-15,15),vy:rand(-85,-50),life:.8,r:rand(4,7),color:"#ff75ad"});
-      text(player.x,player.y-48,`+${Math.round(healed)} HP・攻擊+20%・加速`,"#ff9fc7",17);
+      text(player.x,player.y-48,`+${Math.round(healed)} HP・攻擊+20%・加速`,"#ff9fc7",17,"pickup");
       beep(880,.16,.035,"triangle");
     }else{
-      text(player.x,player.y-42,"攻擊+10%・移速+15%","#ffb5d0",15);
+      text(player.x,player.y-42,"攻擊+10%・移速+15%","#ffb5d0",15,"pickup");
     }
   }
 
@@ -2306,11 +2476,13 @@
     for(const u of picked){
       const card=document.createElement("div");card.className="choice";
       let current="";
+      let nextLevelLabel=u.name;
       if(["orbit","burst","peanut","pinky"].includes(u.id))current=`目前 LV${skills[u.id]}/5`;
-      else if(u.id==="multi")current=`目前 ${player.projectiles}/10 根`;
-      else if(u.cap)current=`目前 LV${upgradeLevels[u.id]}/${u.cap}`;
-      else if(u.basic)current=`目前 LV${upgradeLevels[u.id]}/${BASIC_UPGRADE_CAP}`;
-      card.innerHTML=`<span class="icon">${u.icon}</span><b>${u.name}</b><small>${u.desc}<br>${current}</small>`;
+      if(["orbit","burst","peanut","pinky"].includes(u.id))nextLevelLabel=`${u.name} LV${Math.min(5,skills[u.id]+1)}`;
+      else if(u.id==="multi"){current=`目前 ${player.projectiles}/10 根`;nextLevelLabel=`胡蘿蔔${Math.min(10,player.projectiles+1)}連發`;}
+      else if(u.cap){current=`目前 LV${upgradeLevels[u.id]}/${u.cap}`;nextLevelLabel=`${u.name} LV${Math.min(u.cap,upgradeLevels[u.id]+1)}`;}
+      else if(u.basic){current=`目前 LV${upgradeLevels[u.id]}/${BASIC_UPGRADE_CAP}`;nextLevelLabel=`${u.name} LV${Math.min(BASIC_UPGRADE_CAP,upgradeLevels[u.id]+1)}`;}
+      card.innerHTML=`<span class="icon">${u.icon}</span><b>${nextLevelLabel}</b><small>${u.desc}<br>${current}</small>`;
       card.onclick=()=>{
         u.apply();
         if(Object.hasOwn(upgradeLevels,u.id))upgradeLevels[u.id]++;
@@ -2486,7 +2658,7 @@
       if(isInfiniteMode()&&bossArena.zone>=3&&d>bossArena.r-58)hurtPercent(.08);
     }
     updateChests(dt,moved);
-    if(player.regen||player.regenFlat)player.hp=Math.min(player.maxHp,player.hp+(player.regenFlat+player.maxHp*player.regen)*dt);
+    if(player.regen||player.regenFlat)player.hp=Math.min(player.maxHp,player.hp+((player.regenFlat*player.regenBoost)+player.maxHp*player.regen)*dt);
     if(poisonTimer>0){
       poisonTimer=Math.max(0,poisonTimer-dt);
       player.hp-=player.maxHp*poisonRate*dt;
@@ -2835,6 +3007,27 @@
     debugPeakFrameMs=Math.max(debugFrameMs,debugPeakFrameMs*.965);
     debugFps=1000/Math.max(1,debugFrameMs);
     if(performance&&performance.memory&&performance.memory.usedJSHeapSize)debugHeapMb=performance.memory.usedJSHeapSize/1048576;
+    perfDebugTimer+=dt;
+    perfDebugAccumulator.frameMs+=dt*1000;
+    perfDebugAccumulator.fps+=1000/Math.max(1,dt*1000);
+    perfDebugAccumulator.samples++;
+    perfDebugAccumulator.peak=Math.max(perfDebugAccumulator.peak,dt*1000);
+    if(perfDebugTimer>=2){
+      const sampleCount=Math.max(1,perfDebugAccumulator.samples);
+      perfDebugLast={
+        frameMs:perfDebugAccumulator.frameMs/sampleCount,
+        fps:perfDebugAccumulator.fps/sampleCount,
+        peak:perfDebugAccumulator.peak
+      };
+      perfDebugTimer=0;
+      perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0};
+    }
+    audioDebugTimer+=dt;
+    if(audioDebugTimer>=.5){
+      audioDebugTimer=0;
+      audioDebugLast={...audioDebugCurrent};
+      audioDebugCurrent={total:0,beep:0,external:0,xp:0,crit:0};
+    }
     time+=dt;timeline();updateAnnouncements(dt);
     hudSampleTimer+=dt;
     if(hudSampleTimer>=.1){
@@ -3521,6 +3714,7 @@
     const enemyCount=hudEnemyCount;
     if(H>W){
       const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
+      const stageTimeLabel=isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":formatStageTime(Math.max(1,time));
       ctx.save();
       rect(12,14,W-24,24,"#3a2435");
       const hpBarWidth=(W-30);
@@ -3535,7 +3729,7 @@
       ctx.textBaseline="middle";ctx.font="bold 15px monospace";ctx.lineWidth=4;ctx.strokeStyle="#111";ctx.fillStyle="#fff";
       ctx.strokeText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,22,26);ctx.fillText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,22,26);
       ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);
-      ctx.font="bold 18px monospace";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":"#fff4b2";ctx.fillText(isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":`${m}:${String(s).padStart(2,"0")}`,14,101);
+      ctx.font="bold 18px monospace";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":"#fff4b2";ctx.fillText(stageTimeLabel,14,101);
       ctx.textAlign="right";ctx.font="bold 15px monospace";ctx.fillStyle="#fff";
       ctx.fillText(`擊倒 ${hudKills}`,W-14,100);
       ctx.fillStyle=kpsPressure>0?"#ffe15b":"#d8f2ff";
@@ -3565,8 +3759,9 @@
     ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,23,49);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,23,49);
     ctx.font="bold 15px monospace";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,14,88);
     const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
+    const stageTimeLabel=isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":formatStageTime(Math.max(1,time));
     ctx.textAlign="center";ctx.font="bold 25px monospace";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":time>=480?"#ff6270":"#fff4b2";
-    ctx.fillText(isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":`${m}:${String(s).padStart(2,"0")}`,VW/2,22);
+    ctx.fillText(stageTimeLabel,VW/2,22);
     ctx.textAlign="right";ctx.font="bold 13px monospace";ctx.fillStyle="#fff";
     ctx.fillText(`🥕×${player.projectiles} 穿透${player.pierce} 爆擊${Math.round(player.critStack*100)}%`,VW-14,21);
     ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut}`,VW-14,43);
@@ -3603,8 +3798,9 @@
     if(hudKills<200){ctx.font="bold 12px monospace";ctx.fillStyle="#bff58a";ctx.fillText(`前期經驗減免 ${Math.round((1-(.45+.55*hudKills/200))*100)}%`,18,114);}
     if(killSurgeActive){ctx.font="bold 13px monospace";ctx.fillStyle="#ff6978";ctx.fillText("狂暴怪潮：數量+75%・生命+60%",18,135);}
     const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
+    const stageTimeLabel=isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":formatStageTime(Math.max(1,time));
     ctx.font="bold 28px monospace";ctx.textAlign="center";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":time>=480?"#ff6270":"#fff4b2";
-    ctx.fillText(isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":`${m}:${String(s).padStart(2,"0")}`,W/2,22);ctx.textAlign="left";
+    ctx.fillText(stageTimeLabel,W/2,22);ctx.textAlign="left";
     ctx.font="bold 14px monospace";ctx.fillStyle="#fff";ctx.fillText(`🥕×${player.projectiles}  穿透${player.pierce}  爆擊${Math.round(player.crit*100)}→${Math.round(player.critStack*100)}%`,W-315,24);
     const evolved=[];
     if(player.projectiles>=5)evolved.push("巨蘿蔔");
@@ -3646,19 +3842,29 @@
     if(!debugOverlayEnabled||!running)return;
     const heapSupported=!!(performance&&performance.memory&&performance.memory.usedJSHeapSize);
     const heapText=heapSupported?`${debugHeapMb.toFixed(1)} MB`:"N/A";
-    const rows=[
-      ["FPS",`${debugFps.toFixed(1)}`,debugColor(debugFps,55,40,true)],
-      ["Frame",`${debugFrameMs.toFixed(1)} ms`,debugColor(debugFrameMs,18,28)],
-      ["Peak",`${debugPeakFrameMs.toFixed(1)} ms`,debugColor(debugPeakFrameMs,24,40)],
-      ["壓力",`${Math.round(encirclementPressure*100)}%`,debugColor(encirclementPressure*100,45,75)],
-      ["KPS",`${kps.toFixed(1)}`,debugColor(kps,10,25)],
-      ["怪物",`${livingEnemyCount()}`,debugColor(livingEnemyCount(),120,180)],
-      ["經驗球",`${gems.length}`,debugColor(gems.length,120,220)],
-      ["特效",`${effects.length}`,debugColor(effects.length,100,180)],
-      ["文字",`${texts.length}`,debugColor(texts.length,30,60)],
-      ["射彈",`${shots.length+petShots.length+enemyShots.length}`,debugColor(shots.length+petShots.length+enemyShots.length,60,120)],
-      ["Heap",heapText,heapSupported?debugColor(debugHeapMb,80,140):"#d7d0ec"]
-    ];
+    const audioRows=audioMonitorRows();
+    const rows=debugPanelMode==="audio"
+      ?[
+        ["總開關",muted?"靜音":"開啟",muted?"#ff6d78":"#7eff8f"],
+        ["音訊引擎",audio?audio.state:"未建立",audio&&audio.state==="running"?"#7eff8f":"#ffe57a"],
+        ["0.5秒總數",`${audioDebugLast.total}`,debugColor(audioDebugLast.total,18,36)],
+        ...audioRows.slice(0,4).map(row=>[row.label,`${row.value}`,row.color]),
+        ["XP節流",`45 ms`,"#d7d0ec"],
+        ["外部載入",`${Object.values(externalAudio).filter(entry=>entry.ok===true).length}/4`,"#d7d0ec"]
+      ]
+      :[
+        ["2秒平均FPS",`${perfDebugLast.fps.toFixed(1)}`,debugColor(perfDebugLast.fps,55,40,true)],
+        ["2秒平均Frame",`${perfDebugLast.frameMs.toFixed(1)} ms`,debugColor(perfDebugLast.frameMs,18,28)],
+        ["2秒最高Frame",`${perfDebugLast.peak.toFixed(1)} ms`,debugColor(perfDebugLast.peak,24,40)],
+        ["壓力",`${Math.round(encirclementPressure*100)}%`,debugColor(encirclementPressure*100,45,75)],
+        ["KPS",`${kps.toFixed(1)}`,debugColor(kps,10,25)],
+        ["怪物",`${livingEnemyCount()}`,debugColor(livingEnemyCount(),120,180)],
+        ["經驗球",`${gems.length}`,debugColor(gems.length,120,220)],
+        ["特效",`${effects.length}`,debugColor(effects.length,100,180)],
+        ["文字",`${texts.length}`,debugColor(texts.length,30,60)],
+        ["射彈",`${shots.length+petShots.length+enemyShots.length}`,debugColor(shots.length+petShots.length+enemyShots.length,60,120)],
+        ["Heap",heapText,heapSupported?debugColor(debugHeapMb,80,140):"#d7d0ec"]
+      ];
     const x=12,y=132,rowH=18,w=170,h=rows.length*rowH+18;
     ctx.save();
     ctx.globalAlpha=.88;
@@ -3669,7 +3875,7 @@
     ctx.strokeRect(x+.5,y+.5,w-1,h-1);
     ctx.fillStyle="#b8f1ff";
     ctx.font="bold 13px monospace";
-    ctx.fillText("DEV MONITOR",x+10,y+16);
+    ctx.fillText(debugPanelMode==="audio"?"音效監控":"效能監控",x+10,y+16);
     ctx.font="bold 12px monospace";
     for(let i=0;i<rows.length;i++){
       const [label,value,color]=rows[i];
@@ -3792,15 +3998,27 @@
     return earned;
   }
 
+  function recordDeathRunStats(){
+    meta.totalDeaths=(meta.totalDeaths||0)+1;
+    meta.totalDeathKills=(meta.totalDeathKills||0)+Math.max(0,kills);
+    if(isInfiniteMode()){
+      meta.bestInfiniteSeconds=Math.max(meta.bestInfiniteSeconds||0,Math.floor(time));
+    }
+    saveMeta();
+  }
+
   function win(){
     if(ended)return;
     ended=true;running=false;
     pauseBtn.classList.remove("visible");pauseScreen.classList.add("hidden");
+    updateMonitorButtons();
     const earned=awardRun(true);
-    if(currentStage===1&&!meta.desertUnlocked){meta.desertUnlocked=true;saveMeta();}
+    if(currentStage===1&&!meta.desertUnlocked)meta.desertUnlocked=true;
+    if(currentStage===2&&!meta.snowUnlocked)meta.snowUnlocked=true;
+    saveMeta();
     endScreen.classList.remove("hidden");
-    document.getElementById("endTitle").textContent=currentStage===2?"沙漠遺跡征服成功！":"菜園守護成功！";
-    document.getElementById("endSub").textContent=currentStage===2?"兔兔擊敗了遠古石面怪":"兔兔擊敗了最終魔王";
+    document.getElementById("endTitle").textContent=currentStage===3?"雪原深處征服成功！":currentStage===2?"沙漠遺跡征服成功！":"菜園守護成功！";
+    document.getElementById("endSub").textContent=currentStage===3?"兔兔擊敗了暴雪鯨魚":currentStage===2?"兔兔擊敗了遠古石面怪":"兔兔擊敗了最終魔王";
     document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>目前共 ${meta.points} 點`;
     beep(660,.4,.05);
   }
@@ -3809,11 +4027,13 @@
     if(ended)return;
     ended=true;running=false;
     pauseBtn.classList.remove("visible");pauseScreen.classList.add("hidden");
+    updateMonitorButtons();
     const earned=awardRun(false);
+    recordDeathRunStats();
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent="兔兔倒下了";
     document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
-    document.getElementById("endText").innerHTML=`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>目前共 ${meta.points} 點`;
+    document.getElementById("endText").innerHTML=`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>目前共 ${meta.points} 點`;
     beep(180,.7,.05,"sawtooth");
   }
 
@@ -3821,6 +4041,7 @@
     if(ended||!running||transitioning)return;
     ended=true;running=false;paused=false;resetStick();
     pauseBtn.classList.remove("visible");pauseScreen.classList.add("hidden");levelScreen.classList.add("hidden");
+    updateMonitorButtons();
     let earned=0;
     if(!runRewarded){
       runRewarded=true;
@@ -3845,12 +4066,28 @@
   function setKey(k,v){keys[k]=v;}
   const touch=document.getElementById("touch"),touchKnob=document.getElementById("touchKnob"),touchHint=document.getElementById("touchHint");
   const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn"),leaveStageBtn=document.getElementById("leaveStageBtn"),muteBtn=document.getElementById("muteBtn");
+  const monitorTabs=document.getElementById("monitorTabs"),perfMonitorBtn=document.getElementById("perfMonitorBtn"),audioMonitorBtn=document.getElementById("audioMonitorBtn");
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
   const characterBtn=document.getElementById("characterBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter");
   const chooseStageBtn=document.getElementById("chooseStageBtn"),closeStage=document.getElementById("closeStage"),closeRewards=document.getElementById("closeRewards");
-  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),infiniteStage=document.getElementById("infiniteStageModal");
+  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),infiniteStage=document.getElementById("infiniteStageModal");
   function updateMuteButton(){
     muteBtn.classList.toggle("muted",muted);
+  }
+  function positionMonitorTabs(){
+    const canvasRect=canvas.getBoundingClientRect();
+    const wrapRect=wrap.getBoundingClientRect();
+    const panelLeft=canvasRect.left-wrapRect.left+12;
+    const panelTop=canvasRect.top-wrapRect.top+136;
+    monitorTabs.style.left=`${Math.round(panelLeft)}px`;
+    monitorTabs.style.top=`${Math.round(panelTop)}px`;
+  }
+  function updateMonitorButtons(){
+    const visible=debugOverlayEnabled&&running;
+    monitorTabs.classList.toggle("visible",visible);
+    perfMonitorBtn.classList.toggle("active",debugPanelMode==="perf");
+    audioMonitorBtn.classList.toggle("active",debugPanelMode==="audio");
+    if(visible)positionMonitorTabs();
   }
   function toggleMute(){
     muted=!muted;meta.muted=muted;saveMeta();updateMuteButton();
@@ -3860,16 +4097,32 @@
     const baseCarrotDamage=player.damage*player.areaDamage*(pinkyBoostTimer>0?pinkyDamageBoost:1);
     const critMaxDamage=baseCarrotDamage*player.critDamage*1.1;
     const totalCarrotDamageText=`${Math.round(baseCarrotDamage)} ~ ${Math.round(critMaxDamage)}`;
+    const baseCritDamagePercent=Math.round(baseMetaCritDamageMultiplier(meta.critDamage)*100);
+    const bonusCritDamagePercent=Math.max(0,Math.round(player.critDamage*100-baseCritDamagePercent));
+    const boostedFlatRegen=player.regenFlat*player.regenBoost;
+    const hpRegenPerSecond=player.maxHp*player.regen;
+    const totalRegenPerSecond=boostedFlatRegen+hpRegenPerSecond;
+    const baseMaxHp=BASE_META_LIFE+scaledMetaGain(meta.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH);
+    const baseDamageValue=BASE_META_DAMAGE+scaledMetaGain(meta.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH);
+    const baseMoveSpeed=210;
+    const baseCritChance=metaCritChance(meta.crit);
+    const baseArmorPen=Math.min(MAX_META_ARMOR_PEN,meta.armorPen*.007);
+    const lifeBonusPct=Math.max(0,Math.round((player.maxHp/baseMaxHp-1)*100));
+    const damageBonusPct=Math.max(0,Math.round((player.damage/baseDamageValue-1)*100));
+    const speedBonusPct=Math.max(0,Math.round((player.speed/baseMoveSpeed-1)*100));
+    const critBonusPct=Math.max(0,Math.round((player.crit-baseCritChance)*100));
+    const armorPenBonusPct=Math.max(0,Math.round((Math.min(.75,player.armorPen)-baseArmorPen)*100));
+    const withBonus=(value,bonusPct,suffix="%")=>bonusPct>0?`${value}（+${bonusPct}${suffix}）`:String(value);
     const stats=[
       ["等級",player.level],
-      ["生命",`${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`],
-      ["傷害",Math.round(player.damage)],
+      ["生命",lifeBonusPct>0?`${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}（+${lifeBonusPct}%）`:`${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`],
+      ["傷害",withBonus(Math.round(player.damage),damageBonusPct)],
       ["攻擊速度",`${player.attackSpeed.toFixed(2)}×`],
-      ["移動速度",Math.round(player.speed)],
-      ["生命回復",player.regen>0?`${player.regenFlat.toFixed(2)} HP/秒 + ${(player.regen*100).toFixed(2)}%/秒`:`${player.regenFlat.toFixed(2)} HP/秒`],
-      ["爆擊率",`${Math.round(player.crit*100)}%`],
-      ["爆擊傷害",`${Math.round(player.critDamage*100)}%`],
-      ["無視防禦",`${Math.round(Math.min(.75,player.armorPen)*100)}%`],
+      ["移動速度",withBonus(Math.round(player.speed),speedBonusPct)],
+      ["生命回復",player.regen>0?`${boostedFlatRegen.toFixed(2)} + ${hpRegenPerSecond.toFixed(2)} = ${totalRegenPerSecond.toFixed(2)} HP/秒`:`${boostedFlatRegen.toFixed(2)} HP/秒`],
+      ["爆擊率",withBonus(`${Math.round(player.crit*100)}%`,critBonusPct)],
+      ["爆擊傷害",bonusCritDamagePercent>0?`${baseCritDamagePercent}% + 場內${bonusCritDamagePercent}% = ${Math.round(player.critDamage*100)}%`:`${Math.round(player.critDamage*100)}%`],
+      ["無視防禦",withBonus(`${Math.round(Math.min(.75,player.armorPen)*100)}%`,armorPenBonusPct)],
       ["胡蘿蔔數",player.projectiles],
       ["穿透",player.pierce],
       ["吸取範圍",`固定 ${Math.round(player.magnet)} 像素`],
@@ -3892,6 +4145,7 @@
     leaveConfirm.classList.remove("visible");
     leaveStageBtn.classList.remove("hidden");
     pauseScreen.classList.remove("hidden");pauseBtn.classList.remove("visible");
+    updateMonitorButtons();
   }
   function resumeGame(){
     if(ended)return;
@@ -3899,6 +4153,7 @@
     leaveStageBtn.classList.remove("hidden");
     pauseScreen.classList.add("hidden");paused=false;last=performance.now();
     pauseBtn.classList.add("visible");
+    updateMonitorButtons();
   }
   function askLeaveStage(){
     leaveConfirm.classList.add("visible");
@@ -3960,6 +4215,7 @@
   addEventListener("keydown",e=>{if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],true);}});
   addEventListener("keyup",e=>{if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],false);}});
   addEventListener("blur",()=>{Object.keys(keys).forEach(k=>keys[k]=false);resetStick();});
+  addEventListener("resize",positionMonitorTabs);
   pauseBtn.addEventListener("click",pauseGame);
   resumeBtn.addEventListener("click",resumeGame);
   leaveStageBtn.addEventListener("click",askLeaveStage);
@@ -3977,18 +4233,33 @@
   closeStage.addEventListener("click",()=>{stageScreen.classList.add("hidden");renderMeta();});
   gardenStage.addEventListener("click",()=>{currentStage=1;renderMeta();});
   desertStage.addEventListener("click",()=>{if(meta.desertUnlocked){currentStage=2;renderMeta();}});
-  infiniteStage.addEventListener("click",()=>{currentStage=3;renderMeta();});
-  characterBtn.addEventListener("click",()=>{renderMeta();characterScreen.classList.remove("hidden");});
+  snowStage.addEventListener("click",()=>{if(meta.snowUnlocked){currentStage=3;renderMeta();}});
+  infiniteStage.addEventListener("click",()=>{currentStage=4;renderMeta();});
+  characterBtn.addEventListener("click",()=>{
+    renderMeta();
+    characterScreen.classList.remove("hidden");
+    requestAnimationFrame(()=>requestAnimationFrame(setupMetaMarquees));
+  });
   closeCharacter.addEventListener("click",()=>{characterScreen.classList.add("hidden");renderMeta();});
   shopBtn.addEventListener("click",()=>{beep(220,.08,.02);alert("商城尚未開放");});
+  perfMonitorBtn.addEventListener("click",()=>{
+    debugPanelMode="perf";
+    updateMonitorButtons();
+  });
+  audioMonitorBtn.addEventListener("click",()=>{
+    debugPanelMode="audio";
+    updateMonitorButtons();
+  });
   devModeBtn.addEventListener("click",()=>{
     const password=prompt("輸入開發密碼");
     if(password==="00516"){
       devModeActive=true;
       debugOverlayEnabled=true;
+      debugPanelMode="perf";
       rewardScreen.classList.add("hidden");
       renderMeta();
       characterScreen.classList.remove("hidden");
+      updateMonitorButtons();
       beep(760,.1,.03,"triangle");
       return;
     }
@@ -4038,6 +4309,7 @@
       stageScreen.classList.add("hidden");
       pauseScreen.classList.add("hidden");pauseBtn.classList.remove("visible");
       renderMeta();
+      updateMonitorButtons();
     },{shrinkDuration:900,holdDuration:1000,expandDuration:560});
   };
   window.addEventListener("resize",()=>{
