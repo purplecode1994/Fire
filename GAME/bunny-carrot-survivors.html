@@ -482,12 +482,55 @@
     }
     #metaStats {
       display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; text-align: left;
+      min-width: 0;
+      overflow-x: hidden;
     }
     .statCard {
+      min-width: 0;
+      overflow: hidden;
       padding: 10px; background: #302652; border: 2px solid #765d96; min-height: 86px;
     }
     .statCard b { color: #9eeaff; display: block; }
-    .statCard small { color: #c9bddb; display: block; margin: 4px 0; min-height: 5.2em; line-height: 1.3; }
+    .statCard small { color: #c9bddb; display: block; margin: 4px 0; min-height: 5.2em; line-height: 1.3; min-width: 0; overflow: hidden; }
+    .detailLine {
+      position: relative;
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      min-height: 1.3em;
+    }
+    .detailTrack {
+      display: inline-flex;
+      align-items: center;
+      min-width: 100%;
+      max-width: none;
+      will-change: transform;
+    }
+    .detailLine.marquee .detailTrack {
+      width: max-content;
+      animation: statMarquee var(--marquee-duration, 12s) linear infinite;
+      animation-delay: .8s;
+    }
+    .detailText,
+    .detailClone {
+      display: inline-block;
+      flex: 0 0 auto;
+      white-space: nowrap;
+      padding-right: 0;
+    }
+    .detailClone {
+      display: none;
+      padding-left: 30px;
+    }
+    .detailLine.marquee .detailClone {
+      display: inline-block;
+    }
+    @keyframes statMarquee {
+      0%,10% { transform: translateX(0); }
+      90%,100% { transform: translateX(calc(-1 * var(--marquee-shift, 0px))); }
+    }
     .statActions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; margin-top: 3px; }
     .statCard button {
       width: 100%; min-height: 58px; margin: 0; padding: 7px 5px; font-size: 14px;
@@ -1179,6 +1222,73 @@
     stagePower.textContent=`建議戰力 ${stageRecommendedPower(stage)}｜目前戰力 ${combatPower()}`;
   }
 
+  function detailLineMarkup(text){
+    return `<div class="detailLine"><span class="detailTrack"><span class="detailText">${text}</span><span class="detailClone" aria-hidden="true">${text}</span></span></div>`;
+  }
+
+  function setupMetaMarquees(){
+    requestAnimationFrame(()=>{
+      metaStatsEl.querySelectorAll(".detailLine").forEach(line=>{
+        const textEl=line.querySelector(".detailText");
+        if(!textEl)return;
+        line.classList.remove("marquee");
+        line.style.removeProperty("--marquee-shift");
+        line.style.removeProperty("--marquee-duration");
+        const overflow=textEl.scrollWidth-line.clientWidth;
+        if(overflow>8){
+          const shift=Math.ceil(overflow+30);
+          const duration=Math.max(10,Math.min(22,shift/11));
+          line.style.setProperty("--marquee-shift",`${shift}px`);
+          line.style.setProperty("--marquee-duration",`${duration}s`);
+          line.classList.add("marquee");
+        }
+      });
+    });
+  }
+
+  function metaDetailLines(def){
+    const tier=Math.floor(meta[def.id]/10)+1;
+    if(def.id==="damage")return [
+      `每等級 +${META_DAMAGE_STEP} 攻擊`,
+      "每10級 +0.2%",
+      `目前 ${def.value(meta)}`,
+      `費用階段 ${tier}`
+    ];
+    if(def.id==="life")return [
+      `每等級 +${META_LIFE_STEP} 生命`,
+      "每10級 +0.5%",
+      `目前 ${def.value(meta)}`,
+      `費用階段 ${tier}`
+    ];
+    if(def.id==="regen")return [
+      `每等級 +${META_REGEN_STEP.toFixed(2)} HP/秒`,
+      "每10級 +0.2%生命/秒",
+      `目前 ${def.value(meta)}`,
+      `費用階段 ${tier}`
+    ];
+    if(def.id==="speed")return [
+      "每等級 +3%攻速",
+      `目前 ${def.value(meta)}`,
+      `費用階段 ${tier}`
+    ];
+    if(def.id==="crit")return [
+      "每等級 爆率成長",
+      `目前 ${def.value(meta)}`,
+      `費用階段 ${tier}`
+    ];
+    if(def.id==="critDamage")return [
+      `每等級 +${(META_CRIT_DAMAGE_STEP*100).toFixed(1)}%爆傷`,
+      `目前 ${def.value(meta)}`,
+      `費用階段 ${tier}`
+    ];
+    if(def.id==="armorPen")return [
+      "每等級 +0.7%穿防",
+      `目前 ${def.value(meta)}`,
+      `費用階段 ${tier}`
+    ];
+    return [`目前 ${def.value(meta)}`,`費用階段 ${tier}`];
+  }
+
   renderAccount=function(){
     const info=accountLevelInfo();
     rewardPlaytimeEl.textContent=formatPlaytimeSummary(meta.totalPlaySeconds||0);
@@ -1225,12 +1335,11 @@
     for(const def of metaDefs){
       if(def.unlock&&!def.unlock(meta))continue;
       const cost=metaUpgradeCost(def);
-      const tier=Math.floor(meta[def.id]/10)+1;
       const card=document.createElement("div");
       card.className="statCard";
       const maxed=def.cap!==undefined&&meta[def.id]>=def.cap;
-      const detailLines=[def.desc,`目前 ${def.value(meta)}`,`費用階段 ${tier}`];
-      card.innerHTML=`<b>${def.name} LV${meta[def.id]}</b><small>${detailLines.join("<br>")}</small>`;
+      const detailLines=metaDetailLines(def);
+      card.innerHTML=`<b>${def.name} LV${meta[def.id]}</b><small>${detailLines.map(detailLineMarkup).join("")}</small>`;
       const actions=document.createElement("div");
       actions.className="statActions";
       const singleButton=document.createElement("button");
@@ -1275,6 +1384,7 @@
       card.appendChild(actions);
       metaStatsEl.appendChild(card);
     }
+    setupMetaMarquees();
     gardenStage.classList.toggle("active",currentStage===1);
     desertStage.classList.toggle("active",currentStage===2);
     infiniteStage.classList.toggle("active",currentStage===3);
@@ -3930,6 +4040,10 @@
       renderMeta();
     },{shrinkDuration:900,holdDuration:1000,expandDuration:560});
   };
+  window.addEventListener("resize",()=>{
+    resizeTransitionCanvas();
+    setupMetaMarquees();
+  });
   resizeTransitionCanvas();
   updateMuteButton();renderMeta();draw();requestAnimationFrame(loop);
 })();
