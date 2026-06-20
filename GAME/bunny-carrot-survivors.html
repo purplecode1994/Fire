@@ -908,8 +908,8 @@
   let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0;
   let carrotVolley=0,pinkyBoostTimer=0,pinkyDamageBoost=1,pendingCarrotShots=0;
   let poisonTimer=0,poisonRate=0,stunTimer=0,potionHealTimer=0,currentStage=1,infiniteBossZone=0;
-  let encirclementPressure=0,encirclementTick=0,encirclementDotTimer=0,encirclementDotRate=0;
-  let encirclementReservedHp=0,encirclementSectorBits=0,encirclementSectorCount=0,encirclementEvalTimer=0,encirclementFullHold=0,encirclementPrewarn=false;
+  let encirclementPressure=0,encirclementCharge=0,encirclementSampleClock=0,encirclementPressureRounds=0,encirclementDotTimer=0,encirclementDotRate=0;
+  let encirclementReservedHp=0,encirclementSectorBits=0,encirclementSectorCount=0,encirclementPrewarn=false;
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
   let runRewarded=false,transitioning=false;
   const BATTLE_START_DELAY=1.6;
@@ -1065,11 +1065,30 @@
     return 55*player.area;
   }
   function encirclementStagePercent(fill){
-    if(fill<.2)return 0;
-    if(fill<.4)return .01;
-    if(fill<.6)return .05;
-    if(fill<.8)return .12;
-    return .20;
+    if(fill<20)return 0;
+    if(fill<40)return .01;
+    if(fill<60)return .05;
+    if(fill<80)return .25;
+    if(fill<100)return .40;
+    return .50;
+  }
+  function encirclementChargeRate(fill){
+    if(fill<20)return 20;
+    if(fill<40)return 20;
+    if(fill<60)return 8;
+    if(fill<80)return 8;
+    return 6.6667;
+  }
+  function currentEncirclementSampleDuration(){
+    return Math.max(1,5-encirclementPressureRounds);
+  }
+  function encirclementTierLabel(fill){
+    if(fill<20)return "-";
+    if(fill<40)return "I";
+    if(fill<60)return "II";
+    if(fill<80)return "III";
+    if(fill<100)return "IV";
+    return "V";
   }
 
   function loadMeta(){
@@ -2103,8 +2122,8 @@
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
     chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;
-    encirclementPressure=0;encirclementTick=0;encirclementDotTimer=0;encirclementDotRate=0;
-    encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementEvalTimer=0;encirclementFullHold=0;encirclementPrewarn=false;
+    encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;encirclementDotTimer=0;encirclementDotRate=0;
+    encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;
     infiniteClearCount=0;
     poisonTimer=poisonRate=stunTimer=0;
     potionHealTimer=0;
@@ -2718,11 +2737,13 @@
     }
   }
   function startEncirclementDot(percent){
-    encirclementDotRate=Math.max(encirclementDotRate,percent/5);
+    encirclementDotRate=percent/5;
     encirclementDotTimer=5;
-    encirclementReservedHp=Math.max(encirclementReservedHp,player.maxHp*percent);
+    encirclementReservedHp=player.maxHp*percent;
+    encirclementSampleClock=0;
+    encirclementPressureRounds+=1;
     burst(player.x,player.y,"#ff7b96",7);
-    text(player.x,player.y-52,`窒息 ${Math.round(percent*100)}% / 5秒`,"#ffb0cb",18,"pickup");
+    text(player.x,player.y-52,`包圍壓力 ${encirclementTierLabel(encirclementCharge)} ${Math.round(percent*100)}%`,"#ffb0cb",18,"pickup");
   }
 
   function giantCarrotImpact(shot){
@@ -2913,37 +2934,41 @@
     rebuildEnemyGrid();
     encirclementSectorBits=sectorBits;
     encirclementSectorCount=sectorBits.toString(2).replace(/0/g,"").length;
-    encirclementPrewarn=encirclementSectorCount>=7;
+    encirclementPrewarn=encirclementSectorCount>=6;
     const pressureTarget=encirclementSectorCount/8;
     const riseLerp=pressureTarget>encirclementPressure?Math.min(1,dt*4.2):0;
     const fallLerp=pressureTarget<encirclementPressure?Math.min(1,dt*2.1):0;
-    if(riseLerp)encirclementPressure+= (pressureTarget-encirclementPressure)*riseLerp;
-    else if(fallLerp)encirclementPressure+= (pressureTarget-encirclementPressure)*fallLerp;
-    if(pressureTarget<=0.01){
-      encirclementPressure=Math.max(0,encirclementPressure-dt*.1);
-      encirclementFullHold=0;
-    }
-    encirclementEvalTimer+=dt;
-    if(encirclementEvalTimer>=.2){
-      encirclementEvalTimer=0;
-      if(encirclementSectorCount>=8)encirclementFullHold+=.2;
-      else encirclementFullHold=Math.max(0,encirclementFullHold-.4);
-    }
-    if(encirclementFullHold>=.6){
-      encirclementTick+=dt;
-      if(encirclementTick>=5){
-        encirclementTick=0;
-        const percent=encirclementStagePercent(encirclementPressure);
-        if(percent>0)startEncirclementDot(percent);
-      }
+    if(riseLerp)encirclementPressure+=(pressureTarget-encirclementPressure)*riseLerp;
+    else if(fallLerp)encirclementPressure+=(pressureTarget-encirclementPressure)*fallLerp;
+    if(pressureTarget<=0.01)encirclementPressure=Math.max(0,encirclementPressure-dt*.1);
+    if(encirclementSectorCount>=8){
+      const sampleDuration=currentEncirclementSampleDuration();
+      encirclementCharge=Math.min(100,encirclementCharge+encirclementChargeRate(encirclementCharge)*dt);
+      if(encirclementDotTimer<=0)encirclementSampleClock=Math.min(sampleDuration,encirclementSampleClock+dt);
     }else{
-      encirclementTick=0;
+      encirclementCharge=Math.max(0,encirclementCharge-10*dt);
+      if(encirclementCharge<=0){
+        encirclementSampleClock=0;
+        encirclementPressureRounds=0;
+      }
+    }
+    if(encirclementDotTimer<=0&&encirclementSectorCount>=8&&encirclementSampleClock>=currentEncirclementSampleDuration()){
+      const percent=encirclementStagePercent(encirclementCharge);
+      if(percent>0)startEncirclementDot(percent);
+      else{
+        encirclementSampleClock=0;
+        encirclementPressureRounds=0;
+      }
     }
     if(encirclementDotTimer>0&&encirclementDotRate>0){
       const tickDamage=Math.max(1,player.maxHp*encirclementDotRate*dt);
       player.hp-=tickDamage;
       encirclementReservedHp=Math.max(0,encirclementReservedHp-tickDamage);
       encirclementDotTimer=Math.max(0,encirclementDotTimer-dt);
+      if(encirclementDotTimer<=0&&encirclementCharge<=0){
+        encirclementSampleClock=0;
+        encirclementPressureRounds=0;
+      }
       if(player.hp<=0){
         lose();
         return;
@@ -3804,6 +3829,7 @@
     if(poisonTimer>0)rows.push([`中毒 ${poisonTimer.toFixed(1)}s`,"#9cff68"]);
     if(stunTimer>0)rows.push([`暈眩 ${stunTimer.toFixed(1)}s`,"#ffd15e"]);
     if(killSurgeActive)rows.push(["狂暴怪潮 +75%","#ff6978"]);
+    if(encirclementDotTimer>0&&encirclementReservedHp>0)rows.push([`包圍壓力 ${encirclementTierLabel(encirclementCharge)} ${encirclementDotTimer.toFixed(1)}s R${encirclementPressureRounds}`,"#ff9cc6"]);
     return rows;
   }
 
@@ -3871,7 +3897,7 @@
         rect(15+hpBarWidth*Math.max(0,hpRatio-reservedRatio),17,hpBarWidth*Math.min(reservedRatio,hpRatio),18,"#6c1424");
       }
       rect(12,42,W-24,22,"#302344");rect(15,45,(W-30)*(player.xp/player.nextXp),16,"#6ed7df");
-      rect(12,66,W-24,8,"#2c2040");rect(15,68,(W-30)*encirclementPressure,4,"#de79ff");
+      rect(12,66,W-24,8,"#2c2040");rect(15,68,(W-30)*encirclementPressure,4,"#de79ff");rect(15,68,(W-30)*(encirclementCharge/100),4,"#8f33bd");
       ctx.textBaseline="middle";ctx.font="bold 15px monospace";ctx.lineWidth=4;ctx.strokeStyle="#111";ctx.fillStyle="#fff";
       ctx.strokeText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,22,26);ctx.fillText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,22,26);
       ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);
@@ -3899,7 +3925,7 @@
       rect(16+innerHpWidth*Math.max(0,hpRatio-reservedRatio),16,innerHpWidth*Math.min(reservedRatio,hpRatio),17,"#6c1424");
     }
     rect(14,39,barWidth,19,"#302344");rect(16,41,(barWidth-4)*(player.xp/player.nextXp),15,"#6ed7df");
-    rect(14,59,barWidth,7,"#2c2040");rect(16,61,(barWidth-4)*encirclementPressure,3,"#de79ff");
+    rect(14,59,barWidth,7,"#2c2040");rect(16,61,(barWidth-4)*encirclementPressure,3,"#de79ff");rect(16,61,(barWidth-4)*(encirclementCharge/100),3,"#8f33bd");
     ctx.textBaseline="middle";ctx.font="bold 14px monospace";ctx.lineWidth=4;ctx.strokeStyle="#111";ctx.fillStyle="#fff";
     ctx.strokeText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,23,24);ctx.fillText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,23,24);
     ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,23,49);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,23,49);
@@ -3932,7 +3958,7 @@
       rect(20+256*Math.max(0,hpRatio-reservedRatio),20,256*Math.min(reservedRatio,hpRatio),16,"#6c1424");
     }
     rect(18,43,260,18,"#302344");rect(20,45,256*(player.xp/player.nextXp),14,"#6ed7df");
-    rect(18,63,260,7,"#2c2040");rect(20,65,256*encirclementPressure,3,"#de79ff");
+    rect(18,63,260,7,"#2c2040");rect(20,65,256*encirclementPressure,3,"#de79ff");rect(20,65,256*(encirclementCharge/100),3,"#8f33bd");
     ctx.save();
     ctx.textBaseline="middle";ctx.font="bold 14px monospace";ctx.lineWidth=4;ctx.strokeStyle="#111";ctx.fillStyle="#fff";
     ctx.strokeText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,28,28);
@@ -4007,6 +4033,8 @@
         ["2秒最高Frame",`${perfDebugLast.peak.toFixed(1)} ms`,debugColor(perfDebugLast.peak,24,40)],
         ...perfRows.map(row=>[row.label,`${row.value}`,row.color]),
         ["壓力",`${Math.round(encirclementPressure*100)}%`,debugColor(encirclementPressure*100,45,75)],
+        ["深紫",`${Math.round(encirclementCharge)}%`,debugColor(encirclementCharge,45,75)],
+        ["取樣",`${Math.max(0,currentEncirclementSampleDuration()-encirclementSampleClock).toFixed(1)}s / R${encirclementPressureRounds}`,"#d7d0ec"],
         ["KPS",`${kps.toFixed(1)}`,debugColor(kps,10,25)],
         ["怪物",`${liveEnemyCount}`,debugColor(liveEnemyCount,120,180)],
         ["格網格數",`${enemyGrid.size}`,"#d7d0ec"],
