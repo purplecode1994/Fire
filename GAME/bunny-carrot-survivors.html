@@ -900,6 +900,7 @@
   let running=false,paused=false,ended=false,last=0,time=0,spawnClock=0,shotClock=0,battleStartDelay=0;
   let giantCarrotCooldown=0;
   let enemies=[],shots=[],enemyShots=[],gems=[],effects=[],texts=[],areas=[],petShots=[],bananas=[],chests=[],pickups=[];
+  let groundCache={canvas:null,ctx:null,zone:null,firstX:null,firstY:null,cols:0,rows:0,grid:64};
   let enemyGrid=new Map();
   let announcements=[],activeAnnouncement=null;
   let kills=0,score=0,eliteKills=0,bossKills=0,nextId=1,levelQueue=0;
@@ -959,6 +960,11 @@
   const FIXED_MAGNET_RANGE=120;
   const BURST_RADIUS_CAP=170;
   const MAX_NORMAL_TEXTS=42;
+  const MAX_CRITICAL_TEXTS=30;
+  const MAX_BOSS_TEXTS=60;
+  const WORLD_SIZE=10000;
+  const WORLD_MIN=0;
+  const WORLD_MAX=WORLD_SIZE;
   const ENEMY_GRID_SIZE=96;
   const ENEMY_QUERY_PADDING=80;
 
@@ -2061,6 +2067,8 @@
     const dx=ax-bx,dy=ay-by,r=ar+br;
     return dx*dx+dy*dy<=r*r;
   }
+  function clampToWorldX(x,r=0){return clamp(x,WORLD_MIN+r,WORLD_MAX-r);}
+  function clampToWorldY(y,r=0){return clamp(y,WORLD_MIN+r,WORLD_MAX-r);}
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const rand=(a,b)=>a+Math.random()*(b-a);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -2147,7 +2155,7 @@
     const maxHp=BASE_META_LIFE+scaledMetaGain(meta.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH);
     const baseCrit=metaCritChance(meta.crit);
     Object.assign(player,{
-      x:0,y:0,r:18,speed:210,hp:maxHp,maxHp,regen:0,regenFlat:metaRegenFlatTotal(meta.regen),regenBoost:1,
+      x:WORLD_SIZE/2,y:WORLD_SIZE/2,r:18,speed:210,hp:maxHp,maxHp,regen:0,regenFlat:metaRegenFlatTotal(meta.regen),regenBoost:1,
       level:1,xp:0,nextXp:xpRequirement(1,0),damage:BASE_META_DAMAGE+scaledMetaGain(meta.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH),
       attackSpeed:1+meta.speed*.03,projectiles:1,
       crit:baseCrit,critStack:baseCrit,critDamage:baseMetaCritDamageMultiplier(meta.critDamage),
@@ -2246,7 +2254,7 @@
     if(kind==="normal"&&kpsPressure>0)hp*=1+kpsPressure*.35;
     if(kind==="elite"&&kpsPressure>0)hp*=1+kpsPressure*.18;
     if(killSurgeActive)hp*=KILL_SURGE_HP_MULTIPLIER;
-    const enemy={id:nextId++,type,kind,defense,x:player.x+Math.cos(angle)*range,y:player.y+Math.sin(angle)*range,r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,cling:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1,kpsSpawned:!!flags.kpsSpawned};
+    const enemy={id:nextId++,type,kind,defense,x:clampToWorldX(player.x+Math.cos(angle)*range,size),y:clampToWorldY(player.y+Math.sin(angle)*range,size),r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,cling:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1,kpsSpawned:!!flags.kpsSpawned};
     if(kind==="final"){
       const phaseConfig=finalBossPhaseConfig(type);
       const hpScale=isInfiniteMode()?infiniteBossHpMultiplier(Math.max(0,infiniteBossZone)):1;
@@ -2547,7 +2555,8 @@
       amount*=100/(100+effectiveDefense);
     }
     e.hp-=amount;e.hit=.1;
-    text(e.x,e.y-e.r,critical?formatCriticalDamage(amount):Math.round(amount),critical?"#ffe45f":"#fff",critical?19:14,critical?"critical":"normal");
+    const textKind=critical?"critical":(e.kind==="boss"||e.kind==="final"?"boss":"normal");
+    text(e.x,e.y-e.r,critical?formatCriticalDamage(amount):Math.round(amount),critical?"#ffe45f":"#fff",critical?19:14,textKind);
     if(critical)playCritSample(.38,1+rand(-.04,.04));
     if(e.kind==="final"&&e.hp<=0&&e.bars>1){
       e.bars--;
@@ -2837,6 +2846,8 @@
       player.x+=dx*moved;player.y+=dy*moved;
       if(dx)player.facing=Math.sign(dx);
     }
+    player.x=clampToWorldX(player.x,player.r);
+    player.y=clampToWorldY(player.y,player.r);
     if(bossArena.active){
       const ax=player.x-bossArena.x,ay=player.y-bossArena.y,d=Math.hypot(ax,ay),limit=bossArena.r-player.r-18;
       if(d>limit){player.x=bossArena.x+ax/d*limit;player.y=bossArena.y+ay/d*limit;}
@@ -2930,6 +2941,8 @@
       }
       if(e.slow>0)speed*=.48;
       e.x+=Math.cos(a)*speed*dt;e.y+=Math.sin(a)*speed*dt;
+      e.x=clampToWorldX(e.x,e.r);
+      e.y=clampToWorldY(e.y,e.r);
       if(dist(e,player)<e.r+player.r){
         hurt(e.damage);
       }
@@ -2988,7 +3001,7 @@
         sectorBits|=(1<<sector);
       }
     }
-    enemies=enemies.filter(e=>!e.dead&&dist(e,player)<1500);
+    enemies=enemies.filter(e=>!e.dead);
     rebuildEnemyGrid();
     encirclementSectorBits=sectorBits;
     encirclementSectorCount=sectorBits.toString(2).replace(/0/g,"").length;
@@ -3256,14 +3269,20 @@
       magnetTimer=Math.max(0,magnetTimer-dt);
       if(magnetTimer<=0)magnetAll=false;
     }
+    const frameBucket=Math.floor(time*60);
     for(let i=0;i<gems.length;i++){
-      countPerfWork("gemUpdate");
       const g=gems[i];
       const d=dist(g,player);
-      const near=d<340||magnetAll||d<player.magnet;
-      const bucket=((g.id||i)+Math.floor(time*60))%3;
-      if(!near&&bucket!==0)continue;
-      if(magnetAll||d<player.magnet){const a=Math.atan2(player.y-g.y,player.x-g.x),sp=magnetAll?650:180+(player.magnet-d)*4;g.x+=Math.cos(a)*sp*dt;g.y+=Math.sin(a)*sp*dt;}
+      const magnetized=magnetAll||d<player.magnet;
+      const near=d<340||magnetized;
+      if(!near){
+        const bucketBase=(g.id||i)+frameBucket;
+        if(d>=700){
+          if(bucketBase%3!==0)continue;
+        }else if(bucketBase%2!==0)continue;
+      }
+      countPerfWork("gemUpdate");
+      if(magnetized){const a=Math.atan2(player.y-g.y,player.x-g.x),sp=magnetAll?650:180+(player.magnet-d)*4;g.x+=Math.cos(a)*sp*dt;g.y+=Math.sin(a)*sp*dt;}
       if(d<player.r+9){g.dead=true;gainXp(g.value);playXpPickupSound({waveform:"sine",baseFreq:2169,duration:.2,overtone:.05,rippleCount:1});}
     }
     gemMergeTimer+=dt;
@@ -3271,7 +3290,7 @@
       gemMergeTimer=0;
       mergeNearbyGems();
     }
-    gems=gems.filter(g=>!g.dead&&(magnetAll||dist(g,player)<1300));
+    gems=gems.filter(g=>!g.dead);
     if(!gems.length){magnetAll=false;magnetTimer=0;}
   }
 
@@ -3343,7 +3362,7 @@
     const intensity=1+time/150;
     if(finalPhase==="none"&&(isInfiniteMode()||time<DURATION)&&spawnClock<=0){
       countPerfWork("spawn");
-      const livingCount=enemies.length;
+      const livingCount=nearbyLivingEnemyCount();
       let targetEnemyCount=0;
       let variance=.12;
       if(kps>=10){
@@ -3362,7 +3381,7 @@
         const types=enemyPoolForCurrentTime();
         const eliteChance=.012+Math.max(0,(kps-10)/190)*.065+infiniteGrowth().elite;
         const spawnBatch=Math.min(14,Math.max(1,needCount,Math.ceil(densityGap*.18)));
-        for(let i=0;i<spawnBatch&&enemies.length<maxTarget;i++){
+        for(let i=0;i<spawnBatch&&livingCount+i<maxTarget;i++){
           const kind=kps>=10&&Math.random()<eliteChance?"elite":"normal";
           spawnEnemy(types[Math.floor(Math.random()*types.length)],kind,{kpsSpawned:kps>=10});
         }
@@ -3420,10 +3439,12 @@
 
   function burst(x,y,color,n){for(let i=0;i<n;i++)effects.push({kind:"particle",x,y,vx:rand(-140,140),vy:rand(-140,140),life:rand(.25,.65),color,r:rand(2,6)});}
   function text(x,y,value,color="#fff",size=14,kind="normal"){
-    if(kind==="normal"){
-      let normalCount=0;
-      for(const t of texts)if(t.kind==="normal")normalCount++;
-      if(normalCount>=MAX_NORMAL_TEXTS)return;
+    if(kind==="normal"||kind==="critical"||kind==="boss"){
+      let sameKindCount=0;
+      for(const t of texts)if(t.kind===kind)sameKindCount++;
+      if(kind==="normal"&&sameKindCount>=MAX_NORMAL_TEXTS)return;
+      if(kind==="critical"&&sameKindCount>=MAX_CRITICAL_TEXTS)return;
+      if(kind==="boss"&&sameKindCount>=MAX_BOSS_TEXTS)return;
     }
     texts.push({x,y,value:String(value),color,size,kind,life:1});
   }
@@ -3535,35 +3556,115 @@
     const left=camera.x-W/2-grid,top=camera.y-H/2-grid;
     const firstX=Math.floor(left/grid),firstY=Math.floor(top/grid);
     const cols=Math.ceil(W/grid)+3,rows=Math.ceil(H/grid)+3;
-    countPerfWork("groundDraw",cols*rows);
-    for(let gx=firstX;gx<firstX+cols;gx++)for(let gy=firstY;gy<firstY+rows;gy++){
-      const x=gx*grid-camera.x+W/2,y=gy*grid-camera.y+H/2;
-      const hash=((gx*928371+gy*1237)%7+7)%7;
-      if(zone>=3){
-        rect(x,y,64,64,hash%2?"#321421":"#3c1825");
-        rect(x,y,64,3,"#160912");rect(x,y,3,64,"#160912");
-        if(hash===2){rect(x+12,y+34,34,4,"#7d1f2c");rect(x+20,y+37,18,3,"#c0393c");}
-        if(hash===5){rect(x+46,y+13,5,5,"#9d2530");}
-      }else if(zone===2){
-        rect(x,y,64,64,hash%2?"#dff7ff":"#c8eaff");
-        rect(x,y,64,2,"#8fc9e8");rect(x,y,2,64,"#8fc9e8");
-        if(hash===1){rect(x+12,y+18,28,5,"#f7fbff");rect(x+19,y+24,18,4,"#f7fbff");}
-        if(hash===4){rect(x+36,y+34,18,3,"#6fa9cc");rect(x+45,y+28,3,12,"#6fa9cc");}
-      }else if(zone===1){
-        if(hash===1){rect(x+10,y+44,28,5,"#c09a58");rect(x+18,y+38,22,4,"#e2c481");}
-        if(hash===3){rect(x+43,y+31,10,7,"#8d7150");rect(x+47,y+27,7,5,"#b59465");}
-        if(hash===5){rect(x+17,y+36,24,4,"#8f6b3f");rect(x+25,y+29,4,11,"#8f6b3f");rect(x+10,y+13,3,3,"#b89055");rect(x+48,y+48,2,2,"#f0d08a");}
-        if(hash===6){rect(x+12,y+50,27,4,"#eee0b6");rect(x+10,y+47,6,5,"#eee0b6");}
-      }else{
-        if(hash===1){rect(x+12,y+15,4,12,"#3e9148");rect(x+18,y+10,4,17,"#55a64d");}
-        if(hash===3){rect(x+40,y+35,5,5,"#f5da62");rect(x+45,y+35,5,5,"#fff1a0");}
-        if(hash===5){rect(x+24,y+28,22,10,"#69aa51");rect(x+29,y+22,12,16,"#69aa51");}
+    if(!groundCache.canvas){
+      groundCache.canvas=document.createElement("canvas");
+      groundCache.ctx=groundCache.canvas.getContext("2d");
+    }
+    if(
+      groundCache.zone!==zone||
+      groundCache.firstX!==firstX||
+      groundCache.firstY!==firstY||
+      groundCache.cols!==cols||
+      groundCache.rows!==rows
+    ){
+      groundCache.zone=zone;
+      groundCache.firstX=firstX;
+      groundCache.firstY=firstY;
+      groundCache.cols=cols;
+      groundCache.rows=rows;
+      groundCache.canvas.width=cols*grid;
+      groundCache.canvas.height=rows*grid;
+      const gctx=groundCache.ctx;
+      gctx.clearRect(0,0,groundCache.canvas.width,groundCache.canvas.height);
+      countPerfWork("groundDraw",cols*rows);
+      for(let gx=0;gx<cols;gx++)for(let gy=0;gy<rows;gy++){
+        drawGroundTile(gctx,zone,firstX+gx,firstY+gy,gx*grid,gy*grid,grid);
+      }
+    }
+    const offsetX=firstX*grid-camera.x+W/2;
+    const offsetY=firstY*grid-camera.y+H/2;
+    ctx.drawImage(groundCache.canvas,Math.round(offsetX),Math.round(offsetY));
+  }
+
+  function drawGroundTile(targetCtx,zone,gx,gy,x,y,grid=64){
+    const hash=((gx*928371+gy*1237)%7+7)%7;
+    if(zone>=3){
+      targetCtx.fillStyle=hash%2?"#321421":"#3c1825";
+      targetCtx.fillRect(x,y,grid,grid);
+      targetCtx.fillStyle="#160912";
+      targetCtx.fillRect(x,y,grid,3);
+      targetCtx.fillRect(x,y,3,grid);
+      if(hash===2){
+        targetCtx.fillStyle="#7d1f2c";targetCtx.fillRect(x+12,y+34,34,4);
+        targetCtx.fillStyle="#c0393c";targetCtx.fillRect(x+20,y+37,18,3);
+      }
+      if(hash===5){targetCtx.fillStyle="#9d2530";targetCtx.fillRect(x+46,y+13,5,5);}
+    }else if(zone===2){
+      targetCtx.fillStyle=hash%2?"#dff7ff":"#c8eaff";
+      targetCtx.fillRect(x,y,grid,grid);
+      targetCtx.fillStyle="#8fc9e8";
+      targetCtx.fillRect(x,y,grid,2);
+      targetCtx.fillRect(x,y,2,grid);
+      if(hash===1){
+        targetCtx.fillStyle="#f7fbff";
+        targetCtx.fillRect(x+12,y+18,28,5);
+        targetCtx.fillRect(x+19,y+24,18,4);
+      }
+      if(hash===4){
+        targetCtx.fillStyle="#6fa9cc";
+        targetCtx.fillRect(x+36,y+34,18,3);
+        targetCtx.fillRect(x+45,y+28,3,12);
+      }
+    }else if(zone===1){
+      if(hash===1){
+        targetCtx.fillStyle="#c09a58";targetCtx.fillRect(x+10,y+44,28,5);
+        targetCtx.fillStyle="#e2c481";targetCtx.fillRect(x+18,y+38,22,4);
+      }
+      if(hash===3){
+        targetCtx.fillStyle="#8d7150";targetCtx.fillRect(x+43,y+31,10,7);
+        targetCtx.fillStyle="#b59465";targetCtx.fillRect(x+47,y+27,7,5);
+      }
+      if(hash===5){
+        targetCtx.fillStyle="#8f6b3f";
+        targetCtx.fillRect(x+17,y+36,24,4);
+        targetCtx.fillRect(x+25,y+29,4,11);
+        targetCtx.fillStyle="#b89055";targetCtx.fillRect(x+10,y+13,3,3);
+        targetCtx.fillStyle="#f0d08a";targetCtx.fillRect(x+48,y+48,2,2);
+      }
+      if(hash===6){
+        targetCtx.fillStyle="#eee0b6";
+        targetCtx.fillRect(x+12,y+50,27,4);
+        targetCtx.fillRect(x+10,y+47,6,5);
+      }
+    }else{
+      if(hash===1){
+        targetCtx.fillStyle="#3e9148";targetCtx.fillRect(x+12,y+15,4,12);
+        targetCtx.fillStyle="#55a64d";targetCtx.fillRect(x+18,y+10,4,17);
+      }
+      if(hash===3){
+        targetCtx.fillStyle="#f5da62";targetCtx.fillRect(x+40,y+35,5,5);
+        targetCtx.fillStyle="#fff1a0";targetCtx.fillRect(x+45,y+35,5,5);
+      }
+      if(hash===5){
+        targetCtx.fillStyle="#69aa51";
+        targetCtx.fillRect(x+24,y+28,22,10);
+        targetCtx.fillRect(x+29,y+22,12,16);
       }
     }
   }
   function currentGroundTileCount(){
     const grid=64;
     return (Math.ceil(W/grid)+3)*(Math.ceil(H/grid)+3);
+  }
+  function nearbyLivingEnemyCount(radius=1400){
+    const radiusSq=radius*radius;
+    let count=0;
+    for(const e of enemies){
+      if(e.dead)continue;
+      const dx=e.x-player.x,dy=e.y-player.y;
+      if(dx*dx+dy*dy<=radiusSq)count++;
+    }
+    return count;
   }
 
   function drawBossArena(){
