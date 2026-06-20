@@ -2057,6 +2057,10 @@
       }
     }
   }
+  function circleHitXY(ax,ay,ar,bx,by,br){
+    const dx=ax-bx,dy=ay-by,r=ar+br;
+    return dx*dx+dy*dy<=r*r;
+  }
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const rand=(a,b)=>a+Math.random()*(b-a);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -2522,7 +2526,7 @@
       }else{
         forEachEnemyNear(b.x,b.y,b.r+ENEMY_QUERY_PADDING,e=>{
           countPerfWork("collisionBanana");
-          if(e.dead||b.hit.has(e.id)||dist(b,e)>b.r+e.r)return;
+          if(e.dead||b.hit.has(e.id)||!circleHitXY(b.x,b.y,b.r,e.x,e.y,e.r))return;
           b.hit.add(e.id);damageEnemy(e,b.damage,false,"banana");
         });
       }
@@ -2913,14 +2917,15 @@
       if(e.type==="snake")a+=Math.sin(time*5+e.id)*.32;
       if(e.type==="vulture"){a+=Math.sin(time*3.2+e.id)*.22;speed*=1+.18*Math.sin(time*4+e.id);}
       if(e.type==="centipede")a+=Math.sin(time*7+e.id)*.18;
-      for(const crater of effects){
-        if(crater.kind!=="crater")continue;
-        if((crater.nextCheckAt??0)>time)continue;
-        crater.nextCheckAt=time+.15;
-        countPerfWork("collisionCrater");
-        if(dist(e,crater)<crater.r+e.r*.35){
-          e.slow=Math.max(e.slow,1.25);
-          break;
+      if((e.nextCraterCheckAt??0)<=time){
+        e.nextCraterCheckAt=time+.15;
+        for(const crater of effects){
+          if(crater.kind!=="crater")continue;
+          countPerfWork("collisionCrater");
+          if(circleHitXY(e.x,e.y,e.r*.35,crater.x,crater.y,crater.r)){
+            e.slow=Math.max(e.slow,1.25);
+            break;
+          }
         }
       }
       if(e.slow>0)speed*=.48;
@@ -3060,7 +3065,7 @@
         }
       }
       countPerfWork("collisionEnemyShot");
-      if(shot.life>0&&dist(shot,player)<shot.r+player.r){
+      if(shot.life>0&&circleHitXY(shot.x,shot.y,shot.r,player.x,player.y,player.r)){
         shot.life=0;
         hurt(shot.damage);
         if(shot.poison){
@@ -3105,12 +3110,12 @@
           const boss=getOnlyBoss();
           if(boss){
             countPerfWork("collisionShot");
-            if(dist(s,boss)<=s.r+boss.r)impact=true;
+            if(circleHitXY(s.x,s.y,s.r,boss.x,boss.y,boss.r))impact=true;
           }else{
             forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
               countPerfWork("collisionShot");
               if(impact||e.dead)return false;
-              if(dist(s,e)<=s.r+e.r){
+              if(circleHitXY(s.x,s.y,s.r,e.x,e.y,e.r)){
                 impact=true;
                 return false;
               }
@@ -3125,7 +3130,7 @@
       const boss=getOnlyBoss();
       if(boss){
         countPerfWork("collisionShot");
-        if(!hitEnemy&&!boss.dead&&s.life>0&&dist(s,boss)<=s.r+boss.r){
+        if(!hitEnemy&&!boss.dead&&s.life>0&&circleHitXY(s.x,s.y,s.r,boss.x,boss.y,boss.r)){
           if(!(s.kind==="rolling"&&s.hit.has(boss.id))){
             let crit=false;
             if(!isPet){
@@ -3148,7 +3153,7 @@
         forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
           countPerfWork("collisionShot");
           if(hitEnemy||e.dead||s.life<=0)return false;
-          if(dist(s,e)>s.r+e.r)return;
+          if(!circleHitXY(s.x,s.y,s.r,e.x,e.y,e.r))return;
           if(s.kind==="rolling"&&s.hit.has(e.id))return;
           let crit=false;
           if(!isPet){
@@ -3171,7 +3176,7 @@
       if(s.life>0&&!isPet&&!s.kind){
         for(const chest of chests){
           countPerfWork("collisionChest");
-          if(chest.opened||dist(s,chest)>s.r+chest.r)continue;
+          if(chest.opened||!circleHitXY(s.x,s.y,s.r,chest.x,chest.y,chest.r))continue;
           openChest(chest);
           s.life=0;
           break;
@@ -3199,7 +3204,7 @@
             }
           }
         }else{
-          forEachEnemyNear(x,y,rad+ENEMY_QUERY_PADDING,e=>{
+          forEachEnemyNear(x,y,56,e=>{
             countPerfWork("collisionOrbit");
             if(e.dead||e.orbitHit&&time-e.orbitHit<=hitDelay)return;
             const dx=e.x-x,dy=e.y-y,reach=e.r+9;
@@ -3234,8 +3239,9 @@
         forEachEnemyNear(a.x,a.y,a.r+band+ENEMY_QUERY_PADDING,e=>{
           countPerfWork("collisionArea");
           if(e.dead||a.hit.has(e.id))return;
-          const d=dist(a,e);
-          if(d<=a.r+e.r&&d>=Math.max(0,a.r-band-e.r)){
+          const dx=e.x-a.x,dy=e.y-a.y,d2=dx*dx+dy*dy;
+          const outer=a.r+e.r,inner=Math.max(0,a.r-band-e.r);
+          if(d2<=outer*outer&&d2>=inner*inner){
             a.hit.add(e.id);
             damageEnemy(e,a.damage,false,"burst");
           }
