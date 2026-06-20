@@ -2908,19 +2908,6 @@
           e.shoot=1.4;
         }
       }
-      const contactDepth=e.r+player.r-dist(e,player);
-      countPerfWork("collision");
-      if(contactDepth>4){
-        e.cling+=dt;
-        if(e.attack<=0){
-          const pressureStep=Math.floor(e.cling/1.2);
-          const percent=Math.min(.03,.008+pressureStep*.004);
-          e.attack=.65;
-          hurtPercent(percent,false,false,false);
-        }
-      }else{
-        e.cling=Math.max(0,e.cling-dt*2.5);
-      }
       const centerDist=dist(e,player);
       const closeDist=centerDist-e.r-player.r;
       if(closeDist<dangerRadius){
