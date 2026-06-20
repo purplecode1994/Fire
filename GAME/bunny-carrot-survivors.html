@@ -1058,9 +1058,12 @@
         const bucket=enemyGrid.get(enemyGridKey(cx,cy));
         if(!bucket)continue;
         countPerfWork("nearQuery",bucket.length);
-        for(const e of bucket)fn(e);
+        for(const e of bucket){
+          if(fn(e)===false)return false;
+        }
       }
     }
+    return true;
   }
   function encirclementRadius(){
     return 55*player.area;
@@ -2396,6 +2399,9 @@
     if("opened" in target)return target.opened||!inTargetView(target);
     return target.dead||target.hp<=0||!inTargetView(target);
   }
+  function getOnlyBoss(){
+    return finalPhase==="fight"&&enemies.length===1&&enemies[0]&&enemies[0].kind==="final"&&!enemies[0].dead&&enemies[0].hp>0?enemies[0]:null;
+  }
   function getSharedTarget(force=false){
     if(force||sharedTargetTimer<=0||targetInvalid(sharedTargetCache)){
       sharedTargetCache=nearest(player.x,player.y);
@@ -2458,7 +2464,7 @@
       vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       traveled:0,range,phase:"out",
       r:8*(level>=5?1.35:1)*player.area,damage:(12+level*9)*player.areaDamage,
-      hit:new Set(),spin:0
+      hit:new Set(),spin:0,missedLife:.45
     });
     beep(520,.08,.025,"triangle");
   }
@@ -2495,17 +2501,31 @@
         if(dist(b,player)<b.r+player.r+5){catchBanana(b);continue;}
         if((b.x-b.launchX)*b.vx+(b.y-b.launchY)*b.vy>=0)b.phase="missed";
       }else{
+        b.missedLife-=dt;
+        if(b.missedLife<=0){
+          b.dead=true;
+          continue;
+        }
         const p=worldToScreen(b.x,b.y),margin=b.r+24;
         if(p.x<-margin||p.x>W+margin||p.y<-margin||p.y>H+margin){
           b.dead=true;
           continue;
         }
       }
-      forEachEnemyNear(b.x,b.y,b.r+ENEMY_QUERY_PADDING,e=>{
+      const boss=getOnlyBoss();
+      if(boss){
         countPerfWork("collisionBanana");
-        if(e.dead||b.hit.has(e.id)||dist(b,e)>b.r+e.r)return;
-        b.hit.add(e.id);damageEnemy(e,b.damage,false,"banana");
-      });
+        if(!b.hit.has(boss.id)&&dist(b,boss)<=b.r+boss.r){
+          b.hit.add(boss.id);
+          damageEnemy(boss,b.damage,false,"banana");
+        }
+      }else{
+        forEachEnemyNear(b.x,b.y,b.r+ENEMY_QUERY_PADDING,e=>{
+          countPerfWork("collisionBanana");
+          if(e.dead||b.hit.has(e.id)||dist(b,e)>b.r+e.r)return;
+          b.hit.add(e.id);damageEnemy(e,b.damage,false,"banana");
+        });
+      }
     }
     bananas=bananas.filter(b=>!b.dead);
   }
@@ -2787,13 +2807,18 @@
     shot.life=0;
     const radius=105*player.area;
     effects.push(
-      {kind:"crater",x:shot.x,y:shot.y,r:radius*.48,life:7},
+      {kind:"crater",x:shot.x,y:shot.y,r:radius*.48,life:7,nextCheckAt:0},
       {kind:"shockwave",x:shot.x,y:shot.y,r:15,max:radius,life:.45}
     );
     burst(shot.x,shot.y,"#8a5b36",24);
-    forEachEnemyNear(shot.x,shot.y,radius+ENEMY_QUERY_PADDING,e=>{
-      if(!e.dead&&dist(shot,e)<radius+e.r)damageEnemy(e,shot.damage,false,"giant");
-    });
+    const boss=getOnlyBoss();
+    if(boss){
+      if(dist(shot,boss)<radius+boss.r)damageEnemy(boss,shot.damage,false,"giant");
+    }else{
+      forEachEnemyNear(shot.x,shot.y,radius+ENEMY_QUERY_PADDING,e=>{
+        if(!e.dead&&dist(shot,e)<radius+e.r)damageEnemy(e,shot.damage,false,"giant");
+      });
+    }
     playGiantExplosionSound({startFreq:80,duration:.1,noiseGain:0,rippleSpeed:10,jitterDepth:10});
   }
 
@@ -2890,8 +2915,10 @@
       if(e.type==="centipede")a+=Math.sin(time*7+e.id)*.18;
       for(const crater of effects){
         if(crater.kind!=="crater")continue;
+        if((crater.nextCheckAt??0)>time)continue;
+        crater.nextCheckAt=time+.15;
         countPerfWork("collisionCrater");
-        if(crater.kind==="crater"&&dist(e,crater)<crater.r+e.r*.35){
+        if(dist(e,crater)<crater.r+e.r*.35){
           e.slow=Math.max(e.slow,1.25);
           break;
         }
@@ -3075,37 +3102,72 @@
       if(s.kind==="giant"){
         let impact=s.life<=0;
         if(!impact){
-        forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
-          countPerfWork("collisionShot");
-          if(impact||e.dead)return;
-          if(dist(s,e)<=s.r+e.r)impact=true;
-        });
+          const boss=getOnlyBoss();
+          if(boss){
+            countPerfWork("collisionShot");
+            if(dist(s,boss)<=s.r+boss.r)impact=true;
+          }else{
+            forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
+              countPerfWork("collisionShot");
+              if(impact||e.dead)return false;
+              if(dist(s,e)<=s.r+e.r){
+                impact=true;
+                return false;
+              }
+            });
+          }
         }
         if(impact)giantCarrotImpact(s);
         if(s.life<=0)continue;
       }
 
       let hitEnemy=false;
-      forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
+      const boss=getOnlyBoss();
+      if(boss){
         countPerfWork("collisionShot");
-        if(hitEnemy||e.dead||s.life<=0||dist(s,e)>s.r+e.r)return;
-        if(s.kind==="rolling"&&s.hit.has(e.id))return;
-        let crit=false;
-        if(!isPet){
-          crit=Math.random()<player.critStack;
-          player.critStack=crit?player.crit:Math.min(1,player.critStack+player.crit);
+        if(!hitEnemy&&!boss.dead&&s.life>0&&dist(s,boss)<=s.r+boss.r){
+          if(!(s.kind==="rolling"&&s.hit.has(boss.id))){
+            let crit=false;
+            if(!isPet){
+              crit=Math.random()<player.critStack;
+              player.critStack=crit?player.crit:Math.min(1,player.critStack+player.crit);
+            }
+            const damage=s.damage*(crit?player.critDamage:1);
+            damageEnemy(boss,damage,crit,s.kind||"normal");
+            if(s.kind==="rolling"){
+              s.hit.add(boss.id);
+              shatterRollingStone(s,boss);
+              hitEnemy=true;
+            }else{
+              if(isPet||s.pierce--<=0)s.life=0;else{s.x+=s.vx*dt*2;s.y+=s.vy*dt*2;}
+              hitEnemy=true;
+            }
+          }
         }
-        const damage=s.damage*(crit?player.critDamage:1);
-        damageEnemy(e,damage,crit,s.kind||"normal");
-        if(s.kind==="rolling"){
-          s.hit.add(e.id);
-          shatterRollingStone(s,e);
+      }else{
+        forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
+          countPerfWork("collisionShot");
+          if(hitEnemy||e.dead||s.life<=0)return false;
+          if(dist(s,e)>s.r+e.r)return;
+          if(s.kind==="rolling"&&s.hit.has(e.id))return;
+          let crit=false;
+          if(!isPet){
+            crit=Math.random()<player.critStack;
+            player.critStack=crit?player.crit:Math.min(1,player.critStack+player.crit);
+          }
+          const damage=s.damage*(crit?player.critDamage:1);
+          damageEnemy(e,damage,crit,s.kind||"normal");
+          if(s.kind==="rolling"){
+            s.hit.add(e.id);
+            shatterRollingStone(s,e);
+            hitEnemy=true;
+            return false;
+          }
+          if(isPet||s.pierce--<=0)s.life=0;else{s.x+=s.vx*dt*2;s.y+=s.vy*dt*2;}
           hitEnemy=true;
-          return;
-        }
-        if(isPet||s.pierce--<=0)s.life=0;else{s.x+=s.vx*dt*2;s.y+=s.vy*dt*2;}
-        hitEnemy=true;
-      });
+          if(s.life<=0||hitEnemy)return false;
+        });
+      }
       if(s.life>0&&!isPet&&!s.kind){
         for(const chest of chests){
           countPerfWork("collisionChest");
@@ -3124,17 +3186,29 @@
       const count=skills.orbit+1,rad=55*player.area;
       const orbitSpeed=skills.orbit>=5?4.6:1.8+skills.orbit*.1;
       const hitDelay=skills.orbit>=5?.22:.45;
+      const boss=getOnlyBoss();
       for(let i=0;i<count;i++){
         const a=time*orbitSpeed+i*Math.PI*2/count,x=player.x+Math.cos(a)*rad,y=player.y+Math.sin(a)*rad;
-        forEachEnemyNear(x,y,rad+ENEMY_QUERY_PADDING,e=>{
+        if(boss){
           countPerfWork("collisionOrbit");
-          if(e.dead||e.orbitHit&&time-e.orbitHit<=hitDelay)return;
-          const dx=e.x-x,dy=e.y-y,reach=e.r+9;
-          if(dx*dx+dy*dy<reach*reach){
-            e.orbitHit=time;
-            damageEnemy(e,(skills.orbit>=5?46:8+skills.orbit*5)*player.areaDamage,false,"orbit");
+          if(!(boss.dead||boss.orbitHit&&time-boss.orbitHit<=hitDelay)){
+            const dx=boss.x-x,dy=boss.y-y,reach=boss.r+9;
+            if(dx*dx+dy*dy<reach*reach){
+              boss.orbitHit=time;
+              damageEnemy(boss,(skills.orbit>=5?46:8+skills.orbit*5)*player.areaDamage,false,"orbit");
+            }
           }
-        });
+        }else{
+          forEachEnemyNear(x,y,rad+ENEMY_QUERY_PADDING,e=>{
+            countPerfWork("collisionOrbit");
+            if(e.dead||e.orbitHit&&time-e.orbitHit<=hitDelay)return;
+            const dx=e.x-x,dy=e.y-y,reach=e.r+9;
+            if(dx*dx+dy*dy<reach*reach){
+              e.orbitHit=time;
+              damageEnemy(e,(skills.orbit>=5?46:8+skills.orbit*5)*player.areaDamage,false,"orbit");
+            }
+          });
+        }
       }
     }
     for(const a of areas){
@@ -3146,15 +3220,27 @@
       a.life-=dt;
       a.r+=(a.max-a.r)*dt*(a.evolved?4.2:3.5);
       const band=Math.max(24,a.max*.16);
-      forEachEnemyNear(a.x,a.y,a.r+band+ENEMY_QUERY_PADDING,e=>{
+      const boss=getOnlyBoss();
+      if(boss){
         countPerfWork("collisionArea");
-        if(e.dead||a.hit.has(e.id))return;
-        const d=dist(a,e);
-        if(d<=a.r+e.r&&d>=Math.max(0,a.r-band-e.r)){
-          a.hit.add(e.id);
-          damageEnemy(e,a.damage,false,"burst");
+        if(!boss.dead&&!a.hit.has(boss.id)){
+          const d=dist(a,boss);
+          if(d<=a.r+boss.r&&d>=Math.max(0,a.r-band-boss.r)){
+            a.hit.add(boss.id);
+            damageEnemy(boss,a.damage,false,"burst");
+          }
         }
-      });
+      }else{
+        forEachEnemyNear(a.x,a.y,a.r+band+ENEMY_QUERY_PADDING,e=>{
+          countPerfWork("collisionArea");
+          if(e.dead||a.hit.has(e.id))return;
+          const d=dist(a,e);
+          if(d<=a.r+e.r&&d>=Math.max(0,a.r-band-e.r)){
+            a.hit.add(e.id);
+            damageEnemy(e,a.damage,false,"burst");
+          }
+        });
+      }
     }
     areas=areas.filter(a=>a.delay>0||a.life>0);
   }
