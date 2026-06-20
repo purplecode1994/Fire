@@ -935,7 +935,8 @@
   let perfDebugTimer=0,perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0};
   let perfDebugLast={frameMs:16.7,fps:60,peak:16.7};
   let perfWorkCurrent={
-    targetSearch:0,gridRebuild:0,nearQuery:0,collision:0,
+    targetSearch:0,gridRebuild:0,nearQuery:0,
+    collisionShot:0,collisionArea:0,collisionOrbit:0,collisionEnemyShot:0,collisionCrater:0,collisionChest:0,collisionBanana:0,
     enemyMove:0,gemUpdate:0,spawn:0,groundDraw:0,enemyDraw:0,projectileDraw:0,
     gridCells:0,gridEntries:0,effectDraw:0,textDraw:0
   };
@@ -1806,7 +1807,13 @@
       gridCells:"格網格數累計",
       gridEntries:"格網填入累計",
       nearQuery:"附近查詢",
-      collision:"碰撞判定",
+      collisionShot:"子彈碰撞",
+      collisionArea:"範圍碰撞",
+      collisionOrbit:"旋風碰撞",
+      collisionEnemyShot:"敵彈碰撞",
+      collisionCrater:"地坑碰撞",
+      collisionChest:"寶箱碰撞",
+      collisionBanana:"香蕉碰撞",
       enemyMove:"怪物移動",
       gemUpdate:"經驗球更新",
       spawn:"補怪批次",
@@ -1824,12 +1831,24 @@
           key==="groundDraw"?180:
           key==="enemyDraw"?200:
           key==="projectileDraw"?140:
-          key==="collision"?160:
+          key==="collisionShot"?160:
+          key==="collisionArea"?140:
+          key==="collisionOrbit"?120:
+          key==="collisionEnemyShot"?90:
+          key==="collisionCrater"?80:
+          key==="collisionChest"?40:
+          key==="collisionBanana"?80:
           key==="gemUpdate"?120:90,
           key==="groundDraw"?320:
           key==="enemyDraw"?360:
           key==="projectileDraw"?260:
-          key==="collision"?320:
+          key==="collisionShot"?320:
+          key==="collisionArea"?260:
+          key==="collisionOrbit"?220:
+          key==="collisionEnemyShot"?180:
+          key==="collisionCrater"?160:
+          key==="collisionChest"?120:
+          key==="collisionBanana"?180:
           key==="gemUpdate"?240:180)
       }))
       .sort((a,b)=>(b.value-a.value)||a.label.localeCompare(b.label,"zh-Hant"));
@@ -2467,7 +2486,7 @@
         }
       }
       forEachEnemyNear(b.x,b.y,b.r+ENEMY_QUERY_PADDING,e=>{
-        countPerfWork("collision");
+        countPerfWork("collisionBanana");
         if(e.dead||b.hit.has(e.id)||dist(b,e)>b.r+e.r)return;
         b.hit.add(e.id);damageEnemy(e,b.damage,false,"banana");
       });
@@ -2854,7 +2873,8 @@
       if(e.type==="vulture"){a+=Math.sin(time*3.2+e.id)*.22;speed*=1+.18*Math.sin(time*4+e.id);}
       if(e.type==="centipede")a+=Math.sin(time*7+e.id)*.18;
       for(const crater of effects){
-        countPerfWork("collision");
+        if(crater.kind!=="crater")continue;
+        countPerfWork("collisionCrater");
         if(crater.kind==="crater"&&dist(e,crater)<crater.r+e.r*.35){
           e.slow=Math.max(e.slow,1.25);
           break;
@@ -2977,7 +2997,7 @@
       shot.x+=shot.vx*dt;shot.y+=shot.vy*dt;shot.life-=dt;
       if(orbitCount){
         for(let i=0;i<orbitCount;i++){
-          countPerfWork("collision");
+          countPerfWork("collisionOrbit");
           const a=time*orbitSpeed+i*Math.PI*2/orbitCount;
           const guard={x:player.x+Math.cos(a)*orbitRadius,y:player.y+Math.sin(a)*orbitRadius};
           if(dist(shot,guard)<shot.r+12){
@@ -2987,7 +3007,7 @@
           }
         }
       }
-      countPerfWork("collision");
+      countPerfWork("collisionEnemyShot");
       if(shot.life>0&&dist(shot,player)<shot.r+player.r){
         shot.life=0;
         hurt(shot.damage);
@@ -3031,7 +3051,7 @@
         let impact=s.life<=0;
         if(!impact){
         forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
-          countPerfWork("collision");
+          countPerfWork("collisionShot");
           if(impact||e.dead)return;
           if(dist(s,e)<=s.r+e.r)impact=true;
         });
@@ -3042,7 +3062,7 @@
 
       let hitEnemy=false;
       forEachEnemyNear(s.x,s.y,s.r+ENEMY_QUERY_PADDING,e=>{
-        countPerfWork("collision");
+        countPerfWork("collisionShot");
         if(hitEnemy||e.dead||s.life<=0||dist(s,e)>s.r+e.r)return;
         if(s.kind==="rolling"&&s.hit.has(e.id))return;
         let crit=false;
@@ -3063,7 +3083,7 @@
       });
       if(s.life>0&&!isPet&&!s.kind){
         for(const chest of chests){
-          countPerfWork("collision");
+          countPerfWork("collisionChest");
           if(chest.opened||dist(s,chest)>s.r+chest.r)continue;
           openChest(chest);
           s.life=0;
@@ -3082,7 +3102,7 @@
       for(let i=0;i<count;i++){
         const a=time*orbitSpeed+i*Math.PI*2/count,x=player.x+Math.cos(a)*rad,y=player.y+Math.sin(a)*rad;
         forEachEnemyNear(x,y,rad+ENEMY_QUERY_PADDING,e=>{
-          countPerfWork("collision");
+          countPerfWork("collisionOrbit");
           if(e.dead||e.orbitHit&&time-e.orbitHit<=hitDelay)return;
           const dx=e.x-x,dy=e.y-y,reach=e.r+9;
           if(dx*dx+dy*dy<reach*reach){
@@ -3102,7 +3122,7 @@
       a.r+=(a.max-a.r)*dt*(a.evolved?4.2:3.5);
       const band=Math.max(24,a.max*.16);
       forEachEnemyNear(a.x,a.y,a.r+band+ENEMY_QUERY_PADDING,e=>{
-        countPerfWork("collision");
+        countPerfWork("collisionArea");
         if(e.dead||a.hit.has(e.id))return;
         const d=dist(a,e);
         if(d<=a.r+e.r&&d>=Math.max(0,a.r-band-e.r)){
