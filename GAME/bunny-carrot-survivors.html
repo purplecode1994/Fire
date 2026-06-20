@@ -1823,7 +1823,14 @@
       effectDraw:"特效繪製",
       textDraw:"文字繪製"
     };
-    return Object.entries(perfWorkLast)
+    const rowOrder=[
+      "collisionShot","collisionArea","collisionOrbit","collisionEnemyShot","collisionCrater","collisionChest","collisionBanana",
+      "targetSearch","gridRebuild","gridCells","gridEntries","nearQuery",
+      "enemyMove","gemUpdate","spawn","groundDraw","enemyDraw","projectileDraw","effectDraw","textDraw"
+    ];
+    return rowOrder
+      .filter(key=>Object.prototype.hasOwnProperty.call(perfWorkLast,key))
+      .map(key=>[key,perfWorkLast[key]])
       .map(([key,count])=>({
         label:labelMap[key]||key,
         value:count,
@@ -1850,8 +1857,7 @@
           key==="collisionChest"?120:
           key==="collisionBanana"?180:
           key==="gemUpdate"?240:180)
-      }))
-      .sort((a,b)=>(b.value-a.value)||a.label.localeCompare(b.label,"zh-Hant"));
+      }));
   }
   function beep(f,d=.06,v=.025,type="square"){if(!ensureAudioReady())return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);countAudioDebug("beep");}
   function playSmallCarrotSound(){
