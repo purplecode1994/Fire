@@ -3186,7 +3186,12 @@
       perfWorkLast={...perfWorkCurrent};
       perfDebugTimer=0;
       perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0};
-      perfWorkCurrent={targetSearch:0,gridRebuild:0,nearQuery:0,collision:0,enemyMove:0,gemUpdate:0,spawn:0,groundDraw:0,enemyDraw:0,projectileDraw:0,gridCells:0,gridEntries:0,effectDraw:0,textDraw:0};
+      perfWorkCurrent={
+        targetSearch:0,gridRebuild:0,nearQuery:0,
+        collisionShot:0,collisionArea:0,collisionOrbit:0,collisionEnemyShot:0,collisionCrater:0,collisionChest:0,collisionBanana:0,
+        enemyMove:0,gemUpdate:0,spawn:0,groundDraw:0,enemyDraw:0,projectileDraw:0,
+        gridCells:0,gridEntries:0,effectDraw:0,textDraw:0
+      };
     }
     audioDebugTimer+=dt;
     if(audioDebugTimer>=.5){
