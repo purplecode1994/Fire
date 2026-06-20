@@ -152,6 +152,132 @@
       font-size: 15px;
     }
     #devModeBtn:active { transform: translate(3px,3px); }
+    #settingsOverlay {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 14px;
+      background: #0b091acb;
+      backdrop-filter: blur(2px);
+    }
+    #settingsOverlay.visible { display: flex; }
+    #settingsPanel {
+      width: min(100%,320px);
+      padding: 16px 14px 14px;
+      border: 3px solid #ffe8a5;
+      background: #2d214b;
+      box-shadow: 6px 6px #090718cc;
+      text-align: center;
+    }
+    #settingsPanel h3 {
+      margin: 0 0 8px;
+      color: #ffe15b;
+      font-size: 24px;
+      text-shadow: 2px 2px #c75460;
+    }
+    #settingsHint {
+      margin: 0 0 14px;
+      color: #e4dcff;
+      font-size: 12px;
+      line-height: 1.55;
+      min-height: 38px;
+    }
+    #settingsActions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    #settingsActions button {
+      margin: 0;
+      min-height: 0;
+      padding: 11px 8px;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+    #accountExportBtn,#accountImportBtn {
+      color: #fff6db;
+      background: #4f7dc1;
+      box-shadow: inset -5px -5px #315286,5px 5px #0b0920;
+    }
+    #developerEntryBtn {
+      color: #ece6f8;
+      background: #5e596b;
+      box-shadow: inset -5px -5px #403c48,5px 5px #0b0920;
+    }
+    #closeSettingsBtn {
+      color: #2b2140;
+      background: #ffda57;
+      box-shadow: inset -5px -5px #d9962d,5px 5px #0b0920;
+    }
+    #settingsDialog {
+      position: absolute;
+      inset: 0;
+      z-index: 6;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 14px;
+      background: #05040cb8;
+    }
+    #settingsDialog.visible { display: flex; }
+    #settingsDialogPanel {
+      width: min(100%,348px);
+      padding: 14px;
+      border: 3px solid #fff0b1;
+      background: #24193f;
+      box-shadow: 6px 6px #090718cc;
+    }
+    #settingsDialogTitle {
+      margin: 0 0 8px;
+      color: #ffe15b;
+      font-size: 21px;
+      text-shadow: 2px 2px #c75460;
+    }
+    #settingsDialogText {
+      margin: 0 0 10px;
+      color: #efe7ff;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    #settingsDialogInput {
+      width: 100%;
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border: 3px solid #9176c3;
+      outline: 2px solid #1a132d;
+      background: #161126;
+      color: #fff9e5;
+      font: 14px/1.4 "Courier New","Microsoft JhengHei",monospace;
+      box-shadow: inset 0 0 0 2px #2f2250;
+    }
+    #settingsDialogInput.hidden { display: none !important; }
+    #settingsDialogActions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    #settingsDialogActions button {
+      margin: 0;
+      min-height: 0;
+      padding: 10px 18px;
+      white-space: nowrap;
+    }
+    #settingsDialogConfirm {
+      color: #2b2140;
+      background: #ffda57;
+      box-shadow: inset -5px -5px #d9962d,5px 5px #0b0920;
+    }
+    #settingsDialogCancel {
+      color: #ebe4fb;
+      background: #5e596b;
+      box-shadow: inset -5px -5px #403c48,5px 5px #0b0920;
+    }
     #devResetBtn {
       display: block;
       width: fit-content;
@@ -743,6 +869,60 @@
       width: 100%; height: 100%; max-height: none; padding: 16px 14px;
       border: 0; outline: 0; box-shadow: none; background: transparent;
     }
+    #updatePrompt {
+      position: absolute;
+      inset: 0;
+      z-index: 24;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 14px;
+      background: #090714c9;
+    }
+    #updatePrompt.visible { display: flex; }
+    #updatePromptPanel {
+      width: min(100%,328px);
+      padding: 16px 14px 14px;
+      border: 3px solid #fff0b1;
+      background: #2b224d;
+      box-shadow: 6px 6px #090718cc;
+      text-align: center;
+    }
+    #updatePromptPanel h3 {
+      margin: 0 0 8px;
+      color: #ffe15b;
+      font-size: 24px;
+      text-shadow: 2px 2px #c75460;
+    }
+    #updatePromptPanel p {
+      margin: 0;
+      color: #efe7ff;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    #updatePromptActions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    #goUpdateBtn,#stayLegacyBtn {
+      min-width: 104px;
+      margin: 0;
+      min-height: 0;
+      padding: 11px 20px;
+      white-space: nowrap;
+    }
+    #goUpdateBtn {
+      color: #2b2140;
+      background: #ffda57;
+      box-shadow: inset -5px -5px #d9962d,5px 5px #0b0920;
+    }
+    #stayLegacyBtn {
+      color: #efe7ff;
+      background: #5e596b;
+      box-shadow: inset -5px -5px #403c48,5px 5px #0b0920;
+    }
   </style>
 </head>
 <body class="layout-portrait">
@@ -789,6 +969,16 @@
       </div>
     </div>
   </div>
+  <div id="updatePrompt" aria-hidden="true">
+    <div id="updatePromptPanel">
+      <h3>發現新更新</h3>
+      <p>已經有新版入口可使用。<br>是否前往新版遊玩？</p>
+      <div id="updatePromptActions">
+        <button id="goUpdateBtn" type="button">是</button>
+        <button id="stayLegacyBtn" type="button">否</button>
+      </div>
+    </div>
+  </div>
   <div id="rewardScreen" class="screen hidden">
     <div class="panel">
       <h1>等級獎勵</h1>
@@ -798,8 +988,31 @@
           <div id="rewardTrackModal"></div>
         </div>
       </div>
-      <button id="devModeBtn" type="button">開發人員</button>
+      <button id="devModeBtn" type="button">設定</button>
       <button id="closeRewards" type="button">返回首頁</button>
+      <div id="settingsOverlay" aria-hidden="true">
+        <div id="settingsPanel">
+          <h3>設定</h3>
+          <p id="settingsHint">可匯出帳號碼到其他裝置，也能從這裡進入開發模式。</p>
+          <div id="settingsActions">
+            <button id="accountExportBtn" type="button">帳號匯出</button>
+            <button id="accountImportBtn" type="button">帳號匯入</button>
+            <button id="developerEntryBtn" type="button">開發人員</button>
+            <button id="closeSettingsBtn" type="button">關閉</button>
+          </div>
+        </div>
+      </div>
+      <div id="settingsDialog" aria-hidden="true">
+        <div id="settingsDialogPanel">
+          <h3 id="settingsDialogTitle">設定</h3>
+          <p id="settingsDialogText"></p>
+          <textarea id="settingsDialogInput" class="hidden" rows="6" spellcheck="false"></textarea>
+          <div id="settingsDialogActions">
+            <button id="settingsDialogCancel" type="button">取消</button>
+            <button id="settingsDialogConfirm" type="button">確定</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div id="stageScreen" class="screen hidden">
@@ -892,7 +1105,14 @@
   const pauseScreen=document.getElementById("pauseScreen"),pauseStats=document.getElementById("pauseStats");
   const metaStatsEl=document.getElementById("metaStats"),metaPointsEl=document.getElementById("metaPoints"),metaRecordEl=document.getElementById("metaRecord"),powerBox=document.getElementById("powerBox");
   const rewardPlaytimeEl=document.getElementById("rewardPlaytime");
+  const updatePrompt=document.getElementById("updatePrompt"),goUpdateBtn=document.getElementById("goUpdateBtn"),stayLegacyBtn=document.getElementById("stayLegacyBtn");
   const devModeBtn=document.getElementById("devModeBtn"),devResetBtn=document.getElementById("devResetBtn");
+  const settingsOverlay=document.getElementById("settingsOverlay"),settingsHint=document.getElementById("settingsHint");
+  const accountExportBtn=document.getElementById("accountExportBtn"),accountImportBtn=document.getElementById("accountImportBtn");
+  const developerEntryBtn=document.getElementById("developerEntryBtn"),closeSettingsBtn=document.getElementById("closeSettingsBtn");
+  const settingsDialog=document.getElementById("settingsDialog"),settingsDialogTitle=document.getElementById("settingsDialogTitle");
+  const settingsDialogText=document.getElementById("settingsDialogText"),settingsDialogInput=document.getElementById("settingsDialogInput");
+  const settingsDialogConfirm=document.getElementById("settingsDialogConfirm"),settingsDialogCancel=document.getElementById("settingsDialogCancel");
   const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText");
   const stageArt=document.getElementById("stageArt"),stageName=document.getElementById("stageName"),stagePower=document.getElementById("stagePower");
   const keys={up:false,down:false,left:false,right:false};
@@ -913,6 +1133,9 @@
   let encirclementReservedHp=0,encirclementSectorBits=0,encirclementSectorCount=0,encirclementPrewarn=false,encirclementDebts=[];
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
   let runRewarded=false,transitioning=false;
+  let settingsDialogState=null;
+  const UPDATE_TARGET_URL="./";
+  const UPDATE_PROMPT_SESSION_KEY="bunny-update-prompt-dismissed";
   const BATTLE_START_DELAY=1.6;
   let escalationStart=null;
   let killSurgeActive=false;
@@ -962,9 +1185,6 @@
   const MAX_NORMAL_TEXTS=42;
   const MAX_CRITICAL_TEXTS=30;
   const MAX_BOSS_TEXTS=60;
-  const WORLD_SIZE=10000;
-  const WORLD_MIN=0;
-  const WORLD_MAX=WORLD_SIZE;
   const ENEMY_GRID_SIZE=96;
   const ENEMY_QUERY_PADDING=80;
 
@@ -1125,6 +1345,283 @@
 
   function saveMeta(){
     try{localStorage.setItem(META_KEY,JSON.stringify(meta));}catch(_error){}
+  }
+  function openSettingsOverlay(message){
+    settingsHint.textContent=message||"可匯出帳號碼到其他裝置，也能從這裡進入開發模式。";
+    settingsOverlay.classList.add("visible");
+    settingsOverlay.setAttribute("aria-hidden","false");
+  }
+  function closeSettingsOverlay(){
+    settingsOverlay.classList.remove("visible");
+    settingsOverlay.setAttribute("aria-hidden","true");
+    closeSettingsDialog();
+  }
+  function openSettingsDialog({
+    title="設定",
+    message="",
+    inputValue="",
+    inputPlaceholder="",
+    confirmLabel="確定",
+    cancelLabel="取消",
+    showInput=false,
+    onConfirm=null
+  }={}){
+    settingsDialogState={onConfirm};
+    settingsDialogTitle.textContent=title;
+    settingsDialogText.textContent=message;
+    settingsDialogConfirm.textContent=confirmLabel;
+    settingsDialogCancel.textContent=cancelLabel;
+    settingsDialogInput.classList.toggle("hidden",!showInput);
+    settingsDialogInput.value=inputValue||"";
+    settingsDialogInput.placeholder=inputPlaceholder||"";
+    settingsDialog.classList.add("visible");
+    settingsDialog.setAttribute("aria-hidden","false");
+    if(showInput){
+      requestAnimationFrame(()=>{
+        settingsDialogInput.focus();
+        settingsDialogInput.select();
+      });
+    }else{
+      requestAnimationFrame(()=>settingsDialogConfirm.focus());
+    }
+  }
+  function closeSettingsDialog(){
+    settingsDialog.classList.remove("visible");
+    settingsDialog.setAttribute("aria-hidden","true");
+    settingsDialogState=null;
+    settingsDialogInput.value="";
+  }
+  function showUpdatePrompt(){
+    updatePrompt.classList.add("visible");
+    updatePrompt.setAttribute("aria-hidden","false");
+  }
+  function hideUpdatePrompt(){
+    updatePrompt.classList.remove("visible");
+    updatePrompt.setAttribute("aria-hidden","true");
+  }
+  function shouldOfferUpdate(){
+    try{
+      if(sessionStorage.getItem(UPDATE_PROMPT_SESSION_KEY)==="1")return false;
+    }catch(_error){}
+    return /bunny-carrot-survivors\.html$/i.test(location.pathname);
+  }
+  function dismissUpdatePrompt(){
+    try{sessionStorage.setItem(UPDATE_PROMPT_SESSION_KEY,"1");}catch(_error){}
+    hideUpdatePrompt();
+  }
+  function confirmSettingsDialog(){
+    if(!settingsDialogState||typeof settingsDialogState.onConfirm!=="function"){
+      closeSettingsDialog();
+      return;
+    }
+    settingsDialogState.onConfirm(settingsDialogInput.value);
+  }
+  function buildAccountTransferData(){
+    return{
+      v:3,
+      d:[
+        meta.points||0,
+        meta.totalKills||0,
+        meta.totalElites||0,
+        meta.totalBosses||0,
+        meta.totalPlaySeconds||0,
+        meta.totalDeathKills||0,
+        meta.totalDeaths||0,
+        meta.bestInfiniteSeconds||0,
+        meta.infiniteTotalKills||0,
+        Array.isArray(meta.claimedRewards)?meta.claimedRewards:[],
+        meta.damage||0,
+        meta.crit||0,
+        meta.speed||0,
+        meta.critDamage||0,
+        meta.life||0,
+        meta.regen||0,
+        meta.armorPen||0,
+        meta.desertUnlocked?1:0,
+        meta.snowUnlocked?1:0,
+        meta.muted?1:0,
+        meta.cheat8888Used?1:0
+      ]
+    };
+  }
+  function encodeAccountTransferCode(data){
+    return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  }
+  function decodeAccountTransferCode(code){
+    const decoded=JSON.parse(decodeURIComponent(escape(atob(code))));
+    if(decoded&&decoded.v===3&&Array.isArray(decoded.d)){
+      const data=decoded.d;
+      return{
+        v:3,
+        meta:{
+          points:data[0]||0,
+          totalKills:data[1]||0,
+          totalElites:data[2]||0,
+          totalBosses:data[3]||0,
+          totalPlaySeconds:data[4]||0,
+          totalDeathKills:data[5]||0,
+          totalDeaths:data[6]||0,
+          bestInfiniteSeconds:data[7]||0,
+          infiniteTotalKills:data[8]||0,
+          claimedRewards:Array.isArray(data[9])?data[9]:[],
+          damage:data[10]||0,
+          crit:data[11]||0,
+          speed:data[12]||0,
+          critDamage:data[13]||0,
+          life:data[14]||0,
+          regen:data[15]||0,
+          armorPen:data[16]||0,
+          desertUnlocked:!!data[17],
+          snowUnlocked:!!data[18],
+          muted:!!data[19],
+          cheat8888Used:!!data[20]
+        }
+      };
+    }
+    if(decoded&&decoded.v===2&&decoded.d){
+      const data=decoded.d;
+      return{
+        v:2,
+        meta:{
+          points:data.p||0,
+          totalKills:data.k||0,
+          totalElites:data.e||0,
+          totalBosses:data.b||0,
+          totalPlaySeconds:data.t||0,
+          totalDeathKills:data.dk||0,
+          totalDeaths:data.dd||0,
+          bestInfiniteSeconds:data.bi||0,
+          infiniteTotalKills:data.ik||0,
+          claimedRewards:Array.isArray(data.r)?data.r:[],
+          damage:data.dmg||0,
+          crit:data.crt||0,
+          speed:data.spd||0,
+          critDamage:data.cdm||0,
+          life:data.hp||0,
+          regen:data.reg||0,
+          armorPen:data.ap||0,
+          desertUnlocked:!!data.du,
+          snowUnlocked:!!data.su,
+          muted:!!data.mt,
+          cheat8888Used:!!data.c8
+        }
+      };
+    }
+    if(decoded&&decoded.v===1&&decoded.meta){
+      return decoded;
+    }
+    throw new Error("invalid save code");
+  }
+  function exportAccountCode(){
+    const code=encodeAccountTransferCode(buildAccountTransferData());
+    if(navigator.clipboard&&window.isSecureContext){
+      navigator.clipboard.writeText(code).then(()=>{
+        openSettingsOverlay("帳號碼已複製，可直接貼到另一個裝置匯入。");
+      }).catch(()=>{
+        openSettingsDialog({
+          title:"帳號匯出",
+          message:"剪貼簿權限失敗，請手動複製下方帳號碼。",
+          inputValue:code,
+          confirmLabel:"關閉",
+          cancelLabel:"關閉",
+          showInput:true,
+          onConfirm:()=>closeSettingsDialog()
+        });
+      });
+      return;
+    }
+    openSettingsDialog({
+      title:"帳號匯出",
+      message:"請完整複製下方帳號碼。",
+      inputValue:code,
+      confirmLabel:"關閉",
+      cancelLabel:"關閉",
+      showInput:true,
+      onConfirm:()=>closeSettingsDialog()
+    });
+    openSettingsOverlay("帳號碼已產生，若要跨裝置可直接貼上使用。");
+  }
+  function importAccountCode(){
+    openSettingsDialog({
+      title:"帳號匯入",
+      message:"貼上帳號碼後按確定，會直接覆蓋目前進度。",
+      inputPlaceholder:"貼上帳號碼",
+      confirmLabel:"匯入",
+      cancelLabel:"取消",
+      showInput:true,
+      onConfirm:raw=>{
+        const code=(raw||"").trim();
+        if(!code){
+          openSettingsOverlay("沒有貼入任何帳號碼。");
+          closeSettingsDialog();
+          beep(140,.08,.02,"sawtooth");
+          return;
+        }
+        try{
+          const decoded=decodeAccountTransferCode(code);
+          if(!decoded||!decoded.meta)throw new Error("invalid");
+          const nextMeta=Object.assign(defaultMeta(),decoded.meta);
+          if(!Array.isArray(nextMeta.claimedRewards))nextMeta.claimedRewards=[];
+          delete nextMeta.devMode;
+          meta=nextMeta;
+          muted=!!meta.muted;
+          updateMuteButton();
+          saveMeta();
+          renderMeta();
+          closeSettingsDialog();
+          closeSettingsOverlay();
+          beep(820,.12,.04,"triangle");
+          openSettingsOverlay("帳號匯入完成。");
+        }catch(_error){
+          openSettingsOverlay("帳號碼格式不正確，請確認有完整貼上。");
+          beep(140,.08,.02,"sawtooth");
+        }
+      }
+    });
+  }
+  function handleDeveloperEntry(){
+    openSettingsDialog({
+      title:"開發人員",
+      message:"輸入開發密碼。",
+      inputPlaceholder:"輸入密碼",
+      confirmLabel:"確定",
+      cancelLabel:"取消",
+      showInput:true,
+      onConfirm:password=>{
+        const safePassword=(password||"").trim();
+        if(safePassword==="00516"){
+          closeSettingsDialog();
+          closeSettingsOverlay();
+          devModeActive=true;
+          debugOverlayEnabled=true;
+          debugPanelMode="perf";
+          rewardScreen.classList.add("hidden");
+          renderMeta();
+          characterScreen.classList.remove("hidden");
+          updateMonitorButtons();
+          beep(760,.1,.03,"triangle");
+          return;
+        }
+        if(safePassword==="8888"){
+          if(meta.cheat8888Used){
+            openSettingsOverlay("8888 已使用過，除非刪除紀錄才會重置。");
+            closeSettingsDialog();
+            beep(140,.08,.02,"sawtooth");
+            return;
+          }
+          meta.cheat8888Used=true;
+          meta.points+=20000;
+          saveMeta();
+          renderMeta();
+          closeSettingsDialog();
+          openSettingsOverlay("已獲得 20000 強化點數。");
+          beep(980,.14,.04,"triangle");
+          return;
+        }
+        openSettingsOverlay("密碼不正確。");
+        beep(140,.08,.02,"sawtooth");
+      }
+    });
   }
 
   function xpRequirement(level,killCount){
@@ -2067,8 +2564,6 @@
     const dx=ax-bx,dy=ay-by,r=ar+br;
     return dx*dx+dy*dy<=r*r;
   }
-  function clampToWorldX(x,r=0){return clamp(x,WORLD_MIN+r,WORLD_MAX-r);}
-  function clampToWorldY(y,r=0){return clamp(y,WORLD_MIN+r,WORLD_MAX-r);}
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const rand=(a,b)=>a+Math.random()*(b-a);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -2155,7 +2650,7 @@
     const maxHp=BASE_META_LIFE+scaledMetaGain(meta.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH);
     const baseCrit=metaCritChance(meta.crit);
     Object.assign(player,{
-      x:WORLD_SIZE/2,y:WORLD_SIZE/2,r:18,speed:210,hp:maxHp,maxHp,regen:0,regenFlat:metaRegenFlatTotal(meta.regen),regenBoost:1,
+      x:0,y:0,r:18,speed:210,hp:maxHp,maxHp,regen:0,regenFlat:metaRegenFlatTotal(meta.regen),regenBoost:1,
       level:1,xp:0,nextXp:xpRequirement(1,0),damage:BASE_META_DAMAGE+scaledMetaGain(meta.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH),
       attackSpeed:1+meta.speed*.03,projectiles:1,
       crit:baseCrit,critStack:baseCrit,critDamage:baseMetaCritDamageMultiplier(meta.critDamage),
@@ -2254,7 +2749,7 @@
     if(kind==="normal"&&kpsPressure>0)hp*=1+kpsPressure*.35;
     if(kind==="elite"&&kpsPressure>0)hp*=1+kpsPressure*.18;
     if(killSurgeActive)hp*=KILL_SURGE_HP_MULTIPLIER;
-    const enemy={id:nextId++,type,kind,defense,x:clampToWorldX(player.x+Math.cos(angle)*range,size),y:clampToWorldY(player.y+Math.sin(angle)*range,size),r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,cling:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1,kpsSpawned:!!flags.kpsSpawned};
+    const enemy={id:nextId++,type,kind,defense,x:player.x+Math.cos(angle)*range,y:player.y+Math.sin(angle)*range,r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,cling:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1,kpsSpawned:!!flags.kpsSpawned};
     if(kind==="final"){
       const phaseConfig=finalBossPhaseConfig(type);
       const hpScale=isInfiniteMode()?infiniteBossHpMultiplier(Math.max(0,infiniteBossZone)):1;
@@ -2846,8 +3341,6 @@
       player.x+=dx*moved;player.y+=dy*moved;
       if(dx)player.facing=Math.sign(dx);
     }
-    player.x=clampToWorldX(player.x,player.r);
-    player.y=clampToWorldY(player.y,player.r);
     if(bossArena.active){
       const ax=player.x-bossArena.x,ay=player.y-bossArena.y,d=Math.hypot(ax,ay),limit=bossArena.r-player.r-18;
       if(d>limit){player.x=bossArena.x+ax/d*limit;player.y=bossArena.y+ay/d*limit;}
@@ -2941,8 +3434,6 @@
       }
       if(e.slow>0)speed*=.48;
       e.x+=Math.cos(a)*speed*dt;e.y+=Math.sin(a)*speed*dt;
-      e.x=clampToWorldX(e.x,e.r);
-      e.y=clampToWorldY(e.y,e.r);
       if(dist(e,player)<e.r+player.r){
         hurt(e.damage);
       }
@@ -4690,35 +5181,26 @@
     debugPanelMode="audio";
     updateMonitorButtons();
   });
-  devModeBtn.addEventListener("click",()=>{
-    const password=prompt("輸入開發密碼");
-    if(password==="00516"){
-      devModeActive=true;
-      debugOverlayEnabled=true;
-      debugPanelMode="perf";
-      rewardScreen.classList.add("hidden");
-      renderMeta();
-      characterScreen.classList.remove("hidden");
-      updateMonitorButtons();
-      beep(760,.1,.03,"triangle");
-      return;
+  devModeBtn.addEventListener("click",()=>{openSettingsOverlay();});
+  closeSettingsBtn.addEventListener("click",closeSettingsOverlay);
+  settingsOverlay.addEventListener("click",e=>{if(e.target===settingsOverlay)closeSettingsOverlay();});
+  settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)closeSettingsDialog();});
+  settingsDialogConfirm.addEventListener("click",confirmSettingsDialog);
+  settingsDialogCancel.addEventListener("click",closeSettingsDialog);
+  settingsDialogInput.addEventListener("keydown",e=>{
+    if(e.key==="Enter"&&!e.shiftKey){
+      e.preventDefault();
+      confirmSettingsDialog();
+    }else if(e.key==="Escape"){
+      e.preventDefault();
+      closeSettingsDialog();
     }
-    if(password==="8888"){
-      if(meta.cheat8888Used){
-        beep(140,.08,.02,"sawtooth");
-        alert("8888 已經使用過了，除非刪除紀錄。");
-        return;
-      }
-      meta.cheat8888Used=true;
-      meta.points+=20000;
-      saveMeta();
-      renderMeta();
-      beep(980,.14,.04,"triangle");
-      alert("已獲得 20000 強化點數。");
-      return;
-    }
-    beep(140,.08,.02,"sawtooth");
   });
+  accountExportBtn.addEventListener("click",exportAccountCode);
+  accountImportBtn.addEventListener("click",importAccountCode);
+  developerEntryBtn.addEventListener("click",handleDeveloperEntry);
+  goUpdateBtn.addEventListener("click",()=>{window.location.href=UPDATE_TARGET_URL;});
+  stayLegacyBtn.addEventListener("click",dismissUpdatePrompt);
   devResetBtn.addEventListener("click",()=>{
     if(!devModeActive)return;
     let refund=0;
@@ -4757,7 +5239,9 @@
     setupMetaMarquees();
   });
   resizeTransitionCanvas();
-  updateMuteButton();renderMeta();draw();requestAnimationFrame(loop);
+  updateMuteButton();renderMeta();
+  if(shouldOfferUpdate())requestAnimationFrame(()=>showUpdatePrompt());
+  draw();requestAnimationFrame(loop);
 })();
 </script>
 </body>
