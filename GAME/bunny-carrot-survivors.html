@@ -923,6 +923,61 @@
       background: #5e596b;
       box-shadow: inset -5px -5px #403c48,5px 5px #0b0920;
     }
+    #updateTravelOverlay {
+      position: absolute;
+      inset: 0;
+      z-index: 25;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 14px;
+      background: #05040df5;
+    }
+    #updateTravelOverlay.visible { display: flex; }
+    #updateTravelPanel {
+      width: min(100%,350px);
+      text-align: center;
+    }
+    #updateTravelTitle {
+      margin: 0 0 12px;
+      color: #ffe15b;
+      font-size: 26px;
+      text-shadow: 2px 2px #c75460;
+    }
+    #updateTravelHint {
+      min-height: 46px;
+      margin: 0 0 14px;
+      color: #efe7ff;
+      font-size: 14px;
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+    #updateTravelBar {
+      width: 100%;
+      height: 22px;
+      padding: 3px;
+      border: 3px solid #fff0b1;
+      background: #24193f;
+      box-shadow: inset 0 0 0 2px #130d22;
+    }
+    #updateTravelFill {
+      width: 0%;
+      height: 100%;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          #ffe15b 0 16px,
+          #ffbf4d 16px 32px
+        );
+      box-shadow: inset -3px -3px #d9872c,0 0 12px #ffd85d88;
+      transition: width .12s linear;
+    }
+    #updateTravelPercent {
+      margin-top: 9px;
+      color: #fff4c7;
+      font-size: 13px;
+      letter-spacing: 1px;
+    }
   </style>
 </head>
 <body class="layout-portrait">
@@ -977,6 +1032,14 @@
         <button id="goUpdateBtn" type="button">是</button>
         <button id="stayLegacyBtn" type="button">否</button>
       </div>
+    </div>
+  </div>
+  <div id="updateTravelOverlay" aria-hidden="true">
+    <div id="updateTravelPanel">
+      <h3 id="updateTravelTitle">搬家中</h3>
+      <p id="updateTravelHint">兔兔正在搬運家當…</p>
+      <div id="updateTravelBar"><div id="updateTravelFill"></div></div>
+      <div id="updateTravelPercent">0%</div>
     </div>
   </div>
   <div id="rewardScreen" class="screen hidden">
@@ -1106,6 +1169,8 @@
   const metaStatsEl=document.getElementById("metaStats"),metaPointsEl=document.getElementById("metaPoints"),metaRecordEl=document.getElementById("metaRecord"),powerBox=document.getElementById("powerBox");
   const rewardPlaytimeEl=document.getElementById("rewardPlaytime");
   const updatePrompt=document.getElementById("updatePrompt"),goUpdateBtn=document.getElementById("goUpdateBtn"),stayLegacyBtn=document.getElementById("stayLegacyBtn");
+  const updateTravelOverlay=document.getElementById("updateTravelOverlay"),updateTravelHint=document.getElementById("updateTravelHint");
+  const updateTravelFill=document.getElementById("updateTravelFill"),updateTravelPercent=document.getElementById("updateTravelPercent");
   const devModeBtn=document.getElementById("devModeBtn"),devResetBtn=document.getElementById("devResetBtn");
   const settingsOverlay=document.getElementById("settingsOverlay"),settingsHint=document.getElementById("settingsHint");
   const accountExportBtn=document.getElementById("accountExportBtn"),accountImportBtn=document.getElementById("accountImportBtn");
@@ -1134,8 +1199,19 @@
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
   let runRewarded=false,transitioning=false;
   let settingsDialogState=null;
+  let updateTravelTimer=0,updateTravelHintTimer=0,updateTravelHintIndex=0;
   const UPDATE_TARGET_URL="./bunny-shell.html";
   const UPDATE_PROMPT_SESSION_KEY="bunny-update-prompt-dismissed";
+  const UPDATE_TRAVEL_DURATION=2.4;
+  const UPDATE_TRAVEL_HINTS=[
+    "兔兔正在搬運家當…",
+    "搬運胡蘿蔔與備用武器…",
+    "手牽花生，別走丟了…",
+    "抱起 PINKY，一起搬新家…",
+    "檢查香蕉、寶箱與點數箱…",
+    "把冒險紀錄綁在背包上…",
+    "新家門口快到了，再一下下…"
+  ];
   const BATTLE_START_DELAY=1.6;
   let escalationStart=null;
   let killSurgeActive=false;
@@ -1408,6 +1484,35 @@
   function dismissUpdatePrompt(){
     try{sessionStorage.setItem(UPDATE_PROMPT_SESSION_KEY,"1");}catch(_error){}
     hideUpdatePrompt();
+  }
+  function startUpdateTravel(){
+    dismissUpdatePrompt();
+    updateTravelTimer=0;
+    updateTravelHintTimer=0;
+    updateTravelHintIndex=0;
+    updateTravelHint.textContent=UPDATE_TRAVEL_HINTS[0];
+    updateTravelFill.style.width="0%";
+    updateTravelPercent.textContent="0%";
+    updateTravelOverlay.classList.add("visible");
+    updateTravelOverlay.setAttribute("aria-hidden","false");
+  }
+  function updateUpdateTravel(dt){
+    if(!updateTravelOverlay.classList.contains("visible"))return;
+    updateTravelTimer=Math.min(UPDATE_TRAVEL_DURATION,updateTravelTimer+dt);
+    updateTravelHintTimer+=dt;
+    if(updateTravelHintTimer>=0.38&&updateTravelHintIndex<UPDATE_TRAVEL_HINTS.length-1){
+      updateTravelHintTimer=0;
+      updateTravelHintIndex++;
+      updateTravelHint.textContent=UPDATE_TRAVEL_HINTS[updateTravelHintIndex];
+    }
+    const ratio=Math.min(1,updateTravelTimer/UPDATE_TRAVEL_DURATION);
+    const eased=1-Math.pow(1-ratio,2.2);
+    const percent=Math.round(eased*100);
+    updateTravelFill.style.width=`${percent}%`;
+    updateTravelPercent.textContent=`${percent}%`;
+    if(ratio>=1){
+      window.location.href=UPDATE_TARGET_URL;
+    }
   }
   function confirmSettingsDialog(){
     if(!settingsDialogState||typeof settingsDialogState.onConfirm!=="function"){
@@ -4966,7 +5071,7 @@
     beep(220,.22,.035,"square");
   }
 
-  function loop(now){const dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw();requestAnimationFrame(loop);}
+  function loop(now){const dt=Math.min(.033,(now-last)/1000||0);last=now;updateUpdateTravel(dt);update(dt);draw();requestAnimationFrame(loop);}
   function setKey(k,v){keys[k]=v;}
   const touch=document.getElementById("touch"),touchKnob=document.getElementById("touchKnob"),touchHint=document.getElementById("touchHint");
   const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn"),leaveStageBtn=document.getElementById("leaveStageBtn"),muteBtn=document.getElementById("muteBtn"),reloadAudioBtn=document.getElementById("reloadAudioBtn");
@@ -5199,7 +5304,7 @@
   accountExportBtn.addEventListener("click",exportAccountCode);
   accountImportBtn.addEventListener("click",importAccountCode);
   developerEntryBtn.addEventListener("click",handleDeveloperEntry);
-  goUpdateBtn.addEventListener("click",()=>{window.location.href=UPDATE_TARGET_URL;});
+  goUpdateBtn.addEventListener("click",startUpdateTravel);
   stayLegacyBtn.addEventListener("click",dismissUpdatePrompt);
   devResetBtn.addEventListener("click",()=>{
     if(!devModeActive)return;
