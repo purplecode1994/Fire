@@ -9,10 +9,12 @@
   const DURATION=600,wrap=document.getElementById("wrap");
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
-  const characterScreen=document.getElementById("characterScreen"),rewardScreen=document.getElementById("rewardScreen"),stageScreen=document.getElementById("stageScreen");
+  const characterScreen=document.getElementById("characterScreen"),rewardScreen=document.getElementById("rewardScreen"),stageScreen=document.getElementById("stageScreen"),adventureBookScreen=document.getElementById("adventureBookScreen");
   const rewardTrack=document.getElementById("rewardTrackModal"),accountBox=document.getElementById("accountBox");
   const pauseScreen=document.getElementById("pauseScreen"),pauseStats=document.getElementById("pauseStats");
   const metaStatsEl=document.getElementById("metaStats"),metaPointsEl=document.getElementById("metaPoints"),metaRecordEl=document.getElementById("metaRecord"),powerBox=document.getElementById("powerBox");
+  const adventureBookContent=document.getElementById("adventureBookContent"),bookSubTabs=document.getElementById("bookSubTabs");
+  const bookTabSkills=document.getElementById("bookTabSkills"),bookTabStages=document.getElementById("bookTabStages"),bookTabBosses=document.getElementById("bookTabBosses");
   const rewardPlaytimeEl=document.getElementById("rewardPlaytime");
   const devModeBtn=document.getElementById("devModeBtn"),devResetBtn=document.getElementById("devResetBtn");
   const settingsOverlay=document.getElementById("settingsOverlay"),settingsHint=document.getElementById("settingsHint");
@@ -42,6 +44,7 @@
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
   let runRewarded=false,transitioning=false;
   let settingsDialogState=null;
+  let bookMainTab="skills",bookStageTab=1;
   const BATTLE_START_DELAY=1.6;
   let escalationStart=null;
   let killSurgeActive=false;
@@ -56,6 +59,7 @@
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
   let sharedTargetCache=null,sharedTargetTimer=0;
   let debugPanelMode="perf",audioDebugTimer=0;
+  const IMPLEMENTED_STAGE_COUNT=3;
   let audioDebugCurrent={
     total:0,beep:0,external:0,xp:0,crit:0,
     ui:0,pickup:0,smallCarrot:0,giantLaunch:0,giantExplosion:0,
@@ -93,6 +97,7 @@
   const MAX_BOSS_TEXTS=60;
   const ENEMY_GRID_SIZE=96;
   const ENEMY_QUERY_PADDING=80;
+  // Reminder: every small gameplay/UI change should also bump bunny-shell.html homeVersion by +1.
 
   function metaCritChance(levels){
     const level=Math.max(0,Math.min(100,levels));
@@ -149,7 +154,9 @@
       totalDeathKills:0,totalDeaths:0,bestInfiniteSeconds:0,
       infiniteTotalKills:0,
       claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,
-      desertUnlocked:false,snowUnlocked:false,muted:false,cheat8888Used:false
+      desertUnlocked:false,snowUnlocked:false,
+      stage1Cleared:false,stage2Cleared:false,stage3Cleared:false,
+      muted:false,cheat8888Used:false
     };
   }
 
@@ -242,11 +249,20 @@
       const saved=JSON.parse(localStorage.getItem(META_KEY)||"null");
       const data=Object.assign(defaultMeta(),saved||{});
       if(!Array.isArray(data.claimedRewards))data.claimedRewards=[];
+      migrateLegacyStageClears(data);
       delete data.devMode;
       return data;
     }catch(_error){
       return defaultMeta();
     }
+  }
+  function migrateLegacyStageClears(data){
+    if(data.desertUnlocked)data.stage1Cleared=true;
+    if(data.snowUnlocked)data.stage2Cleared=true;
+    const bossCount=Math.max(0,data.totalBosses||0);
+    if(!data.stage2Cleared&&data.desertUnlocked&&bossCount>=2)data.stage2Cleared=true;
+    if(!data.stage3Cleared&&data.snowUnlocked&&bossCount>=3)data.stage3Cleared=true;
+    return data;
   }
 
   function saveMeta(){
@@ -327,6 +343,9 @@
         meta.armorPen||0,
         meta.desertUnlocked?1:0,
         meta.snowUnlocked?1:0,
+        meta.stage1Cleared?1:0,
+        meta.stage2Cleared?1:0,
+        meta.stage3Cleared?1:0,
         meta.muted?1:0,
         meta.cheat8888Used?1:0
       ]
@@ -339,6 +358,7 @@
     const decoded=JSON.parse(decodeURIComponent(escape(atob(code))));
     if(decoded&&decoded.v===3&&Array.isArray(decoded.d)){
       const data=decoded.d;
+      const extended=data.length>=24;
       return{
         v:3,
         meta:{
@@ -361,8 +381,11 @@
           armorPen:data[16]||0,
           desertUnlocked:!!data[17],
           snowUnlocked:!!data[18],
-          muted:!!data[19],
-          cheat8888Used:!!data[20]
+          stage1Cleared:extended?!!data[19]:!!data[17],
+          stage2Cleared:extended?!!data[20]:!!data[18],
+          stage3Cleared:extended?!!data[21]:false,
+          muted:extended?!!data[22]:!!data[19],
+          cheat8888Used:extended?!!data[23]:!!data[20]
         }
       };
     }
@@ -390,6 +413,9 @@
           armorPen:data.ap||0,
           desertUnlocked:!!data.du,
           snowUnlocked:!!data.su,
+          stage1Cleared:!!data.s1||!!data.du,
+          stage2Cleared:!!data.s2||!!data.su,
+          stage3Cleared:!!data.s3,
           muted:!!data.mt,
           cheat8888Used:!!data.c8
         }
@@ -451,7 +477,7 @@
           const nextMeta=Object.assign(defaultMeta(),decoded.meta);
           if(!Array.isArray(nextMeta.claimedRewards))nextMeta.claimedRewards=[];
           delete nextMeta.devMode;
-          meta=nextMeta;
+            meta=migrateLegacyStageClears(nextMeta);
           muted=!!meta.muted;
           updateMuteButton();
           saveMeta();
@@ -677,11 +703,11 @@
     desertStage.classList.toggle("active",currentStage===2);
     snowStage.classList.toggle("active",currentStage===3);
     infiniteStage.classList.toggle("active",currentStage===4);
-    desertStage.disabled=!meta.desertUnlocked;
-    snowStage.disabled=!meta.snowUnlocked;
+    desertStage.disabled=stageAvailability(2)!=="open";
+    snowStage.disabled=stageAvailability(3)!=="open";
     gardenStage.innerHTML=stageButtonMarkup("第一關・菜園",1);
-    desertStage.innerHTML=meta.desertUnlocked?stageButtonMarkup("第二關・沙漠",2):stageButtonMarkup("第二關・沙漠（未解鎖）",2);
-    snowStage.innerHTML=meta.snowUnlocked?stageButtonMarkup("第三關・雪原",3):stageButtonMarkup("第三關・雪原（未解鎖）",3);
+    desertStage.innerHTML=stageAvailability(2)==="open"?stageButtonMarkup("第二關・沙漠",2):stageButtonMarkup("第二關・沙漠（未解鎖）",2);
+    snowStage.innerHTML=stageAvailability(3)==="open"?stageButtonMarkup("第三關・雪原",3):stageButtonMarkup("第三關・雪原（未解鎖）",3);
     infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",4);
     document.getElementById("start").textContent="開始割草";
   }
@@ -803,7 +829,7 @@
       stageName.textContent="第二關・沙漠";
     }else{
       stageArt.className="stageGarden";
-      stageArt.innerHTML='<div class="shadow"></div><div class="leaf1"></div><div class="leaf2"></div><div class="leaf3"></div><div class="carrot"></div>';
+      stageArt.innerHTML='<div class="gardenBed gardenBed1"></div><div class="gardenBed gardenBed2"></div><div class="shadow"></div><div class="sprout sprout1"></div><div class="sprout sprout2"></div><div class="flower flower1"></div><div class="flower flower2"></div><div class="leaf1"></div><div class="leaf2"></div><div class="leaf3"></div><div class="carrot"></div>';
       stageName.textContent="第一關・菜園";
     }
     stagePower.textContent=`建議戰力 ${stageRecommendedPower(stage)}｜目前戰力 ${combatPower()}`;
@@ -914,7 +940,8 @@
     document.querySelector(".homeTitle").textContent="兔兔割草大冒險";
     document.getElementById("start").textContent="開始割草";
     characterBtn.textContent="角色資訊";
-    shopBtn.textContent="商城（未開放）";
+    adventureBookBtn.textContent="冒險筆記";
+    shopBtn.textContent="商城 🔒";
     metaPointsEl.innerHTML=`<span class="pointDiamond"></span><span>強化點數 ${formatCostShort(meta.points)}</span>`;
     metaRecordEl.innerHTML=`總擊破 ${meta.totalKills||0}｜菁英 ${meta.totalElites||0}｜BOSS ${meta.totalBosses||0}`;
     powerBox.innerHTML=`<span class="powerLabel">戰力</span><span class="powerValue">${combatPower()}</span>`;
@@ -980,15 +1007,15 @@
     desertStage.classList.toggle("active",currentStage===2);
     snowStage.classList.toggle("active",currentStage===3);
     infiniteStage.classList.toggle("active",currentStage===4);
-    desertStage.disabled=!meta.desertUnlocked;
-    snowStage.disabled=!meta.snowUnlocked;
-    desertStage.classList.toggle("locked",!meta.desertUnlocked);
-    snowStage.classList.toggle("locked",!meta.snowUnlocked);
+    desertStage.disabled=stageAvailability(2)!=="open";
+    snowStage.disabled=stageAvailability(3)!=="open";
+    desertStage.classList.toggle("locked",stageAvailability(2)!=="open");
+    snowStage.classList.toggle("locked",stageAvailability(3)!=="open");
     gardenStage.innerHTML=stageButtonMarkup("第一關・菜園",1);
-    desertStage.innerHTML=meta.desertUnlocked?
+    desertStage.innerHTML=stageAvailability(2)==="open"?
       stageButtonMarkup("第二關・沙漠",2):
       stageButtonMarkup("第二關・沙漠（未解鎖）",2);
-    snowStage.innerHTML=meta.snowUnlocked?
+    snowStage.innerHTML=stageAvailability(3)==="open"?
       stageButtonMarkup("第三關・雪原",3):
       stageButtonMarkup("第三關・雪原（未解鎖）",3);
     infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",4);
@@ -1019,9 +1046,9 @@
     {id:"crit",icon:"🍀",name:"幸運一擊",desc:"+7% 基礎爆擊率",basic:true,valid(){return player.crit<1;},apply(){const old=player.crit;player.crit=Math.min(1,player.crit+.07);player.critStack=Math.min(1,player.critStack+player.crit-old);}},
     {id:"critd",icon:"💥",name:"爆擊強化",desc:"+30% 場內爆擊傷害",basic:true,apply(){player.critDamage+=.3;}},
     {id:"pierce",icon:"➶",name:"銳利蘿蔔",desc:"+1 穿透敵人數",basic:true,apply(){player.pierce++;}},
-    {id:"multi",icon:"🥕",name:"胡蘿蔔連發",desc:"同時發射 +1；達5根後每3輪投下巨型胡蘿蔔",valid(){return player.projectiles<10;},apply(){player.projectiles++;}},
+    {id:"multi",icon:"🥕",name:"同步發射",desc:"同步發射 +1；點滿後含本體共 6 支蘿蔔，並以散射射出",valid(){return player.projectiles<6;},apply(){player.projectiles++;}},
     {id:"vital",icon:"❤",name:"強健兔兔",desc:"+20% 最大生命並回復",basic:true,apply(){player.maxHp*=1.2;player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.3);}},
-    {id:"area",icon:"⭕",name:"範圍性胡蘿蔔",desc:"+18% 攻擊/技能範圍、+4% 全武器與技能傷害",basic:true,apply(){player.area*=1.18;player.areaDamage*=1.04;}},
+    {id:"area",icon:"⭕",name:"範圍性胡蘿蔔",desc:"+18% 附加技能範圍、+4% 全武器與技能傷害",basic:true,apply(){player.area*=1.18;player.areaDamage*=1.04;}},
     {id:"orbit",icon:"🌀",name:"蘿蔔旋風",desc:"環繞胡蘿蔔傷害敵人；LV5進化高速切割",valid(){return skills.orbit<5;},apply(){skills.orbit++;}},
     {id:"burst",icon:"🌱",name:"菜園爆發",desc:"定時造成範圍傷害；LV5進化巨大衝擊圈",valid(){return skills.burst<5;},apply(){skills.burst++;}},
     {id:"peanut",icon:"🥜",name:"花生跟班",desc:"花生自動丟石頭；LV5進化貫穿滾石",valid(){return skills.peanut<5;},apply(){skills.peanut++;}},
@@ -1052,6 +1079,248 @@
     imp:{hp:260,speed:78,damage:34,xp:20,r:21,color:"#aa3348",defense:24},
     reaper:{hp:98000,speed:36,damage:42,xp:520,r:68,color:"#331421",defense:60}
   };
+  const adventureSkillEntries=[
+    {id:"damage",icon:"⚔",name:"胡蘿蔔威力",type:"攻擊",effect:"+18% 攻擊力",detail:"直接提升主武器基礎傷害。"},
+    {id:"haste",icon:"⏩",name:"攻擊速度",type:"攻速",effect:"+15% 攻擊速度",detail:"提升胡蘿蔔每秒發射頻率。"},
+    {id:"crit",icon:"🍀",name:"幸運一擊",type:"爆擊",effect:"+7% 基礎爆擊率",detail:"提高爆擊觸發機率。"},
+    {id:"critd",icon:"💥",name:"爆擊強化",type:"爆傷",effect:"+30% 場內爆擊傷害",detail:"只放大爆擊時的傷害上限。"},
+    {id:"multi",icon:"🥕",name:"同步發射",type:"主武器",effect:"+1 發同步蘿蔔",detail:"點滿後含本體共 6 支，並以散射發射。"},
+    {id:"pierce",icon:"➶",name:"銳利蘿蔔",type:"穿透",effect:"+1 穿透數",detail:"讓主武器連續打穿更多敵人。"},
+    {id:"speed",icon:"👟",name:"兔兔快跑",type:"移動",effect:"+12% 移動速度",detail:"讓兔兔更容易拉扯與閃避。"},
+    {id:"vital",icon:"❤",name:"強健兔兔",type:"生存",effect:"+20% 最大生命",detail:"提升最大生命並立即回一段血。"},
+    {id:"heal",icon:"💚",name:"生命回復",type:"回復",effect:"基礎回復 +20%・每秒回復最大生命 1.2%",detail:"兼顧固定回復與最大生命回復。"},
+    {id:"area",icon:"⭕",name:"範圍性胡蘿蔔",type:"範圍",effect:"+18% 附加技能範圍・+4% 全武器技能傷害",detail:"不影響小胡蘿蔔本體大小，只放大巨大胡蘿蔔與各種附加技能範圍。"},
+    {id:"orbit",icon:"🌀",name:"蘿蔔旋風",type:"技能",effect:"環繞切割；LV5 高速進化",detail:"貼身護體，適合清理近身怪。"},
+    {id:"burst",icon:"🌱",name:"菜園爆發",type:"技能",effect:"定時爆圈；LV5 巨大衝擊圈",detail:"穩定補充範圍傷害。"},
+    {id:"peanut",icon:"🥜",name:"花生跟班",type:"跟班",effect:"自動丟石頭；LV5 貫穿滾石",detail:"提供額外遠程火力。"},
+    {id:"pinky",icon:"🍌",name:"PINKY 跟班",type:"增益",effect:"香蕉返回接住後增傷加速",detail:"接到香蕉可短時間爆發。"},
+    {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",type:"破防",effect:"+8% 無視防禦",detail:"第二關、第三關與輪迴特別實用。"}
+  ];
+  const stageBestiary={
+    1:[
+      {type:"turtle",name:"菜龜",skill:"厚殼慢推"},
+      {type:"mushroom",name:"蘑菇怪",skill:"短距衝臉"},
+      {type:"bombcloud",name:"炸雲",skill:"高血量慢壓迫"},
+      {type:"plant",name:"食人花",skill:"高血量站樁壓場"},
+    ],
+    2:[
+      {type:"snake",name:"沙蛇",skill:"高速突進"},
+      {type:"mouse",name:"沙鼠",skill:"敏捷亂竄"},
+      {type:"vulture",name:"禿鷹",skill:"中速追擊"},
+      {type:"centipede",name:"沙地蜈蚣",skill:"穩定推進"},
+      {type:"scorpion",name:"木乃伊蠍",skill:"高防近戰"},
+    ],
+    3:[
+      {type:"penguin",name:"企鵝",skill:"高速貼身"},
+      {type:"seal",name:"海豹",skill:"中速壓迫"},
+      {type:"snowman",name:"雪人",skill:"高血防守"},
+      {type:"polarbear",name:"北極熊",skill:"厚血重擊"},
+    ]
+  };
+  const bossBestiary=[
+    {type:"plant",name:"霸王食人花",stage:1,unlock:()=>!!meta.stage1Cleared,skill:"近身壓場・噴火骨彈",stats:{hp:70000,damage:32,defense:15,speed:52}},
+    {type:"stoneface",name:"遠古石面怪",stage:2,unlock:()=>!!meta.stage2Cleared,skill:"落石砸擊・25% 機率暈眩 1 秒",stats:{hp:120000,damage:30,defense:45,speed:30}},
+    {type:"whale",name:"暴雪鯨魚",stage:3,unlock:()=>!!meta.stage3Cleared,skill:"急凍光線・暴風雪壓制",stats:{hp:120000,damage:52,defense:70,speed:24}}
+  ];
+  function stageAvailability(stage){
+    if(stage>IMPLEMENTED_STAGE_COUNT)return "comingSoon";
+    if(stage<=1)return "open";
+    if(stage===2)return meta.desertUnlocked?"open":"locked";
+    if(stage===3)return meta.snowUnlocked?"open":"locked";
+    return "locked";
+  }
+  function stageBookUnlocked(stage){
+    return stageAvailability(stage)==="open";
+  }
+  function bookPreviewCanvas(type,{silhouette=false,size=82}={}){
+    const c=document.createElement("canvas");
+    c.width=size;
+    c.height=size;
+    const px=c.getContext("2d");
+    px.imageSmoothingEnabled=false;
+    px.clearRect(0,0,size,size);
+    drawEnemyPreview(px,type,size/2,size/2,size*.68,silhouette);
+    if(silhouette)c.classList.add("bookLockedSilhouette");
+    return c;
+  }
+  function enemyStatLines(type,extraSkill){
+    const base=enemyData[type];
+    if(!base)return "資料整理中";
+    const defense=base.defense||0;
+    return `HP ${base.hp}\n攻擊力 ${base.damage}\n防禦力 ${defense}\n移動速度 ${base.speed}\n技能 ${extraSkill||"—"}`;
+  }
+  function bossStatLines(boss){
+    const stats=boss.stats;
+    if(!stats)return enemyStatLines(boss.type,boss.skill);
+    const phaseConfig=finalBossPhaseConfig(boss.type);
+    const hpBars=phaseConfig&&Array.isArray(phaseConfig.hp)?phaseConfig.hp:[stats.hp];
+    return `HP1 ${hpBars[0]||stats.hp}\nHP2 ${hpBars[1]||stats.hp}\nHP3 ${hpBars[2]||stats.hp}\n攻擊力 ${stats.damage}\n防禦力 ${stats.defense}\n移動速度 ${stats.speed}\n技能 ${boss.skill||"—"}`;
+  }
+  function renderBookCard({title,lines,previewType,silhouette=false,extraClass=""}){
+    const card=document.createElement("div");
+    card.className=`bookCard ${extraClass}`.trim();
+    const preview=document.createElement("div");
+    preview.className="bookPreview";
+    preview.appendChild(bookPreviewCanvas(previewType,{silhouette}));
+    const info=document.createElement("div");
+    info.className="bookInfo";
+    const titleEl=document.createElement("b");
+    titleEl.textContent=title;
+    const small=document.createElement("small");
+    small.textContent=lines;
+    info.appendChild(titleEl);
+    info.appendChild(small);
+    card.appendChild(preview);
+    card.appendChild(info);
+    return card;
+  }
+  function drawEnemyPreview(px,type,cx,cy,box,silhouette=false){
+    const scale=Math.max(.55,Math.min(1.3,box/44));
+    const rect=(x,y,w,h,color)=>{px.fillStyle=silhouette?"#050507":color;px.fillRect(Math.round(cx+x*scale),Math.round(cy+y*scale),Math.max(1,Math.round(w*scale)),Math.max(1,Math.round(h*scale)));};
+    px.save();
+    px.translate(0,0);
+    if(type==="turtle"){
+      rect(-15,-10,27,23,"#397d3f");rect(-10,-14,22,22,"#67b551");rect(-5,-9,12,12,"#b0d867");rect(9,-10,11,9,"#ead17c");rect(14,-8,3,3,"#171624");
+    }else if(type==="mushroom"){
+      rect(-12,-2,24,17,"#9a633f");rect(-17,-12,34,16,"#7b4432");rect(-12,-9,7,6,"#e6b16e");rect(5,-9,7,6,"#e6b16e");rect(-7,3,4,5,"#171624");rect(4,3,4,5,"#171624");
+    }else if(type==="bombcloud"){
+      rect(-17,-7,34,18,"#686d80");rect(-11,-14,22,25,"#858b9c");rect(-8,-4,5,4,"#151525");rect(5,-4,5,4,"#151525");rect(13,-15,12,5,"#333747");rect(23,-17,4,4,"#ffb83e");
+    }else if(type==="plant"){
+      rect(-7,12,14,20,"#3f7d3a");
+      rect(-18,-2,36,18,"#dd4a45");
+      rect(-12,-12,24,14,"#c53b46");
+      rect(-8,-9,6,6,"#171624");
+      rect(2,-9,6,6,"#171624");
+      rect(-16,-14,8,10,"#78c75f");
+      rect(8,-14,8,10,"#78c75f");
+      rect(-22,3,8,12,"#78c75f");
+      rect(14,3,8,12,"#78c75f");
+      rect(-9,16,18,4,"#2e5f2b");
+    }else if(type==="snake"){
+      rect(-16,5,8,8,"#a99b35");rect(-9,0,8,9,"#c7b943");rect(-2,-5,8,10,"#a99b35");rect(5,-10,13,13,"#d5c64d");rect(11,-7,3,3,"#231c25");rect(17,-3,6,2,"#d6534c");
+    }else if(type==="scorpion"){
+      rect(-9,-18,18,13,"#d8c7a0");rect(-12,-5,24,25,"#cdbb94");
+      rect(-15,-2,7,22,"#d8c7a0");rect(8,-2,7,22,"#d8c7a0");
+      rect(-10,19,7,12,"#bda77f");rect(3,19,7,12,"#bda77f");
+      rect(-13,-15,26,4,"#efe3c4");rect(-12,-7,24,4,"#efe3c4");rect(-13,1,26,4,"#efe3c4");rect(-11,9,22,4,"#efe3c4");rect(-10,17,20,4,"#efe3c4");
+      rect(-6,-12,5,2,"#16131c");rect(2,-12,5,2,"#16131c");
+      rect(-16,4,7,3,"#efe3c4");rect(9,10,7,3,"#efe3c4");
+    }else if(type==="mouse"){
+      rect(-14,-6,27,16,"#85817a");rect(-18,-9,9,8,"#aaa49a");rect(7,-10,9,8,"#aaa49a");rect(8,-1,4,4,"#211b20");rect(-3,0,5,3,"#f0c2ba");rect(12,5,13,3,"#6f6a64");
+    }else if(type==="vulture"){
+      rect(-8,-13,16,26,"#5e4f43");rect(-20,-5,15,8,"#806b56");rect(5,-5,15,8,"#806b56");rect(-6,-17,12,9,"#c7b69f");rect(-3,-14,2,2,"#191624");rect(2,-14,2,2,"#191624");rect(-2,-9,4,8,"#d6a13e");
+    }else if(type==="centipede"){
+      for(let i=0;i<5;i++){
+        const x=-22+i*9;
+        const y=-5+(i%2?3:0);
+        rect(x,y,10,11,i%2?"#c1823f":"#a76736");
+        rect(x+2,11,3,5,"#6b3a26");
+      }
+      rect(20,-7,12,14,"#d19a4d");
+      rect(25,-3,3,3,"#211b20");
+      rect(30,-1,6,2,"#d65045");
+    }else if(type==="stoneface"){
+      rect(-17,-18,34,38,"#746b60");rect(-13,-14,26,30,"#948779");rect(-10,-7,7,7,"#241f20");rect(4,-7,7,7,"#241f20");rect(-7,7,14,5,"#443c38");
+    }else if(type==="penguin"){
+      rect(-14,-19,28,36,"#263d52");
+      rect(-9,-13,18,24,"#edf8ff");
+      rect(-11,-18,7,8,"#edf8ff");rect(4,-18,7,8,"#edf8ff");
+      rect(-6,-10,4,4,"#1e2533");rect(2,-10,4,4,"#1e2533");
+      rect(-4,-7,8,6,"#ff9e3f");
+      rect(-8,16,5,6,"#ffb54a");rect(3,16,5,6,"#ffb54a");
+    }else if(type==="snowman"){
+      rect(-12,-3,24,22,"#edf8ff");rect(-9,-21,18,18,"#edf8ff");rect(-7,-17,4,4,"#1e2533");rect(3,-17,4,4,"#1e2533");rect(-2,-10,4,7,"#ff9a45");
+    }else if(type==="polarbear"){
+      rect(-16,-12,32,28,"#edf5f7");
+      rect(-10,-19,20,12,"#edf5f7");
+      rect(-12,-23,5,5,"#edf5f7");rect(7,-23,5,5,"#edf5f7");
+      rect(-6,-15,4,4,"#1b2231");rect(2,-15,4,4,"#1b2231");
+      rect(-3,-9,6,4,"#8b6d63");
+      rect(-18,10,8,11,"#d5e5e8");rect(10,10,8,11,"#d5e5e8");
+    }else if(type==="seal"){
+      rect(-18,-8,36,18,"#8caab8");rect(-10,-14,20,10,"#9db8c5");rect(10,-3,6,4,"#1d2731");rect(-7,8,10,5,"#6f8f9b");
+    }else if(type==="whale"){
+      rect(-28,-10,56,20,"#4f86a6");rect(-18,-18,32,18,"#689cc0");rect(20,-6,12,8,"#2b5069");rect(-24,6,14,10,"#d5edf8");rect(16,10,10,8,"#3e6988");
+    }
+    px.restore();
+  }
+  function renderAdventureBook(){
+    if(!adventureBookContent)return;
+    bookTabSkills.classList.toggle("active",bookMainTab==="skills");
+    bookTabStages.classList.toggle("active",bookMainTab==="stages");
+    bookTabBosses.classList.toggle("active",bookMainTab==="bosses");
+    adventureBookContent.innerHTML="";
+    if(bookMainTab==="stages"){
+      bookSubTabs.classList.remove("hidden");
+      bookSubTabs.innerHTML="";
+      [1,2,3].forEach(stage=>{
+        const btn=document.createElement("button");
+        const state=stageAvailability(stage);
+        const unlocked=state==="open";
+        btn.type="button";
+        btn.textContent=stage===1?"第一關・菜園":stage===2?"第二關・沙漠":"第三關・雪原";
+        btn.classList.toggle("active",bookStageTab===stage);
+        btn.classList.toggle("locked",!unlocked);
+        btn.classList.toggle("comingSoon",state==="comingSoon");
+        if(!unlocked)btn.textContent+=" 🔒";
+        btn.disabled=!unlocked;
+        btn.onclick=()=>{if(!unlocked)return;bookStageTab=stage;renderAdventureBook();};
+        bookSubTabs.appendChild(btn);
+      });
+    }else{
+      bookSubTabs.classList.add("hidden");
+      bookSubTabs.innerHTML="";
+    }
+    if(bookMainTab==="skills"){
+      const note=document.createElement("div");
+      note.className="bookSectionNote";
+      note.textContent="記錄兔兔在關卡內可取得的能力，方便回看攻擊、爆擊、生存與特殊技能效果。";
+      adventureBookContent.appendChild(note);
+      const grid=document.createElement("div");
+      grid.className="bookSkillGrid";
+      for(const entry of adventureSkillEntries){
+        grid.appendChild(renderBookCard({
+          title:`${entry.icon} ${entry.name}`,
+          lines:`類型 ${entry.type}\n效果 ${entry.effect}\n說明 ${entry.detail}`,
+          previewType:"turtle",
+          silhouette:false
+        }));
+      }
+      adventureBookContent.appendChild(grid);
+      grid.querySelectorAll(".bookPreview").forEach((el,i)=>{el.textContent="";const icon=document.createElement("div");icon.style.fontSize="34px";icon.style.lineHeight="1";icon.textContent=adventureSkillEntries[i].icon;el.appendChild(icon);});
+      return;
+    }
+    if(bookMainTab==="stages"){
+      const grid=document.createElement("div");
+      grid.className="bookStageGrid";
+      for(const enemy of stageBestiary[bookStageTab]||[]){
+        grid.appendChild(renderBookCard({
+          title:enemy.name,
+          lines:enemyStatLines(enemy.type,enemy.skill),
+          previewType:enemy.type
+        }));
+      }
+      adventureBookContent.appendChild(grid);
+      return;
+    }
+    const note=document.createElement("div");
+    note.className="bookSectionNote";
+    note.textContent="未真正擊敗過的關卡 BOSS 會以黑色剪影顯示。";
+    adventureBookContent.appendChild(note);
+    const grid=document.createElement("div");
+    grid.className="bookBossGrid";
+    for(const boss of bossBestiary){
+      const unlocked=boss.unlock();
+      grid.appendChild(renderBookCard({
+        title:unlocked?boss.name:"？？？",
+        lines:unlocked?bossStatLines(boss):"HP ？？？\n攻擊力 ？？？\n防禦力 ？？？\n移動速度 ？？？\n技能 ？？？",
+        previewType:boss.type,
+        silhouette:!unlocked,
+        extraClass:unlocked?"":"bookUnknown"
+      }));
+    }
+    adventureBookContent.appendChild(grid);
+  }
   // Optional external audio files:
   // audio/crit.wav.wav
   // audio/small-carrot.wav
@@ -1776,6 +2045,34 @@
     const marginX=W*.05+(target.r||0),marginY=H*.05+(target.r||0);
     return p.x>=-marginX&&p.x<=W+marginX&&p.y>=-marginY&&p.y<=H+marginY;
   }
+  function getReservedDamage(target){
+    return !target||"opened" in target?0:Math.max(0,target.reservedDamage||0);
+  }
+  function clearReservedDamage(target){
+    if(target&&!("opened" in target))target.reservedDamage=0;
+  }
+  function reserveDamageForTarget(target,amount){
+    if(!target||"opened" in target||!(amount>0))return;
+    target.reservedDamage=(target.reservedDamage||0)+amount;
+  }
+  function releaseDamageReservation(target,amount){
+    if(!target||"opened" in target||!(amount>0))return;
+    target.reservedDamage=Math.max(0,(target.reservedDamage||0)-amount);
+  }
+  function getEnemyById(id){
+    if(!id)return null;
+    for(const e of enemies)if(e.id===id)return e;
+    return null;
+  }
+  function releaseShotReservation(shot){
+    if(!shot||!shot.reservedTargetId||!shot.reservedDamage)return;
+    releaseDamageReservation(getEnemyById(shot.reservedTargetId),shot.reservedDamage);
+    shot.reservedTargetId=0;
+    shot.reservedDamage=0;
+  }
+  function predictedShotDamage(baseDamage){
+    return baseDamage*Math.max(1,1+player.critStack*(player.critDamage-1));
+  }
 
   function nearest(x,y,exclude=new Set()){
     countPerfWork("targetSearch");
@@ -1804,12 +2101,35 @@
     }
     return sharedTargetCache;
   }
+  function pickReservedAwareTarget(baseDamage){
+    const estimate=predictedShotDamage(baseDamage);
+    let bestEnemy=null,bd=Infinity;
+    countPerfWork("targetSearch");
+    for(const e of enemies){
+      countPerfWork("targetSearch");
+      if(e.dead||e.hp<=0||!inTargetView(e))continue;
+      const effectiveHp=e.hp-getReservedDamage(e);
+      if(effectiveHp<=0)continue;
+      const d=(e.x-player.x)**2+(e.y-player.y)**2;
+      if(d<bd){bd=d;bestEnemy=e;}
+    }
+    if(bestEnemy){
+      reserveDamageForTarget(bestEnemy,estimate);
+      return {target:bestEnemy,reservedAmount:estimate};
+    }
+    const fallback=nearest(player.x,player.y);
+    if(fallback&&!("opened" in fallback)){
+      reserveDamageForTarget(fallback,estimate);
+      return {target:fallback,reservedAmount:estimate};
+    }
+    return {target:fallback,reservedAmount:0};
+  }
 
   function beginCarrotVolley(){
     if(!enemies.length&&!chests.some(c=>!c.opened))return false;
     pendingCarrotShots=Math.max(1,player.projectiles);
     carrotVolley++;
-    if(player.projectiles>=5&&giantCarrotCooldown<=0){
+    if(player.projectiles>=6&&giantCarrotCooldown<=0){
       const target=getSharedTarget();
       if(target){
         const a=Math.atan2(target.y-player.y,target.x-player.x);
@@ -1824,15 +2144,22 @@
   }
 
   function fireCarrotShot(){
-    const target=getSharedTarget(true);
+    const targetInfo=pickReservedAwareTarget(player.damage*player.areaDamage);
+    const target=targetInfo.target;
+    const volleyCount=Math.max(1,Math.min(6,player.projectiles));
+    const volleyIndex=Math.max(0,Math.min(volleyCount-1,volleyCount-pendingCarrotShots));
+    const spreadStep=volleyCount<=1?0:0.095;
+    const spreadOffset=volleyCount<=1?0:(volleyIndex-(volleyCount-1)/2)*spreadStep;
     let angle;
-    if(target)angle=Math.atan2(target.y-player.y,target.x-player.x)+rand(-.012,.012);
-    else angle=(player.facing<0?Math.PI:0)+rand(-.012,.012);
+    if(target)angle=Math.atan2(target.y-player.y,target.x-player.x)+spreadOffset+rand(-.01,.01);
+    else angle=(player.facing<0?Math.PI:0)+spreadOffset+rand(-.01,.01);
     shots.push({
       x:player.x,y:player.y,
       vx:Math.cos(angle)*520,vy:Math.sin(angle)*520,
-      r:6*player.area,life:1.8,
-      damage:player.damage*player.areaDamage,pierce:player.pierce,angle
+      r:6,life:1.8,
+      damage:player.damage*player.areaDamage,pierce:player.pierce,angle,
+      reservedTargetId:target&&!("opened" in target)?target.id:0,
+      reservedDamage:targetInfo.reservedAmount||0
     });
   }
 
@@ -1861,7 +2188,6 @@
       r:8*(level>=5?1.35:1)*player.area,damage:(12+level*9)*player.areaDamage,
       hit:new Set(),spin:0,missedLife:.45
     });
-    beep(520,.08,.025,"triangle");
   }
 
   function catchBanana(banana){
@@ -1953,7 +2279,10 @@
       beep(95,.55,.06,"sawtooth");
       return;
     }
-    if(e.hp<=0)killEnemy(e,source);
+    if(e.hp<=0){
+      clearReservedDamage(e);
+      killEnemy(e,source);
+    }
   }
 
   function killEnemy(e,source="normal"){
@@ -2046,7 +2375,7 @@
       let nextLevelLabel=u.name;
       if(["orbit","burst","peanut","pinky"].includes(u.id))current=`目前 LV${skills[u.id]}/5`;
       if(["orbit","burst","peanut","pinky"].includes(u.id))nextLevelLabel=`${u.name} LV${Math.min(5,skills[u.id]+1)}`;
-      else if(u.id==="multi"){current=`目前 ${player.projectiles}/10 根`;nextLevelLabel=`胡蘿蔔${Math.min(10,player.projectiles+1)}連發`;}
+      else if(u.id==="multi"){current=`目前 ${player.projectiles}/6 支`;nextLevelLabel=`同步發射 LV${Math.min(5,upgradeLevels.multi+1)}`;}
       else if(u.cap){current=`目前 LV${upgradeLevels[u.id]}/${u.cap}`;nextLevelLabel=`${u.name} LV${Math.min(u.cap,upgradeLevels[u.id]+1)}`;}
       else if(u.basic){current=`目前 LV${upgradeLevels[u.id]}/${BASIC_UPGRADE_CAP}`;nextLevelLabel=`${u.name} LV${Math.min(BASIC_UPGRADE_CAP,upgradeLevels[u.id]+1)}`;}
       card.innerHTML=`<span class="icon">${u.icon}</span><b>${nextLevelLabel}</b><small>${u.desc}<br>${current}</small>`;
@@ -2263,7 +2592,7 @@
     if(skills.pinky){
       updatePlayer.pinky=(updatePlayer.pinky||0)-dt;
       if(updatePlayer.pinky<=0){
-        const baseCooldown=Math.max(1.8,4.8-skills.pinky*.42);
+        const baseCooldown=Math.max(2.6,6.4-skills.pinky*.4);
         updatePlayer.pinky=Math.max(.45,baseCooldown/player.attackSpeed);
         fireBanana();
       }
@@ -2487,6 +2816,10 @@
     for(const s of list){
       countPerfWork("projectileDraw");
       s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;
+      if(s.life<=0){
+        releaseShotReservation(s);
+        continue;
+      }
 
       if(s.kind==="rolling"){
         s.debris-=dt;
@@ -2530,6 +2863,7 @@
               player.critStack=crit?player.crit:Math.min(1,player.critStack+player.crit);
             }
             const damage=s.damage*(crit?player.critDamage:1);
+            releaseShotReservation(s);
             damageEnemy(boss,damage,crit,s.kind||"normal");
             if(s.kind==="rolling"){
               s.hit.add(boss.id);
@@ -2553,6 +2887,7 @@
             player.critStack=crit?player.crit:Math.min(1,player.critStack+player.crit);
           }
           const damage=s.damage*(crit?player.critDamage:1);
+          releaseShotReservation(s);
           damageEnemy(e,damage,crit,s.kind||"normal");
           if(s.kind==="rolling"){
             s.hit.add(e.id);
@@ -2569,6 +2904,7 @@
         for(const chest of chests){
           countPerfWork("collisionChest");
           if(chest.opened||!circleHitXY(s.x,s.y,s.r,chest.x,chest.y,chest.r))continue;
+          releaseShotReservation(s);
           openChest(chest);
           s.life=0;
           break;
@@ -3585,7 +3921,7 @@
     ctx.strokeText(stageTimeLabel,W/2,22);ctx.fillText(stageTimeLabel,W/2,22);ctx.textAlign="left";
     ctx.font="bold 14px monospace";ctx.fillStyle="#fff";ctx.fillText(`🥕×${player.projectiles}  穿透${player.pierce}  爆擊${Math.round(player.crit*100)}→${Math.round(player.critStack*100)}%`,W-315,24);
     const evolved=[];
-    if(player.projectiles>=5)evolved.push("巨蘿蔔");
+    if(player.projectiles>=6)evolved.push("巨蘿蔔");
     if(skills.orbit>=5)evolved.push("旋風進化");
     if(skills.burst>=5)evolved.push("菜園進化");
     if(skills.peanut>=5)evolved.push("滾石進化");
@@ -3805,6 +4141,9 @@
     pauseBtn.classList.remove("visible");pauseScreen.classList.add("hidden");
     updateMonitorButtons();
     const earned=awardRun(true);
+    if(currentStage===1)meta.stage1Cleared=true;
+    if(currentStage===2)meta.stage2Cleared=true;
+    if(currentStage===3)meta.stage3Cleared=true;
     if(currentStage===1&&!meta.desertUnlocked)meta.desertUnlocked=true;
     if(currentStage===2&&!meta.snowUnlocked)meta.snowUnlocked=true;
     saveMeta();
@@ -3860,7 +4199,7 @@
   const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn"),leaveStageBtn=document.getElementById("leaveStageBtn"),muteBtn=document.getElementById("muteBtn"),reloadAudioBtn=document.getElementById("reloadAudioBtn");
   const monitorTabs=document.getElementById("monitorTabs"),perfMonitorBtn=document.getElementById("perfMonitorBtn"),audioMonitorBtn=document.getElementById("audioMonitorBtn");
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
-  const characterBtn=document.getElementById("characterBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter");
+  const characterBtn=document.getElementById("characterBtn"),adventureBookBtn=document.getElementById("adventureBookBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter"),closeAdventureBook=document.getElementById("closeAdventureBook");
   const chooseStageBtn=document.getElementById("chooseStageBtn"),closeStage=document.getElementById("closeStage"),closeRewards=document.getElementById("closeRewards");
   const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),infiniteStage=document.getElementById("infiniteStageModal");
   function updateMuteButton(){
@@ -3909,28 +4248,51 @@
     const baseMaxHp=BASE_META_LIFE+scaledMetaGain(meta.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH);
     const baseDamageValue=BASE_META_DAMAGE+scaledMetaGain(meta.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH);
     const baseMoveSpeed=210;
+    const baseAttackSpeed=1+meta.speed*.03;
     const baseCritChance=metaCritChance(meta.crit);
     const baseArmorPen=Math.min(MAX_META_ARMOR_PEN,meta.armorPen*.007);
     const lifeBonusPct=Math.max(0,Math.round((player.maxHp/baseMaxHp-1)*100));
     const damageBonusPct=Math.max(0,Math.round((player.damage/baseDamageValue-1)*100));
     const speedBonusPct=Math.max(0,Math.round((player.speed/baseMoveSpeed-1)*100));
+    const attackSpeedBonusPct=Math.max(0,Math.round((player.attackSpeed/baseAttackSpeed-1)*100));
     const critBonusPct=Math.max(0,Math.round((player.crit-baseCritChance)*100));
     const armorPenBonusPct=Math.max(0,Math.round((Math.min(.75,player.armorPen)-baseArmorPen)*100));
+    const giantCarrotBonusPct=Math.round((12.8-1)*100);
     const withBonus=(value,bonusPct,suffix="%")=>bonusPct>0?`${value}（+${bonusPct}${suffix}）`:String(value);
+    const withFieldTotal=(baseValue,bonusPct,totalValue,suffix="",decimals=0)=>{
+      const baseText=decimals>0?Number(baseValue).toFixed(decimals):Math.round(baseValue);
+      const totalText=decimals>0?Number(totalValue).toFixed(decimals):Math.round(totalValue);
+      return bonusPct>0
+        ?`${baseText}${suffix} + 場內${bonusPct}%<span class="pauseValueMain">= ${totalText}${suffix}</span>`
+        :`${totalText}${suffix}`;
+    };
+    const withFieldTotalTop=(baseValue,bonusPct,totalValue,suffix="",decimals=0,totalLabel="總值",baseLabel="基礎")=>{
+      const baseText=decimals>0?Number(baseValue).toFixed(decimals):Math.round(baseValue);
+      const totalText=decimals>0?Number(totalValue).toFixed(decimals):Math.round(totalValue);
+      if(bonusPct<=0){
+        return `<span class="pauseValueMain">${totalLabel} ${totalText}${suffix}</span><span class="pauseValueSub">${baseLabel} ${baseText}${suffix}</span>`;
+      }
+      return `<span class="pauseValueMain">${totalLabel} ${totalText}${suffix}</span><span class="pauseValueSub">${baseLabel} ${baseText}${suffix} + 場內${bonusPct}%</span>`;
+    };
+    const attackSpeedLine=(baseValue,bonusPct,suffix="×",decimals=2)=>{
+      const baseText=decimals>0?Number(baseValue).toFixed(decimals):Math.round(baseValue);
+      return bonusPct>0?`基礎攻速 ${baseText}${suffix} + 場內${bonusPct}%`:`基礎攻速 ${baseText}${suffix}`;
+    };
     const stats=[
+      ["攻擊速度",attackSpeedLine(baseAttackSpeed,attackSpeedBonusPct,"×",2)],
       ["等級",player.level],
-      ["生命",lifeBonusPct>0?`${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}（+${lifeBonusPct}%）`:`${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`],
-      ["傷害",withBonus(Math.round(player.damage),damageBonusPct)],
-      ["攻擊速度",`${player.attackSpeed.toFixed(2)}×`],
-      ["移動速度",withBonus(Math.round(player.speed),speedBonusPct)],
+      ["生命",lifeBonusPct>0?`${Math.ceil(player.hp)} / ${Math.ceil(baseMaxHp)} + 場內${lifeBonusPct}%<span class="pauseValueMain">= ${Math.ceil(player.maxHp)}</span>`:`${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`],
+      ["傷害",withFieldTotal(baseDamageValue,damageBonusPct,player.damage,"",1)],
+      ["移動速度",withFieldTotal(baseMoveSpeed,speedBonusPct,player.speed,"",0)],
       ["生命回復",player.regen>0?`${boostedFlatRegen.toFixed(2)} + ${hpRegenPerSecond.toFixed(2)} = ${totalRegenPerSecond.toFixed(2)} HP/秒`:`${boostedFlatRegen.toFixed(2)} HP/秒`],
-      ["爆擊率",withBonus(`${Math.round(player.crit*100)}%`,critBonusPct)],
-      ["爆擊傷害",bonusCritDamagePercent>0?`${baseCritDamagePercent}% + 場內${bonusCritDamagePercent}% = ${Math.round(player.critDamage*100)}%`:`${Math.round(player.critDamage*100)}%`],
+      ["爆擊率",critBonusPct>0?`${Math.round(baseCritChance*100)}% + 場內${critBonusPct}%<span class="pauseValueMain">= ${Math.round(player.crit*100)}%</span>`:`${Math.round(player.crit*100)}%`],
+      ["爆擊傷害",bonusCritDamagePercent>0?`${baseCritDamagePercent}% + 場內${bonusCritDamagePercent}%<span class="pauseValueMain">= ${Math.round(player.critDamage*100)}%</span>`:`${Math.round(player.critDamage*100)}%`],
       ["無視防禦",withBonus(`${Math.round(Math.min(.75,player.armorPen)*100)}%`,armorPenBonusPct)],
       ["胡蘿蔔數",player.projectiles],
+      ["巨蘿蔔",player.projectiles>=6?`已解鎖・傷害 +${giantCarrotBonusPct}%`:"未解鎖"],
       ["穿透",player.pierce],
       ["吸取範圍",`固定 ${Math.round(player.magnet)} 像素`],
-      ["攻擊範圍",`${player.area.toFixed(2)}×`],
+      ["技能範圍",`${player.area.toFixed(2)}×`],
       ["範圍傷害",`${player.areaDamage.toFixed(2)}×`],
       ["胡蘿蔔旋風",`LV ${skills.orbit}`],
       ["胡蘿蔔菜園",`LV ${skills.burst}`],
@@ -4060,7 +4422,15 @@
     requestAnimationFrame(()=>requestAnimationFrame(setupMetaMarquees));
   });
   closeCharacter.addEventListener("click",()=>{characterScreen.classList.add("hidden");renderMeta();});
-  shopBtn.addEventListener("click",()=>{beep(220,.08,.02);alert("商城尚未開放");});
+  adventureBookBtn.addEventListener("click",()=>{
+    renderAdventureBook();
+    adventureBookScreen.classList.remove("hidden");
+  });
+  closeAdventureBook.addEventListener("click",()=>{adventureBookScreen.classList.add("hidden");renderMeta();});
+  bookTabSkills.addEventListener("click",()=>{bookMainTab="skills";renderAdventureBook();});
+  bookTabStages.addEventListener("click",()=>{bookMainTab="stages";renderAdventureBook();});
+  bookTabBosses.addEventListener("click",()=>{bookMainTab="bosses";renderAdventureBook();});
+  shopBtn.addEventListener("click",()=>{beep(220,.08,.02);});
   perfMonitorBtn.addEventListener("click",()=>{
     debugPanelMode="perf";
     updateMonitorButtons();
@@ -4113,6 +4483,7 @@
       endScreen.classList.add("hidden");
       intro.classList.remove("hidden");
       characterScreen.classList.add("hidden");
+      adventureBookScreen.classList.add("hidden");
       rewardScreen.classList.add("hidden");
       stageScreen.classList.add("hidden");
       pauseScreen.classList.add("hidden");pauseBtn.classList.remove("visible");

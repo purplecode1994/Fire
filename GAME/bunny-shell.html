@@ -23,7 +23,7 @@
         <div id="rewardTrack"></div>
       </div>
       <h1 class="homeTitle">兔兔割草大冒險</h1>
-      <div class="homeVersion">V.237</div>
+      <div class="homeVersion">V.263</div>
       <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
@@ -47,7 +47,8 @@
       <button id="start">開始割草</button>
       <div class="cornerMenu">
         <button id="characterBtn" type="button">角色資訊</button>
-        <button id="shopBtn" type="button">商城（未開放）</button>
+        <button id="adventureBookBtn" type="button">冒險筆記</button>
+        <button id="shopBtn" type="button">商城 🔒</button>
       </div>
     </div>
   </div>
@@ -114,6 +115,21 @@
       </div>
       <button id="devResetBtn" type="button" class="hidden">重製技能點</button>
       <button id="closeCharacter" type="button">返回首頁</button>
+    </div>
+  </div>
+  <div id="adventureBookScreen" class="screen hidden">
+    <div class="panel menuPanel">
+      <h1>冒險筆記</h1>
+      <div class="panelBody adventureBody">
+        <div id="bookMainTabs" class="bookTabs">
+          <button id="bookTabSkills" type="button" class="active">場內技能</button>
+          <button id="bookTabStages" type="button">關卡圖鑑</button>
+          <button id="bookTabBosses" type="button">BOSS圖鑑</button>
+        </div>
+        <div id="bookSubTabs" class="bookTabs bookSubTabs hidden"></div>
+        <div id="adventureBookContent"></div>
+      </div>
+      <button id="closeAdventureBook" type="button">返回首頁</button>
     </div>
   </div>
   <div id="levelup" class="screen hidden">
