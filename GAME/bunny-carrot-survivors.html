@@ -1202,7 +1202,8 @@
   let updateTravelTimer=0,updateTravelHintTimer=0,updateTravelHintIndex=0;
   const UPDATE_TARGET_URL="./bunny-shell.html";
   const UPDATE_PROMPT_SESSION_KEY="bunny-update-prompt-dismissed";
-  const UPDATE_TRAVEL_DURATION=2.4;
+  const UPDATE_TRAVEL_DURATION=3.6;
+  const UPDATE_TRAVEL_HINT_INTERVAL=.92;
   const UPDATE_TRAVEL_HINTS=[
     "兔兔正在搬運家當…",
     "搬運胡蘿蔔與備用武器…",
@@ -1500,13 +1501,22 @@
     if(!updateTravelOverlay.classList.contains("visible"))return;
     updateTravelTimer=Math.min(UPDATE_TRAVEL_DURATION,updateTravelTimer+dt);
     updateTravelHintTimer+=dt;
-    if(updateTravelHintTimer>=0.38&&updateTravelHintIndex<UPDATE_TRAVEL_HINTS.length-1){
+    if(updateTravelHintTimer>=UPDATE_TRAVEL_HINT_INTERVAL&&updateTravelHintIndex<UPDATE_TRAVEL_HINTS.length-1){
       updateTravelHintTimer=0;
       updateTravelHintIndex++;
       updateTravelHint.textContent=UPDATE_TRAVEL_HINTS[updateTravelHintIndex];
     }
     const ratio=Math.min(1,updateTravelTimer/UPDATE_TRAVEL_DURATION);
-    const eased=1-Math.pow(1-ratio,2.2);
+    let eased=0;
+    if(ratio<.18){
+      eased=ratio/.18*.32;
+    }else if(ratio<.72){
+      const mid=(ratio-.18)/.54;
+      eased=.32+mid*.42;
+    }else{
+      const tail=(ratio-.72)/.28;
+      eased=.74+(1-Math.pow(1-tail,2.4))*.26;
+    }
     const percent=Math.round(eased*100);
     updateTravelFill.style.width=`${percent}%`;
     updateTravelPercent.textContent=`${percent}%`;
