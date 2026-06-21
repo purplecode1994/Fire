@@ -1199,11 +1199,11 @@
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
   let runRewarded=false,transitioning=false;
   let settingsDialogState=null;
-  let updateTravelTimer=0,updateTravelHintTimer=0,updateTravelHintIndex=0;
+  let updateTravelTimer=0,updateTravelHintTimer=0,updateTravelHintIndex=0,updateTravelHintQueue=[];
   const UPDATE_TARGET_URL="./bunny-shell.html";
   const UPDATE_PROMPT_SESSION_KEY="bunny-update-prompt-dismissed";
-  const UPDATE_TRAVEL_DURATION=3.6;
-  const UPDATE_TRAVEL_HINT_INTERVAL=.92;
+  const UPDATE_TRAVEL_DURATION=13.6;
+  const UPDATE_TRAVEL_HINT_INTERVAL=1.45;
   const UPDATE_TRAVEL_HINTS=[
     "兔兔正在搬運家當…",
     "搬運胡蘿蔔與備用武器…",
@@ -1211,6 +1211,16 @@
     "抱起 PINKY，一起搬新家…",
     "檢查香蕉、寶箱與點數箱…",
     "把冒險紀錄綁在背包上…",
+    "把永久能力小卡片裝進背包…",
+    "確認強化點數沒有遺落在角落…",
+    "把菜園的泥土抖一抖再出發…",
+    "幫花生套上牽繩，避免亂跑…",
+    "PINKY 正在偷看新家的地圖…",
+    "把香蕉、寶箱、蘋果逐一點名…",
+    "兔兔回頭確認舊營地有沒有忘東西…",
+    "草人正在揮手說下次再見…",
+    "把冒險日誌綁緊，免得半路飛走…",
+    "胡蘿蔔菜刀正在擦亮刀鋒…",
     "新家門口快到了，再一下下…"
   ];
   const BATTLE_START_DELAY=1.6;
@@ -1486,12 +1496,21 @@
     try{sessionStorage.setItem(UPDATE_PROMPT_SESSION_KEY,"1");}catch(_error){}
     hideUpdatePrompt();
   }
+  function buildUpdateTravelHintQueue(){
+    const pool=UPDATE_TRAVEL_HINTS.slice(1,-1);
+    for(let i=pool.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [pool[i],pool[j]]=[pool[j],pool[i]];
+    }
+    return [UPDATE_TRAVEL_HINTS[0],...pool,UPDATE_TRAVEL_HINTS.at(-1)];
+  }
   function startUpdateTravel(){
     dismissUpdatePrompt();
     updateTravelTimer=0;
     updateTravelHintTimer=0;
     updateTravelHintIndex=0;
-    updateTravelHint.textContent=UPDATE_TRAVEL_HINTS[0];
+    updateTravelHintQueue=buildUpdateTravelHintQueue();
+    updateTravelHint.textContent=updateTravelHintQueue[0];
     updateTravelFill.style.width="0%";
     updateTravelPercent.textContent="0%";
     updateTravelOverlay.classList.add("visible");
@@ -1501,10 +1520,10 @@
     if(!updateTravelOverlay.classList.contains("visible"))return;
     updateTravelTimer=Math.min(UPDATE_TRAVEL_DURATION,updateTravelTimer+dt);
     updateTravelHintTimer+=dt;
-    if(updateTravelHintTimer>=UPDATE_TRAVEL_HINT_INTERVAL&&updateTravelHintIndex<UPDATE_TRAVEL_HINTS.length-1){
+    if(updateTravelHintTimer>=UPDATE_TRAVEL_HINT_INTERVAL&&updateTravelHintIndex<updateTravelHintQueue.length-1){
       updateTravelHintTimer=0;
       updateTravelHintIndex++;
-      updateTravelHint.textContent=UPDATE_TRAVEL_HINTS[updateTravelHintIndex];
+      updateTravelHint.textContent=updateTravelHintQueue[updateTravelHintIndex];
     }
     const ratio=Math.min(1,updateTravelTimer/UPDATE_TRAVEL_DURATION);
     let eased=0;
