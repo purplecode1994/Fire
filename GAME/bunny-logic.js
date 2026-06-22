@@ -1978,7 +1978,7 @@
     const buckets=new Map();
     const candidates=[];
     for(const g of gems){
-      if(g.dead||time-(g.spawnTime||time)<2.5)continue;
+      if(g.dead||time-(g.spawnTime||time)<1.2)continue;
       candidates.push(g);
       const cx=Math.floor(g.x/cellSize),cy=Math.floor(g.y/cellSize);
       const key=`${cx},${cy}`;
@@ -1994,10 +1994,11 @@
           if(!bucket)continue;
           for(const other of bucket){
             if(other===g||other.dead)continue;
-            if(time-(other.spawnTime||time)<2.5)continue;
-            if(dist(g,other)>24)continue;
+            if(time-(other.spawnTime||time)<1.2)continue;
+            if(dist(g,other)>36)continue;
             g.value+=other.value;
             g.stackCount=(g.stackCount||1)+(other.stackCount||1);
+            g.spawnTime=Math.min(g.spawnTime||time,other.spawnTime||time);
             other.dead=true;
           }
         }
@@ -3302,7 +3303,7 @@
       if(d<player.r+9){g.dead=true;gainXp(g.value);playXpPickupSound({waveform:"sine",baseFreq:2169,duration:.2,overtone:.05,rippleCount:1});}
     }
     gemMergeTimer+=dt;
-    if(gemMergeTimer>=.55){
+    if(gemMergeTimer>=.35){
       gemMergeTimer=0;
       mergeNearbyGems();
     }
@@ -3864,9 +3865,12 @@
     rect(x-1,y-12,4,5,"#78d260");
     rect(x-4,y-4,4,4,"#fff4a0");
     if((g.stackCount||1)>1){
-      ctx.fillStyle="#0f1224";
-      ctx.font="bold 11px monospace";
+      ctx.lineWidth=3;
+      ctx.strokeStyle="#111";
+      ctx.fillStyle="#ffe86a";
+      ctx.font="bold 12px monospace";
       ctx.textAlign="center";
+      ctx.strokeText(gemStackLabel(g.stackCount||1),x,y+22);
       ctx.fillText(gemStackLabel(g.stackCount||1),x,y+22);
       ctx.textAlign="left";
     }
