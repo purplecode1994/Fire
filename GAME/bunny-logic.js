@@ -59,7 +59,7 @@
   let critSampleBuffer=null,critSampleLoading=false;
   const CARROT_BASE_COOLDOWN=.72;
   const CARROT_MIN_CHAIN_INTERVAL=2/60;
-  let xpSoundLastTime=0,gemMergeTimer=0;
+  let xpSoundLastTime=0;
   let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
   let sharedTargetCache=null,sharedTargetTimer=0;
@@ -1964,52 +1964,6 @@
     o.start(t);
     o.stop(t+d+.02);
   }
-  function gemStackTier(count){
-    if(count<5)return {color:"#73c8ff",leaf:"#dff6ff",glow:"#73c8ff"};
-    if(count<10)return {color:"#f2d15a",leaf:"#fff4b0",glow:"#ffe15b"};
-    if(count<15)return {color:"#f29a3f",leaf:"#ffd4a6",glow:"#ffb15f"};
-    return {color:"#ef5b62",leaf:"#ffd0d5",glow:"#ff7a86"};
-  }
-  function mergeNearbyGems(){
-    if(gems.length<2)return;
-    const cellSize=42;
-    const buckets=new Map();
-    const candidates=[];
-    for(const g of gems){
-      if(g.dead||g.stackCount>=30||time-(g.spawnTime||time)<3)continue;
-      candidates.push(g);
-      const cx=Math.floor(g.x/cellSize),cy=Math.floor(g.y/cellSize);
-      const key=`${cx},${cy}`;
-      if(!buckets.has(key))buckets.set(key,[]);
-      buckets.get(key).push(g);
-    }
-    for(const g of candidates){
-      if(g.dead||g.stackCount>=30)continue;
-      const cx=Math.floor(g.x/cellSize),cy=Math.floor(g.y/cellSize);
-      for(let ox=-1;ox<=1;ox++){
-        for(let oy=-1;oy<=1;oy++){
-          const bucket=buckets.get(`${cx+ox},${cy+oy}`);
-          if(!bucket)continue;
-          for(const other of bucket){
-            if(other===g||other.dead||other.stackCount>=30)continue;
-            if(time-(other.spawnTime||time)<3)continue;
-            if(dist(g,other)>26)continue;
-            const room=30-g.stackCount;
-            if(room<=0)break;
-            const transfer=Math.min(room,other.stackCount||1);
-            if(transfer<=0)continue;
-            g.value+=other.value*(transfer/(other.stackCount||1));
-            g.stackCount+=transfer;
-            g.spawnTime=Math.min(g.spawnTime||time,other.spawnTime||time);
-            other.stackCount-=transfer;
-            other.value*=other.stackCount>0?other.stackCount/(other.stackCount+transfer):0;
-            if(other.stackCount<=0)other.dead=true;
-            if(g.stackCount>=30)break;
-          }
-        }
-      }
-    }
-  }
   function circleHitXY(ax,ay,ar,bx,by,br){
     const dx=ax-bx,dy=ay-by,r=ar+br;
     return dx*dx+dy*dy<=r*r;
@@ -2593,7 +2547,7 @@
     if(e.kind==="elite")eliteKills++;if(e.kind==="boss"||e.kind==="final")bossKills++;
     if(player.level<MAX_PLAYER_LEVEL){
       const count=e.kind==="normal"?1:e.kind==="elite"?5:e.kind==="boss"?12:25;
-      for(let i=0;i<count;i++)gems.push({id:nextId++,x:e.x+rand(-e.r,e.r),y:e.y+rand(-e.r,e.r),value:e.xp/count,type:Math.floor(Math.random()*5),r:9,phase:Math.random()*6.28,spawnTime:time,stackCount:1});
+      for(let i=0;i<count;i++)gems.push({id:nextId++,x:e.x+rand(-e.r,e.r),y:e.y+rand(-e.r,e.r),value:e.xp/count,type:Math.floor(Math.random()*5),r:9,phase:Math.random()*6.28});
     }
     burst(e.x,e.y,e.kind==="normal"?"#ffe174":"#ff6b68",e.kind==="normal"?5:18);
     if(source==="orbit"&&skills.orbit>=5){
@@ -3307,11 +3261,6 @@
       if(magnetized){const a=Math.atan2(player.y-g.y,player.x-g.x),sp=magnetAll?650:180+(player.magnet-d)*4;g.x+=Math.cos(a)*sp*dt;g.y+=Math.sin(a)*sp*dt;}
       if(d<player.r+9){g.dead=true;gainXp(g.value);playXpPickupSound({waveform:"sine",baseFreq:2169,duration:.2,overtone:.05,rippleCount:1});}
     }
-    gemMergeTimer+=dt;
-    if(gemMergeTimer>=.45){
-      gemMergeTimer=0;
-      mergeNearbyGems();
-    }
     gems=gems.filter(g=>!g.dead);
     if(!gems.length){magnetAll=false;magnetTimer=0;}
   }
@@ -3863,30 +3812,15 @@
 
   function drawGem(g){
     const p=worldToScreen(g.x,g.y),colors=["#f07a32","#7fc957","#d54743","#f5d253","#a8da73"];
-    const stack=Math.max(1,g.stackCount||1);
-    const tier=gemStackTier(stack);
     const bob=Math.round(Math.sin(time*5+g.phase)*2),x=p.x,y=p.y+bob;
-    if(stack>=15){
-      ctx.globalAlpha=.18+.08*Math.sin(time*6+g.phase);
-      ctx.fillStyle=tier.glow;
-      ctx.beginPath();ctx.arc(x,y,15,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=1;
-    }
     rect(x-8,y-8,16,16,"#273c36");
-    rect(x-6,y-6,12,12,stack>1?tier.color:colors[g.type]);
-    rect(x-3,y-10,6,5,stack>1?tier.leaf:"#3f9548");
-    rect(x-1,y-12,4,5,stack>1?"#ffffff":"#78d260");
+    rect(x-6,y-6,12,12,colors[g.type]);
+    rect(x-3,y-10,6,5,"#3f9548");
+    rect(x-1,y-12,4,5,"#78d260");
     rect(x-4,y-4,4,4,"#fff4a0");
     if(Math.sin(time*7+g.phase)>.55){
       rect(x-12,y-1,4,2,"#fff8bd");rect(x+9,y-1,4,2,"#fff8bd");
       rect(x-1,y-15,2,4,"#fff8bd");rect(x-1,y+10,2,4,"#fff8bd");
-    }
-    if(stack>1){
-      ctx.fillStyle="#0f1224";
-      ctx.font="bold 11px monospace";
-      ctx.textAlign="center";
-      ctx.fillText(`+${stack}`,x,y+22);
-      ctx.textAlign="left";
     }
   }
 
