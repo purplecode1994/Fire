@@ -1318,10 +1318,10 @@
     x:0,y:0,r:18,speed:210,hp:100,maxHp:100,regen:0,regenFlat:0,
     regenBoost:1,
     level:1,xp:0,nextXp:18,damage:18,attackSpeed:1,projectiles:1,
-    crit:0.05,critStack:0.05,critDamage:1.6,pierce:0,magnet:FIXED_MAGNET_RANGE,area:1,areaDamage:1,invuln:0,
+    crit:0.05,critStack:0.05,critDamage:1.6,pierce:0,magnet:FIXED_MAGNET_RANGE,area:1,areaDamage:1,xpGain:1,invuln:0,
     armorPen:0,facing:1
   };
-  const skills={orbit:0,burst:0,peanut:0,pinky:0};
+  const skills={orbit:0,burst:0,peanut:0,pinky:0,brain:0};
   const upgradeLevels={
     speed:0,heal:0,haste:0,damage:0,crit:0,critd:0,
     pierce:0,vital:0,area:0,multi:0,armorPen:0
@@ -1346,6 +1346,7 @@
     {id:"burst",icon:"🌱",name:"菜園爆發",desc:"定時造成範圍傷害；LV5進化巨大衝擊圈",valid(){return skills.burst<5;},apply(){skills.burst++;}},
     {id:"peanut",icon:"🥜",name:"花生跟班",desc:"花生自動丟石頭；LV5進化貫穿滾石",valid(){return skills.peanut<5;},apply(){skills.peanut++;}},
     {id:"pinky",icon:"🍌",name:"PINKY 跟班",desc:"香蕉直線穿透後原路返回；接回強化攻擊與移速",valid(){return skills.pinky<5;},apply(){skills.pinky++;}},
+    {id:"brain",icon:"🧠",name:"超級頭腦",desc:"經驗獲取量累計：LV1 +40%／LV2 +100%／LV3 +180%／LV4 +280%／LV5 +400%",valid(){return skills.brain<5;},apply(){const gain=[.4,.6,.8,1,1.2][skills.brain]||0;player.xpGain+=gain;skills.brain++;}},
     {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+8% 無視防禦（第二關 / 第三關 / 無限輪迴）",cap:5,valid(){return (currentStage===2||currentStage===3||isInfiniteMode())&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.08;}}
   ];
 
@@ -1387,6 +1388,7 @@
     {id:"burst",icon:"🌱",name:"菜園爆發",type:"技能",effect:"定時爆圈；LV5 巨大衝擊圈",detail:"穩定補充範圍傷害。"},
     {id:"peanut",icon:"🥜",name:"花生跟班",type:"跟班",effect:"自動丟石頭；LV5 貫穿滾石",detail:"提供額外遠程火力。"},
     {id:"pinky",icon:"🍌",name:"PINKY 跟班",type:"增益",effect:"香蕉返回接住後增傷加速",detail:"接到香蕉可短時間爆發。"},
+    {id:"brain",icon:"🧠",name:"超級頭腦",type:"成長",effect:"LV5 累計 +400% 經驗獲取",detail:"累計效果：LV1 +40%／LV2 +100%／LV3 +180%／LV4 +280%／LV5 +400%。"},
     {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",type:"破防",effect:"+8% 無視防禦",detail:"第二關、第三關與輪迴特別實用。"}
   ];
   const stageBestiary={
@@ -2102,7 +2104,7 @@
       pierce:0,magnet:FIXED_MAGNET_RANGE,area:1,areaDamage:1,invuln:0,
       armorPen:Math.min(MAX_META_ARMOR_PEN,meta.armorPen*.007),facing:1
     });
-    skills.orbit=skills.burst=skills.peanut=skills.pinky=0;
+    skills.orbit=skills.burst=skills.peanut=skills.pinky=skills.brain=0;
     updatePlayer.pet=updatePlayer.burst=updatePlayer.pinky=0;
     for(const id of Object.keys(upgradeLevels))upgradeLevels[id]=0;
     enemies=[];shots=[];enemyShots=[];gems=[];effects=[];texts=[];areas=[];petShots=[];bananas=[];chests=[];pickups=[];
@@ -2628,7 +2630,7 @@
       player.xp=0;
       return;
     }
-    player.xp+=v;
+    player.xp+=v*Math.max(1,player.xpGain||1);
     while(player.level<MAX_PLAYER_LEVEL&&player.xp>=player.nextXp){
       player.xp-=player.nextXp;
       player.level++;
@@ -2661,8 +2663,8 @@
       const card=document.createElement("div");card.className="choice";
       let current="";
       let nextLevelLabel=u.name;
-      if(["orbit","burst","peanut","pinky"].includes(u.id))current=`目前 LV${skills[u.id]}/5`;
-      if(["orbit","burst","peanut","pinky"].includes(u.id))nextLevelLabel=`${u.name} LV${Math.min(5,skills[u.id]+1)}`;
+      if(["orbit","burst","peanut","pinky","brain"].includes(u.id))current=`目前 LV${skills[u.id]}/5`;
+      if(["orbit","burst","peanut","pinky","brain"].includes(u.id))nextLevelLabel=`${u.name} LV${Math.min(5,skills[u.id]+1)}`;
       else if(u.id==="multi"){current=`目前 ${player.projectiles}/6 支`;nextLevelLabel=`同步發射 LV${Math.min(5,upgradeLevels.multi+1)}`;}
       else if(u.cap){current=`目前 LV${upgradeLevels[u.id]}/${u.cap}`;nextLevelLabel=`${u.name} LV${Math.min(u.cap,upgradeLevels[u.id]+1)}`;}
       else if(u.basic){current=`目前 LV${upgradeLevels[u.id]}/${BASIC_UPGRADE_CAP}`;nextLevelLabel=`${u.name} LV${Math.min(BASIC_UPGRADE_CAP,upgradeLevels[u.id]+1)}`;}
@@ -4607,6 +4609,7 @@
       ["胡蘿蔔菜園",`LV ${skills.burst}`],
       ["花生幫手",`LV ${skills.peanut}`],
       ["PINKY",`LV ${skills.pinky}`],
+      ["超級頭腦",`LV ${skills.brain}・${Math.round((Math.max(1,player.xpGain)-1)*100)}%`],
       ["香蕉增益",pinkyBoostTimer>0?`${pinkyBoostTimer.toFixed(1)} 秒`:"未啟動"]
       ,["中毒",poisonTimer>0?`${poisonTimer.toFixed(1)} 秒・${(poisonRate*100).toFixed(2)}%/秒`:"無"]
       ,["暈眩",stunTimer>0?`${stunTimer.toFixed(1)} 秒`:"無"]
