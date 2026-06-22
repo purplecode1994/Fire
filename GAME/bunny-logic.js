@@ -405,6 +405,8 @@
     testAutoSkillBtn.textContent=`自動選技 ${devAutoUpgrade?"ON":"OFF"}`;
     testModeOverlay.classList.toggle("recording",devTestRecorder.active);
     testModeRecorderText.textContent=`${devTestRecorder.active?"REC":"IDLE"} ${formatDevRecordTime(devTestRecorder.elapsed)}`;
+    devTestBtn.classList.toggle("active",devTestRecorder.active||testModeOverlay.classList.contains("visible"));
+    devTestBtn.textContent=devTestRecorder.active?`REC ${formatDevRecordTime(devTestRecorder.elapsed)}`:"測試紀錄";
     const summary=devTestRecorder.summary||buildDevTestSummary();
     testModeStatus.textContent=
       `模式：${devTestProfile==="desktop"?"電腦":"手機"}（每 ${devTestRecorder.interval.toFixed(devTestRecorder.interval<1?2:0)} 秒取樣）\n`+
@@ -437,6 +439,7 @@
     resetDevTestRecorder(devTestProfile);
     devTestRecorder.active=true;
     devTestRecorder.startReal=Date.now();
+    updateTestModeUi();
     devTestRecorder.battery=await captureBatteryInfo();
     sampleDevTestRecorder();
     updateTestModeUi();
@@ -3288,10 +3291,12 @@
     if(devTestRecorder.active){
       devTestRecorder.elapsed+=dt;
       devTestRecorder.lastSampleAt+=dt;
+      if(testModeOverlay.classList.contains("visible"))updateTestModeUi();
       if(devTestRecorder.lastSampleAt>=devTestRecorder.interval){
         devTestRecorder.lastSampleAt=0;
         sampleDevTestRecorder();
         devTestRecorder.summary=buildDevTestSummary();
+        updateTestModeUi();
       }
     }
     if(transitioning){
@@ -4467,7 +4472,7 @@
     monitorTabs.style.left=`${Math.round(panelLeft)}px`;
     monitorTabs.style.top=`${Math.round(panelTop)}px`;
     testModeOverlay.style.left=`${Math.round(panelLeft)}px`;
-    testModeOverlay.style.top=`${Math.round(panelTop+36)}px`;
+    testModeOverlay.style.top=`${Math.round(panelTop+48)}px`;
   }
   function updateMonitorButtons(){
     const gameplayVisible=
