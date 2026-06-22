@@ -1515,12 +1515,13 @@
     }else if(type==="stoneface"){
       rect(-17,-18,34,38,"#746b60");rect(-13,-14,26,30,"#948779");rect(-10,-7,7,7,"#241f20");rect(4,-7,7,7,"#241f20");rect(-7,7,14,5,"#443c38");
     }else if(type==="penguin"){
-      rect(-14,-19,28,36,"#263d52");
-      rect(-9,-13,18,24,"#edf8ff");
-      rect(-11,-18,7,8,"#edf8ff");rect(4,-18,7,8,"#edf8ff");
-      rect(-6,-10,4,4,"#1e2533");rect(2,-10,4,4,"#1e2533");
-      rect(-4,-7,8,6,"#ff9e3f");
-      rect(-8,16,5,6,"#ffb54a");rect(3,16,5,6,"#ffb54a");
+      rect(-10,-18,20,36,"#263d52");
+      rect(-7,-10,14,24,"#f2fbff");
+      rect(-5,-15,4,4,"#111827");
+      rect(3,-15,4,4,"#111827");
+      rect(-3,-8,6,4,"#f0a33a");
+      rect(-12,14,8,5,"#f0a33a");
+      rect(4,14,8,5,"#f0a33a");
     }else if(type==="snowman"){
       rect(-12,-3,24,22,"#edf8ff");rect(-9,-21,18,18,"#edf8ff");rect(-7,-17,4,4,"#1e2533");rect(3,-17,4,4,"#1e2533");rect(-2,-10,4,7,"#ff9a45");
     }else if(type==="polarbear"){
@@ -3812,16 +3813,12 @@
 
   function drawGem(g){
     const p=worldToScreen(g.x,g.y),colors=["#f07a32","#7fc957","#d54743","#f5d253","#a8da73"];
-    const bob=Math.round(Math.sin(time*5+g.phase)*2),x=p.x,y=p.y+bob;
+    const x=p.x,y=p.y;
     rect(x-8,y-8,16,16,"#273c36");
     rect(x-6,y-6,12,12,colors[g.type]);
     rect(x-3,y-10,6,5,"#3f9548");
     rect(x-1,y-12,4,5,"#78d260");
     rect(x-4,y-4,4,4,"#fff4a0");
-    if(Math.sin(time*7+g.phase)>.55){
-      rect(x-12,y-1,4,2,"#fff8bd");rect(x+9,y-1,4,2,"#fff8bd");
-      rect(x-1,y-15,2,4,"#fff8bd");rect(x-1,y+10,2,4,"#fff8bd");
-    }
   }
 
   function drawChest(chest){
