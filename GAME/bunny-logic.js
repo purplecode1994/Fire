@@ -4740,7 +4740,6 @@
   document.getElementById("start").onclick=()=>{
     if(transitioning)return;
     playSceneTransition(()=>{
-      devModeActive=false;
       timeline.seen.clear();
       start();
     },{shrinkDuration:900,holdDuration:1000,expandDuration:560});
