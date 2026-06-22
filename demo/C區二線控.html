@@ -8,6 +8,9 @@
 <style>
 *{box-sizing:border-box}
 html,body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
   touch-action:manipulation;
   -webkit-text-size-adjust:100%;
 }
@@ -19,10 +22,15 @@ body{
   margin:0;background:#0f172a;color:#e5edf8;
   font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;
 }
-.page{max-width:1280px;margin:0 auto;padding:20px}
-h1{text-align:center;margin:8px 0 18px;color:#dbeafe;font-size:clamp(22px,5.8vw,42px);letter-spacing:.14em;font-weight:900;white-space:nowrap}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.page{
+  width:min(100%,1280px);
+  margin:0 auto;
+  padding:20px max(12px,env(safe-area-inset-right)) 20px max(12px,env(safe-area-inset-left));
+}
+h1{text-align:center;margin:8px 0 18px;color:#dbeafe;font-size:clamp(22px,5.8vw,42px);letter-spacing:.08em;font-weight:900;white-space:normal;overflow-wrap:anywhere}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));gap:14px}
 .card{
+  min-width:0;
   position:relative;min-height:190px;padding:16px 10px 14px;
   background:#111827;border:1px solid #334155;border-radius:13px;
   box-shadow:0 8px 24px rgba(0,0,0,.32);
@@ -32,16 +40,16 @@ h1{text-align:center;margin:8px 0 18px;color:#dbeafe;font-size:clamp(22px,5.8vw,
   display:grid;place-items:center;background:linear-gradient(180deg,#475569,#334155);color:#f8fafc;
   border-radius:13px 0 12px 0;font-weight:900;font-size:20px;
 }
-.lines{margin-top:20px;line-height:1.65;font-size:15.5px;font-weight:800}
-.line{padding:1px 5px;border-radius:6px;white-space:nowrap}
+.lines{min-width:0;margin-top:20px;line-height:1.65;font-size:15.5px;font-weight:800}
+.line{max-width:100%;padding:1px 5px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .line.active{background:rgba(239,68,68,.22);color:#fff}
 .line.g1{background:rgba(22,163,74,.18)}
 .line.g2{background:rgba(37,99,235,.20)}
 .line.g3{background:rgba(234,88,12,.20)}
 .line.g4{background:rgba(147,51,234,.22)}
-.keys{display:flex;justify-content:center;gap:12px;margin-top:12px}
+.keys{display:flex;justify-content:center;gap:12px;margin-top:12px;min-width:0}
 .key{
-  width:30px;height:62px;border-radius:999px;border:2px solid #cbd5e1;
+  flex:0 1 30px;width:30px;min-width:0;height:62px;border-radius:999px;border:2px solid #cbd5e1;
   background:#e2e8f0;color:#0f172a;display:flex;align-items:flex-end;justify-content:center;
   padding-bottom:7px;font-size:18px;font-weight:900;cursor:pointer;transition:.16s;
 }
@@ -57,21 +65,22 @@ h1{text-align:center;margin:8px 0 18px;color:#dbeafe;font-size:clamp(22px,5.8vw,
   font-size:30px;font-weight:900;letter-spacing:6px;border-radius:12px;
   background:linear-gradient(90deg,#1e3a8a,#2563eb,#1e3a8a);
 }
-.groups{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:14px}
 .group{
+  min-width:0;
   --c:#2563eb;background:#111827;border:1px solid #334155;border-radius:13px;padding:16px;
 }
 .badge{
-  display:inline-block;min-width:192px;text-align:center;padding:9px 20px;
+  display:inline-block;max-width:100%;min-width:min(192px,100%);text-align:center;padding:9px 20px;
   border-radius:10px;border:2px solid var(--c);background:#1e293b;
   color:#e2e8f0;font-size:22px;font-weight:900;cursor:pointer;transition:.16s;
 }
 .badge:hover{transform:translateY(-2px);filter:brightness(1.12)}
 .badge.active{background:var(--c);border-color:var(--c);color:white;box-shadow:0 0 22px var(--c)}
-.group-name{margin:12px 0 14px;font-size:20px;font-weight:900;color:#eaf2ff}
+.group-name{margin:12px 0 14px;font-size:20px;font-weight:900;color:#eaf2ff;overflow-wrap:anywhere}
 .codes{display:flex;flex-wrap:wrap;gap:10px}
 .code{
-  width:106px;height:44px;border-radius:9px;border:2px solid var(--c);
+  flex:1 1 96px;max-width:120px;min-width:0;height:44px;border-radius:9px;border:2px solid var(--c);
   background:#1f2937;color:#cbd5e1;font-size:20px;font-weight:900;
   display:flex;align-items:center;justify-content:center;
   cursor:default;user-select:none;transition:.16s;
@@ -80,8 +89,8 @@ h1{text-align:center;margin:8px 0 18px;color:#dbeafe;font-size:clamp(22px,5.8vw,
 .code.active{background:var(--c);border-color:var(--c);color:white;box-shadow:0 0 18px var(--c)}
 
 @media(max-width:900px){
-  .page{padding:14px}
-  .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .page{padding:14px max(10px,env(safe-area-inset-right)) 14px max(10px,env(safe-area-inset-left))}
+  .grid{gap:10px}
   .groups{grid-template-columns:1fr;gap:10px}
   .card{min-height:168px;padding:14px 7px 11px;border-radius:12px}
   .zone{width:32px;height:30px;font-size:18px}
@@ -92,10 +101,10 @@ h1{text-align:center;margin:8px 0 18px;color:#dbeafe;font-size:clamp(22px,5.8vw,
   .group-title{font-size:22px;letter-spacing:3px;margin:20px 0 10px}
   .badge{font-size:18px;min-width:150px}
   .group-name{font-size:17px}
-  .code{width:90px;height:40px;font-size:17px}
+  .code{flex-basis:86px;height:40px;font-size:17px}
 }
 @media(max-width:430px){
-  .page{padding:10px}
+  .page{padding:10px max(8px,env(safe-area-inset-right)) 10px max(8px,env(safe-area-inset-left))}
   h1{font-size:clamp(18px,5.2vw,24px);letter-spacing:.08em}
   .grid{gap:8px}
   .card{min-height:154px;padding:12px 5px 9px}
