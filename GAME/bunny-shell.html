@@ -23,7 +23,7 @@
         <div id="rewardTrack"></div>
       </div>
       <h1 class="homeTitle">兔兔割草大冒險</h1>
-      <div class="homeVersion">V.263</div>
+      <div class="homeVersion">V.264</div>
       <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
@@ -155,6 +155,7 @@
         <div id="pauseStats"></div>
       </div>
       <div class="panelFooter">
+        <button id="devTestBtn" class="hidden" type="button">測試模式</button>
         <button id="resumeBtn" type="button">繼續遊戲</button>
         <button id="leaveStageBtn" type="button">離開關卡</button>
         <div id="leaveConfirm" class="leaveConfirm">
@@ -165,6 +166,25 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+  <div id="testModeOverlay" aria-hidden="true">
+    <div id="testModePanel">
+      <h3>測試模式</h3>
+      <p id="testModeHint">可切換手機/電腦取樣，並在本局內開啟不死與自動選技。</p>
+      <div id="testModeModeRow">
+        <button id="testModeMobileBtn" type="button">手機模式</button>
+        <button id="testModeDesktopBtn" type="button">電腦模式</button>
+      </div>
+      <div id="testModeActions">
+        <button id="testModeStartBtn" type="button">開始紀錄</button>
+        <button id="testModeStopBtn" type="button">停止紀錄</button>
+        <button id="testModeExportBtn" type="button">匯出紀錄</button>
+        <button id="testInvincibleBtn" type="button">HP0不死 OFF</button>
+        <button id="testAutoSkillBtn" type="button">自動選技 OFF</button>
+        <button id="testModeCloseBtn" type="button">關閉</button>
+      </div>
+      <div id="testModeStatus"></div>
     </div>
   </div>
   <div id="touch"><div id="touchKnob"></div></div>

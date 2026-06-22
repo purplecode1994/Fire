@@ -23,6 +23,10 @@
   const settingsDialog=document.getElementById("settingsDialog"),settingsDialogTitle=document.getElementById("settingsDialogTitle");
   const settingsDialogText=document.getElementById("settingsDialogText"),settingsDialogInput=document.getElementById("settingsDialogInput");
   const settingsDialogConfirm=document.getElementById("settingsDialogConfirm"),settingsDialogCancel=document.getElementById("settingsDialogCancel");
+  const testModeOverlay=document.getElementById("testModeOverlay"),testModeHint=document.getElementById("testModeHint"),testModeStatus=document.getElementById("testModeStatus");
+  const testModeMobileBtn=document.getElementById("testModeMobileBtn"),testModeDesktopBtn=document.getElementById("testModeDesktopBtn");
+  const testModeStartBtn=document.getElementById("testModeStartBtn"),testModeStopBtn=document.getElementById("testModeStopBtn"),testModeExportBtn=document.getElementById("testModeExportBtn");
+  const testInvincibleBtn=document.getElementById("testInvincibleBtn"),testAutoSkillBtn=document.getElementById("testAutoSkillBtn"),testModeCloseBtn=document.getElementById("testModeCloseBtn");
   const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText");
   const stageArt=document.getElementById("stageArt"),stageName=document.getElementById("stageName"),stagePower=document.getElementById("stagePower");
   const keys={up:false,down:false,left:false,right:false};
@@ -59,6 +63,8 @@
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
   let sharedTargetCache=null,sharedTargetTimer=0;
   let debugPanelMode="perf",audioDebugTimer=0;
+  let devTestProfile="mobile",devInvincible=false,devAutoUpgrade=false;
+  let devTestRecorder={active:false,profile:"mobile",interval:2,elapsed:0,lastSampleAt:0,startReal:0,samples:[],perfPeaks:{},summary:null,battery:null};
   const IMPLEMENTED_STAGE_COUNT=3;
   let audioDebugCurrent={
     total:0,beep:0,external:0,xp:0,crit:0,
@@ -267,6 +273,215 @@
 
   function saveMeta(){
     try{localStorage.setItem(META_KEY,JSON.stringify(meta));}catch(_error){}
+  }
+  function isDevProtectedRun(){
+    return devModeActive&&devInvincible;
+  }
+  function getDevTestInterval(profile=devTestProfile){
+    return profile==="desktop"?1:2;
+  }
+  function currentStageLabel(){
+    if(isInfiniteMode())return infiniteZoneName();
+    if(currentStage===3)return "雪原";
+    if(currentStage===2)return "沙漠";
+    return "菜園";
+  }
+  function buildDevPerfSnapshot(){
+    return {
+      collisionShot:perfWorkLast.collisionShot||0,
+      collisionArea:perfWorkLast.collisionArea||0,
+      collisionOrbit:perfWorkLast.collisionOrbit||0,
+      collisionEnemyShot:perfWorkLast.collisionEnemyShot||0,
+      collisionCrater:perfWorkLast.collisionCrater||0,
+      collisionChest:perfWorkLast.collisionChest||0,
+      collisionBanana:perfWorkLast.collisionBanana||0,
+      nearQuery:perfWorkLast.nearQuery||0,
+      gridRebuild:perfWorkLast.gridRebuild||0,
+      enemyMove:perfWorkLast.enemyMove||0,
+      gemUpdate:perfWorkLast.gemUpdate||0,
+      spawn:perfWorkLast.spawn||0
+    };
+  }
+  function updateDevPerfPeaks(perf,t){
+    for(const [key,value] of Object.entries(perf)){
+      const prev=devTestRecorder.perfPeaks[key];
+      if(!prev||value>prev.value)devTestRecorder.perfPeaks[key]={value,t};
+    }
+  }
+  async function captureBatteryInfo(){
+    if(!navigator.getBattery)return {supported:false};
+    try{
+      const battery=await navigator.getBattery();
+      return {supported:true,level:Math.round((battery.level||0)*100),charging:!!battery.charging};
+    }catch(_error){
+      return {supported:false};
+    }
+  }
+  function resetDevTestRecorder(profile=devTestProfile){
+    devTestRecorder={
+      active:false,
+      profile,
+      interval:getDevTestInterval(profile),
+      elapsed:0,
+      lastSampleAt:0,
+      startReal:0,
+      samples:[],
+      perfPeaks:{},
+      summary:null,
+      battery:null
+    };
+  }
+  function buildDevTestSummary(){
+    const samples=devTestRecorder.samples;
+    if(!samples.length){
+      return {
+        duration:0,
+        sampleCount:0,
+        avgFps:0,
+        minFps:0,
+        maxEnemies:0,
+        maxGems:0,
+        maxShots:0,
+        maxEffects:0,
+        maxTexts:0,
+        maxKps:0
+      };
+    }
+    const totalFps=samples.reduce((sum,s)=>sum+s.fps,0);
+    return {
+      duration:Math.round(devTestRecorder.elapsed*10)/10,
+      sampleCount:samples.length,
+      avgFps:Math.round(totalFps/samples.length*10)/10,
+      minFps:Math.round(Math.min(...samples.map(s=>s.fps))*10)/10,
+      maxEnemies:Math.max(...samples.map(s=>s.enemies)),
+      maxGems:Math.max(...samples.map(s=>s.gems)),
+      maxShots:Math.max(...samples.map(s=>s.shots)),
+      maxEffects:Math.max(...samples.map(s=>s.effects)),
+      maxTexts:Math.max(...samples.map(s=>s.texts)),
+      maxKps:Math.round(Math.max(...samples.map(s=>s.kps))*10)/10
+    };
+  }
+  function sampleDevTestRecorder(){
+    if(!devTestRecorder.active)return;
+    const t=Math.round(devTestRecorder.elapsed*10)/10;
+    const perf=buildDevPerfSnapshot();
+    const sample={
+      t,
+      stageTime:Math.round((isInfiniteMode()?infiniteDisplayedTime():time)*10)/10,
+      stage:currentStage,
+      stageLabel:currentStageLabel(),
+      fps:Math.round(perfDebugLast.fps*10)/10,
+      frameMs:Math.round(perfDebugLast.frameMs*10)/10,
+      enemies:hudEnemyCount,
+      gems:gems.length,
+      shots:shots.length+petShots.length+enemyShots.length+bananas.length,
+      effects:effects.length,
+      texts:texts.length,
+      kps:Math.round(kps*10)/10,
+      hp:Math.round(player.hp),
+      maxHp:Math.round(player.maxHp),
+      level:player.level,
+      pressure:Math.round(encirclementPressure*100),
+      charge:Math.round(encirclementCharge),
+      skills:{orbit:skills.orbit,burst:skills.burst,peanut:skills.peanut,pinky:skills.pinky},
+      perf:perf
+    };
+    devTestRecorder.samples.push(sample);
+    updateDevPerfPeaks(perf,t);
+  }
+  function updateTestModeUi(){
+    testModeMobileBtn.classList.toggle("active",devTestProfile==="mobile");
+    testModeDesktopBtn.classList.toggle("active",devTestProfile==="desktop");
+    testInvincibleBtn.classList.toggle("active",devInvincible);
+    testAutoSkillBtn.classList.toggle("active",devAutoUpgrade);
+    testInvincibleBtn.textContent=`HP0不死 ${devInvincible?"ON":"OFF"}`;
+    testAutoSkillBtn.textContent=`自動選技 ${devAutoUpgrade?"ON":"OFF"}`;
+    const summary=devTestRecorder.summary||buildDevTestSummary();
+    testModeStatus.textContent=
+      `模式：${devTestProfile==="desktop"?"電腦":"手機"}（每 ${devTestRecorder.interval.toFixed(devTestRecorder.interval<1?2:0)} 秒取樣）\n`+
+      `紀錄狀態：${devTestRecorder.active?"進行中":"未開始"}\n`+
+      `已收集樣本：${devTestRecorder.samples.length}\n`+
+      `本輪時長：${summary.duration||0} 秒\n`+
+      `平均 FPS：${summary.avgFps||0}｜最低 FPS：${summary.minFps||0}\n`+
+      `怪物峰值：${summary.maxEnemies||0}｜經驗球峰值：${summary.maxGems||0}\n`+
+      `射彈峰值：${summary.maxShots||0}｜特效峰值：${summary.maxEffects||0}\n`+
+      `文字峰值：${summary.maxTexts||0}｜KPS 峰值：${summary.maxKps||0}\n`+
+      `不死：${devInvincible?"ON":"OFF"}｜自動選技：${devAutoUpgrade?"ON":"OFF"}`;
+    testModeStartBtn.disabled=devTestRecorder.active;
+    testModeStopBtn.disabled=!devTestRecorder.active;
+    testModeExportBtn.disabled=!devTestRecorder.samples.length;
+  }
+  function openTestModeOverlay(message=""){
+    if(message)testModeHint.textContent=message;
+    else testModeHint.textContent="可切換手機/電腦取樣，並在本局內開啟不死與自動選技。";
+    testModeOverlay.classList.add("visible");
+    testModeOverlay.setAttribute("aria-hidden","false");
+    updateTestModeUi();
+  }
+  function closeTestModeOverlay(){
+    testModeOverlay.classList.remove("visible");
+    testModeOverlay.setAttribute("aria-hidden","true");
+  }
+  async function startDevTestRecording(){
+    resetDevTestRecorder(devTestProfile);
+    devTestRecorder.active=true;
+    devTestRecorder.startReal=Date.now();
+    devTestRecorder.battery=await captureBatteryInfo();
+    sampleDevTestRecorder();
+    updateTestModeUi();
+    beep(720,.09,.03,"triangle");
+  }
+  function stopDevTestRecording(){
+    if(!devTestRecorder.active)return;
+    devTestRecorder.active=false;
+    devTestRecorder.summary=buildDevTestSummary();
+    updateTestModeUi();
+    beep(360,.08,.025);
+  }
+  function buildDevTestExportData(){
+    return {
+      version:1,
+      profile:devTestRecorder.profile,
+      stage:currentStage,
+      infinite:isInfiniteMode(),
+      exportedAt:Date.now(),
+      battery:devTestRecorder.battery||{supported:false},
+      flags:{
+        invincible:devInvincible,
+        autoSkill:devAutoUpgrade
+      },
+      summary:devTestRecorder.summary||buildDevTestSummary(),
+      peaks:devTestRecorder.perfPeaks,
+      samples:devTestRecorder.samples
+    };
+  }
+  function exportDevTestRecording(){
+    const payload=JSON.stringify(buildDevTestExportData());
+    if(navigator.clipboard&&window.isSecureContext){
+      navigator.clipboard.writeText(payload).then(()=>{
+        openTestModeOverlay("測試紀錄 JSON 已複製，可直接貼給我分析。");
+      }).catch(()=>{
+        openSettingsDialog({
+          title:"測試紀錄匯出",
+          message:"剪貼簿失敗，請手動複製下方 JSON。",
+          inputValue:payload,
+          confirmLabel:"關閉",
+          cancelLabel:"關閉",
+          showInput:true,
+          onConfirm:()=>closeSettingsDialog()
+        });
+      });
+      return;
+    }
+    openSettingsDialog({
+      title:"測試紀錄匯出",
+      message:"請完整複製下方 JSON。",
+      inputValue:payload,
+      confirmLabel:"關閉",
+      cancelLabel:"關閉",
+      showInput:true,
+      onConfirm:()=>closeSettingsDialog()
+    });
   }
   function openSettingsOverlay(message){
     settingsHint.textContent=message||"可匯出帳號碼到其他裝置，也能從這裡進入開發模式。";
@@ -946,6 +1161,7 @@
     metaRecordEl.innerHTML=`總擊破 ${meta.totalKills||0}｜菁英 ${meta.totalElites||0}｜BOSS ${meta.totalBosses||0}`;
     powerBox.innerHTML=`<span class="powerLabel">戰力</span><span class="powerValue">${combatPower()}</span>`;
     devResetBtn.classList.toggle("hidden",!devModeActive);
+    document.getElementById("devTestBtn").classList.toggle("hidden",!devModeActive);
     renderStageArt(currentStage);
     metaStatsEl.innerHTML="";
     for(const def of metaDefs){
@@ -2392,6 +2608,13 @@
       };
       choicesEl.appendChild(card);
     }
+    if(devModeActive&&devAutoUpgrade&&picked.length){
+      const cards=[...choicesEl.querySelectorAll(".choice")];
+      const pickIndex=Math.floor(Math.random()*cards.length);
+      setTimeout(()=>{
+        if(paused&&!levelScreen.classList.contains("hidden")&&cards[pickIndex])cards[pickIndex].click();
+      },420);
+    }
   }
 
   function spawnChest(){
@@ -2502,7 +2725,12 @@
   }
 
   function hurt(amount){
-    if(player.invuln>0)return;player.hp-=amount;player.invuln=.7;burst(player.x,player.y,"#ff776e",8);if(player.hp<=0)lose();
+    if(player.invuln>0)return;
+    player.hp-=amount;
+    player.invuln=.7;
+    burst(player.x,player.y,"#ff776e",8);
+    if(isDevProtectedRun())player.hp=Math.max(1,player.hp);
+    else if(player.hp<=0)lose();
   }
 
   function hurtPercent(percent,lethal=false,ignoreInvuln=false,grantInvuln=true){
@@ -2568,7 +2796,8 @@
     if(poisonTimer>0){
       poisonTimer=Math.max(0,poisonTimer-dt);
       player.hp-=player.maxHp*poisonRate*dt;
-      if(player.hp<=0)lose();
+      if(isDevProtectedRun())player.hp=Math.max(1,player.hp);
+      else if(player.hp<=0)lose();
     }
     stunTimer=Math.max(0,stunTimer-dt);
     pinkyBoostTimer=Math.max(0,pinkyBoostTimer-dt);
@@ -2755,7 +2984,8 @@
         encirclementSampleClock=0;
         encirclementPressureRounds=0;
       }
-      if(player.hp<=0){
+      if(isDevProtectedRun())player.hp=Math.max(1,player.hp);
+      else if(player.hp<=0){
         lose();
         return;
       }
@@ -3043,6 +3273,15 @@
       audioDebugTimer=0;
       audioDebugLast={...audioDebugCurrent};
       audioDebugCurrent={total:0,beep:0,external:0,xp:0,crit:0,ui:0,pickup:0,smallCarrot:0,giantLaunch:0,giantExplosion:0,externalFail:0};
+    }
+    if(devTestRecorder.active){
+      devTestRecorder.elapsed+=dt;
+      devTestRecorder.lastSampleAt+=dt;
+      if(devTestRecorder.lastSampleAt>=devTestRecorder.interval){
+        devTestRecorder.lastSampleAt=0;
+        sampleDevTestRecorder();
+        devTestRecorder.summary=buildDevTestSummary();
+      }
     }
     if(transitioning){
       updateAnnouncements(dt);
@@ -4197,6 +4436,7 @@
   function setKey(k,v){keys[k]=v;}
   const touch=document.getElementById("touch"),touchKnob=document.getElementById("touchKnob"),touchHint=document.getElementById("touchHint");
   const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn"),leaveStageBtn=document.getElementById("leaveStageBtn"),muteBtn=document.getElementById("muteBtn"),reloadAudioBtn=document.getElementById("reloadAudioBtn");
+  const devTestBtn=document.getElementById("devTestBtn");
   const monitorTabs=document.getElementById("monitorTabs"),perfMonitorBtn=document.getElementById("perfMonitorBtn"),audioMonitorBtn=document.getElementById("audioMonitorBtn");
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
   const characterBtn=document.getElementById("characterBtn"),adventureBookBtn=document.getElementById("adventureBookBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter"),closeAdventureBook=document.getElementById("closeAdventureBook");
@@ -4311,10 +4551,12 @@
     leaveConfirm.classList.remove("visible");
     leaveStageBtn.classList.remove("hidden");
     pauseScreen.classList.remove("hidden");pauseBtn.classList.remove("visible");
+    devTestBtn.classList.toggle("hidden",!devModeActive);
     updateMonitorButtons();
   }
   function resumeGame(){
     if(ended)return;
+    closeTestModeOverlay();
     leaveConfirm.classList.remove("visible");
     leaveStageBtn.classList.remove("hidden");
     pauseScreen.classList.add("hidden");paused=false;last=performance.now();
@@ -4445,6 +4687,7 @@
   settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)closeSettingsDialog();});
   settingsDialogConfirm.addEventListener("click",confirmSettingsDialog);
   settingsDialogCancel.addEventListener("click",closeSettingsDialog);
+  testModeOverlay.addEventListener("click",e=>{if(e.target===testModeOverlay)closeTestModeOverlay();});
   settingsDialogInput.addEventListener("keydown",e=>{
     if(e.key==="Enter"&&!e.shiftKey){
       e.preventDefault();
@@ -4457,6 +4700,31 @@
   accountExportBtn.addEventListener("click",exportAccountCode);
   accountImportBtn.addEventListener("click",importAccountCode);
   developerEntryBtn.addEventListener("click",handleDeveloperEntry);
+  devTestBtn.addEventListener("click",()=>{if(devModeActive)openTestModeOverlay();});
+  testModeMobileBtn.addEventListener("click",()=>{
+    devTestProfile="mobile";
+    if(!devTestRecorder.active)devTestRecorder.interval=getDevTestInterval(devTestProfile);
+    updateTestModeUi();
+  });
+  testModeDesktopBtn.addEventListener("click",()=>{
+    devTestProfile="desktop";
+    if(!devTestRecorder.active)devTestRecorder.interval=getDevTestInterval(devTestProfile);
+    updateTestModeUi();
+  });
+  testInvincibleBtn.addEventListener("click",()=>{
+    devInvincible=!devInvincible;
+    updateTestModeUi();
+    beep(devInvincible?720:320,.07,.02,"triangle");
+  });
+  testAutoSkillBtn.addEventListener("click",()=>{
+    devAutoUpgrade=!devAutoUpgrade;
+    updateTestModeUi();
+    beep(devAutoUpgrade?760:340,.07,.02,"triangle");
+  });
+  testModeStartBtn.addEventListener("click",()=>{startDevTestRecording();});
+  testModeStopBtn.addEventListener("click",()=>{stopDevTestRecording();});
+  testModeExportBtn.addEventListener("click",()=>{stopDevTestRecording();exportDevTestRecording();});
+  testModeCloseBtn.addEventListener("click",closeTestModeOverlay);
   devResetBtn.addEventListener("click",()=>{
     if(!devModeActive)return;
     let refund=0;

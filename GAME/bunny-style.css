@@ -620,6 +620,12 @@
       width: auto; min-width: 0; margin-top: 0; padding-left: 34px; padding-right: 34px;
       white-space: nowrap;
     }
+    #devTestBtn {
+      margin-top: 0;
+      color: #fff6db;
+      background: #4f7dc1;
+      box-shadow: inset -5px -5px #315286,5px 5px #0b0920;
+    }
     #reloadAudioBtn {
       position: absolute;
       top: 10px;
@@ -683,6 +689,97 @@
     #confirmLeaveBtn {
       color: #fff3ed; background: #b9867c;
       box-shadow: inset -5px -5px #7d5a55,5px 5px #0b0920;
+    }
+    #testModeOverlay {
+      position: absolute;
+      inset: 0;
+      z-index: 7;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 14px;
+      background: #05040cd2;
+      backdrop-filter: blur(2px);
+    }
+    #testModeOverlay.visible { display: flex; }
+    #testModePanel {
+      width: min(100%,360px);
+      padding: 14px;
+      border: 3px solid #fff0b1;
+      background: #24193f;
+      box-shadow: 6px 6px #090718cc;
+    }
+    #testModePanel h3 {
+      margin: 0 0 8px;
+      color: #ffe15b;
+      font-size: 21px;
+      text-align: center;
+      text-shadow: 2px 2px #c75460;
+    }
+    #testModeHint {
+      margin: 0 0 12px;
+      color: #efe7ff;
+      font-size: 12px;
+      line-height: 1.55;
+      text-align: center;
+    }
+    #testModeModeRow,
+    #testModeActions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    #testModeActions { margin-top: 10px; }
+    #testModeModeRow button,
+    #testModeActions button {
+      margin: 0;
+      min-height: 0;
+      padding: 10px 8px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    #testModeModeRow button.active {
+      color: #231a34;
+      background: #ffda57;
+      box-shadow: inset -5px -5px #d9962d,5px 5px #0b0920;
+      transform: translate(3px,3px);
+    }
+    #testModeStartBtn,#testModeExportBtn {
+      color: #fff6db;
+      background: #4f7dc1;
+      box-shadow: inset -5px -5px #315286,5px 5px #0b0920;
+    }
+    #testModeStopBtn {
+      color: #fff4e8;
+      background: #c56a6f;
+      box-shadow: inset -5px -5px #8e3e47,5px 5px #0b0920;
+    }
+    #testInvincibleBtn,#testAutoSkillBtn {
+      color: #ece6f8;
+      background: #5e596b;
+      box-shadow: inset -5px -5px #403c48,5px 5px #0b0920;
+    }
+    #testInvincibleBtn.active,#testAutoSkillBtn.active {
+      color: #1d2b23;
+      background: #88d38f;
+      box-shadow: inset -5px -5px #4d8a58,5px 5px #0b0920;
+    }
+    #testModeCloseBtn {
+      color: #2b2140;
+      background: #ffda57;
+      box-shadow: inset -5px -5px #d9962d,5px 5px #0b0920;
+    }
+    #testModeStatus {
+      margin-top: 12px;
+      min-height: 110px;
+      padding: 10px;
+      border: 2px solid #765d96;
+      background: #302652;
+      color: #fff4c7;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
     .pauseStat { padding: 9px; border: 2px solid #765d96; background: #302652; }
     .pauseStat b { display: block; color: #9eeaff; font-size: 13px; }
