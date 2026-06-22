@@ -59,7 +59,7 @@
   let critSampleBuffer=null,critSampleLoading=false;
   const CARROT_BASE_COOLDOWN=.72;
   const CARROT_MIN_CHAIN_INTERVAL=2/60;
-  let xpSoundLastTime=0;
+  let xpSoundLastTime=0,gemMergeTimer=0;
   let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
   let sharedTargetCache=null,sharedTargetTimer=0;
@@ -1965,6 +1965,45 @@
     o.start(t);
     o.stop(t+d+.02);
   }
+  function gemStackLabel(count){
+    if(count>=60)return "+60";
+    if(count>=40)return "+40";
+    if(count>=20)return "+20";
+    if(count>=10)return "+10";
+    return "+1";
+  }
+  function mergeNearbyGems(){
+    if(gems.length<2)return;
+    const cellSize=46;
+    const buckets=new Map();
+    const candidates=[];
+    for(const g of gems){
+      if(g.dead||time-(g.spawnTime||time)<2.5)continue;
+      candidates.push(g);
+      const cx=Math.floor(g.x/cellSize),cy=Math.floor(g.y/cellSize);
+      const key=`${cx},${cy}`;
+      if(!buckets.has(key))buckets.set(key,[]);
+      buckets.get(key).push(g);
+    }
+    for(const g of candidates){
+      if(g.dead)continue;
+      const cx=Math.floor(g.x/cellSize),cy=Math.floor(g.y/cellSize);
+      for(let ox=-1;ox<=1;ox++){
+        for(let oy=-1;oy<=1;oy++){
+          const bucket=buckets.get(`${cx+ox},${cy+oy}`);
+          if(!bucket)continue;
+          for(const other of bucket){
+            if(other===g||other.dead)continue;
+            if(time-(other.spawnTime||time)<2.5)continue;
+            if(dist(g,other)>24)continue;
+            g.value+=other.value;
+            g.stackCount=(g.stackCount||1)+(other.stackCount||1);
+            other.dead=true;
+          }
+        }
+      }
+    }
+  }
   function circleHitXY(ax,ay,ar,bx,by,br){
     const dx=ax-bx,dy=ay-by,r=ar+br;
     return dx*dx+dy*dy<=r*r;
@@ -2548,7 +2587,7 @@
     if(e.kind==="elite")eliteKills++;if(e.kind==="boss"||e.kind==="final")bossKills++;
     if(player.level<MAX_PLAYER_LEVEL){
       const count=e.kind==="normal"?1:e.kind==="elite"?5:e.kind==="boss"?12:25;
-      for(let i=0;i<count;i++)gems.push({id:nextId++,x:e.x+rand(-e.r,e.r),y:e.y+rand(-e.r,e.r),value:e.xp/count,type:Math.floor(Math.random()*5),r:9,phase:Math.random()*6.28});
+      for(let i=0;i<count;i++)gems.push({id:nextId++,x:e.x+rand(-e.r,e.r),y:e.y+rand(-e.r,e.r),value:e.xp/count,type:Math.floor(Math.random()*5),r:9,phase:Math.random()*6.28,spawnTime:time,stackCount:1});
     }
     burst(e.x,e.y,e.kind==="normal"?"#ffe174":"#ff6b68",e.kind==="normal"?5:18);
     if(source==="orbit"&&skills.orbit>=5){
@@ -3262,6 +3301,11 @@
       if(magnetized){const a=Math.atan2(player.y-g.y,player.x-g.x),sp=magnetAll?650:180+(player.magnet-d)*4;g.x+=Math.cos(a)*sp*dt;g.y+=Math.sin(a)*sp*dt;}
       if(d<player.r+9){g.dead=true;gainXp(g.value);playXpPickupSound({waveform:"sine",baseFreq:2169,duration:.2,overtone:.05,rippleCount:1});}
     }
+    gemMergeTimer+=dt;
+    if(gemMergeTimer>=.55){
+      gemMergeTimer=0;
+      mergeNearbyGems();
+    }
     gems=gems.filter(g=>!g.dead);
     if(!gems.length){magnetAll=false;magnetTimer=0;}
   }
@@ -3819,6 +3863,13 @@
     rect(x-3,y-10,6,5,"#3f9548");
     rect(x-1,y-12,4,5,"#78d260");
     rect(x-4,y-4,4,4,"#fff4a0");
+    if((g.stackCount||1)>1){
+      ctx.fillStyle="#0f1224";
+      ctx.font="bold 11px monospace";
+      ctx.textAlign="center";
+      ctx.fillText(gemStackLabel(g.stackCount||1),x,y+22);
+      ctx.textAlign="left";
+    }
   }
 
   function drawChest(chest){
