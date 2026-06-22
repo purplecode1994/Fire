@@ -60,18 +60,19 @@
       top: 92px;
       z-index: 10;
       display: none;
-      gap: 8px;
+      gap: 6px;
       align-items: flex-end;
-      flex-wrap: wrap;
-      max-width: min(280px,52vw);
+      flex-wrap: nowrap;
+      max-width: none;
     }
     #monitorTabs.visible { display: flex; }
     .monitorTag {
       position: static; display: block;
-      min-height: 0; margin: 0; padding: 6px 12px;
+      min-height: 0; margin: 0; padding: 6px 9px;
       border: 2px solid #8d7ab6; color: #fff7d8; background: #1b1533e8;
-      font-size: 12px; line-height: 1; box-shadow: 3px 3px #0007;
+      font-size: 11px; line-height: 1; box-shadow: 3px 3px #0007;
       white-space: nowrap;
+      flex: 0 0 auto;
     }
     .monitorTag.active {
       color: #181227;

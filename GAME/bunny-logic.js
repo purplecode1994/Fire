@@ -287,6 +287,16 @@
     if(currentStage===2)return "沙漠";
     return "菜園";
   }
+  const DEV_TEST_PERF_KEYS=[
+    "collisionShot","collisionArea","collisionOrbit","collisionEnemyShot","collisionCrater","collisionChest","collisionBanana",
+    "targetSearch","gridRebuild","gridCells","gridEntries","nearQuery",
+    "enemyMove","gemUpdate","spawn","groundDraw","enemyDraw","projectileDraw","effectDraw","textDraw"
+  ];
+  const DEV_TEST_SAMPLE_KEYS=[
+    "t","stageTime","stage","stageLabel","fps","frameMs","enemies","gems","shots","effects","texts","kps",
+    "hp","maxHp","level","pressure","charge","orbit","burst","peanut","pinky",
+    ...DEV_TEST_PERF_KEYS
+  ];
   function buildDevPerfSnapshot(){
     return {
       collisionShot:perfWorkLast.collisionShot||0,
@@ -296,11 +306,19 @@
       collisionCrater:perfWorkLast.collisionCrater||0,
       collisionChest:perfWorkLast.collisionChest||0,
       collisionBanana:perfWorkLast.collisionBanana||0,
+      targetSearch:perfWorkLast.targetSearch||0,
       nearQuery:perfWorkLast.nearQuery||0,
       gridRebuild:perfWorkLast.gridRebuild||0,
+      gridCells:perfWorkLast.gridCells||0,
+      gridEntries:perfWorkLast.gridEntries||0,
       enemyMove:perfWorkLast.enemyMove||0,
       gemUpdate:perfWorkLast.gemUpdate||0,
-      spawn:perfWorkLast.spawn||0
+      spawn:perfWorkLast.spawn||0,
+      groundDraw:perfWorkLast.groundDraw||0,
+      enemyDraw:perfWorkLast.enemyDraw||0,
+      projectileDraw:perfWorkLast.projectileDraw||0,
+      effectDraw:perfWorkLast.effectDraw||0,
+      textDraw:perfWorkLast.textDraw||0
     };
   }
   function updateDevPerfPeaks(perf,t){
@@ -469,8 +487,53 @@
       samples:devTestRecorder.samples
     };
   }
+  function buildCompactDevTestExportData(){
+    const raw=buildDevTestExportData();
+    const labels=[];
+    const labelToIndex=new Map();
+    const getLabelIndex=(label)=>{
+      const safe=label||"";
+      if(labelToIndex.has(safe))return labelToIndex.get(safe);
+      const index=labels.length;
+      labels.push(safe);
+      labelToIndex.set(safe,index);
+      return index;
+    };
+    const summary=raw.summary||buildDevTestSummary();
+    return {
+      v:2,
+      p:raw.profile==="desktop"?1:0,
+      s:raw.stage||1,
+      i:raw.infinite?1:0,
+      e:raw.exportedAt||Date.now(),
+      b:raw.battery?.supported?[1,raw.battery.level||0,raw.battery.charging?1:0]:[0],
+      f:[raw.flags?.invincible?1:0,raw.flags?.autoSkill?1:0],
+      u:[
+        summary.duration||0,
+        summary.sampleCount||0,
+        summary.avgFps||0,
+        summary.minFps||0,
+        summary.maxEnemies||0,
+        summary.maxGems||0,
+        summary.maxShots||0,
+        summary.maxEffects||0,
+        summary.maxTexts||0,
+        summary.maxKps||0
+      ],
+      z:labels,
+      k:Object.entries(raw.peaks||{})
+        .map(([key,peak])=>[DEV_TEST_PERF_KEYS.indexOf(key),peak?.value||0,peak?.t||0])
+        .filter(item=>item[0]>=0),
+      x:(raw.samples||[]).map(sample=>DEV_TEST_SAMPLE_KEYS.map(key=>{
+        if(key==="stageLabel")return getLabelIndex(sample.stageLabel||"");
+        if(key==="orbit"||key==="burst"||key==="peanut"||key==="pinky")return sample.skills?.[key]||0;
+        if(DEV_TEST_PERF_KEYS.includes(key))return sample.perf?.[key]||0;
+        return sample[key]??0;
+      }))
+    };
+  }
   function exportDevTestRecording(){
-    const payload=JSON.stringify(buildDevTestExportData());
+    const payload=JSON.stringify(buildCompactDevTestExportData());
     if(navigator.clipboard&&window.isSecureContext){
       navigator.clipboard.writeText(payload).then(()=>{
         openTestModeOverlay("測試紀錄 JSON 已複製，可直接貼給我分析。");
