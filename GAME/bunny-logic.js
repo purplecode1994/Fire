@@ -26,7 +26,7 @@
   const testModeOverlay=document.getElementById("testModeOverlay"),testModeHint=document.getElementById("testModeHint"),testModeStatus=document.getElementById("testModeStatus");
   const testModeMobileBtn=document.getElementById("testModeMobileBtn"),testModeDesktopBtn=document.getElementById("testModeDesktopBtn");
   const testModeStartBtn=document.getElementById("testModeStartBtn"),testModeStopBtn=document.getElementById("testModeStopBtn"),testModeExportBtn=document.getElementById("testModeExportBtn");
-  const testInvincibleBtn=document.getElementById("testInvincibleBtn"),testAutoSkillBtn=document.getElementById("testAutoSkillBtn"),testModeCloseBtn=document.getElementById("testModeCloseBtn");
+  const testInvincibleBtn=document.getElementById("testInvincibleBtn"),testAutoSkillBtn=document.getElementById("testAutoSkillBtn");
   const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText");
   const stageArt=document.getElementById("stageArt"),stageName=document.getElementById("stageName"),stagePower=document.getElementById("stagePower");
   const keys={up:false,down:false,left:false,right:false};
@@ -416,11 +416,13 @@
     else testModeHint.textContent="可切換手機/電腦取樣，並在本局內開啟不死與自動選技。";
     testModeOverlay.classList.add("visible");
     testModeOverlay.setAttribute("aria-hidden","false");
+    devTestBtn.classList.add("active");
     updateTestModeUi();
   }
   function closeTestModeOverlay(){
     testModeOverlay.classList.remove("visible");
     testModeOverlay.setAttribute("aria-hidden","true");
+    devTestBtn.classList.remove("active");
   }
   async function startDevTestRecording(){
     resetDevTestRecorder(devTestProfile);
@@ -4455,6 +4457,8 @@
     const panelTop=canvasRect.top-wrapRect.top+92;
     monitorTabs.style.left=`${Math.round(panelLeft)}px`;
     monitorTabs.style.top=`${Math.round(panelTop)}px`;
+    testModeOverlay.style.left=`${Math.round(panelLeft)}px`;
+    testModeOverlay.style.top=`${Math.round(panelTop+36)}px`;
   }
   function updateMonitorButtons(){
     const gameplayVisible=
@@ -4468,8 +4472,10 @@
       characterScreen.classList.contains("hidden");
     const visible=debugOverlayEnabled&&gameplayVisible;
     monitorTabs.classList.toggle("visible",visible);
+    devTestBtn.classList.toggle("hidden",!devModeActive);
     perfMonitorBtn.classList.toggle("active",debugPanelMode==="perf");
     audioMonitorBtn.classList.toggle("active",debugPanelMode==="audio");
+    if(!visible)closeTestModeOverlay();
     if(visible)positionMonitorTabs();
   }
   function toggleMute(){
@@ -4551,12 +4557,10 @@
     leaveConfirm.classList.remove("visible");
     leaveStageBtn.classList.remove("hidden");
     pauseScreen.classList.remove("hidden");pauseBtn.classList.remove("visible");
-    devTestBtn.classList.toggle("hidden",!devModeActive);
     updateMonitorButtons();
   }
   function resumeGame(){
     if(ended)return;
-    closeTestModeOverlay();
     leaveConfirm.classList.remove("visible");
     leaveStageBtn.classList.remove("hidden");
     pauseScreen.classList.add("hidden");paused=false;last=performance.now();
@@ -4687,7 +4691,11 @@
   settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)closeSettingsDialog();});
   settingsDialogConfirm.addEventListener("click",confirmSettingsDialog);
   settingsDialogCancel.addEventListener("click",closeSettingsDialog);
-  testModeOverlay.addEventListener("click",e=>{if(e.target===testModeOverlay)closeTestModeOverlay();});
+  document.addEventListener("pointerdown",e=>{
+    if(testModeOverlay.classList.contains("visible")&&!e.target.closest("#testModeOverlay")&&!e.target.closest("#devTestBtn")){
+      closeTestModeOverlay();
+    }
+  });
   settingsDialogInput.addEventListener("keydown",e=>{
     if(e.key==="Enter"&&!e.shiftKey){
       e.preventDefault();
@@ -4700,7 +4708,11 @@
   accountExportBtn.addEventListener("click",exportAccountCode);
   accountImportBtn.addEventListener("click",importAccountCode);
   developerEntryBtn.addEventListener("click",handleDeveloperEntry);
-  devTestBtn.addEventListener("click",()=>{if(devModeActive)openTestModeOverlay();});
+  devTestBtn.addEventListener("click",()=>{
+    if(!devModeActive)return;
+    if(testModeOverlay.classList.contains("visible"))closeTestModeOverlay();
+    else openTestModeOverlay();
+  });
   testModeMobileBtn.addEventListener("click",()=>{
     devTestProfile="mobile";
     if(!devTestRecorder.active)devTestRecorder.interval=getDevTestInterval(devTestProfile);
@@ -4724,7 +4736,6 @@
   testModeStartBtn.addEventListener("click",()=>{startDevTestRecording();});
   testModeStopBtn.addEventListener("click",()=>{stopDevTestRecording();});
   testModeExportBtn.addEventListener("click",()=>{stopDevTestRecording();exportDevTestRecording();});
-  testModeCloseBtn.addEventListener("click",closeTestModeOverlay);
   devResetBtn.addEventListener("click",()=>{
     if(!devModeActive)return;
     let refund=0;

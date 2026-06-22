@@ -155,7 +155,6 @@
         <div id="pauseStats"></div>
       </div>
       <div class="panelFooter">
-        <button id="devTestBtn" class="hidden" type="button">測試模式</button>
         <button id="resumeBtn" type="button">繼續遊戲</button>
         <button id="leaveStageBtn" type="button">離開關卡</button>
         <div id="leaveConfirm" class="leaveConfirm">
@@ -168,9 +167,18 @@
       </div>
     </div>
   </div>
+  <div id="touch"><div id="touchKnob"></div></div>
+  <div id="touchHint">按住畫面任意位置拖曳即可移動</div>
+  <button id="pauseBtn" type="button" aria-label="暫停遊戲"><span class="pixelIcon pixelPause" aria-hidden="true"></span></button>
+  <button id="muteBtn" type="button" aria-label="切換音效"><span class="systemSoundIcon" aria-hidden="true">🔊</span></button>
+  <div id="monitorTabs" aria-label="監控分頁">
+    <button id="perfMonitorBtn" class="monitorTag" type="button" aria-label="切換效能監控">效能監控</button>
+    <button id="audioMonitorBtn" class="monitorTag" type="button" aria-label="切換音效監控">音效監控</button>
+    <button id="devTestBtn" class="monitorTag hidden" type="button" aria-label="切換測試紀錄">測試紀錄</button>
+  </div>
   <div id="testModeOverlay" aria-hidden="true">
     <div id="testModePanel">
-      <h3>測試模式</h3>
+      <h3>測試紀錄</h3>
       <p id="testModeHint">可切換手機/電腦取樣，並在本局內開啟不死與自動選技。</p>
       <div id="testModeModeRow">
         <button id="testModeMobileBtn" type="button">手機模式</button>
@@ -179,21 +187,12 @@
       <div id="testModeActions">
         <button id="testModeStartBtn" type="button">開始紀錄</button>
         <button id="testModeStopBtn" type="button">停止紀錄</button>
-        <button id="testModeExportBtn" type="button">匯出紀錄</button>
+        <button id="testModeExportBtn" type="button">匯出JSON</button>
         <button id="testInvincibleBtn" type="button">HP0不死 OFF</button>
         <button id="testAutoSkillBtn" type="button">自動選技 OFF</button>
-        <button id="testModeCloseBtn" type="button">關閉</button>
       </div>
       <div id="testModeStatus"></div>
     </div>
-  </div>
-  <div id="touch"><div id="touchKnob"></div></div>
-  <div id="touchHint">按住畫面任意位置拖曳即可移動</div>
-  <button id="pauseBtn" type="button" aria-label="暫停遊戲"><span class="pixelIcon pixelPause" aria-hidden="true"></span></button>
-  <button id="muteBtn" type="button" aria-label="切換音效"><span class="systemSoundIcon" aria-hidden="true">🔊</span></button>
-  <div id="monitorTabs" aria-label="監控分頁">
-    <button id="perfMonitorBtn" class="monitorTag" type="button" aria-label="切換效能監控">效能監控</button>
-    <button id="audioMonitorBtn" class="monitorTag" type="button" aria-label="切換音效監控">音效監控</button>
   </div>
 </div>
   <script src="bunny-logic.js"></script>
