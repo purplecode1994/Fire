@@ -709,6 +709,37 @@
       text-align: left;
       text-shadow: 1px 1px #c75460;
     }
+    #testModeRecorderBar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 8px;
+      padding: 6px 8px;
+      border: 2px solid #765d96;
+      background: #302652;
+      color: #fff4c7;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    #testModeRecorderDot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #8b8797;
+      box-shadow: 0 0 0 1px #1a132d;
+      flex: 0 0 auto;
+    }
+    #testModeOverlay.recording #testModeRecorderDot {
+      background: #ff4f5f;
+      box-shadow: 0 0 10px #ff4f5f;
+      animation: recordBlink .8s step-end infinite;
+    }
+    #testModeRecorderText {
+      letter-spacing: .5px;
+    }
+    @keyframes recordBlink {
+      50% { opacity: .45; }
+    }
     #testModeHint {
       margin: 0 0 8px;
       color: #efe7ff;

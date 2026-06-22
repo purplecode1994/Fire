@@ -24,6 +24,7 @@
   const settingsDialogText=document.getElementById("settingsDialogText"),settingsDialogInput=document.getElementById("settingsDialogInput");
   const settingsDialogConfirm=document.getElementById("settingsDialogConfirm"),settingsDialogCancel=document.getElementById("settingsDialogCancel");
   const testModeOverlay=document.getElementById("testModeOverlay"),testModeHint=document.getElementById("testModeHint"),testModeStatus=document.getElementById("testModeStatus");
+  const testModeRecorderText=document.getElementById("testModeRecorderText");
   const testModeMobileBtn=document.getElementById("testModeMobileBtn"),testModeDesktopBtn=document.getElementById("testModeDesktopBtn");
   const testModeStartBtn=document.getElementById("testModeStartBtn"),testModeStopBtn=document.getElementById("testModeStopBtn"),testModeExportBtn=document.getElementById("testModeExportBtn");
   const testInvincibleBtn=document.getElementById("testInvincibleBtn"),testAutoSkillBtn=document.getElementById("testAutoSkillBtn");
@@ -361,6 +362,12 @@
       maxKps:Math.round(Math.max(...samples.map(s=>s.kps))*10)/10
     };
   }
+  function formatDevRecordTime(seconds){
+    const total=Math.max(0,Math.floor(seconds));
+    const m=Math.floor(total/60);
+    const s=total%60;
+    return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  }
   function sampleDevTestRecorder(){
     if(!devTestRecorder.active)return;
     const t=Math.round(devTestRecorder.elapsed*10)/10;
@@ -396,6 +403,8 @@
     testAutoSkillBtn.classList.toggle("active",devAutoUpgrade);
     testInvincibleBtn.textContent=`HP0不死 ${devInvincible?"ON":"OFF"}`;
     testAutoSkillBtn.textContent=`自動選技 ${devAutoUpgrade?"ON":"OFF"}`;
+    testModeOverlay.classList.toggle("recording",devTestRecorder.active);
+    testModeRecorderText.textContent=`${devTestRecorder.active?"REC":"IDLE"} ${formatDevRecordTime(devTestRecorder.elapsed)}`;
     const summary=devTestRecorder.summary||buildDevTestSummary();
     testModeStatus.textContent=
       `模式：${devTestProfile==="desktop"?"電腦":"手機"}（每 ${devTestRecorder.interval.toFixed(devTestRecorder.interval<1?2:0)} 秒取樣）\n`+
