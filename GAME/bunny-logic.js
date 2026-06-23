@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=360;
+  const APP_VERSION=363;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -15,6 +15,7 @@
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
   const characterScreen=document.getElementById("characterScreen"),rewardScreen=document.getElementById("rewardScreen"),stageScreen=document.getElementById("stageScreen"),adventureBookScreen=document.getElementById("adventureBookScreen"),shopScreen=document.getElementById("shopScreen");
+  const volumeSettings=document.getElementById("volumeSettings");
   const rewardTrack=document.getElementById("rewardTrackModal"),accountBox=document.getElementById("accountBox");
   const pauseScreen=document.getElementById("pauseScreen"),pauseStats=document.getElementById("pauseStats");
   const metaStatsEl=document.getElementById("metaStats"),metaPointsEl=document.getElementById("metaPoints"),metaRecordEl=document.getElementById("metaRecord"),powerBox=document.getElementById("powerBox");
@@ -63,7 +64,7 @@
   let audio=null,muted=false;
   let runCoins=0,runCoinsSettled=false,walletCoins=0,autoSaveTimer=0;
   let coinSaveStatus={saveLocal:"-",saveSession:"-",metaLocal:"-",metaSession:"-",coinLocal:"-",coinSession:"-",coinCookie:"-"};
-  let critSampleBuffer=null,critSampleLoading=false;
+  let critSampleBuffer=null,critSampleLoading=false,critSoundLastTime=0;
   const CARROT_BASE_COOLDOWN=.72;
   const CARROT_MIN_CHAIN_INTERVAL=2/60;
   let xpSoundLastTime=0;
@@ -175,7 +176,8 @@
       claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,
       desertUnlocked:false,snowUnlocked:false,
       stage1Cleared:false,stage2Cleared:false,stage3Cleared:false,
-      muted:false,cheat8888Used:false
+      muted:false,cheat8888Used:false,
+      masterVolume:.8,synthVolume:.6,critVolume:.7,giantExplosionVolume:.75
     };
   }
 
@@ -403,6 +405,14 @@
       const saved=parseMetaCandidate(readMetaRaw());
       const data=Object.assign(defaultMeta(),saved||{});
       if(!Array.isArray(data.claimedRewards))data.claimedRewards=[];
+      if(!Number.isFinite(Number(data.masterVolume)))data.masterVolume=.8;
+      if(!Number.isFinite(Number(data.synthVolume)))data.synthVolume=.6;
+      if(!Number.isFinite(Number(data.critVolume)))data.critVolume=.7;
+      if(!Number.isFinite(Number(data.giantExplosionVolume)))data.giantExplosionVolume=.75;
+      data.masterVolume=Math.max(0,Math.min(1,Number(data.masterVolume)));
+      data.synthVolume=Math.max(0,Math.min(1,Number(data.synthVolume)));
+      data.critVolume=Math.max(0,Math.min(1,Number(data.critVolume)));
+      data.giantExplosionVolume=Math.max(0,Math.min(1,Number(data.giantExplosionVolume)));
       migrateLegacyStageClears(data);
       const recoveredCoins=readStoredCoins();
       if(recoveredCoins!==null)data.coins=Math.max(Math.floor(Number(data.coins)||0),recoveredCoins);
@@ -423,6 +433,10 @@
 
   function saveMeta(){
     meta.coins=Math.floor(Math.max(0,Number(meta.coins)||0));
+    meta.masterVolume=volumeValue("masterVolume");
+    meta.synthVolume=volumeValue("synthVolume");
+    meta.critVolume=volumeValue("critVolume");
+    meta.giantExplosionVolume=volumeValue("giantExplosionVolume");
     walletCoins=meta.coins;
     const raw=JSON.stringify(meta);
     coinSaveStatus.saveLocal=safeSetStorage(()=>localStorage,SAVE_KEY,raw)?"ok":"fail";
@@ -760,6 +774,7 @@
   }
   function openSettingsOverlay(message){
     settingsHint.textContent=message||"可匯出帳號碼到其他裝置，也能從這裡進入開發模式。";
+    renderVolumeSettings();
     settingsOverlay.classList.add("visible");
     settingsOverlay.setAttribute("aria-hidden","false");
   }
@@ -838,7 +853,11 @@
         meta.stage3Cleared?1:0,
         meta.muted?1:0,
         meta.cheat8888Used?1:0,
-        meta.coins||0
+        meta.coins||0,
+        Math.round(volumeValue("masterVolume")*10),
+        Math.round(volumeValue("synthVolume")*10),
+        Math.round(volumeValue("critVolume")*10),
+        Math.round(volumeValue("giantExplosionVolume")*10)
       ]
     };
   }
@@ -877,7 +896,11 @@
           stage3Cleared:extended?!!data[21]:false,
           muted:extended?!!data[22]:!!data[19],
           cheat8888Used:extended?!!data[23]:!!data[20],
-          coins:data.length>=25?(data[24]||0):0
+          coins:data.length>=25?(data[24]||0):0,
+          masterVolume:data.length>=29?(data[25]||0)/10:.8,
+          synthVolume:data.length>=29?(data[26]||0)/10:.6,
+          critVolume:data.length>=29?(data[27]||0)/10:.7,
+          giantExplosionVolume:data.length>=29?(data[28]||0)/10:.75
         }
       };
     }
@@ -1191,6 +1214,43 @@
         coinDebugBox.textContent="";
       }
     }
+  }
+  const volumeKeys=["masterVolume","synthVolume","critVolume","giantExplosionVolume"];
+  function volumeValue(key){
+    const defaults={masterVolume:.8,synthVolume:.6,critVolume:.7,giantExplosionVolume:.75};
+    return Math.max(0,Math.min(1,Number(meta[key]??defaults[key]??1)));
+  }
+  function renderVolumeSettings(){
+    if(!volumeSettings)return;
+    for(const row of volumeSettings.querySelectorAll(".volumeRow")){
+      const key=row.dataset.volumeKey;
+      const valueEl=row.querySelector("em");
+      if(valueEl)valueEl.textContent=`${Math.round(volumeValue(key)*100)}%`;
+    }
+  }
+  function masterVolume(){
+    return volumeValue("masterVolume");
+  }
+  function synthVolume(){
+    return masterVolume()*volumeValue("synthVolume");
+  }
+  function externalVolumeForKey(key){
+    const perKey=key.startsWith("crit")?volumeValue("critVolume"):
+      key==="giantExplosion"?volumeValue("giantExplosionVolume"):1;
+    return masterVolume()*perKey;
+  }
+  function previewVolumeKey(key){
+    if(muted)return;
+    if(key==="critVolume")playCritSample(1,1);
+    else if(key==="giantExplosionVolume")playGiantExplosionSound();
+    else playUiClick();
+  }
+  function adjustVolume(key,delta){
+    if(!volumeKeys.includes(key))return;
+    meta[key]=Math.max(0,Math.min(1,Math.round((volumeValue(key)+delta*.1)*10)/10));
+    saveMeta();
+    renderVolumeSettings();
+    previewVolumeKey(key);
   }
   function renderShop(){
     syncCoinDisplay();
@@ -2140,11 +2200,15 @@
   }
   // Optional external audio files. Only list files that actually exist to avoid HTTP 404 spam.
   const externalAudioDefs={
-    crit:"audio/Blunt-Critical-Hit.wav",
+    crit:"audio/ro/Blunt-Critical-Hit.wav",
+    crit2:"audio/ro/Blunt-Critical-Hit-2.wav",
+    crit3:"audio/ro/Blunt-Critical-Hit-3.wav",
     giantExplosion:"audio/giant-explosion.wav"
   };
   const externalAudioConfig={
     crit:{minInterval:70},
+    crit2:{minInterval:70},
+    crit3:{minInterval:70},
     smallCarrot:{minInterval:24},
     giantLaunch:{minInterval:120},
     giantExplosion:{minInterval:120}
@@ -2185,6 +2249,8 @@
   function playExternalAudio(key,volume=1,rate=1){
     const entry=externalAudio[key];
     if(!entry||entry.ok!==true||!entry.buffer||muted||!audio)return false;
+    const finalVolume=Math.max(0,Math.min(1,volume*externalVolumeForKey(key)));
+    if(finalVolume<=0)return true;
     const now=performance.now();
     if(now-entry.lastPlayed<entry.minInterval)return false;
     try{
@@ -2193,7 +2259,7 @@
       entry.lastPlayed=now;
       source.buffer=entry.buffer;
       source.playbackRate.setValueAtTime(Math.max(.5,Math.min(2,rate)),audio.currentTime);
-      gain.gain.setValueAtTime(Math.max(0,Math.min(1,volume)),audio.currentTime);
+      gain.gain.setValueAtTime(finalVolume,audio.currentTime);
       source.connect(gain).connect(audio.destination);
       source.start();
       countAudioDebug("external");
@@ -2343,7 +2409,7 @@
           key==="gemUpdate"?240:180)
       }));
   }
-  function beep(f,d=.06,v=.025,type="square"){if(!ensureAudioReady())return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);countAudioDebug("beep");}
+  function beep(f,d=.06,v=.025,type="square"){if(!ensureAudioReady())return;const finalVolume=Math.max(0,v*synthVolume());if(finalVolume<=0)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(finalVolume,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);countAudioDebug("beep");}
   function playUiClick(){
     beep(520,.055,.018,"triangle");
     countAudioSubtype("ui");
@@ -2351,6 +2417,8 @@
   function playSmallCarrotSound(){
     if(playExternalAudio("smallCarrot",.42,1))return;
     if(!ensureAudioReady())return;
+    const sv=synthVolume();
+    if(sv<=0)return;
     countAudioDebug("smallCarrot");
     const t=audio.currentTime;
     const osc=audio.createOscillator();
@@ -2363,8 +2431,8 @@
     filter.frequency.setValueAtTime(1450,t);
     filter.Q.setValueAtTime(1.1,t);
     gain.gain.setValueAtTime(.0001,t);
-    gain.gain.exponentialRampToValueAtTime(.045,t+.004);
-    gain.gain.exponentialRampToValueAtTime(.016,t+.025);
+    gain.gain.exponentialRampToValueAtTime(.045*sv,t+.004);
+    gain.gain.exponentialRampToValueAtTime(.016*sv,t+.025);
     gain.gain.exponentialRampToValueAtTime(.0001,t+.03);
     osc.connect(filter).connect(gain).connect(audio.destination);
     osc.start(t);
@@ -2373,6 +2441,8 @@
   function playGiantLaunchSound(){
     if(playExternalAudio("giantLaunch",.56,1))return;
     if(!ensureAudioReady())return;
+    const sv=synthVolume();
+    if(sv<=0)return;
     countAudioDebug("giantLaunch");
     const t=audio.currentTime;
     const osc=audio.createOscillator();
@@ -2381,7 +2451,7 @@
     osc.frequency.setValueAtTime(170,t);
     osc.frequency.exponentialRampToValueAtTime(110,t+.08);
     gain.gain.setValueAtTime(.0001,t);
-    gain.gain.exponentialRampToValueAtTime(.06,t+.006);
+    gain.gain.exponentialRampToValueAtTime(.06*sv,t+.006);
     gain.gain.exponentialRampToValueAtTime(.0001,t+.11);
     osc.connect(gain).connect(audio.destination);
     osc.start(t);
@@ -2389,11 +2459,23 @@
   }
   function playCritSample(volume=1,rate=1){
     if(!ensureAudioReady())return;
-    if(playExternalAudio("crit",Math.max(.25,Math.min(.85,volume*.9)),rate))return;
+    const now=performance.now();
+    if(now-critSoundLastTime<70)return;
+    const critVolume=Math.max(.25,Math.min(.85,volume*.9));
+    const keys=["crit","crit2","crit3"];
+    const start=Math.floor(Math.random()*keys.length);
+    for(let i=0;i<keys.length;i++){
+      if(playExternalAudio(keys[(start+i)%keys.length],critVolume,rate)){
+        critSoundLastTime=now;
+        return;
+      }
+    }
     return;
   }
   function playXpPickupSound({waveform="sine",baseFreq=2169,duration=.2,overtone=.05,rippleCount=1}={}){
     if(!ensureAudioReady())return;
+    const sv=synthVolume();
+    if(sv<=0)return;
     const now=performance.now();
     if(now-xpSoundLastTime<45)return;
     xpSoundLastTime=now;
@@ -2401,7 +2483,7 @@
     const d=Math.max(.04,duration);
     const gain=audio.createGain();
     gain.gain.setValueAtTime(.0001,t);
-    gain.gain.exponentialRampToValueAtTime(.01,t+.01);
+    gain.gain.exponentialRampToValueAtTime(.01*sv,t+.01);
     gain.gain.exponentialRampToValueAtTime(.0001,t+d);
     gain.connect(audio.destination);
 
@@ -2422,7 +2504,7 @@
       high.type="triangle";
       high.frequency.setValueAtTime(baseFreq*2.02,t);
       highGain.gain.setValueAtTime(.0001,t);
-      highGain.gain.exponentialRampToValueAtTime(overtone*.01,t+.008);
+      highGain.gain.exponentialRampToValueAtTime(overtone*.01*sv,t+.008);
       highGain.gain.exponentialRampToValueAtTime(.0001,t+d*.7);
       high.connect(highGain).connect(audio.destination);
       high.start(t);
@@ -2433,6 +2515,8 @@
   function playGiantExplosionSound({startFreq=80,duration=.14,noiseGain=.18,rippleSpeed=12,jitterDepth=10}={}){
     if(playExternalAudio("giantExplosion",.72,1))return;
     if(!ensureAudioReady())return;
+    const sv=synthVolume();
+    if(sv<=0)return;
     countAudioDebug("giantExplosion");
     const t=audio.currentTime;
     const d=Math.max(.08,duration);
@@ -2449,7 +2533,7 @@
       osc.frequency.linearRampToValueAtTime(wobble,at);
     }
     oscGain.gain.setValueAtTime(.0001,t);
-    oscGain.gain.exponentialRampToValueAtTime(.085,t+.01);
+    oscGain.gain.exponentialRampToValueAtTime(.085*sv,t+.01);
     oscGain.gain.exponentialRampToValueAtTime(.0001,t+d);
     osc.connect(oscGain).connect(audio.destination);
     osc.start(t);
@@ -2466,7 +2550,7 @@
     filter.frequency.setValueAtTime(Math.max(80,startFreq*4.2),t);
     filter.Q.setValueAtTime(1.2,t);
     noiseAmp.gain.setValueAtTime(.0001,t);
-    noiseAmp.gain.exponentialRampToValueAtTime(Math.max(.0001,noiseGain*.06),t+.01);
+    noiseAmp.gain.exponentialRampToValueAtTime(Math.max(.0001,noiseGain*.06*sv),t+.01);
     noiseAmp.gain.exponentialRampToValueAtTime(.0001,t+d*.95);
     noise.connect(filter).connect(noiseAmp).connect(audio.destination);
     noise.start(t);
@@ -2474,13 +2558,15 @@
   }
   function playSweep(fromFreq,toFreq,durationMs,volume=.028,type="triangle"){
     if(!ensureAudioReady())return;
+    const sv=synthVolume();
+    if(sv<=0)return;
     const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime,d=Math.max(.05,durationMs/1000);
     o.type=type;
     o.frequency.setValueAtTime(Math.max(40,fromFreq),t);
     o.frequency.exponentialRampToValueAtTime(Math.max(40,toFreq),t+d);
     g.gain.setValueAtTime(.0001,t);
-    g.gain.exponentialRampToValueAtTime(volume,t+.025);
-    g.gain.exponentialRampToValueAtTime(Math.max(.0001,volume*.72),t+d*.72);
+    g.gain.exponentialRampToValueAtTime(volume*sv,t+.025);
+    g.gain.exponentialRampToValueAtTime(Math.max(.0001,volume*.72*sv),t+d*.72);
     g.gain.exponentialRampToValueAtTime(.0001,t+d);
     o.connect(g).connect(audio.destination);
     o.start(t);
@@ -5004,7 +5090,7 @@
         ["0.5秒總數",`${audioDebugLast.total}`,debugColor(audioDebugLast.total,18,36)],
         ...audioRows.map(row=>[row.label,`${row.value}`,row.value>0?row.color:"#615a79"]),
         ["XP節流",`45 ms`,"#d7d0ec"],
-        ["外部載入",`${Object.values(externalAudio).filter(entry=>entry.ok===true).length}/4`,"#d7d0ec"]
+        ["外部載入",`${Object.values(externalAudio).filter(entry=>entry.ok===true).length}/${Object.keys(externalAudioDefs).length}`,"#d7d0ec"]
       ]
       :[
         ["2秒平均FPS",`${perfDebugLast.fps.toFixed(1)}`,debugColor(perfDebugLast.fps,55,40,true)],
@@ -5535,6 +5621,13 @@
   settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)closeSettingsDialog();});
   settingsDialogConfirm.addEventListener("click",()=>{playUiClick();confirmSettingsDialog();});
   settingsDialogCancel.addEventListener("click",()=>{playUiClick();closeSettingsDialog();});
+  volumeSettings?.addEventListener("click",e=>{
+    const button=e.target.closest("button[data-volume-delta]");
+    if(!button)return;
+    const row=button.closest(".volumeRow");
+    if(!row)return;
+    adjustVolume(row.dataset.volumeKey,Number(button.dataset.volumeDelta)||0);
+  });
   document.addEventListener("pointerdown",e=>{
     if(testModeOverlay.classList.contains("visible")&&!e.target.closest("#testModeOverlay")&&!e.target.closest("#devTestBtn")){
       closeTestModeOverlay();

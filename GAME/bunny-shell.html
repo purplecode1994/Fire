@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>兔兔割草大冒險</title>
-    <link rel="stylesheet" href="bunny-style.css?v=360">
+    <link rel="stylesheet" href="bunny-style.css?v=361">
 </head>
 <body class="layout-portrait">
 <div id="wrap">
@@ -35,7 +35,7 @@
         <b>等級獎勵（尚未開放）</b>
         <div id="rewardTrack"></div>
       </div>
-      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.360</span></h1>
+      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.363</span></h1>
       <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
@@ -81,6 +81,14 @@
         <div id="settingsPanel">
           <h3>設定</h3>
           <p id="settingsHint">可匯出帳號碼到其他裝置，也能從這裡進入開發模式。</p>
+          <div id="volumeSettings" aria-label="音效音量設定">
+            <b>音效</b>
+            <div class="volumeRow" data-volume-key="masterVolume"><span>總音量</span><button type="button" data-volume-delta="-1">-</button><em>80%</em><button type="button" data-volume-delta="1">+</button></div>
+            <div class="volumeRow" data-volume-key="synthVolume"><span>數碼音</span><button type="button" data-volume-delta="-1">-</button><em>60%</em><button type="button" data-volume-delta="1">+</button></div>
+            <b>外部音</b>
+            <div class="volumeRow" data-volume-key="critVolume"><span>爆擊音</span><button type="button" data-volume-delta="-1">-</button><em>70%</em><button type="button" data-volume-delta="1">+</button></div>
+            <div class="volumeRow" data-volume-key="giantExplosionVolume"><span>巨蘿蔔爆炸</span><button type="button" data-volume-delta="-1">-</button><em>75%</em><button type="button" data-volume-delta="1">+</button></div>
+          </div>
           <div id="settingsActions">
             <button id="accountExportBtn" type="button">帳號匯出</button>
             <button id="accountImportBtn" type="button">帳號匯入</button>
@@ -239,7 +247,7 @@
     </div>
   </div>
 </div>
-  <script src="bunny-logic.js?v=360"></script>
+  <script src="bunny-logic.js?v=363"></script>
 </body>
 </html>
 
