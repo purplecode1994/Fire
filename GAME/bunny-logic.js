@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=358;
+  const APP_VERSION=360;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -2140,6 +2140,7 @@
   }
   // Optional external audio files. Only list files that actually exist to avoid HTTP 404 spam.
   const externalAudioDefs={
+    crit:"audio/Blunt-Critical-Hit.wav",
     giantExplosion:"audio/giant-explosion.wav"
   };
   const externalAudioConfig={
