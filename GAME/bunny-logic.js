@@ -3,6 +3,7 @@
   const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
   const transitionCanvas=document.getElementById("transitionCanvas"),transitionCtx=transitionCanvas.getContext("2d");
   const transitionMask=document.getElementById("transitionMask");
+  const APP_VERSION=333;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   const W=540,H=960;
@@ -56,7 +57,8 @@
   let finalPhase="none",finalTimer=0;
   let bossArena={active:false,x:0,y:0,r:360};
   let audio=null,muted=false;
-  let runCoins=0,runCoinsSettled=false,walletCoins=0;
+  let runCoins=0,runCoinsSettled=false,walletCoins=0,autoSaveTimer=0;
+  let coinSaveStatus={saveLocal:"-",saveSession:"-",metaLocal:"-",metaSession:"-",coinLocal:"-",coinSession:"-",coinCookie:"-"};
   let critSampleBuffer=null,critSampleLoading=false;
   const CARROT_BASE_COOLDOWN=.72;
   const CARROT_MIN_CHAIN_INTERVAL=2/60;
@@ -85,7 +87,9 @@
   let perfWorkLast={...perfWorkCurrent};
 
   const META_KEY="bunnyCarrotSurvivorsMetaV1";
+  const WALLET_KEY="bunnyCarrotSurvivorsWalletV1";
   const COIN_KEY="bunnyCarrotSurvivorsCoinsV1";
+  const COIN_COOKIE_KEY="bunnyCarrotSurvivorsCoinsCookieV1";
   const SAVE_KEY="bunnyCarrotSurvivorsSaveV2";
   const BASE_META_DAMAGE=18;
   const BASE_META_LIFE=100;
@@ -155,7 +159,7 @@
     {id:"armorPen",name:"無視防禦",cost:12,cap:100,unlock:m=>m.crit>=48,desc:"+0.7% 無視敵人防禦，最高 LV100（70%）",value:m=>`${(Math.min(100,m.armorPen)*0.7).toFixed(1).replace(/\\.0$/,"")}%`}
   ];
   let meta=loadMeta();
-  syncCoinState();
+  syncCoinState(true);
   let devModeActive=false;
   muted=!!meta.muted;
 
@@ -276,6 +280,24 @@
       return false;
     }
   }
+  function readCookieValue(name){
+    try{
+      const prefix=`${name}=`;
+      const parts=String(document.cookie||"").split("; ");
+      for(const part of parts){
+        if(part.startsWith(prefix))return decodeURIComponent(part.slice(prefix.length));
+      }
+    }catch(_error){}
+    return null;
+  }
+  function writeCookieValue(name,value){
+    try{
+      document.cookie=`${name}=${encodeURIComponent(value)}; max-age=31536000; path=/; SameSite=Lax`;
+      return readCookieValue(name)===String(value);
+    }catch(_error){
+      return false;
+    }
+  }
 
   function readMetaRaw(){
     const stores=[
@@ -312,6 +334,8 @@
 
   function readStoredCoins(){
     const stores=[
+      ()=>localStorage.getItem(WALLET_KEY),
+      ()=>sessionStorage.getItem(WALLET_KEY),
       ()=>{
         const raw=localStorage.getItem(SAVE_KEY);
         if(!raw)return null;
@@ -326,6 +350,7 @@
       },
       ()=>localStorage.getItem(COIN_KEY),
       ()=>sessionStorage.getItem(COIN_KEY),
+      ()=>readCookieValue(COIN_COOKIE_KEY),
       ()=>{
         const saveKey=`${SAVE_KEY}=`;
         const raw=String(window.name||"");
@@ -361,6 +386,14 @@
     return best;
   }
 
+  function writeWalletCoins(value){
+    const safe=String(Math.floor(Math.max(0,Number(value)||0)));
+    safeSetStorage(()=>localStorage,WALLET_KEY,safe);
+    safeSetStorage(()=>sessionStorage,WALLET_KEY,safe);
+    writeCookieValue(COIN_COOKIE_KEY,safe);
+    return Number(safe);
+  }
+
   function loadMeta(){
     try{
       const saved=parseMetaCandidate(readMetaRaw());
@@ -388,14 +421,16 @@
     meta.coins=Math.floor(Math.max(0,Number(meta.coins)||0));
     walletCoins=meta.coins;
     const raw=JSON.stringify(meta);
-    safeSetStorage(()=>localStorage,SAVE_KEY,raw);
-    safeSetStorage(()=>sessionStorage,SAVE_KEY,raw);
-    safeSetStorage(()=>localStorage,META_KEY,raw);
-    safeSetStorage(()=>sessionStorage,META_KEY,raw);
+    coinSaveStatus.saveLocal=safeSetStorage(()=>localStorage,SAVE_KEY,raw)?"ok":"fail";
+    coinSaveStatus.saveSession=safeSetStorage(()=>sessionStorage,SAVE_KEY,raw)?"ok":"fail";
+    coinSaveStatus.metaLocal=safeSetStorage(()=>localStorage,META_KEY,raw)?"ok":"fail";
+    coinSaveStatus.metaSession=safeSetStorage(()=>sessionStorage,META_KEY,raw)?"ok":"fail";
     try{window.name=`${SAVE_KEY}=${raw}`;}catch(_error){}
     const coinRaw=String(meta.coins);
-    safeSetStorage(()=>localStorage,COIN_KEY,coinRaw);
-    safeSetStorage(()=>sessionStorage,COIN_KEY,coinRaw);
+    writeWalletCoins(meta.coins);
+    coinSaveStatus.coinLocal=safeSetStorage(()=>localStorage,COIN_KEY,coinRaw)?"ok":"fail";
+    coinSaveStatus.coinSession=safeSetStorage(()=>sessionStorage,COIN_KEY,coinRaw)?"ok":"fail";
+    coinSaveStatus.coinCookie=writeCookieValue(COIN_COOKIE_KEY,coinRaw)?"ok":"fail";
     try{
       const savePart=`${SAVE_KEY}=${raw}`;
       const coinPart=`${COIN_KEY}=${coinRaw}`;
@@ -1110,7 +1145,7 @@
     if(shopCoinCount)shopCoinCount.textContent=formatCommaNumber(walletCoins||0);
     if(coinDevSubBtn)coinDevSubBtn.classList.toggle("hidden",!devModeActive);
     if(coinDebugBox){
-      let saveCoins="-",coinKeyCoins="-";
+      let saveCoins="-",walletKeyCoins="-",coinKeyCoins="-",cookieCoins="-";
       try{
         const saveRaw=localStorage.getItem(SAVE_KEY)||sessionStorage.getItem(SAVE_KEY);
         if(saveRaw){
@@ -1119,17 +1154,33 @@
         }
       }catch(_error){}
       try{
+        const walletRaw=localStorage.getItem(WALLET_KEY)||sessionStorage.getItem(WALLET_KEY);
+        if(walletRaw!==null&&walletRaw!==undefined&&walletRaw!=="")walletKeyCoins=formatCommaNumber(Number(walletRaw));
+      }catch(_error){}
+      try{
         const coinRaw=localStorage.getItem(COIN_KEY)||sessionStorage.getItem(COIN_KEY);
         if(coinRaw!==null&&coinRaw!==undefined&&coinRaw!=="")coinKeyCoins=formatCommaNumber(Number(coinRaw));
       }catch(_error){}
+      try{
+        const rawCookie=readCookieValue(COIN_COOKIE_KEY);
+        if(rawCookie!==null&&rawCookie!==undefined&&rawCookie!=="")cookieCoins=formatCommaNumber(Number(rawCookie));
+      }catch(_error){}
       if(devModeActive){
+        const navigationEntry=performance.getEntriesByType?.("navigation")?.[0];
+        const loadType=navigationEntry?.type||"unknown";
         coinDebugBox.classList.remove("hidden");
         coinDebugBox.textContent=[
           `wallet ${formatCommaNumber(walletCoins||0)}`,
           `meta ${formatCommaNumber(Number(meta.coins)||0)}`,
           `run ${formatCommaNumber(Number(runCoins)||0)}`,
           `save ${saveCoins}`,
-          `coin ${coinKeyCoins}`
+          `walletKey ${walletKeyCoins}`,
+          `coin ${coinKeyCoins}`,
+          `cookie ${cookieCoins}`,
+          `ok ${coinSaveStatus.saveLocal}/${coinSaveStatus.saveSession}/${coinSaveStatus.coinCookie}`,
+          `load ${loadType}`,
+          `ver ${APP_VERSION}`,
+          `proto ${location.protocol}`
         ].join("\n");
       }else{
         coinDebugBox.classList.add("hidden");
@@ -1179,6 +1230,16 @@
     }
     beep(620,.06,.018,"triangle");
     countAudioSubtype("ui");
+  }
+  function refreshWalletSilently(){
+    syncCoinState(true);
+    syncCoinDisplay();
+  }
+  function scheduleWalletBootRefresh(){
+    refreshWalletSilently();
+    requestAnimationFrame(refreshWalletSilently);
+    setTimeout(refreshWalletSilently,150);
+    setTimeout(refreshWalletSilently,700);
   }
   function settleRunCoins(){
     if(runCoinsSettled||runCoins<=0)return;
@@ -1908,15 +1969,8 @@
     }
     adventureBookContent.appendChild(grid);
   }
-  // Optional external audio files:
-  // audio/crit.wav.wav
-  // audio/small-carrot.wav
-  // audio/giant-launch.wav
-  // audio/giant-explosion.wav
+  // Optional external audio files. Only list files that actually exist to avoid HTTP 404 spam.
   const externalAudioDefs={
-    crit:"audio/crit.wav.wav",
-    smallCarrot:"audio/small-carrot.wav",
-    giantLaunch:"audio/giant-launch.wav",
     giantExplosion:"audio/giant-explosion.wav"
   };
   const externalAudioConfig={
@@ -3633,10 +3687,10 @@
     const frameBucket=Math.floor(time*60);
     for(let i=0;i<gems.length;i++){
       const g=gems[i];
-      const lifeTime=time-(g.spawnTime||time);
+      const lifeTime=time-(g.spawnTime??time);
       const d=dist(g,player);
       const magnetized=d<player.magnet;
-      if(lifeTime>=5&&d>140){
+      if(lifeTime>=5){
         g.dead=true;
         gainXp(g.value||0);
         continue;
@@ -3669,6 +3723,11 @@
     debugFrameMs=debugFrameMs*.88+dt*1000*.12;
     debugPeakFrameMs=Math.max(debugFrameMs,debugPeakFrameMs*.965);
     debugFps=1000/Math.max(1,debugFrameMs);
+    autoSaveTimer+=dt;
+    if(autoSaveTimer>=30){
+      autoSaveTimer=0;
+      saveMeta();
+    }
     if(performance&&performance.memory&&performance.memory.usedJSHeapSize)debugHeapMb=performance.memory.usedJSHeapSize/1048576;
     perfDebugTimer+=dt;
     perfDebugAccumulator.frameMs+=dt*1000;
@@ -5116,7 +5175,10 @@
   addEventListener("blur",()=>{Object.keys(keys).forEach(k=>keys[k]=false);resetStick();});
   addEventListener("focus",()=>{ensureAudioReady();});
   document.addEventListener("visibilitychange",()=>{
-    if(document.hidden)saveMeta();
+    if(document.hidden){
+      if(running&&!ended)settleRunCoins();
+      saveMeta();
+    }
     else{
       ensureAudioReady();
       syncCoinState(true);
@@ -5124,8 +5186,14 @@
     }
   });
   addEventListener("pageshow",()=>{ensureAudioReady();syncCoinState(true);renderMeta();});
-  addEventListener("pagehide",()=>{saveMeta();});
-  addEventListener("beforeunload",()=>{saveMeta();});
+  addEventListener("pagehide",()=>{
+    if(running&&!ended)settleRunCoins();
+    saveMeta();
+  });
+  addEventListener("beforeunload",()=>{
+    if(running&&!ended)settleRunCoins();
+    saveMeta();
+  });
   addEventListener("resize",positionMonitorTabs);
   pauseBtn.addEventListener("click",pauseGame);
   resumeBtn.addEventListener("click",resumeGame);
@@ -5306,5 +5374,6 @@
     setupMetaMarquees();
   });
   resizeTransitionCanvas();
-  updateMuteButton();renderMeta();draw();requestAnimationFrame(loop);
+  syncCoinState(true);
+  updateMuteButton();renderMeta();scheduleWalletBootRefresh();draw();requestAnimationFrame(loop);
 })();
