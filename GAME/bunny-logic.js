@@ -28,7 +28,7 @@
   const testModeMobileBtn=document.getElementById("testModeMobileBtn"),testModeDesktopBtn=document.getElementById("testModeDesktopBtn");
   const testModeStartBtn=document.getElementById("testModeStartBtn"),testModeStopBtn=document.getElementById("testModeStopBtn"),testModeExportBtn=document.getElementById("testModeExportBtn");
   const testInvincibleBtn=document.getElementById("testInvincibleBtn"),testAutoSkillBtn=document.getElementById("testAutoSkillBtn");
-  const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText");
+  const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText"),coinCountEl=document.getElementById("coinCount"),coinDevSubBtn=document.getElementById("coinDevSubBtn"),coinDevAddBtn=document.getElementById("coinDevAddBtn"),coinDebugBox=document.getElementById("coinDebugBox");
   const stageArt=document.getElementById("stageArt"),stageName=document.getElementById("stageName"),stagePower=document.getElementById("stagePower");
   const keys={up:false,down:false,left:false,right:false};
   const stick={active:false,pointerId:null,x:0,y:0,startX:0,startY:0};
@@ -41,7 +41,7 @@
   let kills=0,score=0,eliteKills=0,bossKills=0,nextId=1,levelQueue=0;
   let eligibleKills=0,instantKills=0,instantKillTimer=0;
   let kps=0,kpsWindowKills=0,kpsWindowTime=0,kpsPressure=0;
-  let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0,bankedXp=0;
+  let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0;
   let carrotVolley=0,pinkyBoostTimer=0,pinkyDamageBoost=1,pendingCarrotShots=0;
   let poisonTimer=0,poisonRate=0,stunTimer=0,potionHealTimer=0,currentStage=1,infiniteBossZone=0;
   let encirclementPressure=0,encirclementCharge=0,encirclementSampleClock=0,encirclementPressureRounds=0;
@@ -56,10 +56,11 @@
   let finalPhase="none",finalTimer=0;
   let bossArena={active:false,x:0,y:0,r:360};
   let audio=null,muted=false;
+  let runCoins=0,runCoinsSettled=false;
   let critSampleBuffer=null,critSampleLoading=false;
   const CARROT_BASE_COOLDOWN=.72;
   const CARROT_MIN_CHAIN_INTERVAL=2/60;
-  let xpSoundLastTime=0,gemMergeTimer=0;
+  let xpSoundLastTime=0;
   let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
   let sharedTargetCache=null,sharedTargetTimer=0;
@@ -84,6 +85,8 @@
   let perfWorkLast={...perfWorkCurrent};
 
   const META_KEY="bunnyCarrotSurvivorsMetaV1";
+  const COIN_KEY="bunnyCarrotSurvivorsCoinsV1";
+  const SAVE_KEY="bunnyCarrotSurvivorsSaveV2";
   const BASE_META_DAMAGE=18;
   const BASE_META_LIFE=100;
   const META_DAMAGE_STEP=1.2;
@@ -159,7 +162,7 @@
     return{
       points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,
       totalDeathKills:0,totalDeaths:0,bestInfiniteSeconds:0,
-      infiniteTotalKills:0,
+      infiniteTotalKills:0,coins:0,
       claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,
       desertUnlocked:false,snowUnlocked:false,
       stage1Cleared:false,stage2Cleared:false,stage3Cleared:false,
@@ -251,10 +254,91 @@
     return remaining;
   }
 
+  function readMetaRaw(){
+    const stores=[
+      ()=>localStorage.getItem(SAVE_KEY),
+      ()=>sessionStorage.getItem(SAVE_KEY),
+      ()=>localStorage.getItem(META_KEY),
+      ()=>sessionStorage.getItem(META_KEY),
+      ()=>{
+        const saveKey=`${SAVE_KEY}=`;
+        const raw=String(window.name||"");
+        if(raw.includes(saveKey)){
+          const start=raw.indexOf(saveKey)+saveKey.length;
+          const end=raw.indexOf(";",start);
+          return end>=0?raw.slice(start,end):raw.slice(start);
+        }
+        const key=`${META_KEY}=`;
+        if(raw.includes(key)){
+          const start=raw.indexOf(key)+key.length;
+          const end=raw.indexOf(";",start);
+          return end>=0?raw.slice(start,end):raw.slice(start);
+        }
+        return null;
+      }
+    ];
+    for(const read of stores){
+      try{
+        const value=read();
+        if(value)return value;
+      }catch(_error){}
+    }
+    return null;
+  }
+
+  function readStoredCoins(){
+    const stores=[
+      ()=>{
+        const raw=localStorage.getItem(SAVE_KEY);
+        if(!raw)return null;
+        const parsed=JSON.parse(raw);
+        return parsed&&Number.isFinite(Number(parsed.coins))?Math.floor(Number(parsed.coins)):null;
+      },
+      ()=>{
+        const raw=sessionStorage.getItem(SAVE_KEY);
+        if(!raw)return null;
+        const parsed=JSON.parse(raw);
+        return parsed&&Number.isFinite(Number(parsed.coins))?Math.floor(Number(parsed.coins)):null;
+      },
+      ()=>localStorage.getItem(COIN_KEY),
+      ()=>sessionStorage.getItem(COIN_KEY),
+      ()=>{
+        const saveKey=`${SAVE_KEY}=`;
+        const raw=String(window.name||"");
+        if(raw.includes(saveKey)){
+          const start=raw.indexOf(saveKey)+saveKey.length;
+          const end=raw.indexOf(";",start);
+          const payload=end>=0?raw.slice(start,end):raw.slice(start);
+          try{
+            const parsed=JSON.parse(payload);
+            if(parsed&&Number.isFinite(Number(parsed.coins)))return Math.floor(Number(parsed.coins));
+          }catch(_error){}
+        }
+        const key=`${COIN_KEY}=`;
+        if(!raw.includes(key))return null;
+        const start=raw.indexOf(key)+key.length;
+        const end=raw.indexOf(";",start);
+        return end>=0?raw.slice(start,end):raw.slice(start);
+      }
+    ];
+    for(const read of stores){
+      try{
+        const value=read();
+        if(value!==null&&value!==undefined&&value!==""){
+          const parsed=Number(value);
+          if(Number.isFinite(parsed)&&parsed>=0)return Math.floor(parsed);
+        }
+      }catch(_error){}
+    }
+    return null;
+  }
+
   function loadMeta(){
     try{
-      const saved=JSON.parse(localStorage.getItem(META_KEY)||"null");
+      const saved=JSON.parse(readMetaRaw()||"null");
       const data=Object.assign(defaultMeta(),saved||{});
+      const storedCoins=readStoredCoins();
+      if(storedCoins!==null)data.coins=storedCoins;
       if(!Array.isArray(data.claimedRewards))data.claimedRewards=[];
       migrateLegacyStageClears(data);
       delete data.devMode;
@@ -273,7 +357,34 @@
   }
 
   function saveMeta(){
-    try{localStorage.setItem(META_KEY,JSON.stringify(meta));}catch(_error){}
+    const raw=JSON.stringify(meta);
+    try{localStorage.setItem(SAVE_KEY,raw);}catch(_error){}
+    try{sessionStorage.setItem(SAVE_KEY,raw);}catch(_error){}
+    try{localStorage.setItem(META_KEY,raw);}catch(_error){}
+    try{sessionStorage.setItem(META_KEY,raw);}catch(_error){}
+    try{window.name=`${SAVE_KEY}=${raw}`;}catch(_error){}
+    const coinRaw=String(Math.floor(Number(meta.coins)||0));
+    try{localStorage.setItem(COIN_KEY,coinRaw);}catch(_error){}
+    try{sessionStorage.setItem(COIN_KEY,coinRaw);}catch(_error){}
+    try{
+      const savePart=`${SAVE_KEY}=${raw}`;
+      const coinPart=`${COIN_KEY}=${coinRaw}`;
+      window.name=`${savePart};${coinPart}`;
+    }catch(_error){}
+  }
+  function saveCoinsOnly(){
+    saveMeta();
+  }
+  function syncCoinState(forceSave=false){
+    const storedCoins=readStoredCoins();
+    const currentCoins=Math.floor(Number(meta.coins)||0);
+    const nextCoins=storedCoins===null?currentCoins:Math.max(currentCoins,storedCoins);
+    if(nextCoins!==currentCoins){
+      meta.coins=nextCoins;
+      forceSave=true;
+    }
+    if(forceSave)saveMeta();
+    return meta.coins;
   }
   function isDevProtectedRun(){
     return devModeActive&&devInvincible;
@@ -286,6 +397,25 @@
     if(currentStage===3)return "雪原";
     if(currentStage===2)return "沙漠";
     return "菜園";
+  }
+  function orbitRingConfig(){
+    const radius=55*player.area;
+    if(skills.orbit>=5)return {
+      active:true,
+      radius,
+      thickness:24*player.area,
+      hitDelay:.22,
+      damage:46*player.areaDamage,
+      hitChance:.75
+    };
+    return {
+      active:false,
+      radius,
+      thickness:18,
+      hitDelay:.45,
+      damage:(8+skills.orbit*5)*player.areaDamage,
+      hitChance:1
+    };
   }
   const DEV_TEST_PERF_KEYS=[
     "collisionShot","collisionArea","collisionOrbit","collisionEnemyShot","collisionCrater","collisionChest","collisionBanana",
@@ -639,7 +769,8 @@
         meta.stage2Cleared?1:0,
         meta.stage3Cleared?1:0,
         meta.muted?1:0,
-        meta.cheat8888Used?1:0
+        meta.cheat8888Used?1:0,
+        meta.coins||0
       ]
     };
   }
@@ -677,7 +808,8 @@
           stage2Cleared:extended?!!data[20]:!!data[18],
           stage3Cleared:extended?!!data[21]:false,
           muted:extended?!!data[22]:!!data[19],
-          cheat8888Used:extended?!!data[23]:!!data[20]
+          cheat8888Used:extended?!!data[23]:!!data[20],
+          coins:data.length>=25?(data[24]||0):0
         }
       };
     }
@@ -709,7 +841,8 @@
           stage2Cleared:!!data.s2||!!data.su,
           stage3Cleared:!!data.s3,
           muted:!!data.mt,
-          cheat8888Used:!!data.c8
+          cheat8888Used:!!data.c8,
+          coins:data.cn||0
         }
       };
     }
@@ -803,6 +936,7 @@
           debugPanelMode="perf";
           rewardScreen.classList.add("hidden");
           renderMeta();
+          syncCoinDisplay();
           characterScreen.classList.remove("hidden");
           updateMonitorButtons();
           beep(760,.1,.03,"triangle");
@@ -938,6 +1072,49 @@
     if(hours<=0)return `累計遊玩 ${totalMinutes} 分鐘`;
     return `累計遊玩 ${hours} 小時 ${minutes} 分鐘`;
   }
+  function formatCommaNumber(value){
+    return Math.floor(Math.max(0,value||0)).toLocaleString("en-US");
+  }
+  function syncCoinDisplay(){
+    syncCoinState();
+    if(coinCountEl)coinCountEl.textContent=formatCommaNumber(Number(meta.coins)||0);
+    if(coinDevSubBtn)coinDevSubBtn.classList.toggle("hidden",!devModeActive);
+    if(coinDebugBox){
+      if(devModeActive){
+        let saveCoins="-",coinKeyCoins="-";
+        try{
+          const saveRaw=localStorage.getItem(SAVE_KEY)||sessionStorage.getItem(SAVE_KEY);
+          if(saveRaw){
+            const parsed=JSON.parse(saveRaw);
+            saveCoins=Number.isFinite(Number(parsed?.coins))?formatCommaNumber(Number(parsed.coins)):"-";
+          }
+        }catch(_error){}
+        try{
+          const coinRaw=localStorage.getItem(COIN_KEY)||sessionStorage.getItem(COIN_KEY);
+          if(coinRaw!==null&&coinRaw!==undefined&&coinRaw!=="")coinKeyCoins=formatCommaNumber(Number(coinRaw));
+        }catch(_error){}
+        coinDebugBox.classList.remove("hidden");
+        coinDebugBox.textContent=[
+          `meta ${formatCommaNumber(Number(meta.coins)||0)}`,
+          `run ${formatCommaNumber(Number(runCoins)||0)}`,
+          `save ${saveCoins}`,
+          `coin ${coinKeyCoins}`
+        ].join("\n");
+      }else{
+        coinDebugBox.classList.add("hidden");
+        coinDebugBox.textContent="";
+      }
+    }
+  }
+  function settleRunCoins(){
+    if(runCoinsSettled||runCoins<=0)return;
+    const storedCoins=readStoredCoins();
+    const walletBase=storedCoins!==null?storedCoins:(Number(meta.coins)||0);
+    meta.coins=walletBase+Math.floor(runCoins);
+    runCoinsSettled=true;
+    saveCoinsOnly();
+    syncCoinDisplay();
+  }
 
   function buildCostButtonMarkup(label,cost){
     return `<span class="costButton"><span class="lineTop">${label}</span><span class="lineBottom"><span class="pointDiamond"></span><span>${formatCostShort(cost)}</span></span></span>`;
@@ -948,6 +1125,7 @@
     accountLevelEl.textContent=`LV-${String(info.level).padStart(2,"0")}`;
     accountExpFill.style.width=info.level>=100?"100%":`${Math.floor(info.exp/info.next*100)}%`;
     accountExpText.textContent=info.level>=100?`MAX・總EXP ${info.total}`:`EXP ${info.exp} / ${info.next}`;
+    syncCoinDisplay();
     rewardTrack.innerHTML="";
     for(let lv=5;lv<=100;lv+=5){
       const node=document.createElement("div");
@@ -1102,6 +1280,28 @@
     if(finalPhase!=="none")return infiniteDisplayFreezeStart-infiniteDisplayOffset;
     return Math.max(0,time-infiniteDisplayOffset);
   }
+  function finalBossDisplayName(type){
+    if(type==="whale")return "暴雪鯨魚";
+    if(type==="reaper")return "惡魔死神";
+    if(type==="stoneface")return "遠古石面怪";
+    return "霸王食人花";
+  }
+  function normalStagePointReward(){
+    return Math.floor(Math.max(0,kills-eliteKills-bossKills)/25)+eliteKills*3+bossKills*10+Math.floor(time/60)*3;
+  }
+  function infiniteStagePointReward(){
+    return Math.floor(normalStagePointReward()*.3);
+  }
+  function stageTimerLabel(){
+    if(isInfiniteMode()){
+      if(finalPhase!=="none"){
+        const bossType=bossTypeForZone(infiniteBossZone);
+        return `${infiniteZoneName(infiniteBossZone)} BOSS ${finalBossDisplayName(bossType)}`;
+      }
+      return `${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`;
+    }
+    return time>=DURATION?"關卡 BOSS":formatStageTime(Math.max(1,time));
+  }
 
   function renderStageArt(stage){
     if(stage===4){
@@ -1202,6 +1402,7 @@
     accountExpFill.style.width=info.level>=100?"100%":`${Math.floor(info.exp/info.next*100)}%`;
     accountExpText.textContent=info.level>=100?`MAX｜總EXP ${info.total}`:`EXP ${info.exp} / ${info.next}`;
     accountBox.classList.toggle("claimable",hasClaimableReward(info));
+    if(coinDevAddBtn)coinDevAddBtn.classList.toggle("hidden",!devModeActive);
     rewardTrack.innerHTML="";
     for(let lv=5;lv<=100;lv+=5){
       const claimed=meta.claimedRewards.includes(lv);
@@ -1436,6 +1637,22 @@
     px.clearRect(0,0,size,size);
     drawEnemyPreview(px,type,size/2,size/2,size*.68,silhouette);
     if(silhouette)c.classList.add("bookLockedSilhouette");
+    return c;
+  }
+  const snowSnapshotTypes=new Set(["penguin","snowman","polarbear","seal","whale"]);
+  const enemySnapshotCache=new Map();
+  function getEnemySnapshot(type){
+    if(!snowSnapshotTypes.has(type))return null;
+    if(enemySnapshotCache.has(type))return enemySnapshotCache.get(type);
+    const size=96;
+    const c=document.createElement("canvas");
+    c.width=size;
+    c.height=size;
+    const px=c.getContext("2d");
+    px.imageSmoothingEnabled=false;
+    px.clearRect(0,0,size,size);
+    drawEnemyPreview(px,type,size/2,size/2,44,false);
+    enemySnapshotCache.set(type,c);
     return c;
   }
   function enemyStatLines(type,extraSkill){
@@ -1969,43 +2186,16 @@
   }
   function gemStackLabel(count){
     if(count>=60)return "+60";
+    if(count>=50)return "+50";
     if(count>=40)return "+40";
+    if(count>=30)return "+30";
+    if(count>=25)return "+25";
     if(count>=20)return "+20";
+    if(count>=15)return "+15";
     if(count>=10)return "+10";
+    if(count>=5)return "+5";
+    if(count>=3)return "+3";
     return "+1";
-  }
-  function mergeNearbyGems(){
-    if(gems.length<2)return;
-    const cellSize=46;
-    const buckets=new Map();
-    const candidates=[];
-    for(const g of gems){
-      if(g.dead||time-(g.spawnTime||time)<1.2)continue;
-      candidates.push(g);
-      const cx=Math.floor(g.x/cellSize),cy=Math.floor(g.y/cellSize);
-      const key=`${cx},${cy}`;
-      if(!buckets.has(key))buckets.set(key,[]);
-      buckets.get(key).push(g);
-    }
-    for(const g of candidates){
-      if(g.dead)continue;
-      const cx=Math.floor(g.x/cellSize),cy=Math.floor(g.y/cellSize);
-      for(let ox=-1;ox<=1;ox++){
-        for(let oy=-1;oy<=1;oy++){
-          const bucket=buckets.get(`${cx+ox},${cy+oy}`);
-          if(!bucket)continue;
-          for(const other of bucket){
-            if(other===g||other.dead)continue;
-            if(time-(other.spawnTime||time)<1.2)continue;
-            if(dist(g,other)>36)continue;
-            g.value+=other.value;
-            g.stackCount=(g.stackCount||1)+(other.stackCount||1);
-            g.spawnTime=Math.min(g.spawnTime||time,other.spawnTime||time);
-            other.dead=true;
-          }
-        }
-      }
-    }
   }
   function circleHitXY(ax,ay,ar,bx,by,br){
     const dx=ax-bx,dy=ay-by,r=ar+br;
@@ -2116,7 +2306,7 @@
     kps=kpsWindowKills=kpsWindowTime=kpsPressure=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;bankedXp=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;runCoins=0;runCoinsSettled=false;
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
     infiniteClearCount=0;
@@ -2309,7 +2499,7 @@
   function beginFinalBossEntrance(){
     finalPhase="warning";
     finalTimer=4.2;
-    if(isInfiniteMode())infiniteDisplayFreezeStart=time;
+    if(isInfiniteMode())infiniteDisplayFreezeStart=(Math.floor(time/600)+1)*600;
     bossArena.active=true;
     bossArena.zone=isInfiniteMode()?infiniteBossZone:effectiveZone();
     bossArena.x=player.x;
@@ -2670,12 +2860,17 @@
       const card=document.createElement("div");card.className="choice";
       let current="";
       let nextLevelLabel=u.name;
+      let descText=u.desc;
       if(["orbit","burst","peanut","pinky","brain"].includes(u.id))current=`目前 LV${skills[u.id]}/5`;
       if(["orbit","burst","peanut","pinky","brain"].includes(u.id))nextLevelLabel=`${u.name} LV${Math.min(5,skills[u.id]+1)}`;
       else if(u.id==="multi"){current=`目前 ${player.projectiles}/6 支`;nextLevelLabel=`同步發射 LV${Math.min(5,upgradeLevels.multi+1)}`;}
       else if(u.cap){current=`目前 LV${upgradeLevels[u.id]}/${u.cap}`;nextLevelLabel=`${u.name} LV${Math.min(u.cap,upgradeLevels[u.id]+1)}`;}
       else if(u.basic){current=`目前 LV${upgradeLevels[u.id]}/${BASIC_UPGRADE_CAP}`;nextLevelLabel=`${u.name} LV${Math.min(BASIC_UPGRADE_CAP,upgradeLevels[u.id]+1)}`;}
-      card.innerHTML=`<span class="icon">${u.icon}</span><b>${nextLevelLabel}</b><small>${u.desc}<br>${current}</small>`;
+      if(u.id==="brain"){
+        const nextGain=Math.round(([40,60,80,100,120][skills.brain]||0));
+        descText=`+${nextGain}% 經驗獲取`;
+      }
+      card.innerHTML=`<span class="icon">${u.icon}</span><b>${nextLevelLabel}</b><small>${descText}<br>${current}</small>`;
       card.onclick=()=>{
         u.apply();
         if(Object.hasOwn(upgradeLevels,u.id))upgradeLevels[u.id]++;
@@ -2718,22 +2913,22 @@
   function openChest(chest){
     if(chest.opened)return;
     chest.opened=true;
-    const rewards=["magnet","bomb","heal","potion"];
+    const rewards=["coin","bomb","heal","potion"];
     chest.reward=rewards[Math.floor(Math.random()*rewards.length)];
     chest.rewardLife=.55;
     burst(chest.x,chest.y,"#ffe273",18);
     pickups.push({id:nextId++,type:chest.reward,x:chest.x,y:chest.y-12,r:18,phase:Math.random()*6.28,life:10});
-    const rewardColor=chest.reward==="magnet"?"#78efff":chest.reward==="heal"?"#84ff91":chest.reward==="potion"?"#ff8fc3":"#ff9a55";
+    const rewardColor=chest.reward==="coin"?"#ffe16c":chest.reward==="heal"?"#84ff91":chest.reward==="potion"?"#ff8fc3":"#ff9a55";
     text(chest.x,chest.y-35,"寶物掉落，10 秒內碰觸拾取！",rewardColor,19,"pickup");
     beep(520,.22,.035,"triangle");
   }
 
   function applyChestPickup(pickup){
-    if(pickup.type==="magnet"){
-      magnetAll=true;
-      magnetTimer=8;
-      text(player.x,player.y-42,"強力磁鐵：吸取全部經驗！","#78efff",24,"pickup");
-      beep(760,.35,.04,"triangle");
+    if(pickup.type==="coin"){
+      const goldGain=20+Math.floor(rand(0,41));
+      runCoins+=goldGain;
+      text(player.x,player.y-42,`🪙 +${formatCommaNumber(goldGain)}`,"#ffe16c",24,"pickup");
+      beep(760,.18,.03,"triangle");
       countAudioSubtype("pickup");
       return;
     }
@@ -2922,8 +3117,7 @@
     if(skills.pinky){
       updatePlayer.pinky=(updatePlayer.pinky||0)-dt;
       if(updatePlayer.pinky<=0){
-        const baseCooldown=Math.max(2.6,6.4-skills.pinky*.4);
-        updatePlayer.pinky=Math.max(.45,baseCooldown/player.attackSpeed);
+        updatePlayer.pinky=3;
         fireBanana();
       }
     }
@@ -3007,7 +3201,7 @@
           }
         }
       }
-      if(e.kind==="final"&&e.type==="plant"){
+      if(e.kind==="final"&&e.type==="plant"&&currentStage!==1){
         e.phase-=dt;if(e.phase<=0){e.phase=2.2;for(let i=0;i<8;i++){const q=i*Math.PI/4;enemyShots.push({x:e.x,y:e.y,vx:Math.cos(q)*150,vy:Math.sin(q)*150,life:4,r:12,damage:12});}}
       }
       if(e.kind==="final"&&e.type==="whale"){
@@ -3108,19 +3302,37 @@
     const orbitCount=skills.orbit?skills.orbit+1:0;
     const orbitRadius=55*player.area;
     const orbitSpeed=skills.orbit>=5?4.6:1.8+skills.orbit*.1;
+    const ring=orbitRingConfig();
     for(const shot of enemyShots){
       countPerfWork("projectileDraw");
       shot.x+=shot.vx*dt;shot.y+=shot.vy*dt;shot.life-=dt;
       if(orbitCount){
-        for(let i=0;i<orbitCount;i++){
+        if(skills.orbit>=5){
           countPerfWork("collisionOrbit");
-          const a=time*orbitSpeed+i*Math.PI*2/orbitCount;
-          const guard={x:player.x+Math.cos(a)*orbitRadius,y:player.y+Math.sin(a)*orbitRadius};
-          if(dist(shot,guard)<shot.r+12){
-            shot.life=0;
-            burst(shot.x,shot.y,"#ffb14e",5);
-            break;
+          const outer=ring.radius+ring.thickness*.5;
+          const inner=Math.max(0,ring.radius-ring.thickness*.5);
+          const d=dist(shot,player);
+          if(!(shot.orbitChecked&&time-shot.orbitChecked<=ring.hitDelay)&&d+shot.r>=inner&&d-shot.r<=outer){
+            shot.orbitChecked=time;
+            if(Math.random()<ring.hitChance){
+              shot.life=0;
+              burst(shot.x,shot.y,"#ffb14e",5);
+            }
           }
+        }else{
+          for(let i=0;i<orbitCount;i++){
+            countPerfWork("collisionOrbit");
+            const a=time*orbitSpeed+i*Math.PI*2/orbitCount;
+            const guard={x:player.x+Math.cos(a)*orbitRadius,y:player.y+Math.sin(a)*orbitRadius};
+            if(dist(shot,guard)<shot.r+12){
+              shot.life=0;
+              burst(shot.x,shot.y,"#ffb14e",5);
+              break;
+            }
+          }
+        }
+        if(shot.life<=0){
+          continue;
         }
       }
       countPerfWork("collisionEnemyShot");
@@ -3256,29 +3468,55 @@
     if(skills.orbit){
       const count=skills.orbit+1,rad=55*player.area;
       const orbitSpeed=skills.orbit>=5?4.6:1.8+skills.orbit*.1;
-      const hitDelay=skills.orbit>=5?.22:.45;
+      const ring=orbitRingConfig();
+      const hitDelay=ring.hitDelay;
       const boss=getOnlyBoss();
-      for(let i=0;i<count;i++){
-        const a=time*orbitSpeed+i*Math.PI*2/count,x=player.x+Math.cos(a)*rad,y=player.y+Math.sin(a)*rad;
+      if(skills.orbit>=5){
+        const outer=ring.radius+ring.thickness*.5;
+        const inner=Math.max(0,ring.radius-ring.thickness*.5);
         if(boss){
           countPerfWork("collisionOrbit");
           if(!(boss.dead||boss.orbitHit&&time-boss.orbitHit<=hitDelay)){
-            const dx=boss.x-x,dy=boss.y-y,reach=boss.r+9;
-            if(dx*dx+dy*dy<reach*reach){
+            const d=dist(boss,player);
+            if(d+boss.r>=inner&&d-boss.r<=outer){
               boss.orbitHit=time;
-              damageEnemy(boss,(skills.orbit>=5?46:8+skills.orbit*5)*player.areaDamage,false,"orbit");
+              if(Math.random()<ring.hitChance)damageEnemy(boss,ring.damage,false,"orbit");
             }
           }
         }else{
-          forEachEnemyNear(x,y,56,e=>{
+          forEachEnemyNear(player.x,player.y,outer+ENEMY_QUERY_PADDING,e=>{
             countPerfWork("collisionOrbit");
             if(e.dead||e.orbitHit&&time-e.orbitHit<=hitDelay)return;
-            const dx=e.x-x,dy=e.y-y,reach=e.r+9;
-            if(dx*dx+dy*dy<reach*reach){
+            const d=dist(e,player);
+            if(d+e.r>=inner&&d-e.r<=outer){
               e.orbitHit=time;
-              damageEnemy(e,(skills.orbit>=5?46:8+skills.orbit*5)*player.areaDamage,false,"orbit");
+              if(Math.random()<ring.hitChance)damageEnemy(e,ring.damage,false,"orbit");
             }
           });
+        }
+      }else{
+        for(let i=0;i<count;i++){
+          const a=time*orbitSpeed+i*Math.PI*2/count,x=player.x+Math.cos(a)*rad,y=player.y+Math.sin(a)*rad;
+          if(boss){
+            countPerfWork("collisionOrbit");
+            if(!(boss.dead||boss.orbitHit&&time-boss.orbitHit<=hitDelay)){
+              const dx=boss.x-x,dy=boss.y-y,reach=boss.r+9;
+              if(dx*dx+dy*dy<reach*reach){
+                boss.orbitHit=time;
+                damageEnemy(boss,ring.damage,false,"orbit");
+              }
+            }
+          }else{
+            forEachEnemyNear(x,y,56,e=>{
+              countPerfWork("collisionOrbit");
+              if(e.dead||e.orbitHit&&time-e.orbitHit<=hitDelay)return;
+              const dx=e.x-x,dy=e.y-y,reach=e.r+9;
+              if(dx*dx+dy*dy<reach*reach){
+                e.orbitHit=time;
+                damageEnemy(e,ring.damage,false,"orbit");
+              }
+            });
+          }
         }
       }
     }
@@ -3318,20 +3556,17 @@
   }
 
   function updateGems(dt){
-    if(magnetAll){
-      magnetTimer=Math.max(0,magnetTimer-dt);
-      if(magnetTimer<=0)magnetAll=false;
-    }
     const frameBucket=Math.floor(time*60);
     for(let i=0;i<gems.length;i++){
       const g=gems[i];
-      if(outsideNineGrid(g.x,g.y,24)){
-        bankedXp+=g.value||0;
+      const lifeTime=time-(g.spawnTime||time);
+      const d=dist(g,player);
+      const magnetized=d<player.magnet;
+      if(lifeTime>=5&&d>140){
         g.dead=true;
+        gainXp(g.value||0);
         continue;
       }
-      const d=dist(g,player);
-      const magnetized=magnetAll||d<player.magnet;
       const near=d<340||magnetized;
       if(!near){
         const bucketBase=(g.id||i)+frameBucket;
@@ -3340,22 +3575,18 @@
         }else if(bucketBase%2!==0)continue;
       }
       countPerfWork("gemUpdate");
-      if(magnetized){const a=Math.atan2(player.y-g.y,player.x-g.x),sp=magnetAll?650:180+(player.magnet-d)*4;g.x+=Math.cos(a)*sp*dt;g.y+=Math.sin(a)*sp*dt;}
+      if(magnetized){
+        const a=Math.atan2(player.y-g.y,player.x-g.x),sp=180+(player.magnet-d)*4;
+        g.x+=Math.cos(a)*sp*dt;
+        g.y+=Math.sin(a)*sp*dt;
+      }
       if(d<player.r+9){
         g.dead=true;
-        const totalXp=(g.value||0)+bankedXp;
-        bankedXp=0;
-        gainXp(totalXp);
+        gainXp(g.value||0);
         playXpPickupSound({waveform:"sine",baseFreq:2169,duration:.2,overtone:.05,rippleCount:1});
       }
     }
-    gemMergeTimer+=dt;
-    if(gemMergeTimer>=.35){
-      gemMergeTimer=0;
-      mergeNearbyGems();
-    }
     gems=gems.filter(g=>!g.dead);
-    if(!gems.length){magnetAll=false;magnetTimer=0;}
   }
 
   function update(dt){
@@ -3408,12 +3639,15 @@
       updateAnnouncements(dt);
       return;
     }
-    if(battleStartDelay>0){
+    const preBattleActive=battleStartDelay>0;
+    if(preBattleActive){
       battleStartDelay=Math.max(0,battleStartDelay-dt);
       updateAnnouncements(dt);
-      return;
+    }else{
+      time+=dt;
+      timeline();
+      updateAnnouncements(dt);
     }
-    time+=dt;timeline();updateAnnouncements(dt);
     hudSampleTimer+=dt;
     if(hudSampleTimer>=.1){
       hudSampleTimer=0;
@@ -3429,13 +3663,13 @@
       kpsWindowTime=0;
       kpsPressure=clamp((kps-10)/55,0,1);
     }
-    if(finalPhase==="warning"){
+    if(!preBattleActive&&finalPhase==="warning"){
       finalTimer-=dt;
       if(finalTimer<=0)spawnFinalBoss();
     }
-    spawnClock-=dt;
+    if(!preBattleActive)spawnClock-=dt;
     const intensity=1+time/150;
-    if(finalPhase==="none"&&(isInfiniteMode()||time<DURATION)&&spawnClock<=0){
+    if(!preBattleActive&&finalPhase==="none"&&(isInfiniteMode()||time<DURATION)&&spawnClock<=0){
       countPerfWork("spawn");
       const livingCount=nearbyLivingEnemyCount();
       let targetEnemyCount=0;
@@ -3462,7 +3696,7 @@
         }
       }
     }
-    updatePlayer(dt);updateEnemies(dt);shots=updateShots(dt,shots);petShots=updateShots(dt,petShots,true);updateBananas(dt);updateSkills(dt);updateEnemyShots(dt);updateGems(dt);updatePickups(dt);
+    updatePlayer(dt);updateEnemies(dt);shots=updateShots(dt,shots);petShots=updateShots(dt,petShots,true);updateBananas(dt);updateSkills(dt);updateEnemyShots(dt);updateGems(dt);if(!preBattleActive)updatePickups(dt);
     for(const e of effects){
       if(e.kind==="particle"||e.kind==="chip"||e.kind==="half"||e.kind==="pinkyLine"||e.kind==="heart"){
         e.x+=e.vx*dt;e.y+=e.vy*dt;e.life-=dt;
@@ -3829,9 +4063,19 @@
   }
 
   function drawEnemy(e){
-    const p=worldToScreen(e.x,e.y),s=e.r/18;ctx.save();ctx.translate(p.x,p.y);ctx.scale(s,s);
-    if(e.hit)ctx.globalAlpha=.55;
-    if(e.type==="turtle"){
+    const p=worldToScreen(e.x,e.y),s=e.r/18;
+    const snapshot=getEnemySnapshot(e.type);
+    if(snapshot){
+      ctx.save();
+      if(e.hit)ctx.globalAlpha=.55;
+      ctx.imageSmoothingEnabled=false;
+      const size=96*s;
+      ctx.drawImage(snapshot,Math.round(p.x-size/2),Math.round(p.y-size/2),Math.round(size),Math.round(size));
+      ctx.restore();
+    }else{
+      ctx.save();ctx.translate(p.x,p.y);ctx.scale(s,s);
+      if(e.hit)ctx.globalAlpha=.55;
+      if(e.type==="turtle"){
       rect(-15,-10,27,23,"#397d3f");rect(-10,-14,22,22,"#67b551");rect(-5,-9,12,12,"#b0d867");rect(9,-10,11,9,"#ead17c");rect(14,-8,3,3,"#171624");
     }else if(e.type==="mushroom"){
       rect(-12,-2,24,17,"#9a633f");rect(-17,-12,34,16,"#7b4432");rect(-12,-9,7,6,"#e6b16e");rect(5,-9,7,6,"#e6b16e");rect(-7,3,4,5,"#171624");rect(4,3,4,5,"#171624");
@@ -3880,8 +4124,17 @@
     }else{
       rect(-5,4,10,20,"#47974b");rect(-17,-13,34,26,"#d84d48");rect(-11,-8,22,17,"#f0e6b4");rect(-8,-6,5,5,"#191624");rect(4,-6,5,5,"#191624");rect(-14,-17,8,7,"#f3e8a9");rect(6,-17,8,7,"#f3e8a9");
     }
-    if(e.kind!=="normal"){ctx.strokeStyle=e.kind==="elite"?"#ffe767":e.kind==="final"?"#ff405d":"#ff875d";ctx.lineWidth=3;ctx.strokeRect(-22,-22,44,44);}
-    ctx.restore();
+      ctx.restore();
+    }
+    if(e.kind!=="normal"){
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.scale(s,s);
+      ctx.strokeStyle=e.kind==="elite"?"#ffe767":e.kind==="final"?"#ff405d":"#ff875d";
+      ctx.lineWidth=3;
+      ctx.strokeRect(-22,-22,44,44);
+      ctx.restore();
+    }
     if(e.kind==="final"){
       const totalW=e.r*2.8,gap=4,barW=(totalW-gap*2)/3,y=p.y-e.r-18;
       for(let i=0;i<3;i++){
@@ -3912,13 +4165,26 @@
     rect(x-1,y-12,4,5,"#78d260");
     rect(x-4,y-4,4,4,"#fff4a0");
     if((g.stackCount||1)>1){
-      ctx.lineWidth=3;
-      ctx.strokeStyle="#111";
-      ctx.fillStyle="#ffe86a";
+      const stackCount=g.stackCount||1;
+      const label=gemStackLabel(stackCount);
+      ctx.shadowBlur=0;
+      ctx.shadowColor="transparent";
+      if(stackCount>=50){
+        ctx.shadowBlur=14;
+        ctx.shadowColor="rgba(255,72,72,.95)";
+      }else if(stackCount>=40){
+        ctx.shadowBlur=12;
+        ctx.shadowColor="rgba(90,255,120,.9)";
+      }else if(stackCount>=30){
+        ctx.shadowBlur=10;
+        ctx.shadowColor="rgba(80,150,255,.9)";
+      }
+      ctx.fillStyle="#111";
       ctx.font="bold 12px monospace";
       ctx.textAlign="center";
-      ctx.strokeText(gemStackLabel(g.stackCount||1),x,y+22);
-      ctx.fillText(gemStackLabel(g.stackCount||1),x,y+22);
+      ctx.fillText(label,x,y+22);
+      ctx.shadowBlur=0;
+      ctx.shadowColor="transparent";
       ctx.textAlign="left";
     }
   }
@@ -3945,15 +4211,14 @@
   function drawPickup(pickup){
     const p=worldToScreen(pickup.x,pickup.y),bob=Math.sin(time*5+pickup.phase)*5;
     ctx.globalAlpha=.22+.12*Math.sin(time*7+pickup.phase);
-    ctx.fillStyle=pickup.type==="magnet"?"#72eaff":pickup.type==="heal"?"#77ff89":pickup.type==="potion"?"#ff8fc3":"#ff8b55";
+    ctx.fillStyle=pickup.type==="coin"?"#ffe16c":pickup.type==="heal"?"#77ff89":pickup.type==="potion"?"#ff8fc3":"#ff8b55";
     ctx.beginPath();ctx.arc(p.x,p.y+bob,29,0,Math.PI*2);ctx.fill();
     ctx.globalAlpha=1;
-    if(pickup.type==="magnet"){
-      rect(p.x-15,p.y-13+bob,8,25,"#e84b51");
-      rect(p.x+7,p.y-13+bob,8,25,"#4ebfe5");
-      rect(p.x-8,p.y+4+bob,16,8,"#d9e6dc");
-      rect(p.x-11,p.y-16+bob,5,6,"#fff1b0");
-      rect(p.x+6,p.y-16+bob,5,6,"#fff1b0");
+    if(pickup.type==="coin"){
+      rect(p.x-13,p.y-13+bob,26,26,"#b77a1d");
+      rect(p.x-10,p.y-10+bob,20,20,"#ffd84f");
+      rect(p.x-7,p.y-7+bob,14,14,"#fff2a6");
+      rect(p.x-3,p.y-6+bob,6,12,"#d8a927");
     }else if(pickup.type==="bomb"){
       rect(p.x-13,p.y-10+bob,26,24,"#d7333f");
       rect(p.x-9,p.y-14+bob,18,30,"#ed4b50");
@@ -4150,6 +4415,23 @@
   function drawSkills(){
     if(skills.orbit){
       const n=skills.orbit+1,r=55*player.area,speed=skills.orbit>=5?4.6:1.8+skills.orbit*.1;
+      if(skills.orbit>=5){
+        const p=worldToScreen(player.x,player.y);
+        ctx.save();
+        ctx.globalAlpha=.28;
+        ctx.strokeStyle="#fff8cf";
+        ctx.lineWidth=Math.max(10,24*player.area);
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,r,0,Math.PI*2);
+        ctx.stroke();
+        ctx.globalAlpha=.16;
+        ctx.strokeStyle="#ffb94e";
+        ctx.lineWidth=Math.max(4,10*player.area);
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,r,0,Math.PI*2);
+        ctx.stroke();
+        ctx.restore();
+      }
       for(let i=0;i<n;i++){
         const a=time*speed+i*Math.PI*2/n,x=player.x+Math.cos(a)*r,y=player.y+Math.sin(a)*r;
         drawCarrot({x,y,vx:Math.cos(a),vy:Math.sin(a),angle:a});
@@ -4189,8 +4471,7 @@
   function drawMobileHUD(){
     const enemyCount=hudEnemyCount;
     if(H>W){
-      const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
-      const stageTimeLabel=isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":formatStageTime(Math.max(1,time));
+      const stageTimeLabel=stageTimerLabel();
       ctx.save();
       rect(12,14,W-24,24,"#3a2435");
       const hpBarWidth=(W-30);
@@ -4206,15 +4487,17 @@
       ctx.strokeText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,22,26);ctx.fillText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,22,26);
       ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);
       ctx.font="bold 18px monospace";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":"#fff4b2";ctx.strokeText(stageTimeLabel,14,101);ctx.fillText(stageTimeLabel,14,101);
-      ctx.textAlign="right";ctx.font="bold 15px monospace";ctx.fillStyle="#fff";
-      ctx.fillText(`擊倒 ${hudKills}`,W-14,100);
-      ctx.fillStyle=kpsPressure>0?"#ffe15b":"#d8f2ff";
-      ctx.fillText(`KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,W-14,124);
+      ctx.textAlign="right";ctx.font="bold 15px monospace";ctx.fillStyle="#ffe16c";
+      ctx.fillText(`🪙 ${formatCommaNumber(runCoins)}`,W-14,100);
       ctx.fillStyle="#fff";
-      ctx.fillText(`🥕×${player.projectiles} 穿透${player.pierce} 爆擊${formatHudPercent(player.critStack*100)}`,W-14,148);
-      ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut} PINKY${skills.pinky}`,W-14,172);
-      drawStatusRows(W-14,196,24);
-      if(time<4){ctx.textAlign="center";ctx.font="bold 18px sans-serif";ctx.fillStyle="#fff";ctx.fillText("按住畫面拖曳移動",W/2,H-42);}
+      ctx.fillText(`擊倒 ${hudKills}`,W-14,124);
+      ctx.fillStyle=kpsPressure>0?"#ffe15b":"#d8f2ff";
+      ctx.fillText(`KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,W-14,148);
+      ctx.fillStyle="#fff";
+      ctx.fillText(`🥕×${player.projectiles} 穿透${player.pierce} 爆擊${formatHudPercent(player.critStack*100)}`,W-14,172);
+      ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut} PINKY${skills.pinky}`,W-14,196);
+      drawStatusRows(W-14,220,24);
+      if(time<4||battleStartDelay>0){ctx.textAlign="center";ctx.font="bold 18px sans-serif";ctx.fillStyle="#fff";ctx.fillText("按住畫面拖曳移動",W/2,H-42);}
       ctx.restore();
       return;
     }
@@ -4233,22 +4516,22 @@
     ctx.textBaseline="middle";ctx.font="bold 14px monospace";ctx.lineWidth=4;ctx.strokeStyle="#111";ctx.fillStyle="#fff";
     ctx.strokeText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,23,24);ctx.fillText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,23,24);
     ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,23,49);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,23,49);
-    ctx.font="bold 15px monospace";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,14,88);
-    const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
-    const stageTimeLabel=isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":formatStageTime(Math.max(1,time));
+    ctx.font="bold 15px monospace";ctx.fillStyle="#ffe16c";ctx.fillText(`🪙 ${formatCommaNumber(runCoins)}`,14,88);
+    ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,14,108);
+    const stageTimeLabel=stageTimerLabel();
     ctx.textAlign="center";ctx.font="bold 25px monospace";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":time>=480?"#ff6270":"#fff4b2";
     ctx.strokeText(stageTimeLabel,VW/2,22);
     ctx.fillText(stageTimeLabel,VW/2,22);
     ctx.textAlign="right";ctx.font="bold 13px monospace";ctx.fillStyle="#fff";
     ctx.fillText(`🥕×${player.projectiles} 穿透${player.pierce} 爆擊${formatHudPercent(player.critStack*100)}`,VW-14,21);
     ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut}`,VW-14,43);
-    const nextStatusY=drawStatusRows(VW-14,75,20);
+    const nextStatusY=drawStatusRows(VW-14,95,20);
     if(instantKills>0&&instantKillTimer>0){
       ctx.font="bold 20px sans-serif";ctx.fillStyle="#ffe45f";ctx.strokeStyle="#7b2035";ctx.lineWidth=5;
       const comboY=Math.max(94,nextStatusY+12);
       ctx.strokeText(`瞬間擊倒 ×${instantKills}`,VW-16,comboY);ctx.fillText(`瞬間擊倒 ×${instantKills}`,VW-16,comboY);
     }
-    if(time<4){ctx.textAlign="center";ctx.font="bold 17px sans-serif";ctx.fillStyle="#fff";ctx.fillText("按住任意位置拖曳移動，武器自動攻擊",VW/2,VH-28);}
+    if(time<4||battleStartDelay>0){ctx.textAlign="center";ctx.font="bold 17px sans-serif";ctx.fillStyle="#fff";ctx.fillText("按住任意位置拖曳移動，武器自動攻擊",VW/2,VH-28);}
     ctx.restore();
   }
 
@@ -4271,11 +4554,12 @@
     ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,28,52);
     ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,28,52);
     ctx.restore();
-    ctx.font="bold 16px monospace";ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,18,92);
-    if(hudKills<200){ctx.font="bold 12px monospace";ctx.fillStyle="#bff58a";ctx.fillText(`前期經驗減免 ${Math.round((1-(.45+.55*hudKills/200))*100)}%`,18,114);}
-    if(killSurgeActive){ctx.font="bold 13px monospace";ctx.fillStyle="#ff6978";ctx.fillText("狂暴怪潮：數量+75%・生命+60%",18,135);}
+    ctx.font="bold 16px monospace";ctx.fillStyle="#ffe16c";ctx.fillText(`🪙 ${formatCommaNumber(runCoins)}`,18,92);
+    ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,18,116);
+    if(hudKills<200){ctx.font="bold 12px monospace";ctx.fillStyle="#bff58a";ctx.fillText(`前期經驗減免 ${Math.round((1-(.45+.55*hudKills/200))*100)}%`,18,138);}
+    if(killSurgeActive){ctx.font="bold 13px monospace";ctx.fillStyle="#ff6978";ctx.fillText("狂暴怪潮：數量+75%・生命+60%",18,159);}
     const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
-    const stageTimeLabel=isInfiniteMode()?`${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`:time>=DURATION?"關卡 BOSS":formatStageTime(Math.max(1,time));
+    const stageTimeLabel=stageTimerLabel();
     ctx.font="bold 28px monospace";ctx.textAlign="center";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":time>=480?"#ff6270":"#fff4b2";
     ctx.strokeText(stageTimeLabel,W/2,22);ctx.fillText(stageTimeLabel,W/2,22);ctx.textAlign="left";
     ctx.font="bold 14px monospace";ctx.fillStyle="#fff";ctx.fillText(`🥕×${player.projectiles}  穿透${player.pierce}  爆擊${Math.round(player.crit*100)}→${Math.round(player.critStack*100)}%`,W-315,24);
@@ -4289,7 +4573,7 @@
     if(evolved.length){ctx.fillStyle="#ffe15b";ctx.fillText(`進化：${evolved.join("・")}`,W-310,68);}
     ctx.textAlign="right";
     ctx.font="bold 14px monospace";
-    const statusStartY=evolved.length?102:78;
+    const statusStartY=evolved.length?126:102;
     const nextStatusY=drawStatusRows(W-24,statusStartY,20);
     if(instantKills>0&&instantKillTimer>0){
       ctx.font="bold 22px sans-serif";
@@ -4467,6 +4751,7 @@
     runRewarded=true;
     const normalKills=Math.max(0,kills-eliteKills-bossKills);
     const baseEarned=Math.floor(normalKills/25)+eliteKills*3+bossKills*10+(success?25:0)+Math.floor(time/60)*3;
+    settleRunCoins();
     if(isInfiniteMode()){
       const earned=Math.floor(baseEarned*.3);
       meta.points+=earned;
@@ -4486,6 +4771,7 @@
   }
 
   function recordDeathRunStats(){
+    settleRunCoins();
     meta.totalDeaths=(meta.totalDeaths||0)+1;
     meta.totalDeathKills=(meta.totalDeathKills||0)+Math.max(0,kills);
     if(isInfiniteMode()){
@@ -4506,10 +4792,11 @@
     if(currentStage===1&&!meta.desertUnlocked)meta.desertUnlocked=true;
     if(currentStage===2&&!meta.snowUnlocked)meta.snowUnlocked=true;
     saveMeta();
+    renderMeta();
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent=currentStage===3?"雪原深處征服成功！":currentStage===2?"沙漠遺跡征服成功！":"菜園守護成功！";
     document.getElementById("endSub").textContent=currentStage===3?"兔兔擊敗了暴雪鯨魚":currentStage===2?"兔兔擊敗了遠古石面怪":"兔兔擊敗了最終魔王";
-    document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>目前共 ${meta.points} 點`;
+    document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得金幣 🪙 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`;
     beep(660,.4,.05);
   }
 
@@ -4520,10 +4807,11 @@
     updateMonitorButtons();
     const earned=awardRun(false);
     recordDeathRunStats();
+    renderMeta();
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent="兔兔倒下了";
     document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
-    document.getElementById("endText").innerHTML=`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>目前共 ${meta.points} 點`;
+    document.getElementById("endText").innerHTML=`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得金幣 🪙 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>目前共 ${meta.points} 點`;
     beep(180,.7,.05,"sawtooth");
   }
 
@@ -4535,20 +4823,19 @@
     let earned=0;
     if(!runRewarded){
       runRewarded=true;
-      if(isInfiniteMode())meta.points+=Math.floor((Math.floor(Math.max(0,kills-eliteKills-bossKills)/25)+eliteKills*3+bossKills*10+Math.floor(time/60)*3)*.3);
-      else{
-        earned=Math.floor(time/60)*3;
-        meta.points+=earned;
-      }
+      settleRunCoins();
+      earned=isInfiniteMode()?infiniteStagePointReward():Math.floor(time/60)*3;
+      meta.points+=earned;
       meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
       saveMeta();
     }
+    renderMeta();
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent="已離開關卡";
     document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
     document.getElementById("endText").innerHTML=isInfiniteMode()
-      ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${Math.floor((Math.floor(Math.max(0,kills-eliteKills-bossKills)/25)+eliteKills*3+bossKills*10+Math.floor(time/60)*3)*.3)}<br>目前共 ${meta.points} 點`
-      :`中途離開不計怪物點數<br>生存點數 ${earned}<br>目前共 ${meta.points} 點`;
+      ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}（已扣除 70%）<br>本局獲得金幣 🪙 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`
+      :`中途離開不計完整擊殺點數<br>生存點數 ${earned}<br>本局獲得金幣 🪙 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`;
     beep(220,.22,.035,"square");
   }
 
@@ -4687,6 +4974,12 @@
     updateMonitorButtons();
   }
   function askLeaveStage(){
+    const leaveConfirmText=leaveConfirm.querySelector(".leaveConfirmText");
+    if(leaveConfirmText){
+      leaveConfirmText.innerHTML=isInfiniteMode()
+        ?"您確定要中途離開輪迴嗎？<br>將帶走完整金幣，擊殺點數會扣除 70%。"
+        :"您確定要中途離開關卡嗎？<br>將帶走完整金幣，但不會帶走完整擊殺點數。";
+    }
     leaveConfirm.classList.add("visible");
     leaveStageBtn.classList.add("hidden");
     beep(260,.08,.02);
@@ -4748,7 +5041,7 @@
   addEventListener("blur",()=>{Object.keys(keys).forEach(k=>keys[k]=false);resetStick();});
   addEventListener("focus",()=>{ensureAudioReady();});
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)ensureAudioReady();});
-  addEventListener("pageshow",()=>{ensureAudioReady();});
+  addEventListener("pageshow",()=>{ensureAudioReady();syncCoinState(true);renderMeta();});
   addEventListener("resize",positionMonitorTabs);
   pauseBtn.addEventListener("click",pauseGame);
   resumeBtn.addEventListener("click",resumeGame);
@@ -4774,9 +5067,9 @@
   });
   accountBox.addEventListener("click",()=>{renderMeta();rewardScreen.classList.remove("hidden");});
   accountBox.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();renderMeta();rewardScreen.classList.remove("hidden");}});
-  closeRewards.addEventListener("click",()=>{rewardScreen.classList.add("hidden");renderMeta();});
+  closeRewards.addEventListener("click",()=>{rewardScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
   chooseStageBtn.addEventListener("click",()=>{renderMeta();stageScreen.classList.remove("hidden");});
-  closeStage.addEventListener("click",()=>{stageScreen.classList.add("hidden");renderMeta();});
+  closeStage.addEventListener("click",()=>{stageScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
   gardenStage.addEventListener("click",()=>{currentStage=1;renderMeta();});
   desertStage.addEventListener("click",()=>{if(meta.desertUnlocked){currentStage=2;renderMeta();}});
   snowStage.addEventListener("click",()=>{if(meta.snowUnlocked){currentStage=3;renderMeta();}});
@@ -4786,22 +5079,22 @@
     characterScreen.classList.remove("hidden");
     requestAnimationFrame(()=>requestAnimationFrame(setupMetaMarquees));
   });
-  closeCharacter.addEventListener("click",()=>{characterScreen.classList.add("hidden");renderMeta();});
+  closeCharacter.addEventListener("click",()=>{characterScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
   adventureBookBtn.addEventListener("click",()=>{
     renderAdventureBook();
     adventureBookScreen.classList.remove("hidden");
   });
-  closeAdventureBook.addEventListener("click",()=>{adventureBookScreen.classList.add("hidden");renderMeta();});
+  closeAdventureBook.addEventListener("click",()=>{adventureBookScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
   bookTabSkills.addEventListener("click",()=>{bookMainTab="skills";renderAdventureBook();});
   bookTabStages.addEventListener("click",()=>{bookMainTab="stages";renderAdventureBook();});
   bookTabBosses.addEventListener("click",()=>{bookMainTab="bosses";renderAdventureBook();});
   shopBtn.addEventListener("click",()=>{beep(220,.08,.02);});
   perfMonitorBtn.addEventListener("click",()=>{
-    debugPanelMode="perf";
+    debugPanelMode=debugPanelMode==="perf"?"off":"perf";
     updateMonitorButtons();
   });
   audioMonitorBtn.addEventListener("click",()=>{
-    debugPanelMode="audio";
+    debugPanelMode=debugPanelMode==="audio"?"off":"audio";
     updateMonitorButtons();
   });
   devModeBtn.addEventListener("click",()=>{openSettingsOverlay();});
@@ -4827,6 +5120,22 @@
   accountExportBtn.addEventListener("click",exportAccountCode);
   accountImportBtn.addEventListener("click",importAccountCode);
   developerEntryBtn.addEventListener("click",handleDeveloperEntry);
+  coinDevAddBtn?.addEventListener("click",()=>{
+    if(!devModeActive)return;
+    meta.coins=(Number(meta.coins)||0)+100;
+    saveMeta();
+    syncCoinDisplay();
+    beep(780,.08,.02,"square");
+    countAudioSubtype("ui");
+  });
+  coinDevSubBtn?.addEventListener("click",()=>{
+    if(!devModeActive)return;
+    meta.coins=Math.max(0,(Number(meta.coins)||0)-100);
+    saveMeta();
+    syncCoinDisplay();
+    beep(240,.08,.02,"square");
+    countAudioSubtype("ui");
+  });
   devTestBtn.addEventListener("click",()=>{
     if(!devModeActive)return;
     if(testModeOverlay.classList.contains("visible"))closeTestModeOverlay();

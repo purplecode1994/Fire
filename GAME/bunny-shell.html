@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <title>兔兔割草大冒險</title>
-    <link rel="stylesheet" href="bunny-style.css">
+    <link rel="stylesheet" href="bunny-style.css?v=309">
 </head>
 <body class="layout-portrait">
 <div id="wrap">
@@ -18,12 +18,13 @@
         <div class="expBar"><div id="accountExpFill"></div></div>
         <div id="accountExpText">EXP 0 / 0</div>
       </div>
+      <div id="coinBox" aria-label="金幣數量">🪙 <span id="coinCount">0</span><button id="coinDevSubBtn" class="hidden" type="button" aria-label="開發模式減少金幣">-</button><button id="coinDevAddBtn" class="hidden" type="button" aria-label="開發模式增加金幣">+</button><div id="coinDebugBox" class="hidden"></div></div>
       <div id="rewardPanel">
         <b>等級獎勵（尚未開放）</b>
         <div id="rewardTrack"></div>
       </div>
       <h1 class="homeTitle">兔兔割草大冒險</h1>
-      <div class="homeVersion">V.267</div>
+      <div class="homeVersion">V.310</div>
       <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
@@ -44,7 +45,9 @@
         <div id="stagePower" class="stagePower">建議戰力 120</div>
       </div>
       <button id="chooseStageBtn" type="button">選擇關卡</button>
-      <button id="start">開始割草</button>
+      <div id="startWrap">
+        <button id="start">開始割草</button>
+      </div>
       <div class="cornerMenu">
         <button id="characterBtn" type="button">角色資訊</button>
         <button id="adventureBookBtn" type="button">冒險筆記</button>
@@ -158,7 +161,7 @@
         <button id="resumeBtn" type="button">繼續遊戲</button>
         <button id="leaveStageBtn" type="button">離開關卡</button>
         <div id="leaveConfirm" class="leaveConfirm">
-          <div>是否離開關卡？</div>
+          <div class="leaveConfirmText">是否離開關卡？</div>
           <div class="confirmActions">
             <button id="cancelLeaveBtn" type="button">否</button>
             <button id="confirmLeaveBtn" type="button">是</button>
@@ -196,9 +199,16 @@
     </div>
   </div>
 </div>
-  <script src="bunny-logic.js"></script>
+  <script src="bunny-logic.js?v=309"></script>
 </body>
 </html>
+
+
+
+
+
+
+
 
 
 
