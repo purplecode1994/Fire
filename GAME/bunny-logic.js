@@ -41,7 +41,7 @@
   let kills=0,score=0,eliteKills=0,bossKills=0,nextId=1,levelQueue=0;
   let eligibleKills=0,instantKills=0,instantKillTimer=0;
   let kps=0,kpsWindowKills=0,kpsWindowTime=0,kpsPressure=0;
-  let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0;
+  let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0,bankedXp=0;
   let carrotVolley=0,pinkyBoostTimer=0,pinkyDamageBoost=1,pendingCarrotShots=0;
   let poisonTimer=0,poisonRate=0,stunTimer=0,potionHealTimer=0,currentStage=1,infiniteBossZone=0;
   let encirclementPressure=0,encirclementCharge=0,encirclementSampleClock=0,encirclementPressureRounds=0;
@@ -2014,6 +2014,9 @@
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const rand=(a,b)=>a+Math.random()*(b-a);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function outsideNineGrid(x,y,padding=0){
+    return Math.abs(x-player.x)>W*1.5+padding||Math.abs(y-player.y)>H*1.5+padding;
+  }
   function rect(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.ceil(w),Math.ceil(h));}
   function cameraPosition(){return{x:Math.round(player.x),y:Math.round(player.y)};}
   function worldToScreen(x,y){
@@ -2113,7 +2116,7 @@
     kps=kpsWindowKills=kpsWindowTime=kpsPressure=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;bankedXp=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
     infiniteClearCount=0;
@@ -2196,7 +2199,7 @@
     if(kind==="normal"&&kpsPressure>0)hp*=1+kpsPressure*.35;
     if(kind==="elite"&&kpsPressure>0)hp*=1+kpsPressure*.18;
     if(killSurgeActive)hp*=KILL_SURGE_HP_MULTIPLIER;
-    const enemy={id:nextId++,type,kind,defense,x:player.x+Math.cos(angle)*range,y:player.y+Math.sin(angle)*range,r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,cling:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1,kpsSpawned:!!flags.kpsSpawned};
+    const enemy={id:nextId++,type,kind,defense,x:player.x+Math.cos(angle)*range,y:player.y+Math.sin(angle)*range,r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,cling:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1,kpsSpawned:!!flags.kpsSpawned,spawnAt:time,lastHitAt:time,burnTime:0,burnDps:0,cullTimer:0};
     if(kind==="final"){
       const phaseConfig=finalBossPhaseConfig(type);
       const hpScale=isInfiniteMode()?infiniteBossHpMultiplier(Math.max(0,infiniteBossZone)):1;
@@ -2332,8 +2335,8 @@
 
   function inTargetView(target){
     const p=worldToScreen(target.x,target.y);
-    const marginX=W*.05+(target.r||0),marginY=H*.05+(target.r||0);
-    return p.x>=-marginX&&p.x<=W+marginX&&p.y>=-marginY&&p.y<=H+marginY;
+    const radius=target.r||0;
+    return p.x>=-radius&&p.x<=W+radius&&p.y>=-radius&&p.y<=H+radius;
   }
   function getReservedDamage(target){
     return !target||"opened" in target?0:Math.max(0,target.reservedDamage||0);
@@ -2553,10 +2556,14 @@
       const effectiveDefense=(e.defense||0)*(1-ignored);
       amount*=100/(100+effectiveDefense);
     }
+    e.lastHitAt=time;
     e.hp-=amount;e.hit=.1;
-    const textKind=critical?"critical":(e.kind==="boss"||e.kind==="final"?"boss":"normal");
-    text(e.x,e.y-e.r,critical?formatCriticalDamage(amount):Math.round(amount),critical?"#ffe45f":"#fff",critical?19:14,textKind);
-    if(critical)playCritSample(.38,1+rand(-.04,.04));
+    const silentDamage=source==="giantBurn";
+    if(!silentDamage){
+      const textKind=critical?"critical":(e.kind==="boss"||e.kind==="final"?"boss":"normal");
+      text(e.x,e.y-e.r,critical?formatCriticalDamage(amount):Math.round(amount),critical?"#ffe45f":"#fff",critical?19:14,textKind);
+      if(critical)playCritSample(.38,1+rand(-.04,.04));
+    }
     if(e.kind==="final"&&e.hp<=0&&e.bars>1){
       e.bars--;
       applyFinalBossPhase(e,e.totalBars-e.bars);
@@ -2761,6 +2768,11 @@
 
   function updatePickups(dt){
     for(const pickup of pickups){
+      if(outsideNineGrid(pickup.x,pickup.y,pickup.r+24)){
+        pickup.dead=true;
+        chestClock=Math.max(chestClock,10);
+        continue;
+      }
       pickup.life-=dt;
       if(dist(pickup,player)<pickup.r+player.r){
         pickup.dead=true;
@@ -2777,7 +2789,7 @@
   function updateChests(dt,moved){
     let recycled=false;
     chests=chests.filter(chest=>{
-      if(!chest.opened&&dist(chest,player)>1050){
+      if(outsideNineGrid(chest.x,chest.y,chest.r+28)){
         recycled=true;
         return false;
       }
@@ -2833,17 +2845,32 @@
     shot.impacted=true;
     shot.life=0;
     const radius=105*player.area;
+    const craterRadius=radius*.48;
+    const burnDps=shot.damage*.18;
     effects.push(
-      {kind:"crater",x:shot.x,y:shot.y,r:radius*.48,life:7,nextCheckAt:0},
+      {kind:"crater",id:nextId++,x:shot.x,y:shot.y,r:craterRadius,life:.8,burnDps},
       {kind:"shockwave",x:shot.x,y:shot.y,r:15,max:radius,life:.45}
     );
     burst(shot.x,shot.y,"#8a5b36",24);
     const boss=getOnlyBoss();
     if(boss){
-      if(dist(shot,boss)<radius+boss.r)damageEnemy(boss,shot.damage,false,"giant");
+      if(dist(shot,boss)<radius+boss.r){
+        damageEnemy(boss,shot.damage,false,"giant");
+        if(circleHitXY(shot.x,shot.y,craterRadius,boss.x,boss.y,boss.r*.35)){
+          boss.burnTime=Math.max(boss.burnTime||0,2);
+          boss.burnDps=Math.max(boss.burnDps||0,burnDps);
+        }
+      }
     }else{
       forEachEnemyNear(shot.x,shot.y,radius+ENEMY_QUERY_PADDING,e=>{
-        if(!e.dead&&dist(shot,e)<radius+e.r)damageEnemy(e,shot.damage,false,"giant");
+        if(e.dead)return;
+        if(dist(shot,e)<radius+e.r){
+          damageEnemy(e,shot.damage,false,"giant");
+          if(!e.dead&&circleHitXY(shot.x,shot.y,craterRadius,e.x,e.y,e.r*.35)){
+            e.burnTime=Math.max(e.burnTime||0,2);
+            e.burnDps=Math.max(e.burnDps||0,burnDps);
+          }
+        }
       });
     }
     playGiantExplosionSound({startFreq:80,duration:.1,noiseGain:0,rippleSpeed:10,jitterDepth:10});
@@ -2924,7 +2951,26 @@
     for(let enemyIndex=0;enemyIndex<enemies.length;enemyIndex++){
       countPerfWork("enemyMove");
       const e=enemies[enemyIndex];
-      if(e.dead)continue;e.hit=Math.max(0,e.hit-dt);e.attack-=dt;e.shoot-=dt;e.slow=Math.max(0,e.slow-dt);
+      if(e.dead)continue;
+      e.hit=Math.max(0,e.hit-dt);
+      e.attack-=dt;
+      e.shoot-=dt;
+      e.slow=Math.max(0,e.slow-dt);
+      if(e.burnTime>0&&e.burnDps>0){
+        const burnTick=Math.min(e.burnTime,dt);
+        e.burnTime=Math.max(0,e.burnTime-dt);
+        damageEnemy(e,e.burnDps*burnTick,false,"giantBurn");
+        if(e.dead)continue;
+      }
+      if(outsideNineGrid(e.x,e.y,e.r+48)){
+        e.cullTimer=(e.cullTimer||0)+dt;
+        if(e.cullTimer>=3&&time-(e.lastHitAt||e.spawnAt||time)>=3){
+          e.dead=true;
+          continue;
+        }
+      }else{
+        e.cullTimer=0;
+      }
       const screenPos=worldToScreen(e.x,e.y);
       const nearScreen=screenPos.x>-90&&screenPos.x<W+90&&screenPos.y>-90&&screenPos.y<H+90;
       const farBucket=((e.id||enemyIndex)+Math.floor(time*60))%3;
@@ -2941,23 +2987,11 @@
       if(e.type==="snake")a+=Math.sin(time*5+e.id)*.32;
       if(e.type==="vulture"){a+=Math.sin(time*3.2+e.id)*.22;speed*=1+.18*Math.sin(time*4+e.id);}
       if(e.type==="centipede")a+=Math.sin(time*7+e.id)*.18;
-      if((e.nextCraterCheckAt??0)<=time){
-        e.nextCraterCheckAt=time+.15;
-        for(const crater of effects){
-          if(crater.kind!=="crater")continue;
-          countPerfWork("collisionCrater");
-          if(circleHitXY(e.x,e.y,e.r*.35,crater.x,crater.y,crater.r)){
-            e.slow=Math.max(e.slow,1.25);
-            break;
-          }
-        }
-      }
-      if(e.slow>0)speed*=.48;
       e.x+=Math.cos(a)*speed*dt;e.y+=Math.sin(a)*speed*dt;
       if(dist(e,player)<e.r+player.r){
         hurt(e.damage);
       }
-      const ranged=e.type==="plant";
+      const ranged=e.type==="plant"&&currentStage!==1;
       if(ranged&&e.shoot<=0&&dist(e,player)<650){
         const shotSpeed=e.kind==="normal"?185:e.kind==="elite"?225:250;
         enemyShots.push({kind:"normal",x:e.x,y:e.y,vx:Math.cos(a)*shotSpeed,vy:Math.sin(a)*shotSpeed,r:e.kind==="normal"?7:10,damage:e.damage*.55,life:4,poison:0});
@@ -3291,6 +3325,11 @@
     const frameBucket=Math.floor(time*60);
     for(let i=0;i<gems.length;i++){
       const g=gems[i];
+      if(outsideNineGrid(g.x,g.y,24)){
+        bankedXp+=g.value||0;
+        g.dead=true;
+        continue;
+      }
       const d=dist(g,player);
       const magnetized=magnetAll||d<player.magnet;
       const near=d<340||magnetized;
@@ -3302,7 +3341,13 @@
       }
       countPerfWork("gemUpdate");
       if(magnetized){const a=Math.atan2(player.y-g.y,player.x-g.x),sp=magnetAll?650:180+(player.magnet-d)*4;g.x+=Math.cos(a)*sp*dt;g.y+=Math.sin(a)*sp*dt;}
-      if(d<player.r+9){g.dead=true;gainXp(g.value);playXpPickupSound({waveform:"sine",baseFreq:2169,duration:.2,overtone:.05,rippleCount:1});}
+      if(d<player.r+9){
+        g.dead=true;
+        const totalXp=(g.value||0)+bankedXp;
+        bankedXp=0;
+        gainXp(totalXp);
+        playXpPickupSound({waveform:"sine",baseFreq:2169,duration:.2,overtone:.05,rippleCount:1});
+      }
     }
     gemMergeTimer+=dt;
     if(gemMergeTimer>=.35){
@@ -3938,10 +3983,18 @@
       if(e.kind!=="crater")continue;
       const p=worldToScreen(e.x,e.y);
       ctx.globalAlpha=Math.min(1,e.life);
-      ctx.fillStyle="#4e392b";ctx.beginPath();ctx.ellipse(p.x,p.y,e.r,e.r*.55,0,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle="#8c6744";ctx.lineWidth=5;ctx.stroke();
-      ctx.strokeStyle="#2e251f";ctx.lineWidth=2;
-      for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.beginPath();ctx.moveTo(p.x+Math.cos(a)*e.r*.25,p.y+Math.sin(a)*e.r*.14);ctx.lineTo(p.x+Math.cos(a)*e.r*.72,p.y+Math.sin(a)*e.r*.4);ctx.stroke();}
+      ctx.strokeStyle="#6d4328";ctx.lineWidth=5;
+      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r,e.r*.56,0,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle="#5f0f15";
+      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.98,e.r*.54,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#7d171d";
+      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.8,e.r*.44,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#912127";
+      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.62,e.r*.34,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#a93234";
+      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.44,e.r*.24,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#ff6b5f";
+      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.23,e.r*.12,0,0,Math.PI*2);ctx.fill();
       ctx.globalAlpha=1;
     }
   }
