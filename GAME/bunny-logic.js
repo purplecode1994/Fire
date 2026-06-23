@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=357;
+  const APP_VERSION=358;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -2081,7 +2081,7 @@
         btn.classList.toggle("comingSoon",state==="comingSoon");
         if(!unlocked)btn.textContent+=" 🔒";
         btn.disabled=!unlocked;
-        btn.onclick=()=>{if(!unlocked)return;bookStageTab=stage;renderAdventureBook();};
+        btn.onclick=()=>{if(!unlocked)return;playUiClick();bookStageTab=stage;renderAdventureBook();};
         bookSubTabs.appendChild(btn);
       });
     }else{
@@ -2343,6 +2343,10 @@
       }));
   }
   function beep(f,d=.06,v=.025,type="square"){if(!ensureAudioReady())return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);countAudioDebug("beep");}
+  function playUiClick(){
+    beep(520,.055,.018,"triangle");
+    countAudioSubtype("ui");
+  }
   function playSmallCarrotSound(){
     if(playExternalAudio("smallCarrot",.42,1))return;
     if(!ensureAudioReady())return;
@@ -5448,17 +5452,18 @@
     saveMeta();
   });
   addEventListener("resize",positionMonitorTabs);
-  pauseBtn.addEventListener("click",pauseGame);
-  resumeBtn.addEventListener("click",resumeGame);
-  leaveStageBtn.addEventListener("click",askLeaveStage);
+  pauseBtn.addEventListener("click",()=>{if(!running||ended||paused||!levelScreen.classList.contains("hidden"))return;playUiClick();pauseGame();});
+  resumeBtn.addEventListener("click",()=>{if(!running||ended||!paused)return;playUiClick();resumeGame();});
+  leaveStageBtn.addEventListener("click",()=>{playUiClick();askLeaveStage();});
   cancelLeaveBtn.addEventListener("click",()=>{
     leaveConfirm.classList.remove("visible");
     leaveStageBtn.classList.remove("hidden");
     beep(480,.06,.02);
   });
-  confirmLeaveBtn.addEventListener("click",leaveStage);
+  confirmLeaveBtn.addEventListener("click",()=>{playUiClick();leaveStage();});
   muteBtn.addEventListener("click",toggleMute);
   reloadAudioBtn.addEventListener("click",async()=>{
+    playUiClick();
     reloadAudioBtn.disabled=true;
     reloadAudioBtn.classList.remove("success","fail");
     reloadAudioBtn.classList.add("loading");
@@ -5470,8 +5475,8 @@
       reloadAudioBtn.classList.remove("success","fail");
     },1200);
   });
-  accountBox.addEventListener("click",()=>{renderMeta();rewardScreen.classList.remove("hidden");});
-  accountBox.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();renderMeta();rewardScreen.classList.remove("hidden");}});
+  accountBox.addEventListener("click",()=>{playUiClick();renderMeta();rewardScreen.classList.remove("hidden");});
+  accountBox.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();playUiClick();renderMeta();rewardScreen.classList.remove("hidden");}});
   coinBox?.addEventListener("click",refreshWalletFromUi);
   coinBox?.addEventListener("keydown",e=>{
     if(e.key==="Enter"||e.key===" "){
@@ -5479,51 +5484,56 @@
       refreshWalletFromUi();
     }
   });
-  closeRewards.addEventListener("click",()=>{rewardScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
-  chooseStageBtn.addEventListener("click",()=>{renderMeta();stageScreen.classList.remove("hidden");});
-  closeStage.addEventListener("click",()=>{stageScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
-  gardenStage.addEventListener("click",()=>{currentStage=1;renderMeta();});
-  desertStage.addEventListener("click",()=>{if(meta.desertUnlocked){currentStage=2;renderMeta();}});
-  snowStage.addEventListener("click",()=>{if(meta.snowUnlocked){currentStage=3;renderMeta();}});
-  infiniteStage.addEventListener("click",()=>{currentStage=4;renderMeta();});
+  closeRewards.addEventListener("click",()=>{playUiClick();rewardScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
+  chooseStageBtn.addEventListener("click",()=>{playUiClick();renderMeta();stageScreen.classList.remove("hidden");});
+  closeStage.addEventListener("click",()=>{playUiClick();stageScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
+  gardenStage.addEventListener("click",()=>{playUiClick();currentStage=1;renderMeta();});
+  desertStage.addEventListener("click",()=>{if(meta.desertUnlocked){playUiClick();currentStage=2;renderMeta();}});
+  snowStage.addEventListener("click",()=>{if(meta.snowUnlocked){playUiClick();currentStage=3;renderMeta();}});
+  infiniteStage.addEventListener("click",()=>{playUiClick();currentStage=4;renderMeta();});
   characterBtn.addEventListener("click",()=>{
+    playUiClick();
     renderMeta();
     characterScreen.classList.remove("hidden");
     requestAnimationFrame(()=>requestAnimationFrame(setupMetaMarquees));
   });
-  closeCharacter.addEventListener("click",()=>{characterScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
+  closeCharacter.addEventListener("click",()=>{playUiClick();characterScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
   adventureBookBtn.addEventListener("click",()=>{
+    playUiClick();
     renderAdventureBook();
     adventureBookScreen.classList.remove("hidden");
   });
-  closeAdventureBook.addEventListener("click",()=>{adventureBookScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
-  bookTabSkills.addEventListener("click",()=>{bookMainTab="skills";renderAdventureBook();});
-  bookTabStages.addEventListener("click",()=>{bookMainTab="stages";renderAdventureBook();});
-  bookTabBosses.addEventListener("click",()=>{bookMainTab="bosses";renderAdventureBook();});
+  closeAdventureBook.addEventListener("click",()=>{playUiClick();adventureBookScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
+  bookTabSkills.addEventListener("click",()=>{playUiClick();bookMainTab="skills";renderAdventureBook();});
+  bookTabStages.addEventListener("click",()=>{playUiClick();bookMainTab="stages";renderAdventureBook();});
+  bookTabBosses.addEventListener("click",()=>{playUiClick();bookMainTab="bosses";renderAdventureBook();});
   shopBtn.addEventListener("click",()=>{
     renderShop();
     shopScreen.classList.remove("hidden");
-    beep(420,.08,.02);
+    playUiClick();
   });
   closeShop.addEventListener("click",()=>{
+    playUiClick();
     shopScreen.classList.add("hidden");
     syncCoinState(true);
     renderMeta();
   });
   perfMonitorBtn.addEventListener("click",()=>{
+    playUiClick();
     debugPanelMode=debugPanelMode==="perf"?"off":"perf";
     updateMonitorButtons();
   });
   audioMonitorBtn.addEventListener("click",()=>{
+    playUiClick();
     debugPanelMode=debugPanelMode==="audio"?"off":"audio";
     updateMonitorButtons();
   });
-  devModeBtn.addEventListener("click",()=>{openSettingsOverlay();});
-  closeSettingsBtn.addEventListener("click",closeSettingsOverlay);
+  devModeBtn.addEventListener("click",()=>{playUiClick();openSettingsOverlay();});
+  closeSettingsBtn.addEventListener("click",()=>{playUiClick();closeSettingsOverlay();});
   settingsOverlay.addEventListener("click",e=>{if(e.target===settingsOverlay)closeSettingsOverlay();});
   settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)closeSettingsDialog();});
-  settingsDialogConfirm.addEventListener("click",confirmSettingsDialog);
-  settingsDialogCancel.addEventListener("click",closeSettingsDialog);
+  settingsDialogConfirm.addEventListener("click",()=>{playUiClick();confirmSettingsDialog();});
+  settingsDialogCancel.addEventListener("click",()=>{playUiClick();closeSettingsDialog();});
   document.addEventListener("pointerdown",e=>{
     if(testModeOverlay.classList.contains("visible")&&!e.target.closest("#testModeOverlay")&&!e.target.closest("#devTestBtn")){
       closeTestModeOverlay();
@@ -5538,9 +5548,9 @@
       closeSettingsDialog();
     }
   });
-  accountExportBtn.addEventListener("click",exportAccountCode);
-  accountImportBtn.addEventListener("click",importAccountCode);
-  developerEntryBtn.addEventListener("click",handleDeveloperEntry);
+  accountExportBtn.addEventListener("click",()=>{playUiClick();exportAccountCode();});
+  accountImportBtn.addEventListener("click",()=>{playUiClick();importAccountCode();});
+  developerEntryBtn.addEventListener("click",()=>{playUiClick();handleDeveloperEntry();});
   coinDevAddBtn?.addEventListener("click",()=>{
     if(!devModeActive)return;
     syncCoinState();
@@ -5563,15 +5573,18 @@
   });
   devTestBtn.addEventListener("click",()=>{
     if(!devModeActive)return;
+    playUiClick();
     if(testModeOverlay.classList.contains("visible"))closeTestModeOverlay();
     else openTestModeOverlay();
   });
   testModeMobileBtn.addEventListener("click",()=>{
+    playUiClick();
     devTestProfile="mobile";
     if(!devTestRecorder.active)devTestRecorder.interval=getDevTestInterval(devTestProfile);
     updateTestModeUi();
   });
   testModeDesktopBtn.addEventListener("click",()=>{
+    playUiClick();
     devTestProfile="desktop";
     if(!devTestRecorder.active)devTestRecorder.interval=getDevTestInterval(devTestProfile);
     updateTestModeUi();
@@ -5588,7 +5601,7 @@
   });
   testModeStartBtn.addEventListener("click",()=>{startDevTestRecording();});
   testModeStopBtn.addEventListener("click",()=>{stopDevTestRecording();});
-  testModeExportBtn.addEventListener("click",()=>{stopDevTestRecording();exportDevTestRecording();});
+  testModeExportBtn.addEventListener("click",()=>{playUiClick();stopDevTestRecording();exportDevTestRecording();});
   devResetBtn.addEventListener("click",()=>{
     if(!devModeActive)return;
     let refund=0;
@@ -5603,6 +5616,7 @@
   });
   document.getElementById("start").onclick=()=>{
     if(transitioning)return;
+    playUiClick();
     playSceneTransition(()=>{
       timeline.seen.clear();
       start();
@@ -5610,6 +5624,7 @@
   };
   document.getElementById("again").onclick=()=>{
     if(transitioning)return;
+    playUiClick();
     playSceneTransition(()=>{
       endScreen.classList.add("hidden");
       intro.classList.remove("hidden");
