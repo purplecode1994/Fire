@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=365;
+  const APP_VERSION=366;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -1667,6 +1667,112 @@
     return time>=DURATION?"關卡 BOSS":formatStageTime(Math.max(1,time));
   }
 
+  const gardenStagePreviewConfig={
+    stageScale:.62,
+    baseScale:1,
+    baseOffset:0
+  };
+
+  function drawGardenStagePreview(ctx,w,h,config=gardenStagePreviewConfig){
+    const scale=config.stageScale||.62;
+    const baseScale=config.baseScale||1;
+    const baseOffset=config.baseOffset||0;
+    ctx.clearRect(0,0,w,h);
+    const rootX=w/2;
+    const rootY=h/2+8;
+
+    ctx.save();
+    ctx.translate(rootX,rootY+baseOffset);
+    ctx.scale(baseScale,1);
+    ctx.fillStyle="#49a956";
+    ctx.beginPath();
+    ctx.ellipse(0,48,58,15,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="#327d42";
+    ctx.globalAlpha=.55;
+    ctx.beginPath();
+    ctx.ellipse(0,51,40,7,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(rootX,rootY);
+    ctx.scale(scale,scale);
+    const body=new Path2D();
+    body.moveTo(-44,-30);
+    body.bezierCurveTo(-42,-66,-4,-73,34,-58);
+    body.bezierCurveTo(69,-43,63,-3,49,28);
+    body.bezierCurveTo(39,58,16,89,-10,84);
+    body.bezierCurveTo(-37,79,-48,43,-49,5);
+    body.bezierCurveTo(-50,-12,-50,-24,-44,-30);
+    ctx.fillStyle="#f47d05";
+    ctx.fill(body);
+    ctx.fillStyle="rgba(255,176,50,.18)";
+    ctx.fill(body);
+
+    ctx.lineCap="round";
+    ctx.strokeStyle="rgba(239,173,82,.85)";
+    ctx.lineWidth=7;
+    ctx.beginPath();
+    ctx.moveTo(-30,-7);
+    ctx.quadraticCurveTo(-6,-1,15,-4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(16,28);
+    ctx.quadraticCurveTo(35,31,48,30);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-30,57);
+    ctx.quadraticCurveTo(-8,64,10,63);
+    ctx.stroke();
+
+    const leaf=(points,color)=>{
+      ctx.fillStyle=color;
+      ctx.beginPath();
+      ctx.moveTo(points[0][0],points[0][1]);
+      for(let i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);
+      ctx.closePath();
+      ctx.fill();
+    };
+    leaf([[-16,-62],[-36,-91],[-16,-82],[-7,-102],[2,-78],[14,-101],[18,-76],[40,-90],[24,-61]],"#3f8d34");
+    leaf([[-6,-57],[-23,-83],[-10,-72],[-2,-85],[1,-62],[11,-83],[13,-59],[30,-79],[20,-54]],"#49bd65");
+    ctx.strokeStyle="#51c671";
+    ctx.lineWidth=8;
+    ctx.beginPath();
+    ctx.moveTo(-9,-55);
+    ctx.quadraticCurveTo(-6,-77,-22,-85);
+    ctx.moveTo(3,-55);
+    ctx.quadraticCurveTo(4,-78,2,-90);
+    ctx.moveTo(13,-56);
+    ctx.quadraticCurveTo(25,-77,36,-84);
+    ctx.stroke();
+
+    ctx.fillStyle="#ffffff";
+    ctx.beginPath();
+    ctx.arc(-19,-25,10,0,Math.PI*2);
+    ctx.arc(28,-17,10,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="#050505";
+    ctx.beginPath();
+    ctx.arc(-16,-23,5,0,Math.PI*2);
+    ctx.arc(25,-16,5,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="#ee9bc0";
+    ctx.globalAlpha=.8;
+    ctx.beginPath();
+    ctx.arc(-37,-16,4,0,Math.PI*2);
+    ctx.arc(42,-9,4,0,Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.strokeStyle="#050505";
+    ctx.lineWidth=6;
+    ctx.beginPath();
+    ctx.moveTo(-1,-9);
+    ctx.quadraticCurveTo(8,2,19,-8);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function renderStageArt(stage){
     if(stage===4){
       stageArt.className="stageInfinite";
@@ -1684,8 +1790,10 @@
       stageArt.innerHTML='<div class="sun"></div><div class="dune1"></div><div class="dune2"></div><div class="cactus"></div>';
       stageName.textContent="第二關・沙漠";
     }else{
-      stageArt.className="stageGarden";
-      stageArt.innerHTML='<div class="gardenBed gardenBed1"></div><div class="gardenBed gardenBed2"></div><div class="shadow"></div><div class="sprout sprout1"></div><div class="sprout sprout2"></div><div class="flower flower1"></div><div class="flower flower2"></div><div class="leaf1"></div><div class="leaf2"></div><div class="leaf3"></div><div class="carrot"></div>';
+      stageArt.className="stageGarden stageGardenCanvas";
+      stageArt.innerHTML='<canvas id="gardenStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
+      const canvas=document.getElementById("gardenStageArtCanvas");
+      if(canvas)drawGardenStagePreview(canvas.getContext("2d"),190,136);
       stageName.textContent="第一關・菜園";
     }
     stagePower.textContent=`建議戰力 ${stageRecommendedPower(stage)}｜目前戰力 ${combatPower()}`;

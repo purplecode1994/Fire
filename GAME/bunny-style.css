@@ -523,6 +523,12 @@
       border: 3px solid #fff0aa; background: #2b224d; box-shadow: 6px 6px #09071899;
     }
     #stageArt { position: relative; width: 150px; height: 110px; margin: 0 auto 8px; }
+    #stageArt.stageGardenCanvas canvas {
+      width: 150px;
+      height: 110px;
+      display: block;
+      image-rendering: auto;
+    }
     .stageName { color: #fff; font-size: 19px; font-weight: bold; }
     .stagePower { margin-top: 4px; color: #ffe15b; font-size: 14px; line-height: 1.5; }
     #chooseStageBtn,#start {
