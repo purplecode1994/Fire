@@ -9,7 +9,7 @@
   const DURATION=600,wrap=document.getElementById("wrap");
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
-  const characterScreen=document.getElementById("characterScreen"),rewardScreen=document.getElementById("rewardScreen"),stageScreen=document.getElementById("stageScreen"),adventureBookScreen=document.getElementById("adventureBookScreen");
+  const characterScreen=document.getElementById("characterScreen"),rewardScreen=document.getElementById("rewardScreen"),stageScreen=document.getElementById("stageScreen"),adventureBookScreen=document.getElementById("adventureBookScreen"),shopScreen=document.getElementById("shopScreen");
   const rewardTrack=document.getElementById("rewardTrackModal"),accountBox=document.getElementById("accountBox");
   const pauseScreen=document.getElementById("pauseScreen"),pauseStats=document.getElementById("pauseStats");
   const metaStatsEl=document.getElementById("metaStats"),metaPointsEl=document.getElementById("metaPoints"),metaRecordEl=document.getElementById("metaRecord"),powerBox=document.getElementById("powerBox");
@@ -28,7 +28,7 @@
   const testModeMobileBtn=document.getElementById("testModeMobileBtn"),testModeDesktopBtn=document.getElementById("testModeDesktopBtn");
   const testModeStartBtn=document.getElementById("testModeStartBtn"),testModeStopBtn=document.getElementById("testModeStopBtn"),testModeExportBtn=document.getElementById("testModeExportBtn");
   const testInvincibleBtn=document.getElementById("testInvincibleBtn"),testAutoSkillBtn=document.getElementById("testAutoSkillBtn");
-  const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText"),coinCountEl=document.getElementById("coinCount"),coinDevSubBtn=document.getElementById("coinDevSubBtn"),coinDevAddBtn=document.getElementById("coinDevAddBtn"),coinDebugBox=document.getElementById("coinDebugBox");
+  const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText"),coinBox=document.getElementById("coinBox"),coinCountEl=document.getElementById("coinCount"),coinDevSubBtn=document.getElementById("coinDevSubBtn"),coinDevAddBtn=document.getElementById("coinDevAddBtn"),coinDebugBox=document.getElementById("coinDebugBox"),shopCoinCount=document.getElementById("shopCoinCount"),shopGrid=document.getElementById("shopGrid");
   const stageArt=document.getElementById("stageArt"),stageName=document.getElementById("stageName"),stagePower=document.getElementById("stagePower");
   const keys={up:false,down:false,left:false,right:false};
   const stick={active:false,pointerId:null,x:0,y:0,startX:0,startY:0};
@@ -56,7 +56,7 @@
   let finalPhase="none",finalTimer=0;
   let bossArena={active:false,x:0,y:0,r:360};
   let audio=null,muted=false;
-  let runCoins=0,runCoinsSettled=false;
+  let runCoins=0,runCoinsSettled=false,walletCoins=0;
   let critSampleBuffer=null,critSampleLoading=false;
   const CARROT_BASE_COOLDOWN=.72;
   const CARROT_MIN_CHAIN_INTERVAL=2/60;
@@ -155,6 +155,7 @@
     {id:"armorPen",name:"無視防禦",cost:12,cap:100,unlock:m=>m.crit>=48,desc:"+0.7% 無視敵人防禦，最高 LV100（70%）",value:m=>`${(Math.min(100,m.armorPen)*0.7).toFixed(1).replace(/\\.0$/,"")}%`}
   ];
   let meta=loadMeta();
+  syncCoinState();
   let devModeActive=false;
   muted=!!meta.muted;
 
@@ -254,6 +255,28 @@
     return remaining;
   }
 
+  function parseMetaCandidate(raw){
+    if(!raw)return null;
+    try{
+      const parsed=JSON.parse(raw);
+      if(!parsed||typeof parsed!=="object"||Array.isArray(parsed))return null;
+      if(parsed.coins!==undefined&&!Number.isFinite(Number(parsed.coins)))parsed.coins=0;
+      return parsed;
+    }catch(_error){
+      return null;
+    }
+  }
+  function safeSetStorage(getStorage,key,value){
+    try{
+      const storage=getStorage();
+      if(!storage)return false;
+      storage.setItem(key,value);
+      return storage.getItem(key)===value;
+    }catch(_error){
+      return false;
+    }
+  }
+
   function readMetaRaw(){
     const stores=[
       ()=>localStorage.getItem(SAVE_KEY),
@@ -280,7 +303,8 @@
     for(const read of stores){
       try{
         const value=read();
-        if(value)return value;
+        const parsed=parseMetaCandidate(value);
+        if(parsed)return JSON.stringify(parsed);
       }catch(_error){}
     }
     return null;
@@ -321,26 +345,30 @@
         return end>=0?raw.slice(start,end):raw.slice(start);
       }
     ];
+    let best=null;
     for(const read of stores){
       try{
         const value=read();
         if(value!==null&&value!==undefined&&value!==""){
           const parsed=Number(value);
-          if(Number.isFinite(parsed)&&parsed>=0)return Math.floor(parsed);
+          if(Number.isFinite(parsed)&&parsed>=0){
+            const safe=Math.floor(parsed);
+            best=best===null?safe:Math.max(best,safe);
+          }
         }
       }catch(_error){}
     }
-    return null;
+    return best;
   }
 
   function loadMeta(){
     try{
-      const saved=JSON.parse(readMetaRaw()||"null");
+      const saved=parseMetaCandidate(readMetaRaw());
       const data=Object.assign(defaultMeta(),saved||{});
-      const storedCoins=readStoredCoins();
-      if(storedCoins!==null)data.coins=storedCoins;
       if(!Array.isArray(data.claimedRewards))data.claimedRewards=[];
       migrateLegacyStageClears(data);
+      const recoveredCoins=readStoredCoins();
+      if(recoveredCoins!==null)data.coins=Math.max(Math.floor(Number(data.coins)||0),recoveredCoins);
       delete data.devMode;
       return data;
     }catch(_error){
@@ -357,15 +385,17 @@
   }
 
   function saveMeta(){
+    meta.coins=Math.floor(Math.max(0,Number(meta.coins)||0));
+    walletCoins=meta.coins;
     const raw=JSON.stringify(meta);
-    try{localStorage.setItem(SAVE_KEY,raw);}catch(_error){}
-    try{sessionStorage.setItem(SAVE_KEY,raw);}catch(_error){}
-    try{localStorage.setItem(META_KEY,raw);}catch(_error){}
-    try{sessionStorage.setItem(META_KEY,raw);}catch(_error){}
+    safeSetStorage(()=>localStorage,SAVE_KEY,raw);
+    safeSetStorage(()=>sessionStorage,SAVE_KEY,raw);
+    safeSetStorage(()=>localStorage,META_KEY,raw);
+    safeSetStorage(()=>sessionStorage,META_KEY,raw);
     try{window.name=`${SAVE_KEY}=${raw}`;}catch(_error){}
-    const coinRaw=String(Math.floor(Number(meta.coins)||0));
-    try{localStorage.setItem(COIN_KEY,coinRaw);}catch(_error){}
-    try{sessionStorage.setItem(COIN_KEY,coinRaw);}catch(_error){}
+    const coinRaw=String(meta.coins);
+    safeSetStorage(()=>localStorage,COIN_KEY,coinRaw);
+    safeSetStorage(()=>sessionStorage,COIN_KEY,coinRaw);
     try{
       const savePart=`${SAVE_KEY}=${raw}`;
       const coinPart=`${COIN_KEY}=${coinRaw}`;
@@ -377,14 +407,13 @@
   }
   function syncCoinState(forceSave=false){
     const storedCoins=readStoredCoins();
-    const currentCoins=Math.floor(Number(meta.coins)||0);
-    const nextCoins=storedCoins===null?currentCoins:Math.max(currentCoins,storedCoins);
-    if(nextCoins!==currentCoins){
-      meta.coins=nextCoins;
-      forceSave=true;
-    }
+    const metaCoins=Math.floor(Number(meta.coins)||0);
+    const nextCoins=storedCoins===null?metaCoins:Math.max(metaCoins,storedCoins);
+    if(nextCoins!==walletCoins||nextCoins!==metaCoins)forceSave=true;
+    meta.coins=nextCoins;
+    walletCoins=nextCoins;
     if(forceSave)saveMeta();
-    return meta.coins;
+    return walletCoins;
   }
   function isDevProtectedRun(){
     return devModeActive&&devInvincible;
@@ -1077,24 +1106,26 @@
   }
   function syncCoinDisplay(){
     syncCoinState();
-    if(coinCountEl)coinCountEl.textContent=formatCommaNumber(Number(meta.coins)||0);
+    if(coinCountEl)coinCountEl.textContent=formatCommaNumber(walletCoins||0);
+    if(shopCoinCount)shopCoinCount.textContent=formatCommaNumber(walletCoins||0);
     if(coinDevSubBtn)coinDevSubBtn.classList.toggle("hidden",!devModeActive);
     if(coinDebugBox){
+      let saveCoins="-",coinKeyCoins="-";
+      try{
+        const saveRaw=localStorage.getItem(SAVE_KEY)||sessionStorage.getItem(SAVE_KEY);
+        if(saveRaw){
+          const parsed=JSON.parse(saveRaw);
+          saveCoins=Number.isFinite(Number(parsed?.coins))?formatCommaNumber(Number(parsed.coins)):"-";
+        }
+      }catch(_error){}
+      try{
+        const coinRaw=localStorage.getItem(COIN_KEY)||sessionStorage.getItem(COIN_KEY);
+        if(coinRaw!==null&&coinRaw!==undefined&&coinRaw!=="")coinKeyCoins=formatCommaNumber(Number(coinRaw));
+      }catch(_error){}
       if(devModeActive){
-        let saveCoins="-",coinKeyCoins="-";
-        try{
-          const saveRaw=localStorage.getItem(SAVE_KEY)||sessionStorage.getItem(SAVE_KEY);
-          if(saveRaw){
-            const parsed=JSON.parse(saveRaw);
-            saveCoins=Number.isFinite(Number(parsed?.coins))?formatCommaNumber(Number(parsed.coins)):"-";
-          }
-        }catch(_error){}
-        try{
-          const coinRaw=localStorage.getItem(COIN_KEY)||sessionStorage.getItem(COIN_KEY);
-          if(coinRaw!==null&&coinRaw!==undefined&&coinRaw!=="")coinKeyCoins=formatCommaNumber(Number(coinRaw));
-        }catch(_error){}
         coinDebugBox.classList.remove("hidden");
         coinDebugBox.textContent=[
+          `wallet ${formatCommaNumber(walletCoins||0)}`,
           `meta ${formatCommaNumber(Number(meta.coins)||0)}`,
           `run ${formatCommaNumber(Number(runCoins)||0)}`,
           `save ${saveCoins}`,
@@ -1106,11 +1137,54 @@
       }
     }
   }
+  function renderShop(){
+    syncCoinDisplay();
+    if(!shopGrid)return;
+    const goods=[
+      ["🥕","胡蘿蔔禮盒","SOLD"],
+      ["🍌","香蕉束","SOLD"],
+      ["🧪","體力藥水","SOLD"],
+      ["💎","藍色碎晶","SOLD"],
+      ["📜","古老卷軸","SOLD"],
+      ["🪙","金幣袋","SOLD"],
+      ["🧤","冒險手套","SOLD"],
+      ["🧿","護身符","SOLD"],
+      ["🧵","精靈絲線","SOLD"],
+      ["📦","補給木箱","SOLD"],
+      ["🥜","花生跟班","SOLD"],
+      ["💚","回復護符","SOLD"],
+      ["⏩","疾跑徽章","SOLD"],
+      ["🍀","幸運草牌","SOLD"],
+      ["⭕","範圍符印","SOLD"],
+      ["🧠","超級頭腦","SOLD"],
+      ["🛡️","雪原毛披","SOLD"],
+      ["🔥","燃燒地坑","SOLD"],
+      ["❄️","冰霜瓶","SOLD"],
+      ["⭐","神祕商品","SOLD"]
+    ];
+    shopGrid.innerHTML=goods.map(([icon,name,state])=>`
+      <div class="shopCard">
+        <div class="shopCardIcon">${icon}</div>
+        <div class="shopCardName">${name}</div>
+        <button type="button" class="${state==="BUY"?"shopBuyBtn":"shopSoldBtn"}" ${state==="SOLD"?"disabled":""}>${state}</button>
+      </div>
+    `).join("");
+  }
+  function refreshWalletFromUi(){
+    syncCoinState(true);
+    syncCoinDisplay();
+    if(coinBox){
+      coinBox.classList.add("refreshing");
+      setTimeout(()=>coinBox.classList.remove("refreshing"),180);
+    }
+    beep(620,.06,.018,"triangle");
+    countAudioSubtype("ui");
+  }
   function settleRunCoins(){
     if(runCoinsSettled||runCoins<=0)return;
-    const storedCoins=readStoredCoins();
-    const walletBase=storedCoins!==null?storedCoins:(Number(meta.coins)||0);
-    meta.coins=walletBase+Math.floor(runCoins);
+    syncCoinState();
+    meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0)+Math.floor(runCoins));
+    walletCoins=meta.coins;
     runCoinsSettled=true;
     saveCoinsOnly();
     syncCoinDisplay();
@@ -1434,7 +1508,7 @@
     document.getElementById("start").textContent="開始割草";
     characterBtn.textContent="角色資訊";
     adventureBookBtn.textContent="冒險筆記";
-    shopBtn.textContent="商城 🔒";
+    shopBtn.textContent="精靈商城";
     metaPointsEl.innerHTML=`<span class="pointDiamond"></span><span>強化點數 ${formatCostShort(meta.points)}</span>`;
     metaRecordEl.innerHTML=`總擊破 ${meta.totalKills||0}｜菁英 ${meta.totalElites||0}｜BOSS ${meta.totalBosses||0}`;
     powerBox.innerHTML=`<span class="powerLabel">戰力</span><span class="powerValue">${combatPower()}</span>`;
@@ -4846,7 +4920,7 @@
   const devTestBtn=document.getElementById("devTestBtn");
   const monitorTabs=document.getElementById("monitorTabs"),perfMonitorBtn=document.getElementById("perfMonitorBtn"),audioMonitorBtn=document.getElementById("audioMonitorBtn");
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
-  const characterBtn=document.getElementById("characterBtn"),adventureBookBtn=document.getElementById("adventureBookBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter"),closeAdventureBook=document.getElementById("closeAdventureBook");
+  const characterBtn=document.getElementById("characterBtn"),adventureBookBtn=document.getElementById("adventureBookBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter"),closeAdventureBook=document.getElementById("closeAdventureBook"),closeShop=document.getElementById("closeShop");
   const chooseStageBtn=document.getElementById("chooseStageBtn"),closeStage=document.getElementById("closeStage"),closeRewards=document.getElementById("closeRewards");
   const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),infiniteStage=document.getElementById("infiniteStageModal");
   function updateMuteButton(){
@@ -4874,7 +4948,8 @@
       endScreen.classList.contains("hidden") &&
       rewardScreen.classList.contains("hidden") &&
       stageScreen.classList.contains("hidden") &&
-      characterScreen.classList.contains("hidden");
+      characterScreen.classList.contains("hidden") &&
+      shopScreen.classList.contains("hidden");
     const visible=debugOverlayEnabled&&gameplayVisible;
     monitorTabs.classList.toggle("visible",visible);
     devTestBtn.classList.toggle("hidden",!devModeActive);
@@ -5040,8 +5115,17 @@
   addEventListener("keyup",e=>{if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],false);}});
   addEventListener("blur",()=>{Object.keys(keys).forEach(k=>keys[k]=false);resetStick();});
   addEventListener("focus",()=>{ensureAudioReady();});
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden)ensureAudioReady();});
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden)saveMeta();
+    else{
+      ensureAudioReady();
+      syncCoinState(true);
+      renderMeta();
+    }
+  });
   addEventListener("pageshow",()=>{ensureAudioReady();syncCoinState(true);renderMeta();});
+  addEventListener("pagehide",()=>{saveMeta();});
+  addEventListener("beforeunload",()=>{saveMeta();});
   addEventListener("resize",positionMonitorTabs);
   pauseBtn.addEventListener("click",pauseGame);
   resumeBtn.addEventListener("click",resumeGame);
@@ -5067,6 +5151,13 @@
   });
   accountBox.addEventListener("click",()=>{renderMeta();rewardScreen.classList.remove("hidden");});
   accountBox.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();renderMeta();rewardScreen.classList.remove("hidden");}});
+  coinBox?.addEventListener("click",refreshWalletFromUi);
+  coinBox?.addEventListener("keydown",e=>{
+    if(e.key==="Enter"||e.key===" "){
+      e.preventDefault();
+      refreshWalletFromUi();
+    }
+  });
   closeRewards.addEventListener("click",()=>{rewardScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
   chooseStageBtn.addEventListener("click",()=>{renderMeta();stageScreen.classList.remove("hidden");});
   closeStage.addEventListener("click",()=>{stageScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
@@ -5088,7 +5179,16 @@
   bookTabSkills.addEventListener("click",()=>{bookMainTab="skills";renderAdventureBook();});
   bookTabStages.addEventListener("click",()=>{bookMainTab="stages";renderAdventureBook();});
   bookTabBosses.addEventListener("click",()=>{bookMainTab="bosses";renderAdventureBook();});
-  shopBtn.addEventListener("click",()=>{beep(220,.08,.02);});
+  shopBtn.addEventListener("click",()=>{
+    renderShop();
+    shopScreen.classList.remove("hidden");
+    beep(420,.08,.02);
+  });
+  closeShop.addEventListener("click",()=>{
+    shopScreen.classList.add("hidden");
+    syncCoinState(true);
+    renderMeta();
+  });
   perfMonitorBtn.addEventListener("click",()=>{
     debugPanelMode=debugPanelMode==="perf"?"off":"perf";
     updateMonitorButtons();
@@ -5122,7 +5222,9 @@
   developerEntryBtn.addEventListener("click",handleDeveloperEntry);
   coinDevAddBtn?.addEventListener("click",()=>{
     if(!devModeActive)return;
-    meta.coins=(Number(meta.coins)||0)+100;
+    syncCoinState();
+    meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0)+100);
+    walletCoins=meta.coins;
     saveMeta();
     syncCoinDisplay();
     beep(780,.08,.02,"square");
@@ -5130,7 +5232,9 @@
   });
   coinDevSubBtn?.addEventListener("click",()=>{
     if(!devModeActive)return;
-    meta.coins=Math.max(0,(Number(meta.coins)||0)-100);
+    syncCoinState();
+    meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0)-100);
+    walletCoins=meta.coins;
     saveMeta();
     syncCoinDisplay();
     beep(240,.08,.02,"square");

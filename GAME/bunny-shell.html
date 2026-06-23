@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <title>兔兔割草大冒險</title>
-    <link rel="stylesheet" href="bunny-style.css?v=309">
+    <link rel="stylesheet" href="bunny-style.css?v=326">
 </head>
 <body class="layout-portrait">
 <div id="wrap">
@@ -18,13 +18,13 @@
         <div class="expBar"><div id="accountExpFill"></div></div>
         <div id="accountExpText">EXP 0 / 0</div>
       </div>
-      <div id="coinBox" aria-label="金幣數量">🪙 <span id="coinCount">0</span><button id="coinDevSubBtn" class="hidden" type="button" aria-label="開發模式減少金幣">-</button><button id="coinDevAddBtn" class="hidden" type="button" aria-label="開發模式增加金幣">+</button><div id="coinDebugBox" class="hidden"></div></div>
+      <div id="coinBox" role="button" tabindex="0" aria-label="金幣數量，點擊重新抓取">🪙 <span id="coinCount">0</span><button id="coinDevSubBtn" class="hidden" type="button" aria-label="開發模式減少金幣">-</button><button id="coinDevAddBtn" class="hidden" type="button" aria-label="開發模式增加金幣">+</button><div id="coinDebugBox" class="hidden"></div></div>
       <div id="rewardPanel">
         <b>等級獎勵（尚未開放）</b>
         <div id="rewardTrack"></div>
       </div>
       <h1 class="homeTitle">兔兔割草大冒險</h1>
-      <div class="homeVersion">V.310</div>
+      <div class="homeVersion">V.326</div>
       <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
@@ -51,7 +51,7 @@
       <div class="cornerMenu">
         <button id="characterBtn" type="button">角色資訊</button>
         <button id="adventureBookBtn" type="button">冒險筆記</button>
-        <button id="shopBtn" type="button">商城 🔒</button>
+        <button id="shopBtn" type="button">精靈商城</button>
       </div>
     </div>
   </div>
@@ -135,6 +135,35 @@
       <button id="closeAdventureBook" type="button">返回首頁</button>
     </div>
   </div>
+  <div id="shopScreen" class="screen hidden">
+    <div class="panel menuPanel">
+      <h1>精靈商城</h1>
+      <div class="shopTopBar">
+        <div class="shopWallet">🪙 <span id="shopCoinCount">0</span></div>
+      </div>
+      <div class="panelBody shopBody">
+        <div class="shopHero">
+          <div class="shopShelves">
+            <div class="shelfRow">
+              <span class="shelfItem">🧪</span><span class="shelfItem">📦</span><span class="shelfItem">🥕</span><span class="shelfItem">💎</span><span class="shelfItem">🍌</span>
+            </div>
+            <div class="shelfRow">
+              <span class="shelfItem">🪙</span><span class="shelfItem">🧤</span><span class="shelfItem">🧿</span><span class="shelfItem">🧵</span><span class="shelfItem">📜</span>
+            </div>
+          </div>
+          <div class="shopCounter"></div>
+          <div class="shopClerk">
+            <div class="clerkHat"></div>
+            <div class="clerkFace"></div>
+            <div class="clerkBody"></div>
+            <div class="clerkGlow"></div>
+          </div>
+        </div>
+        <div id="shopGrid" class="shopGrid"></div>
+      </div>
+      <button id="closeShop" type="button">返回首頁</button>
+    </div>
+  </div>
   <div id="levelup" class="screen hidden">
     <div class="levelPanel">
       <h1>升級！選擇一項</h1>
@@ -199,7 +228,7 @@
     </div>
   </div>
 </div>
-  <script src="bunny-logic.js?v=309"></script>
+  <script src="bunny-logic.js?v=326"></script>
 </body>
 </html>
 
