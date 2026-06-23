@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=363;
+  const APP_VERSION=365;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -2135,7 +2135,7 @@
         const state=stageAvailability(stage);
         const unlocked=state==="open";
         btn.type="button";
-        btn.textContent=stage===1?"第一關・菜園":stage===2?"第二關・沙漠":"第三關・雪原";
+        btn.textContent=stage===1?"菜園":stage===2?"沙漠":"雪原";
         btn.classList.toggle("active",bookStageTab===stage);
         btn.classList.toggle("locked",!unlocked);
         btn.classList.toggle("comingSoon",state==="comingSoon");
@@ -2198,11 +2198,11 @@
     }
     adventureBookContent.appendChild(grid);
   }
-  // Optional external audio files. Only list files that actually exist to avoid HTTP 404 spam.
+  // Optional external audio files. Root path first, old /ro path as fallback.
   const externalAudioDefs={
-    crit:"audio/ro/Blunt-Critical-Hit.wav",
-    crit2:"audio/ro/Blunt-Critical-Hit-2.wav",
-    crit3:"audio/ro/Blunt-Critical-Hit-3.wav",
+    crit:["audio/Blunt-Critical-Hit.wav","audio/ro/Blunt-Critical-Hit.wav"],
+    crit2:["audio/Blunt-Critical-Hit-2.wav","audio/ro/Blunt-Critical-Hit-2.wav"],
+    crit3:["audio/Blunt-Critical-Hit-3.wav","audio/ro/Blunt-Critical-Hit-3.wav"],
     giantExplosion:"audio/giant-explosion.wav"
   };
   const externalAudioConfig={
@@ -2221,15 +2221,24 @@
 
   function initExternalAudio(){
     if(!audio)return;
-    for(const [key,src] of Object.entries(externalAudioDefs)){
+    for(const [key,srcDef] of Object.entries(externalAudioDefs)){
       if(externalAudio[key]?.loading||externalAudio[key]?.ok!==undefined)continue;
       const config=externalAudioConfig[key]||{minInterval:60};
       externalAudio[key]={buffer:null,ok:null,lastPlayed:0,minInterval:config.minInterval,loading:true};
-      fetch(src)
+      const sources=Array.isArray(srcDef)?srcDef:[srcDef];
+      const fetchAudio=(index=0)=>{
+        const src=sources[index];
+        return fetch(src)
         .then(res=>{
           if(!res.ok)throw new Error(`audio fetch failed: ${src}`);
           return res.arrayBuffer();
         })
+        .catch(error=>{
+          if(index+1<sources.length)return fetchAudio(index+1);
+          throw error;
+        });
+      };
+      fetchAudio()
         .then(buf=>audio.decodeAudioData(buf.slice(0)))
         .then(buffer=>{
           if(externalAudio[key]){
