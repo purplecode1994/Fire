@@ -7,13 +7,22 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>兔兔割草大冒險</title>
-    <link rel="stylesheet" href="bunny-style.css?v=333">
+    <link rel="stylesheet" href="bunny-style.css?v=356">
 </head>
 <body class="layout-portrait">
 <div id="wrap">
   <canvas id="game" width="540" height="960"></canvas>
   <canvas id="transitionCanvas" width="540" height="960"></canvas>
   <div id="transitionMask"></div>
+  <div id="bootOverlay">
+    <div id="bootPanel">
+      <div id="bootTitle">載入中 Loading...</div>
+      <div id="bootHint">兔兔正在整理胡蘿蔔背包...</div>
+      <div id="bootProgress"><div id="bootProgressFill"></div></div>
+      <div id="bootPercent">0%</div>
+      <canvas id="bootMascots" width="250" height="96" aria-hidden="true"></canvas>
+    </div>
+  </div>
   <div id="intro" class="screen homeScreen">
     <div class="panel menuPanel">
       <div id="accountBox" role="button" tabindex="0" aria-label="帳號等級與獎勵">
@@ -21,13 +30,12 @@
         <div class="expBar"><div id="accountExpFill"></div></div>
         <div id="accountExpText">EXP 0 / 0</div>
       </div>
-      <div id="coinBox" role="button" tabindex="0" aria-label="金幣數量，點擊重新抓取">🪙 <span id="coinCount">0</span><button id="coinDevSubBtn" class="hidden" type="button" aria-label="開發模式減少金幣">-</button><button id="coinDevAddBtn" class="hidden" type="button" aria-label="開發模式增加金幣">+</button><div id="coinDebugBox" class="hidden"></div></div>
+      <div id="coinBox" role="button" tabindex="0" aria-label="鑽石數量，點擊重新抓取"><span class="diamondIcon">💎</span> <span id="coinCount">0</span><button id="coinDevSubBtn" class="hidden" type="button" aria-label="開發模式減少鑽石">-</button><button id="coinDevAddBtn" class="hidden" type="button" aria-label="開發模式增加鑽石">+</button><div id="coinDebugBox" class="hidden"></div></div>
       <div id="rewardPanel">
         <b>等級獎勵（尚未開放）</b>
         <div id="rewardTrack"></div>
       </div>
-      <h1 class="homeTitle">兔兔割草大冒險</h1>
-      <div class="homeVersion">V.333</div>
+      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.356</span></h1>
       <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
@@ -142,7 +150,7 @@
     <div class="panel menuPanel">
       <h1>精靈商城</h1>
       <div class="shopTopBar">
-        <div class="shopWallet">🪙 <span id="shopCoinCount">0</span></div>
+        <div class="shopWallet"><span class="diamondIcon">💎</span> <span id="shopCoinCount">0</span></div>
       </div>
       <div class="panelBody shopBody">
         <div class="shopHero">
@@ -151,7 +159,7 @@
               <span class="shelfItem">🧪</span><span class="shelfItem">📦</span><span class="shelfItem">🥕</span><span class="shelfItem">💎</span><span class="shelfItem">🍌</span>
             </div>
             <div class="shelfRow">
-              <span class="shelfItem">🪙</span><span class="shelfItem">🧤</span><span class="shelfItem">🧿</span><span class="shelfItem">🧵</span><span class="shelfItem">📜</span>
+              <span class="shelfItem">💎</span><span class="shelfItem">🧤</span><span class="shelfItem">🧿</span><span class="shelfItem">🧵</span><span class="shelfItem">📜</span>
             </div>
           </div>
           <div class="shopCounter"></div>
@@ -231,9 +239,10 @@
     </div>
   </div>
 </div>
-  <script src="bunny-logic.js?v=333"></script>
+  <script src="bunny-logic.js?v=356"></script>
 </body>
 </html>
+
 
 
 

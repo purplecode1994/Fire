@@ -3,9 +3,13 @@
   const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
   const transitionCanvas=document.getElementById("transitionCanvas"),transitionCtx=transitionCanvas.getContext("2d");
   const transitionMask=document.getElementById("transitionMask");
-  const APP_VERSION=333;
+  const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
+  const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
+  const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
+  const APP_VERSION=356;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
+  if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
   const W=540,H=960;
   const DURATION=600,wrap=document.getElementById("wrap");
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
@@ -1170,13 +1174,13 @@
         const loadType=navigationEntry?.type||"unknown";
         coinDebugBox.classList.remove("hidden");
         coinDebugBox.textContent=[
-          `wallet ${formatCommaNumber(walletCoins||0)}`,
-          `meta ${formatCommaNumber(Number(meta.coins)||0)}`,
-          `run ${formatCommaNumber(Number(runCoins)||0)}`,
-          `save ${saveCoins}`,
+          `diamond ${formatCommaNumber(walletCoins||0)}`,
+          `metaDiamond ${formatCommaNumber(Number(meta.coins)||0)}`,
+          `runDiamond ${formatCommaNumber(Number(runCoins)||0)}`,
+          `saveDiamond ${saveCoins}`,
           `walletKey ${walletKeyCoins}`,
-          `coin ${coinKeyCoins}`,
-          `cookie ${cookieCoins}`,
+          `diamondKey ${coinKeyCoins}`,
+          `cookieDiamond ${cookieCoins}`,
           `ok ${coinSaveStatus.saveLocal}/${coinSaveStatus.saveSession}/${coinSaveStatus.coinCookie}`,
           `load ${loadType}`,
           `ver ${APP_VERSION}`,
@@ -1197,7 +1201,7 @@
       ["🧪","體力藥水","SOLD"],
       ["💎","藍色碎晶","SOLD"],
       ["📜","古老卷軸","SOLD"],
-      ["🪙","金幣袋","SOLD"],
+      ["💎","鑽石袋","SOLD"],
       ["🧤","冒險手套","SOLD"],
       ["🧿","護身符","SOLD"],
       ["🧵","精靈絲線","SOLD"],
@@ -1240,6 +1244,171 @@
     requestAnimationFrame(refreshWalletSilently);
     setTimeout(refreshWalletSilently,150);
     setTimeout(refreshWalletSilently,700);
+  }
+  const bootHints=[
+    "兔兔正在整理胡蘿蔔背包...",
+    "檢查小胡蘿蔔發射器...",
+    "花生正在找自己的小石頭...",
+    "PINKY 正在清點香蕉...",
+    "精靈店員正在打開櫃台燈...",
+    "冒險筆記正在翻到最新一頁...",
+    "胡蘿蔔種子正在發芽...",
+    "兔兔正在暖身，準備割草...",
+    "確認鑽石袋沒有破洞...",
+    "幫花生洗乾淨腳底泥土...",
+    "幫 PINKY 綁好小圍巾...",
+    "兔兔正在把耳朵調成戰鬥角度...",
+    "把備用胡蘿蔔排成一整列...",
+    "檢查寶箱鑰匙有沒有放反...",
+    "把雪原圍巾和沙漠水壺塞進背包...",
+    "兔兔正在偷偷多帶一根胡蘿蔔..."
+  ];
+  const bootFinalHint="準備出發...";
+  function bootRect(x,y,w,h,c){
+    if(!bootMascotCtx)return;
+    bootMascotCtx.fillStyle=c;
+    bootMascotCtx.fillRect(Math.round(x),Math.round(y),Math.ceil(w),Math.ceil(h));
+  }
+  function drawBootPeanut(x,y,bob){
+    const oy=y+bob;
+    bootRect(x-9,oy-12,18,24,"#c98b4f");
+    bootRect(x-7,oy-9,14,8,"#e1aa67");
+    bootRect(x-5,oy-2,3,4,"#17131a");
+    bootRect(x+3,oy-2,3,4,"#17131a");
+    bootRect(x-12,oy+3,5,10,"#a96d3e");
+    bootRect(x+7,oy+3,5,10,"#a96d3e");
+  }
+  function drawBootPinky(x,y,bob){
+    bootMascotCtx.save();
+    bootMascotCtx.translate(x,y+bob);
+    bootMascotCtx.strokeStyle="#d95c92";
+    bootMascotCtx.lineWidth=6;
+    bootMascotCtx.lineCap="square";
+    bootMascotCtx.beginPath();
+    bootMascotCtx.moveTo(9,8);
+    bootMascotCtx.lineTo(18,7);
+    bootMascotCtx.lineTo(21,-2);
+    bootMascotCtx.lineTo(17,-9);
+    bootMascotCtx.lineTo(11,-9);
+    bootMascotCtx.lineTo(9,-4);
+    bootMascotCtx.lineTo(13,0);
+    bootMascotCtx.stroke();
+    bootRect(-9,5,18,18,"#f58fba");
+    bootRect(-13,-12,26,24,"#f58fba");
+    bootRect(-10,-10,7,5,"#ffc4da");
+    bootRect(-17,-7,6,10,"#f2b693");
+    bootRect(11,-7,6,10,"#f2b693");
+    bootRect(-8,-7,8,11,"#ffd9c8");
+    bootRect(0,-7,8,11,"#ffd9c8");
+    bootRect(-6,3,12,5,"#ffd9c8");
+    bootRect(-5,-2,3,4,"#251b20");
+    bootRect(3,-2,3,4,"#251b20");
+    bootRect(-1,2,3,2,"#6d2948");
+    bootRect(-4,6,3,2,"#ffd9c8");
+    bootRect(2,6,3,2,"#ffd9c8");
+    bootRect(-13,21,7,5,"#f2b693");
+    bootRect(6,21,7,5,"#f2b693");
+    bootMascotCtx.restore();
+  }
+  function drawBootBunny(x,y,bob){
+    const oy=y+bob;
+    bootMascotCtx.save();
+    bootMascotCtx.translate(x,oy);
+    bootRect(-11,-26,7,18,"#fff0cb");
+    bootRect(4,-28,7,20,"#fff0cb");
+    bootRect(-9,-23,3,12,"#ef9a91");
+    bootRect(6,-25,3,14,"#ef9a91");
+    bootRect(-15,-12,29,23,"#fff2d0");
+    bootRect(10,-3,8,7,"#cf794d");
+    bootRect(5,-7,4,5,"#17131a");
+    bootRect(-17,13,7,20,"#f1ddbd");
+    bootRect(-18,28,8,8,"#ead2ad");
+    bootRect(-14,10,29,6,"#236a96");
+    bootRect(-11,16,24,18,"#f3e5c8");
+    bootRect(-11,18,24,4,"#e84037");
+    bootRect(-11,26,24,4,"#e84037");
+    bootRect(10,15,7,20,"#f5e4c4");
+    bootRect(12,30,9,8,"#ead2ad");
+    bootRect(17,25,15,7,"#f2792f");
+    bootRect(28,26,7,5,"#d95228");
+    bootRect(15,22,6,4,"#55aa4f");
+    bootRect(16,30,6,4,"#78c55c");
+    bootRect(-10,34,22,9,"#287cad");
+    bootRect(-9,42,7,8,"#f1ddbd");
+    bootRect(5,42,7,8,"#f1ddbd");
+    bootMascotCtx.restore();
+  }
+  function drawBootMascots(now=0){
+    if(!bootMascotCtx||!bootMascotCanvas)return;
+    bootMascotCtx.clearRect(0,0,bootMascotCanvas.width,bootMascotCanvas.height);
+    const step=Math.floor(now/240)%4;
+    const groundY=84;
+    drawBootPeanut(44,groundY-13,step===2?-4:0);
+    drawBootPinky(116,groundY-26,step===1?-4:0);
+    drawBootBunny(196,groundY-50,step===0?-4:0);
+  }
+  function playBootReveal(){
+    if(!bootOverlay)return;
+    bootOverlay.classList.add("revealing");
+    const duration=1700;
+    const start=performance.now();
+    const maxRadius=Math.hypot(innerWidth,innerHeight);
+    function draw(now){
+      const t=Math.min(1,(now-start)/duration);
+      const eased=1-Math.pow(1-t,3);
+      const radius=maxRadius*eased;
+      const edge=radius+Math.max(1,18*(1-eased));
+      bootOverlay.style.background=`radial-gradient(circle at 50% 50%, transparent 0, transparent ${radius}px, #000 ${edge}px, #000 100%)`;
+      if(t<1){
+        requestAnimationFrame(draw);
+        return;
+      }
+      bootOverlay.classList.add("done");
+      bootOverlay.style.background="";
+    }
+    requestAnimationFrame(draw);
+  }
+  function startBootOverlay(){
+    if(!bootOverlay)return;
+    const duration=5;
+    const shuffled=[...bootHints].sort(()=>Math.random()-.5);
+    const selected=[shuffled[0]||bootHints[0],shuffled[1]||bootHints[1]||bootHints[0],bootFinalHint];
+    let hintIndex=0,startTime=0,finished=false;
+    if(bootHint)bootHint.textContent=selected[0];
+    if(bootProgressFill)bootProgressFill.style.width="0%";
+    if(bootPercent)bootPercent.textContent="0%";
+    drawBootMascots(0);
+    refreshWalletSilently();
+    const refreshTimer=setInterval(refreshWalletSilently,520);
+    function bootStep(now){
+      if(!startTime)startTime=now;
+      const elapsed=(now-startTime)/1000;
+      const nextHintAt=hintIndex===0?2:4;
+      if(elapsed>=nextHintAt&&hintIndex<selected.length-1){
+        hintIndex++;
+        if(bootHint)bootHint.textContent=selected[hintIndex];
+      }
+      const ratio=Math.min(1,elapsed/duration);
+      let eased=0;
+      if(ratio<.18)eased=ratio/.18*.32;
+      else if(ratio<.72)eased=.32+(ratio-.18)/.54*.46;
+      else if(ratio<.9)eased=.78+(ratio-.72)/.18*.12;
+      else eased=.9+(ratio-.9)/.1*.1;
+      const percent=Math.round(eased*100);
+      if(bootProgressFill)bootProgressFill.style.width=`${percent}%`;
+      if(bootPercent)bootPercent.textContent=`${percent}%`;
+      drawBootMascots(now);
+      if(ratio<1){
+        requestAnimationFrame(bootStep);
+        return;
+      }
+      if(finished)return;
+      finished=true;
+      clearInterval(refreshTimer);
+      refreshWalletSilently();
+      setTimeout(playBootReveal,300);
+    }
+    requestAnimationFrame(bootStep);
   }
   function settleRunCoins(){
     if(runCoinsSettled||runCoins<=0)return;
@@ -1565,7 +1734,7 @@
 
   renderMeta=function(){
     renderAccount();
-    document.querySelector(".homeTitle").textContent="兔兔割草大冒險";
+    document.querySelector(".homeTitle").innerHTML=`兔兔割草大冒險 <span class="homeVersion">V.${APP_VERSION}</span>`;
     document.getElementById("start").textContent="開始割草";
     characterBtn.textContent="角色資訊";
     adventureBookBtn.textContent="冒險筆記";
@@ -2346,7 +2515,7 @@
     transitionCanvas.width=W;
     transitionCanvas.height=H;
     transitionCtx.clearRect(0,0,W,H);
-    transitionMask.style.background="radial-gradient(circle at 50% 50%, transparent 0, transparent 120vmax, #06040d 120vmax, #06040d 100%)";
+    transitionMask.style.background="radial-gradient(circle at 50% 50%, transparent 0, transparent 120vmax, #000 120vmax, #000 100%)";
     transitionMask.style.opacity="0";
   }
 
@@ -2363,9 +2532,9 @@
     function drawFrame(radius){
       transitionCtx.clearRect(0,0,W,H);
       const safeRadius=Math.max(0,Math.round(radius));
-      const edge=Math.max(0,safeRadius-1);
+      const edge=safeRadius;
       transitionMask.style.opacity="1";
-      transitionMask.style.background=`radial-gradient(circle at 50% 50%, transparent 0, transparent ${edge}px, #06040d ${safeRadius}px, #06040d 100%)`;
+      transitionMask.style.background=`radial-gradient(circle at 50% 50%, transparent 0, transparent ${edge}px, #000 ${safeRadius}px, #000 100%)`;
     }
 
     function animate(timestamp){
@@ -2406,7 +2575,7 @@
 
       transitionCtx.clearRect(0,0,W,H);
       transitionMask.style.opacity="0";
-      transitionMask.style.background="radial-gradient(circle at 50% 50%, transparent 0, transparent 120vmax, #06040d 120vmax, #06040d 100%)";
+      transitionMask.style.background="radial-gradient(circle at 50% 50%, transparent 0, transparent 120vmax, #000 120vmax, #000 100%)";
       transitioning=false;
       if(running&&!ended)battleStartDelay=BATTLE_START_DELAY;
     }
@@ -3055,7 +3224,7 @@
     if(pickup.type==="coin"){
       const goldGain=20+Math.floor(rand(0,41));
       runCoins+=goldGain;
-      text(player.x,player.y-42,`🪙 +${formatCommaNumber(goldGain)}`,"#ffe16c",24,"pickup");
+      text(player.x,player.y-42,`💎 +${formatCommaNumber(goldGain)}`,"#ffe16c",24,"pickup");
       beep(760,.18,.03,"triangle");
       countAudioSubtype("pickup");
       return;
@@ -4462,6 +4631,89 @@
     ctx.textAlign="left";
   }
 
+  function drawTreasureHintIcon(type,iconX,iconY,seconds,arrowX=null,arrowY=null,angle=0){
+    ctx.save();
+    if(arrowX!==null){
+      ctx.translate(arrowX,arrowY);
+      ctx.rotate(angle);
+      ctx.fillStyle="#fff07a";
+      ctx.beginPath();
+      ctx.moveTo(23,0);
+      ctx.lineTo(-5,-14);
+      ctx.lineTo(-5,14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.setTransform(1,0,0,1,0,0);
+    }
+    const glow=type==="coin"?"#ffe16c":type==="heal"?"#77ff89":type==="potion"?"#ff8fc3":"#ff8b55";
+    ctx.globalAlpha=.34+.16*Math.sin(time*8);
+    ctx.fillStyle=glow;
+    ctx.beginPath();
+    ctx.arc(iconX,iconY,27,0,Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha=1;
+    if(type==="coin"){
+      rect(iconX-13,iconY-13,26,26,"#b77a1d");
+      rect(iconX-10,iconY-10,20,20,"#ffd84f");
+      rect(iconX-7,iconY-7,14,14,"#fff2a6");
+      rect(iconX-3,iconY-6,6,12,"#d8a927");
+    }else if(type==="bomb"){
+      rect(iconX-13,iconY-10,26,24,"#d7333f");
+      rect(iconX-9,iconY-14,18,30,"#ed4b50");
+      rect(iconX+5,iconY-17,11,5,"#79533e");
+      rect(iconX+14,iconY-20,5,5,"#ffdf3d");
+      rect(iconX-5,iconY-7,6,5,"#ff9890");
+    }else if(type==="potion"){
+      rect(iconX-10,iconY-14,20,24,"#ff8fc3");
+      rect(iconX-8,iconY-12,16,20,"#ffd3e8");
+      rect(iconX-5,iconY-20,10,6,"#7c5c69");
+      rect(iconX-6,iconY-5,12,8,"#ff8fc3");
+    }else{
+      ctx.fillStyle="#e83f58";
+      ctx.beginPath();
+      ctx.moveTo(iconX,iconY+14);
+      ctx.bezierCurveTo(iconX-25,iconY-2,iconX-14,iconY-19,iconX,iconY-8);
+      ctx.bezierCurveTo(iconX+14,iconY-19,iconX+25,iconY-2,iconX,iconY+14);
+      ctx.fill();
+      rect(iconX-3,iconY-10,6,18,"#fff");
+      rect(iconX-9,iconY-4,18,6,"#fff");
+    }
+    ctx.font="bold 13px monospace";
+    ctx.textAlign="center";
+    ctx.lineWidth=4;
+    ctx.strokeStyle="#111";
+    ctx.strokeText(`${seconds}s`,iconX,iconY+25);
+    ctx.fillStyle="#fff";
+    ctx.fillText(`${seconds}s`,iconX,iconY+25);
+    ctx.restore();
+  }
+
+  function drawPickupHints(){
+    for(const pickup of pickups){
+      if(pickup.life<=0)continue;
+      const p=worldToScreen(pickup.x,pickup.y);
+      const seconds=Math.max(0,Math.ceil(pickup.life));
+      const margin=52;
+      if(p.x>=48&&p.x<=W-48&&p.y>=48&&p.y<=H-48){
+        const iconX=Math.max(margin,Math.min(W-margin,p.x));
+        const iconY=Math.max(margin,Math.min(H-margin,p.y-54));
+        drawTreasureHintIcon(pickup.type,iconX,iconY,seconds);
+        continue;
+      }
+      const dx=p.x-W/2,dy=p.y-H/2;
+      if(Math.hypot(dx,dy)<2)continue;
+      const angle=Math.atan2(dy,dx);
+      const sx=Math.abs(dx)>1?(W/2-margin)/Math.abs(dx):Infinity;
+      const sy=Math.abs(dy)>1?(H/2-margin)/Math.abs(dy):Infinity;
+      const scale=Math.min(sx,sy);
+      const x=W/2+dx*scale,y=H/2+dy*scale;
+      const iconX=x-Math.cos(angle)*28,iconY=y-Math.sin(angle)*28;
+      drawTreasureHintIcon(pickup.type,iconX,iconY,seconds,x,y,angle);
+    }
+    ctx.globalAlpha=1;
+    ctx.textAlign="left";
+  }
+
   function drawBunny(){
     const x=W/2,y=H/2,flip=player.facing,flash=player.invuln&&Math.floor(player.invuln*16)%2===0;if(flash)return;
     ctx.save();ctx.translate(x,y);ctx.scale(flip,1);
@@ -4494,7 +4746,7 @@
       // Two rounded lobes make the pale face read as a heart.
       rect(-8,-7,8,11,"#ffd9c8");rect(0,-7,8,11,"#ffd9c8");rect(-6,3,12,5,"#ffd9c8");
       rect(-5,-2,3,4,"#251b20");rect(3,-2,3,4,"#251b20");
-      rect(-1,2,3,2,"#6d2948");rect(-4,6,3,2,"#6d2948");rect(2,6,3,2,"#6d2948");
+      rect(-1,2,3,2,"#6d2948");rect(-4,6,3,2,"#ffd9c8");rect(2,6,3,2,"#ffd9c8");
       rect(-13,21,7,5,"#f2b693");rect(6,21,7,5,"#f2b693");
       ctx.restore();
     }
@@ -4621,7 +4873,7 @@
       ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);
       ctx.font="bold 18px monospace";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":"#fff4b2";ctx.strokeText(stageTimeLabel,14,101);ctx.fillText(stageTimeLabel,14,101);
       ctx.textAlign="right";ctx.font="bold 15px monospace";ctx.fillStyle="#ffe16c";
-      ctx.fillText(`🪙 ${formatCommaNumber(runCoins)}`,W-14,100);
+      ctx.fillText(`💎 ${formatCommaNumber(runCoins)}`,W-14,100);
       ctx.fillStyle="#fff";
       ctx.fillText(`擊倒 ${hudKills}`,W-14,124);
       ctx.fillStyle=kpsPressure>0?"#ffe15b":"#d8f2ff";
@@ -4649,7 +4901,7 @@
     ctx.textBaseline="middle";ctx.font="bold 14px monospace";ctx.lineWidth=4;ctx.strokeStyle="#111";ctx.fillStyle="#fff";
     ctx.strokeText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,23,24);ctx.fillText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,23,24);
     ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,23,49);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,23,49);
-    ctx.font="bold 15px monospace";ctx.fillStyle="#ffe16c";ctx.fillText(`🪙 ${formatCommaNumber(runCoins)}`,14,88);
+    ctx.font="bold 15px monospace";ctx.fillStyle="#ffe16c";ctx.fillText(`💎 ${formatCommaNumber(runCoins)}`,14,88);
     ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,14,108);
     const stageTimeLabel=stageTimerLabel();
     ctx.textAlign="center";ctx.font="bold 25px monospace";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":time>=480?"#ff6270":"#fff4b2";
@@ -4687,7 +4939,7 @@
     ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,28,52);
     ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,28,52);
     ctx.restore();
-    ctx.font="bold 16px monospace";ctx.fillStyle="#ffe16c";ctx.fillText(`🪙 ${formatCommaNumber(runCoins)}`,18,92);
+    ctx.font="bold 16px monospace";ctx.fillStyle="#ffe16c";ctx.fillText(`💎 ${formatCommaNumber(runCoins)}`,18,92);
     ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,18,116);
     if(hudKills<200){ctx.font="bold 12px monospace";ctx.fillStyle="#bff58a";ctx.fillText(`前期經驗減免 ${Math.round((1-(.45+.55*hudKills/200))*100)}%`,18,138);}
     if(killSurgeActive){ctx.font="bold 13px monospace";ctx.fillStyle="#ff6978";ctx.fillText("狂暴怪潮：數量+75%・生命+60%",18,159);}
@@ -4872,6 +5124,7 @@
     drawDebugOverlay();
     drawFinalBossBar();
     drawChestHints();
+    drawPickupHints();
     drawAnnouncement();
     drawBossWarning();
     drawEncirclementWarning();
@@ -4929,7 +5182,7 @@
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent=currentStage===3?"雪原深處征服成功！":currentStage===2?"沙漠遺跡征服成功！":"菜園守護成功！";
     document.getElementById("endSub").textContent=currentStage===3?"兔兔擊敗了暴雪鯨魚":currentStage===2?"兔兔擊敗了遠古石面怪":"兔兔擊敗了最終魔王";
-    document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得金幣 🪙 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`;
+    document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`;
     beep(660,.4,.05);
   }
 
@@ -4944,7 +5197,7 @@
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent="兔兔倒下了";
     document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
-    document.getElementById("endText").innerHTML=`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得金幣 🪙 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>目前共 ${meta.points} 點`;
+    document.getElementById("endText").innerHTML=`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>目前共 ${meta.points} 點`;
     beep(180,.7,.05,"sawtooth");
   }
 
@@ -4967,8 +5220,8 @@
     document.getElementById("endTitle").textContent="已離開關卡";
     document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
     document.getElementById("endText").innerHTML=isInfiniteMode()
-      ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}（已扣除 70%）<br>本局獲得金幣 🪙 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`
-      :`中途離開不計完整擊殺點數<br>生存點數 ${earned}<br>本局獲得金幣 🪙 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`;
+      ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`
+      :`中途離開不計完整擊殺點數<br>生存點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`;
     beep(220,.22,.035,"square");
   }
 
@@ -5111,8 +5364,8 @@
     const leaveConfirmText=leaveConfirm.querySelector(".leaveConfirmText");
     if(leaveConfirmText){
       leaveConfirmText.innerHTML=isInfiniteMode()
-        ?"您確定要中途離開輪迴嗎？<br>將帶走完整金幣，擊殺點數會扣除 70%。"
-        :"您確定要中途離開關卡嗎？<br>將帶走完整金幣，但不會帶走完整擊殺點數。";
+        ?"您確定要中途離開輪迴嗎？<br>將帶走完整鑽石，擊殺點數會扣除 70%。"
+        :"您確定要中途離開關卡嗎？<br>將帶走完整鑽石，但不會帶走完整擊殺點數。";
     }
     leaveConfirm.classList.add("visible");
     leaveStageBtn.classList.add("hidden");
@@ -5353,7 +5606,7 @@
     playSceneTransition(()=>{
       timeline.seen.clear();
       start();
-    },{shrinkDuration:900,holdDuration:1000,expandDuration:560});
+    },{shrinkDuration:1100,holdDuration:1100,expandDuration:800});
   };
   document.getElementById("again").onclick=()=>{
     if(transitioning)return;
@@ -5367,7 +5620,7 @@
       pauseScreen.classList.add("hidden");pauseBtn.classList.remove("visible");
       renderMeta();
       updateMonitorButtons();
-    },{shrinkDuration:900,holdDuration:1000,expandDuration:560});
+    },{shrinkDuration:1100,holdDuration:1100,expandDuration:800});
   };
   window.addEventListener("resize",()=>{
     resizeTransitionCanvas();
@@ -5375,5 +5628,6 @@
   });
   resizeTransitionCanvas();
   syncCoinState(true);
-  updateMuteButton();renderMeta();scheduleWalletBootRefresh();draw();requestAnimationFrame(loop);
+  updateMuteButton();renderMeta();startBootOverlay();draw();requestAnimationFrame(loop);
 })();
+
