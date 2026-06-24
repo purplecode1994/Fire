@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=366;
+  const APP_VERSION=368;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -4718,17 +4718,25 @@
     rect(p.x-16,p.y-8+bob,12,3,"#ffe58c");
   }
 
+  function drawPixelDiamond(cx,cy,scale=1){
+    const s=scale;
+    rect(cx-10*s,cy-4*s,20*s,8*s,"#42b8ff");
+    rect(cx-7*s,cy-8*s,14*s,4*s,"#9eeaff");
+    rect(cx-13*s,cy-1*s,26*s,5*s,"#1c8fe0");
+    rect(cx-9*s,cy+4*s,18*s,5*s,"#1470bd");
+    rect(cx-5*s,cy+9*s,10*s,5*s,"#0f5fa6");
+    rect(cx-2*s,cy-7*s,4*s,16*s,"rgba(255,255,255,.55)");
+    rect(cx-8*s,cy-3*s,5*s,4*s,"#d8fbff");
+  }
+
   function drawPickup(pickup){
     const p=worldToScreen(pickup.x,pickup.y),bob=Math.sin(time*5+pickup.phase)*5;
     ctx.globalAlpha=.22+.12*Math.sin(time*7+pickup.phase);
-    ctx.fillStyle=pickup.type==="coin"?"#ffe16c":pickup.type==="heal"?"#77ff89":pickup.type==="potion"?"#ff8fc3":"#ff8b55";
+    ctx.fillStyle=pickup.type==="coin"?"#65dfff":pickup.type==="heal"?"#77ff89":pickup.type==="potion"?"#ff8fc3":"#ff8b55";
     ctx.beginPath();ctx.arc(p.x,p.y+bob,29,0,Math.PI*2);ctx.fill();
     ctx.globalAlpha=1;
     if(pickup.type==="coin"){
-      rect(p.x-13,p.y-13+bob,26,26,"#b77a1d");
-      rect(p.x-10,p.y-10+bob,20,20,"#ffd84f");
-      rect(p.x-7,p.y-7+bob,14,14,"#fff2a6");
-      rect(p.x-3,p.y-6+bob,6,12,"#d8a927");
+      drawPixelDiamond(p.x,p.y+bob,1);
     }else if(pickup.type==="bomb"){
       rect(p.x-13,p.y-10+bob,26,24,"#d7333f");
       rect(p.x-9,p.y-14+bob,18,30,"#ed4b50");
@@ -4853,7 +4861,7 @@
       ctx.fill();
       ctx.setTransform(1,0,0,1,0,0);
     }
-    const glow=type==="coin"?"#ffe16c":type==="heal"?"#77ff89":type==="potion"?"#ff8fc3":"#ff8b55";
+    const glow=type==="coin"?"#65dfff":type==="heal"?"#77ff89":type==="potion"?"#ff8fc3":"#ff8b55";
     ctx.globalAlpha=.34+.16*Math.sin(time*8);
     ctx.fillStyle=glow;
     ctx.beginPath();
@@ -4861,10 +4869,7 @@
     ctx.fill();
     ctx.globalAlpha=1;
     if(type==="coin"){
-      rect(iconX-13,iconY-13,26,26,"#b77a1d");
-      rect(iconX-10,iconY-10,20,20,"#ffd84f");
-      rect(iconX-7,iconY-7,14,14,"#fff2a6");
-      rect(iconX-3,iconY-6,6,12,"#d8a927");
+      drawPixelDiamond(iconX,iconY,1);
     }else if(type==="bomb"){
       rect(iconX-13,iconY-10,26,24,"#d7333f");
       rect(iconX-9,iconY-14,18,30,"#ed4b50");
@@ -4896,6 +4901,62 @@
     ctx.restore();
   }
 
+  function drawTreasureLocator(type,iconX,iconY,seconds,arrowX=null,arrowY=null,angle=0){
+    ctx.save();
+    const color=type==="coin"?"#6fe6ff":type==="heal"?"#77ff89":type==="potion"?"#ff8fc3":"#ff8b55";
+    if(arrowX!==null){
+      ctx.translate(arrowX,arrowY);
+      ctx.rotate(angle);
+      ctx.fillStyle=color;
+      ctx.beginPath();
+      ctx.moveTo(23,0);
+      ctx.lineTo(-5,-13);
+      ctx.lineTo(-5,13);
+      ctx.closePath();
+      ctx.fill();
+      ctx.setTransform(1,0,0,1,0,0);
+    }
+    ctx.globalAlpha=.28+.14*Math.sin(time*8);
+    ctx.strokeStyle=color;
+    ctx.lineWidth=4;
+    ctx.beginPath();
+    ctx.arc(iconX,iconY,20,0,Math.PI*2);
+    ctx.stroke();
+    ctx.globalAlpha=1;
+    ctx.strokeStyle="#111";
+    ctx.lineWidth=5;
+    ctx.beginPath();
+    ctx.moveTo(iconX-25,iconY);
+    ctx.lineTo(iconX-13,iconY);
+    ctx.moveTo(iconX+13,iconY);
+    ctx.lineTo(iconX+25,iconY);
+    ctx.moveTo(iconX,iconY-25);
+    ctx.lineTo(iconX,iconY-13);
+    ctx.moveTo(iconX,iconY+13);
+    ctx.lineTo(iconX,iconY+25);
+    ctx.stroke();
+    ctx.strokeStyle=color;
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(iconX-25,iconY);
+    ctx.lineTo(iconX-13,iconY);
+    ctx.moveTo(iconX+13,iconY);
+    ctx.lineTo(iconX+25,iconY);
+    ctx.moveTo(iconX,iconY-25);
+    ctx.lineTo(iconX,iconY-13);
+    ctx.moveTo(iconX,iconY+13);
+    ctx.lineTo(iconX,iconY+25);
+    ctx.stroke();
+    ctx.font="bold 13px monospace";
+    ctx.textAlign="center";
+    ctx.lineWidth=4;
+    ctx.strokeStyle="#111";
+    ctx.strokeText(`${seconds}s`,iconX,iconY+37);
+    ctx.fillStyle="#fff";
+    ctx.fillText(`${seconds}s`,iconX,iconY+37);
+    ctx.restore();
+  }
+
   function drawPickupHints(){
     for(const pickup of pickups){
       if(pickup.life<=0)continue;
@@ -4905,7 +4966,7 @@
       if(p.x>=48&&p.x<=W-48&&p.y>=48&&p.y<=H-48){
         const iconX=Math.max(margin,Math.min(W-margin,p.x));
         const iconY=Math.max(margin,Math.min(H-margin,p.y-54));
-        drawTreasureHintIcon(pickup.type,iconX,iconY,seconds);
+        drawTreasureLocator(pickup.type,iconX,iconY,seconds);
         continue;
       }
       const dx=p.x-W/2,dy=p.y-H/2;
@@ -4916,7 +4977,7 @@
       const scale=Math.min(sx,sy);
       const x=W/2+dx*scale,y=H/2+dy*scale;
       const iconX=x-Math.cos(angle)*28,iconY=y-Math.sin(angle)*28;
-      drawTreasureHintIcon(pickup.type,iconX,iconY,seconds,x,y,angle);
+      drawTreasureLocator(pickup.type,iconX,iconY,seconds,x,y,angle);
     }
     ctx.globalAlpha=1;
     ctx.textAlign="left";
