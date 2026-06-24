@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=368;
+  const APP_VERSION=371;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -62,7 +62,7 @@
   let finalPhase="none",finalTimer=0;
   let bossArena={active:false,x:0,y:0,r:360};
   let audio=null,muted=false;
-  let runCoins=0,runCoinsSettled=false,walletCoins=0,autoSaveTimer=0;
+  let runCoins=0,runCoinsSettled=false,walletCoins=0,autoSaveTimer=0,coinDebugExpanded=false,testModeSilentPaused=false;
   let coinSaveStatus={saveLocal:"-",saveSession:"-",metaLocal:"-",metaSession:"-",coinLocal:"-",coinSession:"-",coinCookie:"-"};
   let critSampleBuffer=null,critSampleLoading=false,critSoundLastTime=0;
   const CARROT_BASE_COOLDOWN=.72;
@@ -655,6 +655,14 @@
   function openTestModeOverlay(message=""){
     if(message)testModeHint.textContent=message;
     else testModeHint.textContent="可切換手機/電腦取樣，並在本局內開啟不死與自動選技。";
+    if(running&&!ended&&!paused&&levelScreen.classList.contains("hidden")){
+      paused=true;
+      testModeSilentPaused=true;
+      resetStick();
+      last=performance.now();
+      pauseScreen.classList.add("hidden");
+      pauseBtn.classList.add("visible");
+    }
     testModeOverlay.classList.add("visible");
     testModeOverlay.setAttribute("aria-hidden","false");
     devTestBtn.classList.add("active");
@@ -664,6 +672,14 @@
     testModeOverlay.classList.remove("visible");
     testModeOverlay.setAttribute("aria-hidden","true");
     devTestBtn.classList.remove("active");
+    if(testModeSilentPaused){
+      testModeSilentPaused=false;
+      if(running&&!ended){
+        paused=false;
+        last=performance.now();
+        pauseBtn.classList.add("visible");
+      }
+    }
   }
   async function startDevTestRecording(){
     resetDevTestRecorder(devTestProfile);
@@ -1192,7 +1208,7 @@
         const rawCookie=readCookieValue(COIN_COOKIE_KEY);
         if(rawCookie!==null&&rawCookie!==undefined&&rawCookie!=="")cookieCoins=formatCommaNumber(Number(rawCookie));
       }catch(_error){}
-      if(devModeActive){
+      if(devModeActive&&coinDebugExpanded){
         const navigationEntry=performance.getEntriesByType?.("navigation")?.[0];
         const loadType=navigationEntry?.type||"unknown";
         coinDebugBox.classList.remove("hidden");
@@ -1286,6 +1302,7 @@
     `).join("");
   }
   function refreshWalletFromUi(){
+    if(devModeActive)coinDebugExpanded=!coinDebugExpanded;
     syncCoinState(true);
     syncCoinDisplay();
     if(coinBox){
@@ -4965,7 +4982,7 @@
       const margin=52;
       if(p.x>=48&&p.x<=W-48&&p.y>=48&&p.y<=H-48){
         const iconX=Math.max(margin,Math.min(W-margin,p.x));
-        const iconY=Math.max(margin,Math.min(H-margin,p.y-54));
+        const iconY=Math.max(margin,Math.min(H-margin,p.y));
         drawTreasureLocator(pickup.type,iconX,iconY,seconds);
         continue;
       }
@@ -5425,6 +5442,10 @@
     return earned;
   }
 
+  function rewardTotalLines(){
+    return `目前共 💎 ${formatCommaNumber(meta.coins||0)} 鑽石<br>目前共 ${formatCommaNumber(meta.points||0)} 點`;
+  }
+
   function recordDeathRunStats(){
     settleRunCoins();
     meta.totalDeaths=(meta.totalDeaths||0)+1;
@@ -5451,7 +5472,7 @@
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent=currentStage===3?"雪原深處征服成功！":currentStage===2?"沙漠遺跡征服成功！":"菜園守護成功！";
     document.getElementById("endSub").textContent=currentStage===3?"兔兔擊敗了暴雪鯨魚":currentStage===2?"兔兔擊敗了遠古石面怪":"兔兔擊敗了最終魔王";
-    document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`;
+    document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
     beep(660,.4,.05);
   }
 
@@ -5466,7 +5487,7 @@
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent="兔兔倒下了";
     document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
-    document.getElementById("endText").innerHTML=`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>目前共 ${meta.points} 點`;
+    document.getElementById("endText").innerHTML=`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>${rewardTotalLines()}`;
     beep(180,.7,.05,"sawtooth");
   }
 
@@ -5489,8 +5510,8 @@
     document.getElementById("endTitle").textContent="已離開關卡";
     document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
     document.getElementById("endText").innerHTML=isInfiniteMode()
-      ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`
-      :`中途離開不計完整擊殺點數<br>生存點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>目前共 ${meta.points} 點`;
+      ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
+      :`中途離開不計完整擊殺點數<br>生存點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
     beep(220,.22,.035,"square");
   }
 
@@ -5823,7 +5844,8 @@
   accountExportBtn.addEventListener("click",()=>{playUiClick();exportAccountCode();});
   accountImportBtn.addEventListener("click",()=>{playUiClick();importAccountCode();});
   developerEntryBtn.addEventListener("click",()=>{playUiClick();handleDeveloperEntry();});
-  coinDevAddBtn?.addEventListener("click",()=>{
+  coinDevAddBtn?.addEventListener("click",e=>{
+    e.stopPropagation();
     if(!devModeActive)return;
     syncCoinState();
     meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0)+100);
@@ -5833,7 +5855,8 @@
     beep(780,.08,.02,"square");
     countAudioSubtype("ui");
   });
-  coinDevSubBtn?.addEventListener("click",()=>{
+  coinDevSubBtn?.addEventListener("click",e=>{
+    e.stopPropagation();
     if(!devModeActive)return;
     syncCoinState();
     meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0)-100);
