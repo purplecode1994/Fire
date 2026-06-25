@@ -323,6 +323,7 @@
       backdrop-filter: blur(2px);
     }
     #settingsOverlay.visible { display: flex; }
+    #settingsOverlay.dialogOnly #settingsPanel { display: none; }
     #settingsPanel {
       width: min(100%,320px);
       padding: 16px 14px 14px;
@@ -1477,7 +1478,15 @@
       color:#fff0c4;
       font-size:12px;
       line-height:1.35;
-      min-height:32px;
+      min-height:28px;
+      display:grid;
+      place-items:center;
+    }
+    .shopCardSub {
+      min-height:30px;
+      color:#cfc5e9;
+      font-size:10px;
+      line-height:1.3;
       display:grid;
       place-items:center;
     }
@@ -1492,6 +1501,18 @@
       color:#1f1a2b;
       background:#ffd64f;
       box-shadow: inset -4px -4px #d89a2f, 4px 4px #120d21;
+    }
+    .shopBuyBtn:disabled {
+      color:#e9e2ff;
+      background:#6c6576;
+      opacity:.72;
+      filter:grayscale(.35);
+      cursor:default;
+      pointer-events:none;
+      box-shadow: inset -4px -4px #48414f, 4px 4px #120d21;
+    }
+    .shopBuyBtn:disabled:active {
+      transform:none;
     }
     .shopSoldBtn {
       color:#e9e2ff;
