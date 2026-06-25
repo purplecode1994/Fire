@@ -1,0 +1,3873 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>線上排班表</title>
+  <style>
+    :root {
+      --ui-scale: 1;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --text: #20242c;
+      --muted: #6a7280;
+      --line: #dfe3eb;
+      --brand: #2457c5;
+      --brand-soft: #eef4ff;
+      --yellow: #ffd84d;
+      --blue: #2f7de1;
+      --orange: #f39a2e;
+      --green: #21a67a;
+      --red: #e05656;
+      --violet: #7a5de8;
+      --shadow: 0 8px 24px rgba(25, 34, 58, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      line-height: 1.45;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    button { font: inherit; }
+
+    input {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .app {
+      width: min(100%, 820px);
+      margin: 0 auto;
+      padding: 14px 12px 28px;
+      zoom: var(--ui-scale);
+    }
+
+    .screen-frame {
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      margin: 0 0 12px;
+      padding: 8px 0 10px;
+      background: rgba(246, 247, 251, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(223, 227, 235, 0.75);
+    }
+
+    .topbar-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .topbar-title {
+      min-width: 0;
+    }
+
+    .login-open-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      min-height: 32px;
+      color: var(--muted);
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1.2;
+      text-align: right;
+      white-space: nowrap;
+      padding-top: 0;
+      margin-right: 30px;
+    }
+
+    .login-open-status::before {
+      content: "";
+      width: 11px;
+      height: 11px;
+      flex: 0 0 11px;
+      border-radius: 999px;
+      background: #b7c0cc;
+    }
+
+    .login-open-status.open {
+      color: var(--green);
+    }
+
+    .login-open-status.open::before {
+      background: var(--green);
+    }
+
+    .login-open-status.closed {
+      color: var(--red);
+    }
+
+    .login-open-status.closed::before {
+      background: var(--red);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .schedule-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      line-height: 1.25;
+    }
+
+    .schedule-title small {
+      font-size: 0.82em;
+      font-weight: 800;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .edit-state {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      text-align: right;
+    }
+
+    .editor-row {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .editor-label {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .logout-btn {
+      min-height: 0;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 900;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+
+    .sync-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .sync-status.online {
+      color: var(--green);
+    }
+
+    .sync-status.offline {
+      color: var(--red);
+    }
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: currentColor;
+      flex: 0 0 8px;
+    }
+
+    .login-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .login-extra {
+      display: grid;
+      gap: 8px;
+      max-height: 0;
+      overflow: hidden;
+      padding: 0 12px;
+      opacity: 0;
+      transition: max-height 180ms ease, opacity 180ms ease, padding 180ms ease;
+    }
+
+    .login-extra.open {
+      max-height: 520px;
+      padding: 0 12px 12px;
+      opacity: 1;
+    }
+
+    .password-input {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      color: var(--text);
+      font: inherit;
+      font-weight: 700;
+      background: #fff;
+    }
+
+    .password-change {
+      display: none;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid rgba(36, 87, 197, 0.24);
+      border-radius: 8px;
+      background: #f8fbff;
+    }
+
+    .password-change.open {
+      display: grid;
+    }
+
+    #scheduleView.password-change-mode #tablePanel,
+    #scheduleView.password-change-mode #flushPanel {
+      display: none;
+    }
+
+    #scheduleView.password-change-mode .status {
+      text-align: center;
+    }
+
+    .password-change-title {
+      color: var(--brand);
+      font-size: 16px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .password-change-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .password-change-actions .secondary {
+      background: #fff;
+      color: var(--muted);
+    }
+
+    .person-btn,
+    .action,
+    .shift-cell {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 800;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .person-btn {
+      box-shadow: 0 4px 12px rgba(20, 28, 44, 0.08);
+      transition: box-shadow 160ms ease, transform 120ms ease, border-color 160ms ease;
+    }
+
+    .person-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 7px rgba(20, 28, 44, 0.1);
+    }
+
+    .login-grid .person-btn {
+      grid-column: 2;
+      width: 100%;
+    }
+
+    #loginView {
+      padding-bottom: 24px;
+    }
+
+    #scheduleView {
+      transition: none;
+    }
+
+    #scheduleView.flush-active #tablePanel {
+      margin-bottom: 126px;
+    }
+
+    .person-btn.active {
+      background: #fff;
+      border-color: var(--brand);
+      color: var(--text);
+      box-shadow: 0 0 0 3px var(--brand), 0 0 0 7px rgba(36, 87, 197, 0.16);
+      animation: personPulse 1.25s ease-in-out infinite;
+    }
+
+    .person-btn.dimmed {
+      opacity: 0.38;
+    }
+
+    .action.primary {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #fff;
+    }
+
+    .action.danger {
+      color: #a13a13;
+    }
+
+    .action:disabled,
+    .person-btn:disabled,
+    .shift-cell:disabled {
+      opacity: 0.52;
+      cursor: not-allowed;
+    }
+
+    .day:disabled,
+    .shift-cell:disabled {
+      opacity: 1;
+      cursor: default;
+      -webkit-text-fill-color: currentColor;
+    }
+
+    .sync-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .sync-row {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .view-switch {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      background: #eef1f6;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .view-switch.hidden {
+      display: none;
+    }
+
+    .view-btn {
+      min-height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      touch-action: manipulation;
+      position: relative;
+      z-index: 1;
+      transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
+    }
+
+    .view-btn.active {
+      border-color: var(--brand);
+      color: #fff;
+      background: transparent;
+    }
+
+    .view-indicator {
+      position: absolute;
+      top: 10px;
+      bottom: 10px;
+      left: 12px;
+      width: calc((100% - 38px) / 2);
+      border-radius: 8px;
+      background: var(--brand);
+      box-shadow: 0 6px 14px rgba(36, 87, 197, 0.22);
+      transition: transform 800ms ease;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .view-switch[data-active-view="B"] .view-indicator {
+      transform: translateX(calc(100% + 14px));
+    }
+
+    .status {
+      min-height: 20px;
+      padding: 0 12px 10px;
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .status:empty {
+      min-height: 0;
+      padding: 0;
+    }
+
+    .admin-switch {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .admin-switch .action {
+      min-width: 116px;
+    }
+
+    .admin-scale {
+      display: grid;
+      grid-template-columns: 1fr repeat(4, auto);
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .scale-btn {
+      min-height: 30px;
+      min-width: 62px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .scale-btn.active {
+      border-color: var(--brand);
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .scale-value {
+      min-width: 56px;
+      text-align: center;
+      color: var(--text);
+      font-weight: 900;
+    }
+
+    .closed-notice {
+      display: flex;
+      align-items: center;
+      min-height: 42px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line);
+      color: #a13a13;
+      background: #fff7ed;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .bottom-save {
+      position: sticky;
+      bottom: 0;
+      z-index: 4;
+      display: grid;
+      gap: 8px;
+      grid-template-rows: minmax(58px, auto) minmax(24px, auto);
+      min-height: 118px;
+      padding: 12px;
+      margin: 12px -12px -12px;
+      background: rgba(246, 247, 251, 0.94);
+      border-top: 1px solid rgba(223, 227, 235, 0.9);
+      backdrop-filter: blur(10px);
+    }
+
+    #flushBtn {
+      line-height: 1.2;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .bottom-save.notice-only > #flushBtn,
+    .bottom-save.notice-only > .leave-confirm,
+    .bottom-save.notice-only > #adminTroubleBtn {
+      display: none;
+    }
+
+    .bottom-save.notice-only {
+      grid-template-rows: minmax(58px, auto) minmax(24px, auto);
+      min-height: 118px;
+    }
+
+    .bottom-save .status {
+      min-height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 0;
+      text-align: center;
+    }
+
+    .bottom-save.notice-only .status {
+      grid-row: 1 / 3;
+      min-height: 82px;
+      font-size: 18px;
+    }
+
+    .leave-confirm {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid rgba(224, 86, 86, 0.32);
+      border-radius: 8px;
+      background: #fff5f5;
+      color: var(--red);
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .leave-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .leave-actions .cancel-leave {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    .trouble-btn {
+      background: #fff7ed;
+      border-color: rgba(161, 58, 19, 0.35);
+      color: #a13a13;
+      font-weight: 900;
+    }
+
+    .hidden { display: none !important; }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .shift-groups {
+      padding: 0;
+      border-bottom: 1px solid var(--line);
+      overflow: visible;
+    }
+
+    .shift-group {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 10px 10px;
+      background: linear-gradient(#eef1f6 0 106px, #fff 106px);
+      overflow: visible;
+    }
+
+    .shift-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: flex-end;
+      gap: 4px;
+      margin-bottom: 0;
+      padding-top: 6px;
+    }
+
+    .shift-tab {
+      position: relative;
+      min-height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px 10px 0 0;
+      background: #eef1f6;
+      color: #b7c0cc;
+      opacity: 1;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .shift-tab.active {
+      background: #fff;
+      border-width: 1px;
+      border-bottom-color: #fff;
+      color: var(--brand);
+      opacity: 1;
+      position: relative;
+      z-index: 2;
+      transform: translateY(-5px);
+      box-shadow: 0 -4px 10px rgba(20, 28, 44, 0.08);
+    }
+
+    .shift-tab.active::after {
+      content: "";
+      position: absolute;
+      left: -1px;
+      right: -1px;
+      bottom: -4px;
+      height: 5px;
+      background: #fff;
+    }
+
+    .shift-panel {
+      display: none;
+      overflow: visible;
+    }
+
+    .shift-panel.active {
+      display: block;
+      overflow: visible;
+    }
+
+    .legend-inner {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding-top: 4px;
+      overflow: visible;
+    }
+
+    .legend-inner.scrolling {
+      display: flex;
+      overflow-x: auto;
+      overflow-y: visible;
+      padding-bottom: 6px;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
+    }
+
+    .legend-inner.scrolling .legend-item {
+      flex: 0 0 calc((100% - 24px) / 4);
+      min-width: 112px;
+      scroll-snap-align: start;
+    }
+
+    .legend-inner.night-regular {
+      display: flex;
+      overflow: visible;
+    }
+
+    .legend-inner.night-regular .legend-item {
+      flex: 0 0 calc((100% - 24px) / 4);
+    }
+
+    .legend-item {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #2e3440;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .legend-item.locked {
+      z-index: 4;
+      border-color: var(--red);
+      box-shadow: 0 0 0 2px rgba(224, 86, 86, 0.22), inset 0 0 0 2px var(--red);
+      animation: lockPulse 1.25s ease-in-out infinite;
+    }
+
+    .legend-item.dimmed {
+      background: #f2f4f7;
+      color: #5f6876;
+      opacity: 1;
+    }
+
+    .legend-item.dimmed .dot {
+      background: #6b7280;
+      color: #fff;
+      border-color: rgba(0, 0, 0, 0.08);
+      filter: none;
+    }
+
+    @keyframes lockPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 2px rgba(224, 86, 86, 0.18), inset 0 0 0 2px var(--red);
+      }
+      50% {
+        box-shadow: 0 0 0 4px rgba(224, 86, 86, 0.24), inset 0 0 0 2px var(--red);
+      }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes personPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 3px var(--brand), 0 0 0 7px rgba(36, 87, 197, 0.12);
+      }
+      50% {
+        box-shadow: 0 0 0 3px var(--brand), 0 0 0 11px rgba(36, 87, 197, 0.24);
+      }
+    }
+
+    .toast {
+      position: fixed;
+      top: clamp(18px, 5vh, 42px);
+      left: 20px;
+      right: 20px;
+      z-index: 20;
+      transform: translateY(14px);
+      min-width: 0;
+      max-width: none;
+      padding: 12px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(32, 36, 44, 0.96), rgba(18, 22, 30, 0.96));
+      color: #fff;
+      text-align: center;
+      font-size: 30px;
+      font-weight: 900;
+      white-space: pre-line;
+      opacity: 0;
+      transform: translateY(calc(-100% - 70px));
+      pointer-events: none;
+      box-shadow: 0 12px 30px rgba(20, 28, 44, 0.22);
+      transition: opacity 280ms ease, transform 280ms ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.top-exiting {
+      opacity: 0;
+      transform: translateY(calc(-100% - 70px));
+      transition: opacity 450ms ease, transform 450ms ease;
+    }
+
+    .toast.center {
+      top: 50%;
+      transform: translateY(calc(-50% + 14px));
+      transition: opacity 600ms ease, transform 600ms ease;
+    }
+
+    .toast.center.show {
+      transform: translateY(-50%);
+    }
+
+    .toast.center.exiting {
+      opacity: 0;
+      transform: translate(-120%, -50%);
+    }
+
+    .retry-bar {
+      position: fixed;
+      top: max(16px, env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 19;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+      width: min(560px, calc(100vw - 32px));
+      padding: 10px 12px;
+      border: 1px solid rgba(224, 86, 86, 0.28);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      color: var(--red);
+      box-shadow: 0 10px 30px rgba(25, 34, 58, 0.18);
+      backdrop-filter: blur(10px);
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .retry-code {
+      color: #5f6876;
+      font-size: 0.86em;
+      white-space: nowrap;
+    }
+
+    .retry-btn {
+      min-height: 36px;
+      padding: 0 14px;
+      border: 1px solid var(--brand);
+      border-radius: 999px;
+      background: var(--brand);
+      color: #fff;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .retry-bar.running {
+      border-color: rgba(36, 87, 197, 0.35);
+      color: var(--brand);
+    }
+
+    .retry-bar.running .retry-btn {
+      background: #eef4ff;
+      color: var(--brand);
+    }
+
+    .retry-bar.running .retry-btn::after {
+      content: "";
+      display: inline-block;
+      width: 0.9em;
+      height: 0.9em;
+      margin-left: 6px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 999px;
+      vertical-align: -0.12em;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .dot {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #1d2430;
+      font-size: 10px;
+      font-weight: 900;
+      box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+    }
+
+    .shift-special { background: var(--yellow); }
+    .shift-a-half {
+      background: linear-gradient(90deg, var(--blue) 0 50%, var(--green) 50% 100%);
+      color: #fff;
+    }
+    .shift-a { background: var(--blue); color: #fff; }
+    .shift-b { background: var(--orange); color: #fff; }
+    .shift-rest { background: var(--red); color: #fff; }
+    .shift-leave { background: var(--green); color: #fff; }
+    .shift-night { background: var(--violet); color: #fff; }
+    .shift-sick { background: #c94f7c; color: #fff; }
+    .shift-funeral { background: #5a6472; color: #fff; }
+    .shift-personal { background: #9b6bdf; color: #fff; }
+    .shift-public { background: #178f9f; color: #fff; }
+
+    .weekdays,
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    .weekdays {
+      padding: 8px 10px 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .weekdays div { padding: 6px 0; }
+
+    .calendar {
+      gap: 6px;
+      padding: 8px 10px 12px;
+    }
+
+    .blank { aspect-ratio: 1 / 1; }
+
+    .day {
+      min-width: 0;
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 4px 2px;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .day.weekend {
+      background: #e6e9ef;
+    }
+
+    .day:active,
+    .shift-cell:active {
+      transform: scale(0.98);
+    }
+
+    .date-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 15px;
+    }
+
+    .day.has-shift .date-num { color: #111827; }
+
+    .day.shift-special { background: var(--yellow); }
+    .day.shift-a-half { background: linear-gradient(90deg, var(--blue) 0 50%, var(--green) 50% 100%); }
+    .day.shift-a { background: var(--blue); }
+    .day.shift-b { background: var(--orange); }
+    .day.shift-rest { background: var(--red); }
+    .day.shift-leave { background: var(--green); }
+    .day.shift-night { background: var(--violet); }
+    .day.shift-sick { background: #c94f7c; }
+    .day.shift-funeral { background: #5a6472; }
+    .day.shift-personal { background: #9b6bdf; }
+    .day.shift-public { background: #178f9f; }
+
+    .day.has-shift:not(.shift-special) .date-num,
+    .day.has-shift:not(.shift-special) .shift-label {
+      color: #fff;
+    }
+
+    .shift-label {
+      min-height: 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .day.continuous-warning {
+      background: var(--red) !important;
+      border-color: var(--red);
+      color: #fff;
+      animation: continuousPulse 0.72s ease-in-out infinite;
+    }
+
+    .day.continuous-warning .date-num,
+    .day.continuous-warning .shift-label {
+      color: #fff;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .summary-wrap {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .summary-card {
+      min-width: 0;
+      padding: 10px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fafc;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.55;
+      text-align: center;
+    }
+
+    .summary-name {
+      display: block;
+      margin-bottom: 2px;
+      color: #0b2540;
+      font-size: 15px;
+    }
+
+    .summary-counts {
+      display: grid;
+      grid-template-columns: repeat(2, max-content);
+      justify-content: center;
+      column-gap: 10px;
+      row-gap: 1px;
+    }
+
+    .summary-card.night .summary-counts {
+      grid-template-columns: max-content;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    td.weekend-col {
+      background: #e6e9ef;
+      border-bottom-color: #c7ceda;
+    }
+
+    td.rule-focus-col {
+      background: rgba(224, 86, 86, 0.12) !important;
+      animation: ruleColumnFocus 0.9s ease-in-out 2;
+    }
+
+    th {
+      position: sticky;
+      left: 0;
+      background: #f9fbff;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 900;
+      z-index: 1;
+    }
+
+    .person-head {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.6em;
+      padding-right: 10px;
+    }
+
+    .presence-dot {
+      position: absolute;
+      right: 0;
+      bottom: -3px;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #b7c0cc;
+      box-shadow: 0 0 0 2px #f9fbff;
+    }
+
+    .presence-dot.online {
+      background: #16a34a;
+    }
+
+    .presence-dot.online::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+      border-radius: 999px;
+      border: 1px solid rgba(22, 163, 74, 0.34);
+      animation: presenceRadar 1.8s ease-out infinite;
+    }
+
+    @keyframes presenceRadar {
+      0% {
+        transform: scale(0.45);
+        opacity: 0.55;
+      }
+      70% {
+        opacity: 0.12;
+      }
+      100% {
+        transform: scale(2.05);
+        opacity: 0;
+      }
+    }
+
+    .shift-cell {
+      width: 42px;
+      height: 38px;
+      min-height: 38px;
+      padding: 2px;
+      border-radius: 999px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .shift-cell.empty {
+      color: var(--muted);
+      background: #fff;
+    }
+
+    .shift-cell.readonly-dim:not(.empty) {
+      background: #d6dae1 !important;
+      color: #6b7280;
+      border-color: #c8ced8;
+    }
+
+    .shift-cell.continuous-warning {
+      background: var(--red) !important;
+      border-color: var(--red);
+      color: #fff;
+      animation: continuousPulse 0.72s ease-in-out infinite;
+    }
+
+    .day.rule-focus-cell,
+    .shift-cell.rule-focus-cell {
+      box-shadow: 0 0 0 1px #fff, 0 0 0 4px var(--red);
+      animation: ruleCellFocus 0.9s ease-in-out 2;
+    }
+
+    @keyframes ruleColumnFocus {
+      0%, 100% { background-color: rgba(224, 86, 86, 0.08); }
+      50% { background-color: rgba(224, 86, 86, 0.2); }
+    }
+
+    @keyframes ruleCellFocus {
+      0%, 100% { box-shadow: 0 0 0 1px #fff, 0 0 0 4px rgba(224, 86, 86, 0.72); }
+      50% { box-shadow: 0 0 0 1px #fff, 0 0 0 8px rgba(224, 86, 86, 0.34); }
+    }
+
+    .day.upload-pending,
+    .shift-cell.upload-pending {
+      border-color: var(--red);
+      box-shadow: 0 0 0 1px #fff, 0 0 0 3px var(--red);
+    }
+
+    .day.uploading,
+    .shift-cell.uploading {
+      box-shadow: 0 0 0 3px rgba(224, 86, 86, 0.3), 0 0 0 10px rgba(224, 86, 86, 0.18);
+      animation: uploadRedPulse 0.9s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .day.upload-success,
+    .shift-cell.upload-success {
+      box-shadow: 0 0 0 3px rgba(24, 161, 124, 0.34), 0 0 0 10px rgba(24, 161, 124, 0.2);
+      animation: uploadGreenFade 0.9s ease-out forwards;
+      pointer-events: none;
+    }
+
+    .day.upload-failed,
+    .shift-cell.upload-failed {
+      box-shadow: 0 0 0 3px rgba(224, 86, 86, 0.42), 0 0 0 10px rgba(224, 86, 86, 0.22);
+      pointer-events: none;
+    }
+
+    .day.uploading::after,
+    .shift-cell.uploading::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.54);
+      color: #fff;
+      font-weight: 950;
+      z-index: 3;
+    }
+
+    .day.uploading::before,
+    .shift-cell.uploading::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: clamp(22px, 34%, 38px);
+      height: clamp(22px, 34%, 38px);
+      border-radius: 999px;
+      border: 3px solid rgba(37, 99, 235, 0.24);
+      border-top-color: var(--blue);
+      animation: uploadSpin 0.72s linear infinite;
+      transform: translate(-50%, -50%);
+      z-index: 4;
+    }
+
+    .shift-cell.uploading::before {
+      width: clamp(18px, 48%, 28px);
+      height: clamp(18px, 48%, 28px);
+    }
+
+    .day.upload-success::before,
+    .day.upload-failed::before,
+    .shift-cell.upload-success::before,
+    .shift-cell.upload-failed::before {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85), 0 -1px 2px rgba(255, 255, 255, 0.85);
+      font-size: clamp(22px, 34%, 38px);
+      font-weight: 950;
+      z-index: 4;
+    }
+
+    .shift-cell.upload-success::before,
+    .shift-cell.upload-failed::before {
+      font-size: clamp(18px, 48%, 28px);
+    }
+
+    .day.upload-success::before,
+    .shift-cell.upload-success::before {
+      content: "✓";
+      color: var(--green);
+    }
+
+    .day.upload-failed::before,
+    .shift-cell.upload-failed::before {
+      content: "X";
+      color: var(--red);
+    }
+
+    @keyframes uploadSpin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    @keyframes continuousPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 2px rgba(224, 86, 86, 0.22), 0 0 0 7px rgba(224, 86, 86, 0.12);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 0 3px rgba(224, 86, 86, 0.36), 0 0 0 11px rgba(224, 86, 86, 0.2);
+        transform: scale(1.04);
+      }
+    }
+
+    @keyframes uploadRedPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 3px rgba(224, 86, 86, 0.28), 0 0 0 9px rgba(224, 86, 86, 0.14);
+      }
+      50% {
+        box-shadow: 0 0 0 4px rgba(224, 86, 86, 0.42), 0 0 0 13px rgba(224, 86, 86, 0.22);
+      }
+    }
+
+    @keyframes uploadGreenFade {
+      0% {
+        box-shadow: 0 0 0 4px rgba(24, 161, 124, 0.44), 0 0 0 13px rgba(24, 161, 124, 0.24);
+      }
+      100% {
+        box-shadow: 0 0 0 1px rgba(24, 161, 124, 0), 0 0 0 3px rgba(24, 161, 124, 0);
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .app {
+        width: 100vw;
+        max-width: none;
+        margin: 0;
+        padding:
+          max(8px, env(safe-area-inset-top))
+          0
+          max(28px, env(safe-area-inset-bottom));
+      }
+
+      .screen-frame {
+        padding-left: clamp(8px, 2.4vw, 18px);
+        padding-right: clamp(8px, 2.4vw, 18px);
+      }
+
+      .panel {
+        width: 100%;
+      }
+
+      .panel-head {
+        padding: clamp(12px, 3vw, 22px) clamp(10px, 3vw, 20px);
+      }
+
+      .panel-title {
+        font-size: clamp(26px, 7vw, 42px);
+      }
+
+      h1 {
+        font-size: clamp(30px, 8vw, 48px);
+      }
+
+      .login-open-status {
+        min-height: clamp(36px, 9vw, 56px);
+        font-size: clamp(30px, 8vw, 48px);
+        gap: clamp(8px, 2vw, 14px);
+      }
+
+      .login-open-status::before {
+        width: clamp(14px, 3vw, 20px);
+        height: clamp(14px, 3vw, 20px);
+        flex-basis: clamp(14px, 3vw, 20px);
+      }
+
+      .sub {
+        font-size: clamp(18px, 4.6vw, 28px);
+      }
+
+      .schedule-title small,
+      .hint,
+        .sync-status {
+          font-size: clamp(16px, 4.5vw, 26px);
+        }
+
+        .editor-label {
+          font-size: clamp(18px, 4.6vw, 28px);
+        }
+
+        .logout-btn {
+          min-height: clamp(36px, 8.5vw, 54px);
+          padding: clamp(5px, 1.4vw, 9px) clamp(10px, 2.6vw, 18px);
+          font-size: clamp(18px, 4.6vw, 28px);
+        }
+
+      .admin-switch,
+      .admin-scale {
+        padding: clamp(10px, 2.8vw, 18px) clamp(10px, 3vw, 20px);
+        font-size: clamp(18px, 4.6vw, 28px);
+      }
+
+      .scale-btn {
+        min-height: clamp(42px, 10vw, 66px);
+        min-width: clamp(70px, 16vw, 112px);
+        font-size: clamp(18px, 4.6vw, 28px);
+      }
+
+      .scale-value {
+        min-width: clamp(64px, 14vw, 100px);
+      }
+
+      .closed-notice {
+        min-height: clamp(50px, 12vw, 78px);
+        padding: 0 clamp(10px, 3vw, 18px);
+        font-size: clamp(22px, 6vw, 36px);
+      }
+
+      .shift-group {
+        padding: clamp(10px, 3vw, 18px) clamp(8px, 2.4vw, 16px) clamp(8px, 2.4vw, 14px);
+        background: linear-gradient(#eef1f6 0 clamp(130px, calc(35vw - 20px), 220px), #fff clamp(130px, calc(35vw - 20px), 220px));
+      }
+
+      .view-switch {
+        gap: clamp(10px, 3vw, 20px);
+        padding: clamp(6px, 1.8vw, 10px) 0;
+      }
+
+      .view-indicator {
+        top: clamp(6px, 1.8vw, 10px);
+        bottom: clamp(6px, 1.8vw, 10px);
+        left: 0;
+        width: calc((100% - clamp(10px, 3vw, 20px)) / 2);
+      }
+
+      .view-switch[data-active-view="B"] .view-indicator {
+        transform: translateX(calc(100% + clamp(10px, 3vw, 20px)));
+      }
+
+      .view-btn {
+        min-height: clamp(50px, 12vw, 78px);
+        font-size: clamp(22px, 6vw, 36px);
+      }
+
+      .shift-tabs {
+        gap: clamp(6px, 2vw, 12px);
+      }
+
+      .shift-tab {
+        min-height: clamp(54px, 13vw, 84px);
+        padding: 0 clamp(14px, 3.5vw, 24px);
+        font-size: clamp(22px, 5.6vw, 34px);
+      }
+
+      .legend-inner {
+        gap: clamp(8px, 2.4vw, 16px);
+      }
+
+      .legend-item {
+        min-height: clamp(54px, 13vw, 84px);
+        font-size: clamp(22px, 5.6vw, 34px);
+      }
+
+      .dot {
+        width: clamp(30px, 7vw, 46px);
+        height: clamp(30px, 7vw, 46px);
+        min-width: clamp(30px, 7vw, 46px);
+        flex: 0 0 clamp(30px, 7vw, 46px);
+        aspect-ratio: 1 / 1;
+        font-size: clamp(14px, 3.5vw, 22px);
+        overflow: hidden;
+      }
+
+      .person-btn {
+        min-height: clamp(64px, 15vw, 96px);
+        font-size: clamp(24px, 6vw, 38px);
+      }
+
+      .password-input,
+      .action {
+        min-height: clamp(68px, 16vw, 104px);
+        font-size: clamp(26px, 6.4vw, 40px);
+      }
+
+      #flushBtn {
+        min-height: clamp(58px, 14vw, 86px);
+        font-size: clamp(20px, 5.2vw, 32px);
+        padding-left: clamp(8px, 2.5vw, 16px);
+        padding-right: clamp(8px, 2.5vw, 16px);
+      }
+
+      #scheduleView.flush-active #tablePanel {
+        margin-bottom: calc(clamp(138px, 32vw, 208px) + env(safe-area-inset-bottom));
+      }
+
+      .bottom-save,
+      .bottom-save.notice-only {
+        min-height: clamp(132px, 30vw, 188px);
+        grid-template-rows: minmax(clamp(72px, 17vw, 104px), auto) minmax(28px, auto);
+      }
+
+      .bottom-save.notice-only .status {
+        min-height: clamp(96px, 22vw, 140px);
+        font-size: clamp(22px, 5.4vw, 34px);
+      }
+
+      .login-extra.open {
+        max-height: 680px;
+        padding: clamp(14px, 3.5vw, 24px) clamp(12px, 3vw, 22px) clamp(12px, 3vw, 22px);
+      }
+
+      .login-extra {
+        gap: clamp(12px, 3.2vw, 22px);
+      }
+
+      .status {
+        font-size: clamp(18px, 4.8vw, 30px);
+      }
+
+      .retry-bar {
+        width: calc(100vw - 24px);
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 6px;
+        border-radius: 14px;
+        font-size: clamp(16px, 4.2vw, 24px);
+        text-align: center;
+      }
+
+      .retry-btn {
+        width: 100%;
+        min-height: clamp(44px, 10vw, 64px);
+        font-size: clamp(16px, 4.2vw, 24px);
+      }
+
+      .login-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: clamp(10px, 3vw, 20px);
+        padding: clamp(12px, 3vw, 22px);
+      }
+
+      .weekdays {
+        padding: clamp(8px, 2.5vw, 16px) clamp(6px, 2vw, 12px) 0;
+        font-size: clamp(18px, 4.8vw, 30px);
+      }
+
+      .calendar {
+        gap: clamp(6px, 2vw, 12px);
+        padding: clamp(8px, 2.5vw, 16px) clamp(6px, 2vw, 12px) clamp(12px, 3vw, 20px);
+      }
+
+      .date-num {
+        width: clamp(36px, 8vw, 54px);
+        height: clamp(36px, 8vw, 54px);
+        font-size: clamp(20px, 5.2vw, 32px);
+      }
+
+      .shift-label {
+        font-size: clamp(15px, 4vw, 24px);
+      }
+
+      th,
+      td {
+        padding: clamp(6px, 2vw, 12px);
+        font-size: clamp(20px, 5vw, 32px);
+      }
+
+      .summary-wrap {
+        grid-template-columns: repeat(5, minmax(76px, 1fr));
+        gap: clamp(6px, 1.8vw, 10px);
+        padding: clamp(8px, 2.4vw, 14px);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .summary-card {
+        padding: clamp(8px, 2.2vw, 14px) clamp(5px, 1.5vw, 10px);
+        font-size: clamp(14px, 3.8vw, 22px);
+      }
+
+      .summary-name {
+        font-size: clamp(16px, 4.2vw, 24px);
+      }
+
+      .shift-cell {
+        width: clamp(48px, 11.5vw, 74px);
+        height: clamp(44px, 10.5vw, 66px);
+        min-height: clamp(44px, 10.5vw, 66px);
+        font-size: clamp(18px, 4.5vw, 28px);
+        padding: 2px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="toast" id="toast" aria-live="polite"></div>
+    <div class="retry-bar hidden" id="retryBar" aria-live="polite">
+      <span id="retryText">離線中，有未上傳修改</span>
+      <button class="retry-btn" type="button" id="retryConnectBtn">重新嘗試連線</button>
+    </div>
+    <div class="screen-frame">
+      <header class="topbar" id="topbar">
+        <div class="topbar-row">
+          <div class="topbar-title">
+            <h1>線上排班表</h1>
+            <div class="sub" id="subtitle">請先選擇人員。</div>
+          </div>
+          <div class="login-open-status" id="loginOpenStatus">班表狀態讀取中</div>
+        </div>
+      </header>
+
+      <div id="loginView">
+        <section class="panel" aria-label="登入選擇人員">
+          <div class="panel-head">
+            <h2 class="panel-title">登入</h2>
+            <span class="hint">選人後進入全員班表</span>
+          </div>
+          <div class="login-grid" id="peopleGrid"></div>
+          <div class="login-extra" id="loginExtra">
+            <input class="password-input" id="passwordInput" type="password" inputmode="numeric" autocomplete="current-password" placeholder="密碼，尚未設定可留空">
+            <button class="action primary" type="button" id="loginBtn">登入</button>
+            <div class="status" id="loginStatus" aria-live="polite"></div>
+            <div class="password-change" id="oldPasswordChangePanel">
+              <div class="password-change-title">目前使用預設密碼，建議變更密碼</div>
+              <input class="password-input" id="oldNewPasswordInput" type="password" inputmode="numeric" autocomplete="new-password" placeholder="新密碼，4 到 8 位數字">
+              <input class="password-input" id="oldConfirmPasswordInput" type="password" inputmode="numeric" autocomplete="new-password" placeholder="再次輸入新密碼">
+              <div class="password-change-actions">
+                <button class="action secondary" type="button" id="oldSkipPasswordChangeBtn">不變更繼續使用</button>
+                <button class="action primary" type="button" id="oldConfirmPasswordChangeBtn">變更後登入</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="hidden" id="scheduleView">
+        <section class="panel password-change" id="passwordChangePanel">
+          <div class="password-change-title">目前使用預設密碼，建議變更密碼</div>
+          <input class="password-input" id="newPasswordInput" type="password" inputmode="numeric" autocomplete="new-password" placeholder="新密碼，4 到 8 位數字">
+          <input class="password-input" id="confirmPasswordInput" type="password" inputmode="numeric" autocomplete="new-password" placeholder="再次輸入新密碼">
+          <div class="password-change-actions">
+            <button class="action secondary" type="button" id="skipPasswordChangeBtn">不變更繼續使用</button>
+            <button class="action primary" type="button" id="confirmPasswordChangeBtn">變更後登入</button>
+          </div>
+          <div class="status" id="passwordChangeStatus" aria-live="polite"></div>
+        </section>
+        <section class="panel" id="tablePanel" aria-label="一般表格排班">
+        <div class="panel-head">
+          <h2 class="panel-title" id="tableTitle">⚠️ - 月表格</h2>
+          <div class="edit-state">
+            <span class="editor-row">
+              <span class="editor-label" id="editorLabel">未登入</span>
+              <button class="logout-btn" type="button" id="logoutBtn">登出</button>
+            </span>
+            <span class="hint" id="dirtyHint">已同步</span>
+            <span class="hint" id="sessionTimerLabel">剩餘 30:00</span>
+          </div>
+        </div>
+        <div class="admin-switch hidden" id="adminSwitch">
+          <span id="adminSwitchText">排班開放中</span>
+          <button class="action" type="button" id="scheduleOpenBtn">關閉排班</button>
+        </div>
+        <div class="admin-scale hidden" id="adminScale">
+          <span>畫面比例</span>
+          <button class="scale-btn" type="button" data-scale-step="-0.1">-10%</button>
+          <span class="scale-value" id="scaleValue">100%</span>
+          <button class="scale-btn" type="button" data-scale-step="0.1">+10%</button>
+          <button class="scale-btn" type="button" id="copyCssBtn">複製資訊</button>
+        </div>
+        <div class="closed-notice hidden" id="closedNotice">排班尚未開放，目前只能查看班表。</div>
+        <div class="shift-groups">
+          <div class="shift-group">
+            <div class="view-switch hidden" id="viewSwitch" data-active-view="A">
+              <span class="view-indicator" aria-hidden="true"></span>
+              <button class="view-btn active" type="button" data-view-mode="A">個人月曆</button>
+              <button class="view-btn" type="button" data-view-mode="B">全員表格</button>
+            </div>
+            <div class="shift-tabs">
+              <button class="shift-tab active" type="button" data-shift-tab="regular">常規班別</button>
+              <button class="shift-tab" type="button" data-shift-tab="special">特殊班別</button>
+              <button class="shift-tab" type="button" data-shift-tab="combo">組合班別</button>
+            </div>
+            <div class="shift-panel active" data-shift-panel="regular">
+              <div class="legend-inner" id="bLegend"></div>
+            </div>
+            <div class="shift-panel" data-shift-panel="special">
+              <div class="legend-inner" id="specialLegend"></div>
+            </div>
+            <div class="shift-panel" data-shift-panel="combo">
+              <div class="legend-inner" id="comboLegend"></div>
+            </div>
+          </div>
+        </div>
+        <div id="calendarPanel">
+          <div class="weekdays" id="calendarWeekdays"></div>
+          <div class="calendar" id="calendarGrid"></div>
+        </div>
+        <div class="table-wrap" id="tableWrap">
+          <table>
+            <tbody id="editTable"></tbody>
+          </table>
+        </div>
+        <div class="summary-wrap hidden" id="shiftSummary"></div>
+      </section>
+
+      <div class="bottom-save hidden" id="flushPanel">
+        <button class="action primary" type="button" id="flushBtn">儲存並上傳</button>
+        <button class="action trouble-btn hidden" type="button" id="adminTroubleBtn">難以排解</button>
+        <div class="leave-confirm hidden" id="leaveConfirm">
+          <div id="leaveConfirmText">您確定要離開嗎</div>
+          <div class="leave-actions">
+            <button class="action danger" type="button" id="leaveYesBtn">是</button>
+            <button class="action cancel-leave" type="button" id="leaveCancelBtn">取消</button>
+          </div>
+        </div>
+        <div class="status" id="flushStatus" aria-live="polite"></div>
+      </div>
+    </div>
+    </div>
+
+  </main>
+
+  <script>
+    (function () {
+      var year = 2026;
+      var month = null;
+      var daysInMonth = 0;
+      var firstDayOffset = 0;
+      var weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+      var people = [
+        { name: "賢", type: "B" },
+        { name: "杰", type: "B" },
+        { name: "宇", type: "B" },
+        { name: "强", type: "B" },
+        { name: "璍", type: "B" }
+      ];
+      var loginPeople = people.concat([{ name: "管理員", type: "ADMIN" }]);
+      var aOptions = ["A", "B", "休假", "特休"];
+      var bOptionsDefault = ["A班", "B班", "休假", "特休"];
+      var bOptionsAdmin = ["A班", "B班", "休假", "特休", "夜班"];
+      var bOptionsNight = ["夜班", "休假", "特休"];
+      var specialLegendOptions = ["病假", "喪假", "事假", "公假"];
+      var comboLegendOptions = ["A特下半"];
+      var displayMap = {
+        "A班": "A",
+        "B班": "B",
+        "休假": "休",
+        "特休": "特",
+        "夜班": "夜",
+        "病假": "病",
+        "喪假": "喪",
+        "事假": "事",
+        "公假": "公",
+        "特": "特",
+        "A特下半": "A特下半",
+        "A": "A",
+        "B": "B"
+      };
+      var shortToFull = {
+        "A": "A班",
+        "B": "B班",
+        "休": "休假",
+        "特": "特休",
+        "夜": "夜班",
+        "病": "病假",
+        "喪": "喪假",
+        "事": "事假",
+        "公": "公假"
+      };
+      var shiftClass = {
+        "特": "shift-special",
+        "A特下半": "shift-a-half",
+        "A": "shift-a",
+        "B": "shift-b",
+        "A班": "shift-a",
+        "B班": "shift-b",
+        "休假": "shift-rest",
+        "特休": "shift-leave",
+        "夜班": "shift-night",
+        "病假": "shift-sick",
+        "喪假": "shift-funeral",
+        "事假": "shift-personal",
+        "公假": "shift-public"
+      };
+      var currentPerson = "";
+      var currentType = "";
+      var selectedLoginPerson = "";
+      var activeShiftTab = "regular";
+      var activeViewMode = "B";
+      var lockedShift = "";
+      var scheduleOpen = true;
+      var loggedInWhileScheduleClosed = false;
+      var uiScale = getInitialUiScale();
+      var schedule = {};
+      var allSchedules = {};
+      var allPresence = {};
+      var pendingChanges = {};
+      var pendingOrder = [];
+      var uploadCellStates = {};
+      var uploadTimer = null;
+      var flushNoticeTimer = null;
+      var adminTroubleTimer = null;
+      var uploadBusy = false;
+      var retryBusy = false;
+      var retryCode = "";
+      var retryWatchdogTimer = null;
+      var syncTimer = null;
+      var presenceTimer = null;
+      var lastSyncAt = null;
+      var hasLoadedFromSheet = false;
+      var syncOnline = false;
+      var leaveWarningArmed = false;
+      var sessionTimer = null;
+      var sessionExpiresAt = null;
+      var sessionDurationMs = 30 * 60 * 1000;
+      var scheduleClosingLogoutTimer = null;
+      var scheduleClosingLogoutInterval = null;
+      var scheduleClosingLogoutAt = null;
+      var scheduleTitle = "";
+      var scheduleRules = {
+        totalRest: null,
+        weekendRest: null,
+        weekdayRest: null,
+        huaRest: 10
+      };
+      var dirty = false;
+      var busy = false;
+      var audioContext = null;
+      var continuousWarning = null;
+      var continuousWarningTimer = null;
+      var ruleFocus = null;
+      var ruleFocusTimer = null;
+      var ruleFocusSwitchTimer = null;
+      var pendingPasswordLogin = null;
+
+      var loginView = document.getElementById("loginView");
+      var scheduleView = document.getElementById("scheduleView");
+      var topbar = document.getElementById("topbar");
+      var toast = document.getElementById("toast");
+      var retryBar = document.getElementById("retryBar");
+      var retryText = document.getElementById("retryText");
+      var retryConnectBtn = document.getElementById("retryConnectBtn");
+      var loginOpenStatus = document.getElementById("loginOpenStatus");
+      var peopleGrid = document.getElementById("peopleGrid");
+      var loginExtra = document.getElementById("loginExtra");
+      var passwordInput = document.getElementById("passwordInput");
+      var loginBtn = document.getElementById("loginBtn");
+      var loginStatus = document.getElementById("loginStatus");
+      var passwordChangePanel = document.getElementById("passwordChangePanel");
+      var newPasswordInput = document.getElementById("newPasswordInput");
+      var confirmPasswordInput = document.getElementById("confirmPasswordInput");
+      var skipPasswordChangeBtn = document.getElementById("skipPasswordChangeBtn");
+      var confirmPasswordChangeBtn = document.getElementById("confirmPasswordChangeBtn");
+      var passwordChangeStatus = document.getElementById("passwordChangeStatus");
+      var subtitle = document.getElementById("subtitle");
+      var dirtyHint = document.getElementById("dirtyHint");
+      var editorLabel = document.getElementById("editorLabel");
+      var logoutBtn = document.getElementById("logoutBtn");
+      var sessionTimerLabel = document.getElementById("sessionTimerLabel");
+      var bLegend = document.getElementById("bLegend");
+      var specialLegend = document.getElementById("specialLegend");
+      var comboLegend = document.getElementById("comboLegend");
+      var tableTitle = document.getElementById("tableTitle");
+      var editTable = document.getElementById("editTable");
+      var viewSwitch = document.getElementById("viewSwitch");
+      var calendarPanel = document.getElementById("calendarPanel");
+      var calendarWeekdays = document.getElementById("calendarWeekdays");
+      var calendarGrid = document.getElementById("calendarGrid");
+      var tableWrap = document.getElementById("tableWrap");
+      var shiftSummary = document.getElementById("shiftSummary");
+      var adminSwitch = document.getElementById("adminSwitch");
+      var adminSwitchText = document.getElementById("adminSwitchText");
+      var scheduleOpenBtn = document.getElementById("scheduleOpenBtn");
+      var adminScale = document.getElementById("adminScale");
+      var scaleValue = document.getElementById("scaleValue");
+      var copyCssBtn = document.getElementById("copyCssBtn");
+      var closedNotice = document.getElementById("closedNotice");
+      var flushPanel = document.getElementById("flushPanel");
+      var flushBtn = document.getElementById("flushBtn");
+      var adminTroubleBtn = document.getElementById("adminTroubleBtn");
+      var leaveConfirm = document.getElementById("leaveConfirm");
+      var leaveConfirmText = document.getElementById("leaveConfirmText");
+      var leaveYesBtn = document.getElementById("leaveYesBtn");
+      var leaveCancelBtn = document.getElementById("leaveCancelBtn");
+      var flushStatus = document.getElementById("flushStatus");
+
+      function getInitialUiScale() {
+        return 1;
+      }
+
+      function hasAppsScript() {
+        return window.google && google.script && google.script.run;
+      }
+
+      function setLoginOpenStatus(open, text) {
+        loginOpenStatus.classList.remove("open", "closed");
+        if (open === true) {
+          loginOpenStatus.textContent = text || "目前班表開放中!";
+          loginOpenStatus.classList.add("open");
+          return;
+        }
+        if (open === false) {
+          loginOpenStatus.textContent = text || "班表目前關閉";
+          loginOpenStatus.classList.add("closed");
+          return;
+        }
+        loginOpenStatus.textContent = text || "班表狀態讀取中";
+      }
+
+      function loadLoginScheduleOpenStatus() {
+        if (!hasAppsScript()) {
+          setLoginOpenStatus(null, "無法讀取班表狀態");
+          return;
+        }
+
+        setLoginOpenStatus(null, "班表狀態讀取中");
+        google.script.run
+          .withSuccessHandler(function (open) {
+            scheduleOpen = open !== false;
+            setLoginOpenStatus(scheduleOpen);
+          })
+          .withFailureHandler(function () {
+            setLoginOpenStatus(null, "無法讀取班表狀態");
+          })
+          .getScheduleOpen();
+      }
+
+      function setBusy(value) {
+        busy = value;
+        document.querySelectorAll("button").forEach(function (button) {
+          button.disabled = value;
+        });
+        retryConnectBtn.disabled = value || retryBusy;
+      }
+
+      function syncFlushPanelSpace() {
+        scheduleView.classList.toggle("flush-active", !flushPanel.classList.contains("hidden"));
+      }
+
+      function clearAdminTroubleTimer() {
+        window.clearTimeout(adminTroubleTimer);
+        adminTroubleTimer = null;
+      }
+
+      function hideAdminTroubleButton() {
+        clearAdminTroubleTimer();
+        adminTroubleBtn.classList.add("hidden");
+      }
+
+      function armAdminTroubleButton() {
+        hideAdminTroubleButton();
+        if (currentType !== "ADMIN" || !getPendingCount()) return;
+        adminTroubleTimer = window.setTimeout(function () {
+          if (currentType !== "ADMIN" || !uploadBusy || !getPendingCount()) return;
+          flushPanel.classList.remove("hidden");
+          flushPanel.classList.remove("notice-only");
+          adminTroubleBtn.classList.remove("hidden");
+          showStatus(flushStatus, "上傳等待較久，若卡住可按難以排解");
+          syncFlushPanelSpace();
+        }, 10000);
+      }
+
+      function resolveAdminUploadStuck() {
+        hideAdminTroubleButton();
+        uploadBusy = false;
+        Object.keys(uploadCellStates).forEach(function (key) {
+          if (uploadCellStates[key] === "uploading") {
+            uploadCellStates[key] = "upload-pending";
+          }
+        });
+        setDirty(true);
+        setRetryFlushButtonLabel();
+        showStatus(flushStatus, "已解除上傳等待，未上傳資料已保留");
+        updateRetryBar();
+        render();
+      }
+
+      function makeRetryCode() {
+        return "#" + Math.random().toString(36).slice(2, 6).toUpperCase();
+      }
+
+      function updateRetryBar() {
+        var shouldShow = currentPerson && getPendingCount() && !syncOnline;
+        retryBar.classList.toggle("hidden", !shouldShow);
+        retryBar.classList.toggle("running", retryBusy);
+        if (!shouldShow) return;
+        if (!retryCode) retryCode = makeRetryCode();
+        retryText.innerHTML = retryBusy
+          ? "連線嘗試 <span class=\"retry-code\">" + retryCode + "</span> 進行中"
+          : "離線中，待上傳 " + getPendingCount() + " 格 <span class=\"retry-code\">" + retryCode + "</span>";
+        retryConnectBtn.textContent = retryBusy ? "連線中" : "重新嘗試連線";
+        retryConnectBtn.disabled = retryBusy || busy;
+      }
+
+      function startConnectivityRetry() {
+        if (retryBusy || !getPendingCount()) return;
+        if (uploadBusy) {
+          uploadBusy = false;
+        }
+        retryBusy = true;
+        retryCode = makeRetryCode();
+        updateRetryBar();
+        setBusy(true);
+        showStatus(flushStatus, "連線嘗試 " + retryCode + " 進行中，請稍候");
+        window.clearTimeout(retryWatchdogTimer);
+        retryWatchdogTimer = window.setTimeout(function () {
+          if (!retryBusy) return;
+          uploadBusy = false;
+          retryBusy = false;
+          setBusy(false);
+          markOffline();
+          setDirty(true);
+          setRetryFlushButtonLabel();
+          showStatus(flushStatus, "連線嘗試 " + retryCode + " 逾時，未上傳資料已保留");
+          updateRetryBar();
+          render();
+        }, 25000);
+        flushQueuedChanges(true);
+      }
+
+      function finishConnectivityRetry() {
+        if (!retryBusy) return;
+        window.clearTimeout(retryWatchdogTimer);
+        retryBusy = false;
+        setBusy(false);
+        if (!getPendingCount()) {
+          retryCode = "";
+        }
+        updateRetryBar();
+        render();
+      }
+
+      function setDirty(value) {
+        dirty = value;
+        if (!dirty && !getPendingCount()) {
+          resetLeaveWarning();
+        }
+        if (dirty) {
+          if (syncOnline) {
+            dirtyHint.textContent = "有未上傳修改";
+          } else {
+            dirtyHint.innerHTML = getStatusMarkup("offline", "離線中，待上傳 " + getPendingCount() + " 格");
+          }
+        } else if (lastSyncAt) {
+          dirtyHint.innerHTML = getStatusMarkup("online", "已連線/已同步 " + formatTime(lastSyncAt));
+        } else {
+          dirtyHint.innerHTML = getStatusMarkup("offline", "離線");
+        }
+        flushPanel.classList.toggle("hidden", !dirty && !getPendingCount() && !flushPanel.classList.contains("notice-only"));
+        if (dirty || getPendingCount()) {
+          flushPanel.classList.remove("notice-only");
+        }
+        syncFlushPanelSpace();
+        updateRetryBar();
+      }
+
+      function resetLeaveWarning() {
+        leaveWarningArmed = false;
+        leaveConfirm.classList.add("hidden");
+      }
+
+      function resetFlushButtonLabel() {
+        flushBtn.textContent = "儲存並上傳";
+      }
+
+      function setRetryFlushButtonLabel() {
+        flushBtn.textContent = "重新嘗試連線並儲存/上傳";
+      }
+
+      function showLeaveWarning() {
+        leaveWarningArmed = true;
+        flushPanel.classList.remove("hidden");
+        flushPanel.classList.remove("notice-only");
+        leaveConfirm.classList.remove("hidden");
+        leaveConfirmText.textContent = "您有 " + getPendingCount() + " 格未儲存上傳，您確定要離開嗎";
+        showStatus(flushStatus, "尚有未上傳修改，離開前建議先儲存並上傳");
+        syncFlushPanelSpace();
+      }
+
+      function clearLocalChanges() {
+        pendingChanges = {};
+        pendingOrder = [];
+        uploadCellStates = {};
+        dirty = false;
+        uploadBusy = false;
+        hideAdminTroubleButton();
+        retryBusy = false;
+        window.clearTimeout(retryWatchdogTimer);
+        window.clearTimeout(uploadTimer);
+        resetLeaveWarning();
+        resetFlushButtonLabel();
+        flushPanel.classList.add("hidden");
+        flushPanel.classList.remove("notice-only");
+        showStatus(flushStatus, "");
+        syncFlushPanelSpace();
+        retryCode = "";
+        updateRetryBar();
+      }
+
+      function formatRemainingTime(ms) {
+        var totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        var minutes = Math.floor(totalSeconds / 60);
+        var seconds = totalSeconds % 60;
+        return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+      }
+
+      function updateSessionTimer() {
+        if (!sessionExpiresAt) return;
+        var remaining = sessionExpiresAt - Date.now();
+        if (!scheduleClosingLogoutAt) {
+          sessionTimerLabel.textContent = "剩餘 " + formatRemainingTime(remaining) + " 後登出";
+        }
+        if (remaining <= 0) {
+          logoutToLogin("閒置時間已到，請重新登入", true);
+        }
+      }
+
+      function startSessionTimer() {
+        window.clearInterval(sessionTimer);
+        sessionExpiresAt = Date.now() + sessionDurationMs;
+        updateSessionTimer();
+        sessionTimer = window.setInterval(updateSessionTimer, 1000);
+      }
+
+      function stopSessionTimer() {
+        window.clearInterval(sessionTimer);
+        sessionTimer = null;
+        sessionExpiresAt = null;
+        sessionTimerLabel.textContent = "";
+      }
+
+      function clearScheduleClosingLogout() {
+        window.clearTimeout(scheduleClosingLogoutTimer);
+        window.clearInterval(scheduleClosingLogoutInterval);
+        scheduleClosingLogoutTimer = null;
+        scheduleClosingLogoutInterval = null;
+        scheduleClosingLogoutAt = null;
+      }
+
+      function updateScheduleClosingLogoutLabel() {
+        if (!scheduleClosingLogoutAt) return;
+        var seconds = Math.max(0, Math.ceil((scheduleClosingLogoutAt - Date.now()) / 1000));
+        sessionTimerLabel.textContent = "剩餘 " + seconds + " 秒後登出";
+      }
+
+      function startScheduleClosingLogout() {
+        if (currentType === "ADMIN" || scheduleClosingLogoutTimer) return;
+        clearLocalChanges();
+        updateScheduleOpenUi();
+        render();
+        showToast("排班已關閉，即將登出，請重新登入", 5000, false, true);
+        showSyncMessage("offline", "排班已關閉");
+        scheduleClosingLogoutAt = Date.now() + 10000;
+        updateScheduleClosingLogoutLabel();
+        scheduleClosingLogoutInterval = window.setInterval(updateScheduleClosingLogoutLabel, 1000);
+        scheduleClosingLogoutTimer = window.setTimeout(function () {
+          clearScheduleClosingLogout();
+          logoutToLogin("排班已關閉，請重新登入");
+        }, 10000);
+      }
+
+      function logoutToLogin(message, persistentMessage) {
+        sendPresenceOffline();
+        clearScheduleClosingLogout();
+        clearLocalChanges();
+        window.clearInterval(syncTimer);
+        stopPresenceTimer();
+        stopSessionTimer();
+        currentPerson = "";
+        currentType = "";
+        selectedLoginPerson = "";
+        lockedShift = "";
+        loggedInWhileScheduleClosed = false;
+        hasLoadedFromSheet = false;
+        syncOnline = false;
+        schedule = {};
+        allSchedules = {};
+        allPresence = {};
+        passwordInput.value = "";
+        hidePasswordChangePrompt();
+        loginExtra.classList.remove("open");
+        scheduleView.classList.add("hidden");
+        loginView.classList.remove("hidden");
+        topbar.classList.remove("hidden");
+        subtitle.textContent = "請先選擇人員。";
+        editorLabel.textContent = "未登入";
+        dirtyHint.innerHTML = getStatusMarkup("offline", "離線");
+        document.querySelectorAll(".person-btn").forEach(function (button) {
+          button.classList.remove("active");
+          button.classList.remove("dimmed");
+        });
+        if (message) {
+          if (persistentMessage) {
+            window.clearTimeout(loginStatus._timer);
+            loginStatus.textContent = message;
+          } else {
+            showStatus(loginStatus, message);
+          }
+        }
+      }
+
+      function getPendingKey(personName, day) {
+        return personName + "::" + day;
+      }
+
+      function getPendingCount() {
+        return pendingOrder.length;
+      }
+
+      function isSheetReadyForEditing() {
+        return hasLoadedFromSheet || !hasAppsScript();
+      }
+
+      function showOfflineEditBlocked() {
+        showToast("離線中，請恢復連線後再排班");
+        showSyncMessage("offline", "離線");
+      }
+
+      function queueChange(change) {
+        var key = getPendingKey(change.person, change.day);
+        if (!pendingChanges[key]) {
+          pendingOrder.push(key);
+        }
+        pendingChanges[key] = change;
+        uploadCellStates[key] = "upload-pending";
+        setDirty(true);
+        scheduleQueuedUpload();
+      }
+
+      function removeQueuedChange(change) {
+        var key = getPendingKey(change.person, change.day);
+        delete pendingChanges[key];
+        pendingOrder = pendingOrder.filter(function (item) {
+          return item !== key;
+        });
+      }
+
+      function overlayPendingChanges() {
+        pendingOrder.forEach(function (key) {
+          var change = pendingChanges[key];
+          if (!change) return;
+          var pendingSchedule = allSchedules[change.person] || {};
+          if (change.shift) {
+            pendingSchedule[String(change.day)] = change.shift;
+          } else {
+            delete pendingSchedule[String(change.day)];
+          }
+          allSchedules[change.person] = pendingSchedule;
+        });
+        schedule = allSchedules[currentPerson] || {};
+      }
+
+      function isUploadedChangeConfirmed(data, change) {
+        var source = data && data.schedules ? data.schedules : data;
+        var peopleSource = source && source.people ? source.people : {};
+        var personSchedule = normalizeIncoming(peopleSource[change.person], change.person);
+        var actual = personSchedule[String(change.day)] || "";
+        var expected = change.shift || "";
+        return actual === expected;
+      }
+
+      function scheduleQueuedUpload() {
+        window.clearTimeout(uploadTimer);
+        uploadTimer = window.setTimeout(function () {
+          flushQueuedChanges(false);
+        }, 1000);
+      }
+
+      function getStatusMarkup(type, text) {
+        var icon = '<span class="sync-dot" aria-hidden="true"></span>';
+        return '<span class="sync-status ' + type + '">' + icon + '<span>' + escapeHtml(text) + '</span></span>';
+      }
+
+      function formatTime(date) {
+        return [
+          String(date.getHours()).padStart(2, "0"),
+          String(date.getMinutes()).padStart(2, "0"),
+          String(date.getSeconds()).padStart(2, "0")
+        ].join(":");
+      }
+
+      function setScheduleTitle(text) {
+        var title = String(text || "").trim();
+        applyScheduleMonth(title);
+        parseScheduleRules(title);
+        var missingRule = !month || scheduleRules.totalRest === null || scheduleRules.weekendRest === null || scheduleRules.weekdayRest === null;
+        if (missingRule) {
+          tableTitle.innerHTML = formatParsedScheduleTitle(true);
+          return;
+        }
+        var match = title.match(/^(.*?)\s*(\(.+\))$/);
+
+        if (match) {
+          tableTitle.innerHTML = '<span class="schedule-title"><span>' + escapeHtml(match[1]) + '</span><small>' + escapeHtml(match[2]) + '</small></span>';
+          return;
+        }
+
+        tableTitle.textContent = title;
+      }
+
+      function formatParsedScheduleTitle(warn) {
+        var monthText = month || "-";
+        var totalText = scheduleRules.totalRest === null ? "-" : scheduleRules.totalRest;
+        var weekendText = scheduleRules.weekendRest === null ? "-" : scheduleRules.weekendRest;
+        var weekdayText = scheduleRules.weekdayRest === null ? "-" : scheduleRules.weekdayRest;
+        var main = (warn ? "⚠️ " : "") + monthText + "月份共 " + totalText + "天休假";
+        var detail = "(假日" + weekendText + "天、平日" + weekdayText + "天)";
+        return '<span class="schedule-title"><span>' + escapeHtml(main) + '</span><small>' + escapeHtml(detail) + '</small></span>';
+      }
+
+      function parseMonthFromTitle(title) {
+        var text = String(title || "");
+        var numeric = text.match(/(?:^|[^\d])(\d{1,2})\s*(?:月|月份)/);
+        if (numeric) {
+          var parsed = Number(numeric[1]);
+          if (parsed >= 1 && parsed <= 12) return parsed;
+        }
+
+        var chineseMonths = {
+          "一": 1,
+          "二": 2,
+          "三": 3,
+          "四": 4,
+          "五": 5,
+          "六": 6,
+          "七": 7,
+          "八": 8,
+          "九": 9,
+          "十": 10,
+          "十一": 11,
+          "十二": 12
+        };
+        var chinese = text.match(/(十一|十二|十|一|二|三|四|五|六|七|八|九)\s*(?:月|月份)/);
+        return chinese ? chineseMonths[chinese[1]] : null;
+      }
+
+      function applyScheduleMonth(title) {
+        var parsedMonth = parseMonthFromTitle(title);
+        if (!parsedMonth) {
+          month = null;
+          daysInMonth = 0;
+          firstDayOffset = 0;
+          return;
+        }
+        if (parsedMonth === month) return;
+        month = parsedMonth;
+        daysInMonth = new Date(year, month, 0).getDate();
+        firstDayOffset = new Date(year, month - 1, 1).getDay();
+      }
+
+      function parseScheduleRules(title) {
+        var totalMatch = String(title || "").match(/共\s*(\d+)\s*天休假/);
+        var weekendMatch = String(title || "").match(/假日\s*(\d+)\s*天/);
+        var weekdayMatch = String(title || "").match(/平日\s*(\d+)\s*天/);
+
+        scheduleRules.totalRest = totalMatch ? Number(totalMatch[1]) : null;
+        scheduleRules.weekendRest = weekendMatch ? Number(weekendMatch[1]) : null;
+        scheduleRules.weekdayRest = weekdayMatch ? Number(weekdayMatch[1]) : null;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, function (char) {
+          return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+          }[char];
+        });
+      }
+
+      function markSynced() {
+        syncOnline = true;
+        lastSyncAt = new Date();
+        setDirty(false);
+        updateRetryBar();
+      }
+
+      function markSheetLoaded() {
+        hasLoadedFromSheet = true;
+      }
+
+      function markOffline() {
+        syncOnline = false;
+        if (dirty || getPendingCount()) {
+          dirtyHint.innerHTML = getStatusMarkup("offline", "離線中，待上傳 " + getPendingCount() + " 格");
+          updateRetryBar();
+          return;
+        }
+        dirtyHint.innerHTML = getStatusMarkup("offline", lastSyncAt ? "離線中，最後同步 " + formatTime(lastSyncAt) : "離線中");
+        updateRetryBar();
+      }
+
+      function showSyncMessage(type, text) {
+        dirtyHint.innerHTML = getStatusMarkup(type, text);
+      }
+
+      function showStatus(element, text) {
+        if (element === toast) {
+          if (text) {
+            showToast(text);
+          }
+          return;
+        }
+
+        element.textContent = text;
+        window.clearTimeout(element._timer);
+        element._timer = window.setTimeout(function () {
+          element.textContent = "";
+        }, 2600);
+      }
+
+      function showFlushNotice(text) {
+        if (!text) return;
+        window.clearTimeout(flushNoticeTimer);
+        window.clearTimeout(flushStatus._timer);
+        flushPanel.classList.add("notice-only");
+        flushPanel.classList.remove("hidden");
+        flushStatus.textContent = text;
+        syncFlushPanelSpace();
+        flushNoticeTimer = window.setTimeout(function () {
+          flushPanel.classList.remove("notice-only");
+          flushStatus.textContent = "";
+          if (!dirty && !getPendingCount()) {
+            flushPanel.classList.add("hidden");
+          }
+          syncFlushPanelSpace();
+        }, 2800);
+      }
+
+      function getErrorMessage(error) {
+        return error && error.message ? error.message : "請確認網路後再試一次";
+      }
+
+      function showToast(text, durationMs, center, keepDefaultExit) {
+        toast.textContent = text;
+        toast.classList.remove("exiting");
+        toast.classList.remove("top-exiting");
+        toast.classList.toggle("center", !!center);
+        toast.classList.add("show");
+        window.clearTimeout(toast._timer);
+        window.clearTimeout(toast._exitTimer);
+        toast._timer = window.setTimeout(function () {
+          if (center) {
+            toast.classList.add("exiting");
+            toast._exitTimer = window.setTimeout(function () {
+              toast.classList.remove("show");
+              toast.classList.remove("center");
+              toast.classList.remove("exiting");
+            }, 600);
+            return;
+          }
+          if (!keepDefaultExit) {
+            toast.classList.add("top-exiting");
+            toast._exitTimer = window.setTimeout(function () {
+              toast.classList.remove("show");
+              toast.classList.remove("top-exiting");
+            }, 450);
+            return;
+          }
+          toast.classList.remove("show");
+        }, durationMs || 1900);
+      }
+
+      function clearLockedShift(showMessage) {
+        if (!lockedShift) return;
+        var label = displayFixedShift(lockedShift);
+        lockedShift = "";
+        document.querySelectorAll(".legend-item").forEach(function (item) {
+          item.classList.remove("locked");
+          item.classList.remove("dimmed");
+        });
+        if (showMessage) {
+          showToast("已解除 " + label + " 鎖定");
+        }
+      }
+
+      function toggleLockedShift(shift) {
+        if (busy) return;
+        if (lockedShift === shift) {
+          clearLockedShift(true);
+          return;
+        }
+
+        lockedShift = shift;
+        document.querySelectorAll(".legend-item").forEach(function (item) {
+          var active = item.dataset.shift === shift;
+          item.classList.toggle("locked", active);
+          item.classList.toggle("dimmed", !active);
+        });
+        showToast(displayFixedShift(shift) + " 已鎖定");
+      }
+
+      function unlockAudio() {
+        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+
+        if (!audioContext || audioContext.state === "closed") {
+          audioContext = new AudioContextClass();
+        }
+
+        if (audioContext.state === "suspended") {
+          audioContext.resume().catch(function () {});
+        }
+
+        return audioContext;
+      }
+
+      function checkAudioReady() {
+        if (!audioContext) return;
+        if (audioContext.state === "closed") {
+          audioContext = null;
+          return;
+        }
+        if (audioContext.state === "suspended" && document.visibilityState === "visible") {
+          audioContext.resume().catch(function () {});
+        }
+      }
+
+      function playTapSound(kind) {
+        checkAudioReady();
+        var context = unlockAudio();
+        if (!context) return;
+        if (context.state === "suspended") {
+          context.resume().then(function () {
+            playTapSound(kind);
+          }).catch(function () {});
+          return;
+        }
+
+        var oscillator = audioContext.createOscillator();
+        var gain = audioContext.createGain();
+        var now = audioContext.currentTime;
+        var isTab = kind === "tab";
+        var startFrequency = isTab ? 540 : 760;
+        var endFrequency = isTab ? 360 : 520;
+        var duration = isTab ? 0.16 : 0.09;
+        var fadeTime = isTab ? 0.13 : 0.08;
+        var volume = isTab ? 0.096 : 0.112;
+
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(startFrequency, now);
+        oscillator.frequency.exponentialRampToValueAtTime(endFrequency, now + Math.max(0.04, duration * 0.7));
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(volume, now + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + fadeTime);
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start(now);
+        oscillator.stop(now + duration);
+      }
+
+      function localDate(day) {
+        return year + "/" + (month || "-") + "/" + day;
+      }
+
+      function displayShift(value) {
+        return displayMap[value] || value || "";
+      }
+
+      function displayCellShift(value) {
+        if (value === "A特下半") return "A特下";
+        return displayShift(value);
+      }
+
+      function displayFixedShift(value) {
+        if (value === "A班" || value === "B班" || value === "夜班") return value;
+        if (value === "A") return "A班";
+        if (value === "B") return "B班";
+        return value;
+      }
+
+      function getShiftClass(value) {
+        return shiftClass[value] || shiftClass[shortToFull[value]] || "shift-rest";
+      }
+
+      function getPersonMeta(name) {
+        return loginPeople.find(function (person) {
+          return person.name === name;
+        });
+      }
+
+      function getOptionsForPerson(name) {
+        var meta = getPersonMeta(name);
+        if (!meta) return [];
+        if (meta.type === "A") return aOptions;
+        if (meta.type === "ADMIN") return bOptionsAdmin;
+        return name === "璍" ? bOptionsNight : bOptionsDefault;
+      }
+
+      function getBOptions() {
+        return getOptionsForPerson(currentPerson);
+      }
+
+      function getAllowedOptionsForPerson(name) {
+        var options = getOptionsForPerson(name).concat(specialLegendOptions);
+        if (name !== "璍") {
+          options = options.concat(comboLegendOptions);
+        }
+        return options;
+      }
+
+      function normalizeShiftForPerson(personName, shift) {
+        var meta = getPersonMeta(personName);
+        if (!meta || !shift) return shift || "";
+        if (meta.type === "A") {
+          if (shift === "A班") return "A";
+          if (shift === "B班") return "B";
+        }
+        return shift;
+      }
+
+      function getCycleOptionsForPerson(name) {
+        if (activeShiftTab === "special") return specialLegendOptions;
+        if (activeShiftTab === "combo" && name === "璍") return [];
+        if (activeShiftTab === "combo") return comboLegendOptions;
+        return getOptionsForPerson(name);
+      }
+
+      function isWeekend(day) {
+        if (!month) return false;
+        var weekday = new Date(year, month - 1, Number(day)).getDay();
+        return weekday === 0 || weekday === 6;
+      }
+
+      function isWorkShift(shift) {
+        return ["A班", "B班", "夜班", "A特下半", "A", "B"].indexOf(shift) >= 0;
+      }
+
+      function getScheduleAfterChange(personName, day, shift) {
+        var next = Object.assign({}, allSchedules[personName] || {});
+        if (shift) {
+          next[String(day)] = shift;
+        } else {
+          delete next[String(day)];
+        }
+        return next;
+      }
+
+      function countRest(scheduleMap) {
+        var total = 0;
+        var weekend = 0;
+        var weekday = 0;
+
+        for (var day = 1; day <= daysInMonth; day += 1) {
+          if (scheduleMap[String(day)] === "休假") {
+            total += 1;
+            if (isWeekend(day)) {
+              weekend += 1;
+            } else {
+              weekday += 1;
+            }
+          }
+        }
+
+        return { total: total, weekend: weekend, weekday: weekday };
+      }
+
+      function hasSevenContinuousWork(scheduleMap) {
+        return getContinuousWorkDays(scheduleMap).length >= 7;
+      }
+
+      function getContinuousWorkDays(scheduleMap) {
+        var streak = 0;
+        var startDay = 1;
+
+        for (var day = 1; day <= daysInMonth; day += 1) {
+          if (isWorkShift(scheduleMap[String(day)] || "")) {
+            if (streak === 0) startDay = day;
+            streak += 1;
+            if (streak >= 7) {
+              var days = [];
+              for (var highlightDay = startDay; highlightDay <= day; highlightDay += 1) {
+                days.push(highlightDay);
+              }
+              return days;
+            }
+          } else {
+            streak = 0;
+          }
+        }
+
+        return [];
+      }
+
+      function canApplyShift(personName, day, shift) {
+        return !getShiftBlock(personName, day, shift);
+      }
+
+      function getShiftBlock(personName, day, shift) {
+        shift = normalizeShiftForPerson(personName, shift);
+        if (!canEditPerson(personName)) return { reason: "permission" };
+        if (!shift || getAllowedOptionsForPerson(personName).indexOf(shift) < 0) return { reason: "shift" };
+        if (isSpecialLeaveShift(shift)) return null;
+        var dailyBlock = getDailyTeamBlock(personName, day, shift);
+        if (dailyBlock) return dailyBlock;
+
+        var candidate = getScheduleAfterChange(personName, day, shift);
+        var continuousDays = getContinuousWorkDays(candidate);
+        if (continuousDays.length >= 7) {
+          return {
+            reason: "continuous",
+            days: continuousDays
+          };
+        }
+
+        if (shift === "休假") {
+          var rest = countRest(candidate);
+          if (personName === "璍") {
+            return rest.total <= scheduleRules.huaRest ? null : { reason: "rest" };
+          }
+
+          if (["賢", "杰", "宇", "强"].indexOf(personName) >= 0) {
+            if (scheduleRules.totalRest !== null && rest.total > scheduleRules.totalRest) return { reason: "rest" };
+            if (scheduleRules.weekendRest !== null && rest.weekend > scheduleRules.weekendRest) return { reason: "rest" };
+          }
+        }
+
+        return null;
+      }
+
+      function showContinuousWarning(personName, days) {
+        continuousWarning = {
+          person: personName,
+          days: days.reduce(function (map, day) {
+            map[String(day)] = true;
+            return map;
+          }, {})
+        };
+        showToast("已連續上班7天");
+        render();
+
+        if (continuousWarningTimer) {
+          clearTimeout(continuousWarningTimer);
+        }
+        continuousWarningTimer = setTimeout(function () {
+          continuousWarning = null;
+          continuousWarningTimer = null;
+          render();
+        }, 1400);
+      }
+
+      function isContinuousWarningCell(personName, day) {
+        return !!(continuousWarning && continuousWarning.person === personName && continuousWarning.days[String(day)]);
+      }
+
+      function getDailyBlockMessage(reason) {
+        if (reason === "daily-a-short") return "此日 A 班別不足\n請查看全員表格後調整";
+        if (reason === "daily-b-short") return "此日 B 班別不足\n請查看全員表格後調整";
+        if (reason === "daily-off-full") return "此日休假人數已滿\n請查看全員表格後調整";
+        if (reason === "daily-a-full") return "此日 A 班人數已滿\n請查看全員表格後調整";
+        if (reason === "daily-b-full") return "此日 B 班人數已滿\n請查看全員表格後調整";
+        return "此日規則不符\n請查看全員表格後調整";
+      }
+
+      function showDailyRuleFocus(block) {
+        var day = Number(block.day);
+        if (!day) return;
+        var shouldDelaySwitch = currentType !== "ADMIN" && activeViewMode === "A";
+        ruleFocus = {
+          day: day,
+          person: block.person || currentPerson
+        };
+        showToast(getDailyBlockMessage(block.reason), 2200, true);
+        render();
+
+        window.clearTimeout(ruleFocusSwitchTimer);
+        if (shouldDelaySwitch) {
+          ruleFocusSwitchTimer = window.setTimeout(function () {
+            activeViewMode = "B";
+            updateViewSwitchUi();
+            render();
+            window.setTimeout(function () {
+              scrollTableToDay(day);
+            }, 80);
+          }, 1200);
+        } else {
+          activeViewMode = "B";
+          updateViewSwitchUi();
+          render();
+          window.setTimeout(function () {
+            scrollTableToDay(day);
+          }, 80);
+        }
+
+        window.clearTimeout(ruleFocusTimer);
+        ruleFocusTimer = window.setTimeout(function () {
+          window.clearTimeout(ruleFocusSwitchTimer);
+          ruleFocusSwitchTimer = null;
+          ruleFocus = null;
+          ruleFocusTimer = null;
+          render();
+        }, shouldDelaySwitch ? 3800 : 2600);
+      }
+
+      function scrollTableToDay(day) {
+        var target = editTable.querySelector('.shift-cell[data-day="' + day + '"]');
+        if (!target) return;
+        var targetRect = target.getBoundingClientRect();
+        var wrapRect = tableWrap.getBoundingClientRect();
+        tableWrap.scrollTo({
+          left: tableWrap.scrollLeft + targetRect.left - wrapRect.left - (wrapRect.width / 2) + (targetRect.width / 2),
+          behavior: "smooth"
+        });
+      }
+
+      function canApplyDailyTeamRule(personName, day, shift) {
+        return !getDailyTeamBlock(personName, day, shift);
+      }
+
+      function getDailyTeamBlock(personName, day, shift) {
+        var team = ["賢", "杰", "宇", "强"];
+        if (team.indexOf(personName) < 0) return null;
+
+        var counts = { a: 0, b: 0, off: 0, blank: 0 };
+        team.forEach(function (name) {
+          var value = name === personName ? shift : (allSchedules[name] || {})[String(day)] || "";
+          if (!value) counts.blank += 1;
+          if (isATypeShift(value)) counts.a += 1;
+          if (isBTypeShift(value)) counts.b += 1;
+          if (isOffTypeShift(value)) counts.off += 1;
+        });
+
+        if (counts.a > 3) return { reason: "daily-a-full", day: Number(day), person: personName };
+        if (counts.b > 3) return { reason: "daily-b-full", day: Number(day), person: personName };
+        if (counts.off > 2) return { reason: "daily-off-full", day: Number(day), person: personName };
+        if (counts.a <= 0 && counts.blank <= 0) return { reason: "daily-a-short", day: Number(day), person: personName };
+        if (counts.b <= 0 && counts.blank <= 0) return { reason: "daily-b-short", day: Number(day), person: personName };
+        return null;
+      }
+
+      function isATypeShift(shift) {
+        return shift === "A班" || shift === "A" || shift === "A特下半";
+      }
+
+      function isBTypeShift(shift) {
+        return shift === "B班" || shift === "B";
+      }
+
+      function isOffTypeShift(shift) {
+        return ["休假", "特休", "病假", "喪假", "事假", "公假"].indexOf(shift) >= 0;
+      }
+
+      function isSpecialLeaveShift(shift) {
+        return ["病假", "喪假", "事假", "公假"].indexOf(shift) >= 0;
+      }
+
+      function getRestDeficitMessage(personName) {
+        var rest = countRest(allSchedules[personName] || {});
+        var parts = [];
+
+        if (personName === "璍") {
+          if (rest.total < scheduleRules.huaRest) {
+            parts.push("休假少 " + (scheduleRules.huaRest - rest.total) + " 天");
+          }
+          return parts.join("，");
+        }
+
+        if (["賢", "杰", "宇", "强"].indexOf(personName) >= 0) {
+          if (scheduleRules.totalRest !== null && rest.total < scheduleRules.totalRest) {
+            parts.push("休假少 " + (scheduleRules.totalRest - rest.total) + " 天");
+          }
+        }
+
+        return parts.join("，");
+      }
+
+      function normalizeIncoming(data, personName) {
+        var meta = getPersonMeta(personName || currentPerson);
+        var source = data && data.days ? data.days : data;
+        var next = {};
+
+        if (!meta || !source || typeof source !== "object" || Array.isArray(source)) {
+          return next;
+        }
+
+        Object.keys(source).forEach(function (key) {
+          var day = String(parseInt(key, 10));
+          var value = source[key];
+          var full = meta.type === "B" ? (shortToFull[value] || value) : normalizeShiftForPerson(personName || currentPerson, shortToFull[value] || value);
+
+          if (Number(day) < 1 || Number(day) > daysInMonth) return;
+          if (getAllowedOptionsForPerson(personName || currentPerson).indexOf(full) >= 0) next[day] = full;
+        });
+
+        return next;
+      }
+
+      function normalizeAllSchedules(data) {
+        var source = data && data.people ? data.people : {};
+        if (data && data.presence && typeof data.presence === "object") {
+          allPresence = data.presence;
+        }
+        if (data && Object.prototype.hasOwnProperty.call(data, "title")) {
+          scheduleTitle = data.title || "";
+          applyScheduleMonth(scheduleTitle);
+          parseScheduleRules(scheduleTitle);
+        }
+        if (!month && data && Number(data.month) >= 1 && Number(data.month) <= 12) {
+          month = Number(data.month);
+          daysInMonth = new Date(year, month, 0).getDate();
+          firstDayOffset = new Date(year, month - 1, 1).getDay();
+        }
+        if (data && typeof data.scheduleOpen === "boolean") {
+          scheduleOpen = data.scheduleOpen;
+          setLoginOpenStatus(scheduleOpen);
+          updateScheduleOpenUi();
+        }
+        var next = {};
+        people.forEach(function (person) {
+          next[person.name] = normalizeIncoming(source[person.name], person.name);
+        });
+        return next;
+      }
+
+      function isPresenceOnline(personName) {
+        return !!(allPresence && allPresence[personName] && allPresence[personName].online);
+      }
+
+      function getPersonHeaderMarkup(personName) {
+        var dotClass = isPresenceOnline(personName) ? " online" : "";
+        return '<span class="person-head">' + escapeHtml(personName) + '<span class="presence-dot' + dotClass + '"></span></span>';
+      }
+
+      function shouldDimReadonlyPerson(personName) {
+        if (currentType === "ADMIN") return false;
+        if (loggedInWhileScheduleClosed) return false;
+        if (!scheduleOpen) return true;
+        return personName !== currentPerson;
+      }
+
+      function applyPresenceUpdate(presence) {
+        if (presence && typeof presence === "object") {
+          allPresence = presence;
+          if (currentPerson && activeViewMode === "B") {
+            renderEditTable();
+          }
+        }
+      }
+
+      function sendPresenceHeartbeat() {
+        if (!currentPerson || !hasAppsScript()) return;
+        if (currentType === "ADMIN") {
+          google.script.run
+            .withSuccessHandler(applyPresenceUpdate)
+            .withFailureHandler(function () {})
+            .getPresence();
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(applyPresenceUpdate)
+          .withFailureHandler(function () {})
+          .updatePresence(currentPerson);
+      }
+
+      function sendPresenceOffline() {
+        if (!currentPerson || currentType === "ADMIN" || !hasAppsScript()) return;
+        google.script.run
+          .withFailureHandler(function () {})
+          .clearPresence(currentPerson);
+      }
+
+      function startPresenceTimer() {
+        window.clearInterval(presenceTimer);
+        sendPresenceHeartbeat();
+        presenceTimer = window.setInterval(sendPresenceHeartbeat, 60000);
+      }
+
+      function stopPresenceTimer() {
+        window.clearInterval(presenceTimer);
+        presenceTimer = null;
+      }
+
+      function canEditPerson(personName) {
+        if (busy) return false;
+        if (currentType === "ADMIN") return true;
+        return scheduleOpen && !loggedInWhileScheduleClosed && personName === currentPerson;
+      }
+
+      function updateScheduleOpenUi() {
+        adminSwitch.classList.toggle("hidden", currentType !== "ADMIN");
+        adminScale.classList.toggle("hidden", currentType !== "ADMIN");
+        closedNotice.classList.toggle("hidden", (scheduleOpen && !loggedInWhileScheduleClosed) || currentType === "ADMIN");
+        closedNotice.textContent = scheduleOpen && loggedInWhileScheduleClosed ? "班表已開放，請重新登入" : "排班尚未開放，目前只能查看班表。";
+        adminSwitchText.textContent = scheduleOpen ? "排班開放中" : "排班已關閉";
+        scheduleOpenBtn.textContent = scheduleOpen ? "關閉排班" : "開放排班";
+        scheduleOpenBtn.classList.toggle("primary", !scheduleOpen);
+        setLoginOpenStatus(scheduleOpen);
+        if ((!scheduleOpen || loggedInWhileScheduleClosed) && currentType !== "ADMIN") {
+          showSyncMessage("offline", scheduleOpen && loggedInWhileScheduleClosed ? "班表已開放，請重新登入" : "排班尚未開放");
+        } else {
+          setDirty(dirty);
+        }
+      }
+
+      function shouldLogoutForClosedSchedule() {
+        return currentPerson && currentType !== "ADMIN" && !scheduleOpen && !loggedInWhileScheduleClosed;
+      }
+
+      function setUiScale(value) {
+        uiScale = Math.max(0.5, Math.min(2, Number(value) || 1));
+        uiScale = Math.round(uiScale * 10) / 10;
+        document.documentElement.style.setProperty("--ui-scale", String(uiScale));
+        scaleValue.textContent = Math.round(uiScale * 100) + "%";
+      }
+
+      function stepUiScale(step) {
+        setUiScale(uiScale + Number(step || 0));
+      }
+
+      function getCssDebugText() {
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        var screenWidth = window.screen && window.screen.width;
+        var screenHeight = window.screen && window.screen.height;
+        var dpr = window.devicePixelRatio || 1;
+
+        return [
+          "排班表畫面資訊",
+          "uiScale: " + uiScale,
+          "innerWidth: " + width,
+          "innerHeight: " + height,
+          "screen: " + screenWidth + "x" + screenHeight,
+          "devicePixelRatio: " + dpr,
+          "userAgent: " + navigator.userAgent,
+          "",
+          "CSS:",
+          ":root { --ui-scale: " + uiScale + "; }",
+          ".app { zoom: " + uiScale + "; }",
+          "",
+          "一般瀏覽器窄版可用參考:",
+          "@media (max-width: 1024px) {",
+          "  :root { --ui-scale: " + uiScale + "; }",
+          "}"
+        ].join("\n");
+      }
+
+      function copyCssDebugInfo() {
+        var text = getCssDebugText();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+          }).catch(function () {
+            window.prompt("複製下面資訊給我", text);
+          });
+          return;
+        }
+        window.prompt("複製下面資訊給我", text);
+      }
+
+      function getPayload() {
+        var days = {};
+        for (var day = 1; day <= daysInMonth; day += 1) {
+          var value = schedule[String(day)] || "";
+          if (value) days[String(day)] = value;
+        }
+        return { person: currentPerson, year: year, month: month, days: days };
+      }
+
+      function buildPeople() {
+        peopleGrid.innerHTML = "";
+        loginPeople.forEach(function (person) {
+          var button = document.createElement("button");
+          button.type = "button";
+          button.className = "person-btn";
+          button.textContent = person.name;
+          button.dataset.person = person.name;
+          button.addEventListener("click", function () {
+            selectLoginPerson(person.name);
+          });
+          peopleGrid.appendChild(button);
+        });
+      }
+
+      function selectLoginPerson(name) {
+        selectedLoginPerson = name;
+        loginExtra.classList.add("open");
+        passwordInput.value = "";
+        hidePasswordChangePrompt();
+        showStatus(loginStatus, "");
+
+        document.querySelectorAll(".person-btn").forEach(function (button) {
+          var active = button.dataset.person === name;
+          button.classList.toggle("active", active);
+          button.classList.toggle("dimmed", !active);
+        });
+
+        window.setTimeout(function () {
+          var activeButton = peopleGrid.querySelector('.person-btn[data-person="' + name + '"]');
+          if (activeButton) {
+            activeButton.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }, 190);
+      }
+
+      function hidePasswordChangePrompt() {
+        pendingPasswordLogin = null;
+        scheduleView.classList.remove("password-change-mode");
+        passwordChangePanel.classList.remove("open");
+        newPasswordInput.value = "";
+        confirmPasswordInput.value = "";
+        passwordChangeStatus.textContent = "";
+      }
+
+      function showPasswordChangePrompt(data) {
+        pendingPasswordLogin = data;
+        scheduleView.classList.add("password-change-mode");
+        passwordChangePanel.classList.add("open");
+        newPasswordInput.value = "";
+        confirmPasswordInput.value = "";
+        passwordChangeStatus.textContent = "請變更預設密碼，或選擇繼續使用";
+        window.setTimeout(function () {
+          passwordChangePanel.scrollIntoView({ behavior: "smooth", block: "center" });
+          newPasswordInput.focus();
+        }, 80);
+      }
+
+      function buildLegend() {
+        var regularOptions = getOptionsForPerson(currentPerson);
+        var hideCombo = currentPerson === "璍";
+        bLegend.innerHTML = "";
+        specialLegend.innerHTML = "";
+        comboLegend.innerHTML = "";
+        bLegend.classList.toggle("scrolling", regularOptions.length > 4);
+        bLegend.classList.toggle("night-regular", currentPerson === "璍");
+        document.querySelector('[data-shift-tab="combo"]').classList.toggle("hidden", hideCombo);
+        document.querySelector('[data-shift-panel="combo"]').classList.toggle("hidden", hideCombo);
+        if (hideCombo && activeShiftTab === "combo") {
+          activeShiftTab = "regular";
+        }
+
+        regularOptions.forEach(function (option) {
+          var label = displayShift(option);
+          var legend = document.createElement("div");
+          legend.className = "legend-item" + (lockedShift === option ? " locked" : "") + (lockedShift && lockedShift !== option ? " dimmed" : "");
+          legend.dataset.shift = option;
+          legend.innerHTML = '<span class="dot ' + shiftClass[option] + '">' + label + '</span>' + option;
+          legend.addEventListener("click", function () {
+            toggleLockedShift(option);
+          });
+          bLegend.appendChild(legend);
+        });
+
+        specialLegendOptions.forEach(function (option) {
+          var label = displayShift(option);
+          var legend = document.createElement("div");
+          legend.className = "legend-item" + (lockedShift === option ? " locked" : "") + (lockedShift && lockedShift !== option ? " dimmed" : "");
+          legend.dataset.shift = option;
+          legend.innerHTML = '<span class="dot ' + shiftClass[option] + '">' + label + '</span>' + option;
+          legend.addEventListener("click", function () {
+            toggleLockedShift(option);
+          });
+          specialLegend.appendChild(legend);
+        });
+
+        if (hideCombo) return;
+
+        comboLegendOptions.forEach(function (option) {
+          var label = displayShift(option);
+          var legend = document.createElement("div");
+          legend.className = "legend-item" + (lockedShift === option ? " locked" : "") + (lockedShift && lockedShift !== option ? " dimmed" : "");
+          legend.dataset.shift = option;
+          legend.innerHTML = '<span class="dot ' + shiftClass[option] + '">' + label + '</span>' + option;
+          legend.addEventListener("click", function () {
+            toggleLockedShift(option);
+          });
+          comboLegend.appendChild(legend);
+        });
+      }
+
+      function selectShiftTab(tabName) {
+        if (busy) return;
+        if (currentPerson === "璍" && tabName === "combo") {
+          tabName = "regular";
+        }
+        clearLockedShift(true);
+        activeShiftTab = tabName;
+        document.querySelectorAll("[data-shift-tab]").forEach(function (tab) {
+          tab.classList.toggle("active", tab.dataset.shiftTab === tabName);
+        });
+
+        document.querySelectorAll("[data-shift-panel]").forEach(function (panel) {
+          panel.classList.toggle("active", panel.dataset.shiftPanel === tabName);
+        });
+      }
+
+      function updateViewSwitchUi() {
+        viewSwitch.dataset.activeView = activeViewMode;
+        document.querySelectorAll("[data-view-mode]").forEach(function (button) {
+          button.classList.toggle("active", button.dataset.viewMode === activeViewMode);
+        });
+      }
+
+      function selectViewMode(mode) {
+        if (busy) return;
+        if (currentType === "ADMIN") {
+          activeViewMode = "B";
+        } else {
+          activeViewMode = mode === "A" ? "A" : "B";
+        }
+
+        updateViewSwitchUi();
+        render();
+      }
+
+      function enterSchedule(name, schedules) {
+        var meta = getPersonMeta(name);
+        currentPerson = name;
+        currentType = meta.type;
+        loggedInWhileScheduleClosed = currentType !== "ADMIN" && !scheduleOpen;
+        activeViewMode = currentType === "ADMIN" ? "B" : "A";
+        hasLoadedFromSheet = !!schedules;
+        allSchedules = schedules ? normalizeAllSchedules(schedules) : allSchedules;
+        schedule = allSchedules[currentPerson] || {};
+        pendingChanges = {};
+        pendingOrder = [];
+        uploadCellStates = {};
+        window.clearTimeout(uploadTimer);
+        uploadBusy = false;
+        markOffline();
+        var monthLabel = month ? month : "⚠️ -";
+        subtitle.textContent = currentType === "ADMIN" ? "目前身分：管理員，" + year + " 年 " + monthLabel + " 月。" : "目前人員：" + currentPerson + "，" + year + " 年 " + monthLabel + " 月。";
+        editorLabel.textContent = currentType === "ADMIN" ? "管理員 編輯中" : currentPerson + " 編輯中";
+        setScheduleTitle(scheduleTitle);
+        loginView.classList.add("hidden");
+        scheduleView.classList.remove("hidden");
+        topbar.classList.add("hidden");
+        viewSwitch.classList.toggle("hidden", currentType === "ADMIN");
+        updateScheduleOpenUi();
+
+        document.querySelectorAll(".person-btn").forEach(function (button) {
+          button.classList.toggle("active", button.dataset.person === name);
+        });
+
+        updateViewSwitchUi();
+
+        buildLegend();
+        render();
+        startAutoSync();
+        startSessionTimer();
+        startPresenceTimer();
+      }
+
+      function attemptLogin() {
+        if (busy) return;
+        var name = selectedLoginPerson;
+        if (!name) {
+          showStatus(loginStatus, "請先選擇人員");
+          return;
+        }
+        var meta = getPersonMeta(name);
+        if (!meta) return;
+        hidePasswordChangePrompt();
+
+        if (!hasAppsScript()) {
+          currentPerson = name;
+          currentType = meta.type;
+          enterSchedule(name);
+          markOffline();
+          showSyncMessage("offline", "本機預覽模式");
+          return;
+        }
+
+        setBusy(true);
+        showStatus(loginStatus, "登入中...");
+        google.script.run
+          .withSuccessHandler(function (data) {
+            showStatus(loginStatus, "");
+            setBusy(false);
+            if (typeof data.scheduleOpen === "boolean") {
+              scheduleOpen = data.scheduleOpen;
+            }
+            markSheetLoaded();
+            if (data.requirePasswordChange) {
+              enterSchedule(data.name, data.schedules);
+              markSynced();
+              showPasswordChangePrompt(data);
+              return;
+            }
+            enterSchedule(data.name, data.schedules);
+            markSynced();
+          })
+          .withFailureHandler(function (error) {
+            markOffline();
+            showStatus(loginStatus, "登入失敗：" + error.message);
+            setBusy(false);
+          })
+          .loginPerson(name, passwordInput.value);
+      }
+
+      function continueWithDefaultPassword() {
+        if (!pendingPasswordLogin) return;
+        var data = pendingPasswordLogin;
+        hidePasswordChangePrompt();
+        markSheetLoaded();
+        enterSchedule(data.name, data.schedules);
+        markSynced();
+      }
+
+      function changePasswordThenLogin() {
+        if (busy || !pendingPasswordLogin) return;
+        var nextPassword = newPasswordInput.value.trim();
+        var confirmPassword = confirmPasswordInput.value.trim();
+
+        if (!/^\d{4,8}$/.test(nextPassword)) {
+          passwordChangeStatus.textContent = "新密碼需為 4 到 8 位數字";
+          return;
+        }
+        if (nextPassword !== confirmPassword) {
+          passwordChangeStatus.textContent = "兩次輸入的新密碼不一致";
+          return;
+        }
+        if (!hasAppsScript()) {
+          passwordChangeStatus.textContent = "本機預覽模式無法變更密碼";
+          return;
+        }
+
+        setBusy(true);
+        passwordChangeStatus.textContent = "變更密碼中...";
+        google.script.run
+          .withSuccessHandler(function (data) {
+            setBusy(false);
+            hidePasswordChangePrompt();
+            if (typeof data.scheduleOpen === "boolean") {
+              scheduleOpen = data.scheduleOpen;
+            }
+            markSheetLoaded();
+            enterSchedule(data.name, data.schedules);
+            markSynced();
+          })
+          .withFailureHandler(function (error) {
+            setBusy(false);
+            passwordChangeStatus.textContent = "變更失敗：" + getErrorMessage(error);
+          })
+          .changePasswordAndLogin(pendingPasswordLogin.name, passwordInput.value, nextPassword);
+      }
+
+      function cyclePersonShift(personName, day) {
+        if (!canEditPerson(personName)) return;
+        if (uploadCellStates[getPendingKey(personName, day)] === "uploading") return;
+        if (!isSheetReadyForEditing()) {
+          showOfflineEditBlocked();
+          return;
+        }
+        var options = getCycleOptionsForPerson(personName);
+        var personSchedule = allSchedules[personName] || {};
+        var current = personSchedule[String(day)] || "";
+        var index = options.indexOf(current);
+        var normalizedLockedShift = normalizeShiftForPerson(personName, lockedShift);
+        var next = normalizedLockedShift && current === normalizedLockedShift ? "" : normalizedLockedShift || getNextValidCycleShift(personName, Number(day), options, index);
+        if (next === null) return;
+        if (next) {
+          var block = getShiftBlock(personName, Number(day), next);
+          if (block) {
+            if (block.reason === "continuous") {
+              showContinuousWarning(personName, block.days);
+            } else if (block.reason && block.reason.indexOf("daily-") === 0) {
+              showDailyRuleFocus(block);
+            }
+            return;
+          }
+        }
+
+        if (next) {
+          personSchedule[String(day)] = next;
+        } else {
+          delete personSchedule[String(day)];
+        }
+        allSchedules[personName] = personSchedule;
+        schedule = personSchedule;
+        queueChange({
+          person: personName,
+          day: Number(day),
+          shift: next
+        });
+        render();
+      }
+
+      function getNextValidCycleShift(personName, day, options, currentIndex) {
+        if (!options.length) return null;
+
+        for (var step = 1; step <= options.length; step += 1) {
+          var candidate = options[(currentIndex + step) % options.length];
+          if (canApplyShift(personName, day, candidate)) return candidate;
+        }
+
+        return null;
+      }
+
+      function renderEditTable() {
+        editTable.innerHTML = "";
+        var dateRow = document.createElement("tr");
+        var weekdayRow = document.createElement("tr");
+        dateRow.innerHTML = "<th>日期</th>";
+        weekdayRow.innerHTML = "<th>星期</th>";
+
+        for (var day = 1; day <= daysInMonth; day += 1) {
+          var weekday = weekdays[new Date(year, month - 1, day).getDay()];
+          var cellClasses = [];
+          if (isWeekend(day)) cellClasses.push("weekend-col");
+          if (ruleFocus && ruleFocus.day === day) cellClasses.push("rule-focus-col");
+          var cellClass = cellClasses.length ? ' class="' + cellClasses.join(" ") + '"' : "";
+
+          dateRow.innerHTML += "<td" + cellClass + ">" + day + "</td>";
+          weekdayRow.innerHTML += "<td" + cellClass + ">" + weekday + "</td>";
+        }
+
+        editTable.appendChild(dateRow);
+        editTable.appendChild(weekdayRow);
+
+        people.forEach(function (person) {
+          var row = document.createElement("tr");
+          var personSchedule = allSchedules[person.name] || {};
+            var disabled = canEditPerson(person.name) ? "" : " disabled";
+            row.innerHTML = "<th>" + getPersonHeaderMarkup(person.name) + "</th>";
+
+          for (var day = 1; day <= daysInMonth; day += 1) {
+            var shift = personSchedule[String(day)] || "";
+            var label = displayCellShift(shift) || "+";
+            var className = shift ? getShiftClass(shift) : "empty";
+            if (shouldDimReadonlyPerson(person.name)) {
+              className += " readonly-dim";
+            }
+            var uploadState = uploadCellStates[getPendingKey(person.name, day)];
+            var cellDisabled = disabled || (uploadState === "uploading" ? " disabled" : "");
+            if (isContinuousWarningCell(person.name, day)) {
+              className += " continuous-warning";
+            }
+            if (uploadState) {
+              className += " " + uploadState;
+            }
+            if (ruleFocus && ruleFocus.person === person.name && ruleFocus.day === day) {
+              className += " rule-focus-cell";
+            }
+            var tdClasses = [];
+            if (isWeekend(day)) tdClasses.push("weekend-col");
+            if (ruleFocus && ruleFocus.day === day) tdClasses.push("rule-focus-col");
+            var tdClass = tdClasses.length ? ' class="' + tdClasses.join(" ") + '"' : "";
+            row.innerHTML += '<td' + tdClass + '><button class="shift-cell ' + className + '" type="button" data-person="' + person.name + '" data-day="' + day + '"' + cellDisabled + ">" + label + "</button></td>";
+          }
+
+          editTable.appendChild(row);
+        });
+
+        editTable.querySelectorAll(".shift-cell").forEach(function (button) {
+          button.addEventListener("click", function () {
+            cyclePersonShift(this.dataset.person, this.dataset.day);
+          });
+        });
+      }
+
+      function getPersonTailName(name) {
+        return String(name || "").slice(-1);
+      }
+
+      function countPersonShifts(personName) {
+        var personSchedule = allSchedules[personName] || {};
+        var counts = { a: 0, b: 0, rest: 0, leave: 0, night: 0 };
+        for (var day = 1; day <= daysInMonth; day += 1) {
+          var shift = personSchedule[String(day)] || "";
+          if (isAClass(shift)) counts.a += 1;
+          if (isBClass(shift)) counts.b += 1;
+          if (shift === "休假") counts.rest += 1;
+          if (shift === "特休") counts.leave += 1;
+          if (shift === "夜班") counts.night += 1;
+        }
+        return counts;
+      }
+
+      function renderShiftSummary() {
+        shiftSummary.innerHTML = "";
+        people.forEach(function (person) {
+          var counts = countPersonShifts(person.name);
+          var isNightPerson = person.name === "璍";
+          var card = document.createElement("div");
+          card.className = "summary-card" + (isNightPerson ? " night" : "");
+          card.innerHTML = isNightPerson
+            ? '<span class="summary-name">' + getPersonTailName(person.name) + "</span>" +
+              '<span class="summary-counts">' +
+              "<span>夜: " + counts.night + "</span>" +
+              "<span>休: " + counts.rest + "</span>" +
+              "<span>特: " + counts.leave + "</span>" +
+              "</span>"
+            : '<span class="summary-name">' + getPersonTailName(person.name) + "</span>" +
+              '<span class="summary-counts">' +
+              "<span>A: " + counts.a + "</span>" +
+              "<span>B: " + counts.b + "</span>" +
+              "<span>休: " + counts.rest + "</span>" +
+              "<span>特: " + counts.leave + "</span>" +
+              "</span>";
+          shiftSummary.appendChild(card);
+        });
+      }
+
+      function renderCalendar() {
+        calendarWeekdays.innerHTML = "";
+        weekdays.forEach(function (weekday) {
+          var item = document.createElement("div");
+          item.textContent = weekday;
+          calendarWeekdays.appendChild(item);
+        });
+
+        calendarGrid.innerHTML = "";
+        for (var blankIndex = 0; blankIndex < firstDayOffset; blankIndex += 1) {
+          var blank = document.createElement("div");
+          blank.className = "blank";
+          calendarGrid.appendChild(blank);
+        }
+
+        var personSchedule = allSchedules[currentPerson] || {};
+        for (var day = 1; day <= daysInMonth; day += 1) {
+          var shift = personSchedule[String(day)] || "";
+          var dayButton = document.createElement("button");
+          var className = "day" + (shift ? " has-shift" : "");
+          if (isWeekend(day)) className += " weekend";
+          if (shift) className += " " + getShiftClass(shift);
+          if (isContinuousWarningCell(currentPerson, day)) className += " continuous-warning";
+          if (ruleFocus && ruleFocus.person === currentPerson && ruleFocus.day === day) className += " rule-focus-cell";
+          var uploadState = uploadCellStates[getPendingKey(currentPerson, day)];
+          if (uploadState) className += " " + uploadState;
+          dayButton.className = className;
+          dayButton.type = "button";
+          dayButton.disabled = !canEditPerson(currentPerson) || uploadState === "uploading";
+          dayButton.dataset.person = currentPerson;
+          dayButton.dataset.day = day;
+          dayButton.innerHTML = '<span class="date-num">' + day + '</span><span class="shift-label">' + (displayCellShift(shift) || "+") + "</span>";
+          dayButton.addEventListener("click", function () {
+            cyclePersonShift(this.dataset.person, this.dataset.day);
+          });
+          calendarGrid.appendChild(dayButton);
+        }
+      }
+
+      function render() {
+        if (!currentPerson) return;
+        var useCalendar = currentType !== "ADMIN" && activeViewMode === "A";
+        calendarPanel.classList.toggle("hidden", !useCalendar);
+        tableWrap.classList.toggle("hidden", useCalendar);
+        shiftSummary.classList.toggle("hidden", useCalendar);
+        if (useCalendar) {
+          renderCalendar();
+        } else {
+          renderEditTable();
+          renderShiftSummary();
+        }
+      }
+
+      function syncAllSilently() {
+        if (!currentPerson || busy || uploadBusy) return;
+        checkAudioReady();
+        if (getPendingCount()) {
+          flushQueuedChanges(false);
+          return;
+        }
+        if (!hasAppsScript()) {
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function (data) {
+            markSheetLoaded();
+            allSchedules = normalizeAllSchedules(data);
+            if (shouldLogoutForClosedSchedule()) {
+              startScheduleClosingLogout();
+              return;
+            }
+            overlayPendingChanges();
+            schedule = allSchedules[currentPerson] || {};
+            setScheduleTitle(scheduleTitle);
+            markSynced();
+            showFlushNotice("已完成同步");
+            render();
+          })
+          .withFailureHandler(function (error) {
+            markOffline();
+          })
+          .getAllSchedules();
+      }
+
+      function toggleScheduleOpen() {
+        if (currentType !== "ADMIN" || busy) return;
+        var nextOpen = !scheduleOpen;
+
+        if (!hasAppsScript()) {
+          scheduleOpen = nextOpen;
+          updateScheduleOpenUi();
+          render();
+          return;
+        }
+
+        setBusy(true);
+        google.script.run
+          .withSuccessHandler(function (data) {
+            markSheetLoaded();
+            scheduleOpen = !!data.scheduleOpen;
+            allSchedules = normalizeAllSchedules(data.schedules);
+            schedule = allSchedules[currentPerson] || {};
+            updateScheduleOpenUi();
+            if (shouldLogoutForClosedSchedule()) {
+              startScheduleClosingLogout();
+              setBusy(false);
+              return;
+            }
+            render();
+            setBusy(false);
+          })
+          .withFailureHandler(function (error) {
+            showToast("切換失敗：" + error.message);
+            setBusy(false);
+          })
+          .setScheduleOpen(nextOpen);
+      }
+
+      function startAutoSync() {
+        window.clearInterval(syncTimer);
+        syncTimer = window.setInterval(syncAllSilently, 30000);
+      }
+
+      function flushQueuedChanges(finalFlush) {
+        window.clearTimeout(uploadTimer);
+
+        if (!getPendingCount()) {
+          if (finalFlush) {
+            var deficitMessage = getRestDeficitMessage(currentPerson);
+            showFlushNotice(deficitMessage ? "已完成同步，" + deficitMessage : "已完成同步");
+          }
+          if (lastSyncAt) {
+            setDirty(false);
+          } else {
+            markOffline();
+          }
+          finishConnectivityRetry();
+          return;
+        }
+
+        if (!hasAppsScript()) {
+          showStatus(flushStatus, "本機預覽模式：部署後才會上傳");
+          setRetryFlushButtonLabel();
+          finishConnectivityRetry();
+          return;
+        }
+
+        resetFlushButtonLabel();
+        if (uploadBusy) {
+          showStatus(flushStatus, "正在上傳中，請稍候");
+          updateRetryBar();
+          armAdminTroubleButton();
+          return;
+        }
+        uploadBusy = true;
+        armAdminTroubleButton();
+        uploadNextQueuedChange(!!finalFlush);
+      }
+
+      function uploadNextQueuedChange(finalFlush) {
+        var key = pendingOrder[0];
+        var change = key ? pendingChanges[key] : null;
+
+        if (!change) {
+          uploadBusy = false;
+          hideAdminTroubleButton();
+          if (!getPendingCount()) {
+            markSynced();
+            resetFlushButtonLabel();
+            if (finalFlush) {
+              var deficitMessage = getRestDeficitMessage(currentPerson);
+              showFlushNotice(deficitMessage ? "已上傳完成，" + deficitMessage : "已上傳完成");
+            } else {
+              showSyncMessage("online", "已同步");
+              showFlushNotice("已自動同步上傳完成");
+            }
+            render();
+          }
+          finishConnectivityRetry();
+          return;
+        }
+
+        if (finalFlush) {
+          showStatus(flushStatus, "上傳中，剩餘 " + getPendingCount() + " 格...");
+        } else {
+          showSyncMessage("online", "上傳中 " + getPendingCount() + " 格");
+        }
+
+        uploadCellStates[key] = "uploading";
+        render();
+
+        google.script.run
+          .withSuccessHandler(function (data) {
+            var latest = pendingChanges[key];
+            if (latest && latest.person === change.person && latest.day === change.day && latest.shift === change.shift && !isUploadedChangeConfirmed(data, change)) {
+              uploadBusy = false;
+              hideAdminTroubleButton();
+              uploadCellStates[key] = "upload-failed";
+              window.setTimeout(function () {
+                if (uploadCellStates[key] === "upload-failed") {
+                  uploadCellStates[key] = "upload-pending";
+                  render();
+                }
+              }, 950);
+              setRetryFlushButtonLabel();
+              if (finalFlush) {
+                showStatus(flushStatus, "同步後資料不一致，請重新讀取確認");
+              } else {
+                showSyncMessage("offline", "同步資料不一致");
+              }
+              setDirty(true);
+              render();
+              finishConnectivityRetry();
+              return;
+            }
+
+            if (latest && latest.person === change.person && latest.day === change.day && latest.shift === change.shift) {
+              removeQueuedChange(change);
+              uploadCellStates[key] = "upload-success";
+              window.setTimeout(function () {
+                if (uploadCellStates[key] === "upload-success") {
+                  delete uploadCellStates[key];
+                  render();
+                }
+              }, 900);
+            }
+
+            markSheetLoaded();
+            allSchedules = normalizeAllSchedules(data.schedules);
+            if (shouldLogoutForClosedSchedule()) {
+              startScheduleClosingLogout();
+              uploadBusy = false;
+              hideAdminTroubleButton();
+              finishConnectivityRetry();
+              return;
+            }
+            setScheduleTitle(scheduleTitle);
+            overlayPendingChanges();
+            if (getPendingCount()) {
+              setDirty(true);
+              render();
+              armAdminTroubleButton();
+              uploadNextQueuedChange(finalFlush);
+              return;
+            }
+
+            uploadBusy = false;
+            hideAdminTroubleButton();
+            markSynced();
+            resetFlushButtonLabel();
+            if (finalFlush) {
+              var deficitMessage = getRestDeficitMessage(change.person);
+              showFlushNotice(deficitMessage ? "已上傳完成，" + deficitMessage : "已上傳完成");
+            } else {
+              showSyncMessage("online", "已同步");
+              showFlushNotice("已自動同步上傳完成");
+            }
+            render();
+            finishConnectivityRetry();
+          })
+          .withFailureHandler(function (error) {
+            uploadBusy = false;
+            hideAdminTroubleButton();
+            uploadCellStates[key] = "upload-failed";
+            window.setTimeout(function () {
+              if (uploadCellStates[key] === "upload-failed") {
+                uploadCellStates[key] = "upload-pending";
+                render();
+              }
+            }, 950);
+            setRetryFlushButtonLabel();
+            if (finalFlush) {
+              showStatus(flushStatus, "上傳失敗 " + (retryCode || "") + "：" + getErrorMessage(error));
+            } else {
+              showSyncMessage("offline", "上傳失敗");
+            }
+            setDirty(true);
+            render();
+            finishConnectivityRetry();
+          })
+          .saveDay(change.person, change.day, change.shift);
+      }
+
+      document.addEventListener("click", function (event) {
+        var target = event.target.closest("button, .legend-item");
+        if (!target || target.disabled || target.classList.contains("dimmed")) return;
+        if (target.classList.contains("shift-tab")) {
+          playTapSound("tab");
+          return;
+        }
+        if (
+          target.classList.contains("shift-cell") ||
+          target.classList.contains("day") ||
+          target.classList.contains("person-btn") ||
+          target.classList.contains("legend-item")
+        ) {
+          playTapSound("normal");
+        }
+      });
+      document.addEventListener("pointerdown", unlockAudio, { once: true });
+      document.addEventListener("touchstart", unlockAudio, { once: true });
+      flushBtn.addEventListener("click", function () {
+        flushQueuedChanges(true);
+      });
+      adminTroubleBtn.addEventListener("click", resolveAdminUploadStuck);
+      retryConnectBtn.addEventListener("click", startConnectivityRetry);
+      leaveYesBtn.addEventListener("click", function () {
+        window.location.reload();
+      });
+      leaveCancelBtn.addEventListener("click", function () {
+        resetLeaveWarning();
+        showStatus(flushStatus, "已取消離開");
+      });
+      window.addEventListener("keydown", function (event) {
+        if (event.key !== "F5" || !getPendingCount()) return;
+        event.preventDefault();
+        showLeaveWarning();
+      });
+      window.addEventListener("beforeunload", function (event) {
+        if (!getPendingCount()) return;
+        event.preventDefault();
+        event.returnValue = "";
+      });
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState !== "visible" || !currentPerson) return;
+        updateSessionTimer();
+        checkAudioReady();
+        sendPresenceHeartbeat();
+        syncAllSilently();
+      });
+      scheduleOpenBtn.addEventListener("click", toggleScheduleOpen);
+      copyCssBtn.addEventListener("click", copyCssDebugInfo);
+      logoutBtn.addEventListener("click", function () {
+        logoutToLogin("");
+      });
+      loginBtn.addEventListener("click", function () {
+        unlockAudio();
+        attemptLogin();
+      });
+      passwordInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          unlockAudio();
+          attemptLogin();
+        }
+      });
+      skipPasswordChangeBtn.addEventListener("click", continueWithDefaultPassword);
+      confirmPasswordChangeBtn.addEventListener("click", changePasswordThenLogin);
+      newPasswordInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          changePasswordThenLogin();
+        }
+      });
+      confirmPasswordInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          changePasswordThenLogin();
+        }
+      });
+      document.querySelectorAll("[data-shift-tab]").forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          selectShiftTab(this.dataset.shiftTab);
+        });
+      });
+      document.querySelectorAll("[data-view-mode]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          selectViewMode(this.dataset.viewMode);
+        });
+      });
+      document.querySelectorAll("[data-scale-step]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          stepUiScale(this.dataset.scaleStep);
+        });
+      });
+
+      setUiScale(uiScale);
+      buildPeople();
+      loadLoginScheduleOpenStatus();
+    }());
+  </script>
+</body>
+</html>
