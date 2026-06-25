@@ -6,7 +6,8 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=371;
+  const APP_VERSION=374;
+  const INFINITE_STAGE=6;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -74,7 +75,7 @@
   let debugPanelMode="perf",audioDebugTimer=0;
   let devTestProfile="mobile",devInvincible=false,devAutoUpgrade=false;
   let devTestRecorder={active:false,profile:"mobile",interval:2,elapsed:0,lastSampleAt:0,startReal:0,samples:[],perfPeaks:{},summary:null,battery:null};
-  const IMPLEMENTED_STAGE_COUNT=3;
+  const IMPLEMENTED_STAGE_COUNT=5;
   let audioDebugCurrent={
     total:0,beep:0,external:0,xp:0,crit:0,
     ui:0,pickup:0,smallCarrot:0,giantLaunch:0,giantExplosion:0,
@@ -174,8 +175,8 @@
       totalDeathKills:0,totalDeaths:0,bestInfiniteSeconds:0,
       infiniteTotalKills:0,coins:0,
       claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,
-      desertUnlocked:false,snowUnlocked:false,
-      stage1Cleared:false,stage2Cleared:false,stage3Cleared:false,
+      desertUnlocked:false,snowUnlocked:false,forestPathUnlocked:false,forestSeaUnlocked:false,
+      stage1Cleared:false,stage2Cleared:false,stage3Cleared:false,stage4Cleared:false,stage5Cleared:false,
       muted:false,cheat8888Used:false,
       masterVolume:.8,synthVolume:.6,critVolume:.7,giantExplosionVolume:.75
     };
@@ -428,6 +429,8 @@
     const bossCount=Math.max(0,data.totalBosses||0);
     if(!data.stage2Cleared&&data.desertUnlocked&&bossCount>=2)data.stage2Cleared=true;
     if(!data.stage3Cleared&&data.snowUnlocked&&bossCount>=3)data.stage3Cleared=true;
+    if(data.stage3Cleared)data.forestPathUnlocked=true;
+    if(data.stage4Cleared)data.forestSeaUnlocked=true;
     return data;
   }
 
@@ -476,6 +479,8 @@
   }
   function currentStageLabel(){
     if(isInfiniteMode())return infiniteZoneName();
+    if(currentStage===5)return "幽影樹海";
+    if(currentStage===4)return "幽影林徑";
     if(currentStage===3)return "雪原";
     if(currentStage===2)return "沙漠";
     return "菜園";
@@ -873,7 +878,11 @@
         Math.round(volumeValue("masterVolume")*10),
         Math.round(volumeValue("synthVolume")*10),
         Math.round(volumeValue("critVolume")*10),
-        Math.round(volumeValue("giantExplosionVolume")*10)
+        Math.round(volumeValue("giantExplosionVolume")*10),
+        meta.forestPathUnlocked?1:0,
+        meta.forestSeaUnlocked?1:0,
+        meta.stage4Cleared?1:0,
+        meta.stage5Cleared?1:0
       ]
     };
   }
@@ -916,7 +925,11 @@
           masterVolume:data.length>=29?(data[25]||0)/10:.8,
           synthVolume:data.length>=29?(data[26]||0)/10:.6,
           critVolume:data.length>=29?(data[27]||0)/10:.7,
-          giantExplosionVolume:data.length>=29?(data[28]||0)/10:.75
+          giantExplosionVolume:data.length>=29?(data[28]||0)/10:.75,
+          forestPathUnlocked:data.length>=33?!!data[29]:!!data[21],
+          forestSeaUnlocked:data.length>=33?!!data[30]:false,
+          stage4Cleared:data.length>=33?!!data[31]:false,
+          stage5Cleared:data.length>=33?!!data[32]:false
         }
       };
     }
@@ -1553,13 +1566,19 @@
     gardenStage.classList.toggle("active",currentStage===1);
     desertStage.classList.toggle("active",currentStage===2);
     snowStage.classList.toggle("active",currentStage===3);
-    infiniteStage.classList.toggle("active",currentStage===4);
+    forestPathStage.classList.toggle("active",currentStage===4);
+    forestSeaStage.classList.toggle("active",currentStage===5);
+    infiniteStage.classList.toggle("active",currentStage===INFINITE_STAGE);
     desertStage.disabled=stageAvailability(2)!=="open";
     snowStage.disabled=stageAvailability(3)!=="open";
+    forestPathStage.disabled=stageAvailability(4)!=="open";
+    forestSeaStage.disabled=stageAvailability(5)!=="open";
     gardenStage.innerHTML=stageButtonMarkup("第一關・菜園",1);
     desertStage.innerHTML=stageAvailability(2)==="open"?stageButtonMarkup("第二關・沙漠",2):stageButtonMarkup("第二關・沙漠（未解鎖）",2);
     snowStage.innerHTML=stageAvailability(3)==="open"?stageButtonMarkup("第三關・雪原",3):stageButtonMarkup("第三關・雪原（未解鎖）",3);
-    infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",4);
+    forestPathStage.innerHTML=stageAvailability(4)==="open"?stageButtonMarkup("第四關上・幽影林徑",4):stageButtonMarkup("第四關上・幽影林徑（未解鎖）",4);
+    forestSeaStage.innerHTML=stageAvailability(5)==="open"?stageButtonMarkup("第四關下・幽影樹海",5):stageButtonMarkup("第四關下・幽影樹海（未解鎖）",5);
+    infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",INFINITE_STAGE);
     document.getElementById("start").textContent="開始割草";
   }
 
@@ -1593,7 +1612,10 @@
   }
 
   function stageRecommendedPower(stage){
-    return stage===4?2000:stage===3?2800:stage===2?850:120;
+    if(stage===INFINITE_STAGE)return 2000;
+    if(stage===5)return 15000;
+    if(stage===4)return 9000;
+    return stage===3?4800:stage===2?850:120;
   }
 
   function stageDifficultyInfo(stage){
@@ -1622,11 +1644,11 @@
   }
 
   function isInfiniteMode(){
-    return currentStage===4;
+    return currentStage===INFINITE_STAGE;
   }
 
   function infiniteZoneAt(value=time){
-    if(!isInfiniteMode())return currentStage===3?2:currentStage===2?1:0;
+    if(!isInfiniteMode())return Math.max(0,currentStage-1);
     return Math.max(0,Math.floor(value/600));
   }
 
@@ -1642,7 +1664,7 @@
       if(finalPhase!=="none")return Math.max(0,infiniteBossZone);
       return infiniteZoneAt();
     }
-    return currentStage===3?2:currentStage===2?1:0;
+    return Math.max(0,currentStage-1);
   }
 
   function infiniteGrowth(){
@@ -1790,15 +1812,87 @@
     ctx.restore();
   }
 
+  function drawForestStagePreview(ctx,w,h,deep=false){
+    ctx.clearRect(0,0,w,h);
+    ctx.imageSmoothingEnabled=false;
+    const sky=ctx.createLinearGradient(0,0,0,h);
+    sky.addColorStop(0,deep?"#12101f":"#1b2030");
+    sky.addColorStop(.72,deep?"#1a1728":"#20301f");
+    sky.addColorStop(1,deep?"#10151a":"#172515");
+    ctx.fillStyle=sky;
+    ctx.fillRect(0,0,w,h);
+
+    ctx.save();
+    ctx.globalAlpha=deep?.58:.72;
+    ctx.fillStyle=deep?"#c5c0ff":"#fff0b8";
+    ctx.beginPath();
+    ctx.arc(145,30,19,0,Math.PI*2);
+    ctx.fill();
+    ctx.globalCompositeOperation="destination-out";
+    ctx.beginPath();
+    ctx.arc(154,25,18,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    const cloud=(x,y,s,a)=>{
+      ctx.save();
+      ctx.globalAlpha=a;
+      ctx.fillStyle=deep?"#40375b":"#667080";
+      ctx.beginPath();
+      ctx.ellipse(x,y,22*s,7*s,0,0,Math.PI*2);
+      ctx.ellipse(x+18*s,y+2*s,25*s,8*s,0,0,Math.PI*2);
+      ctx.ellipse(x-18*s,y+3*s,17*s,6*s,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    };
+    cloud(54,36,1,.34);
+    cloud(120,57,.78,.26);
+
+    const tree=(x,y,s,front=false)=>{
+      ctx.fillStyle=front?(deep?"#17131e":"#152319"):(deep?"#242032":"#233424");
+      ctx.fillRect(x-4*s,y-16*s,8*s,34*s);
+      ctx.beginPath();
+      ctx.arc(x,y-38*s,18*s,0,Math.PI*2);
+      ctx.arc(x-14*s,y-25*s,15*s,0,Math.PI*2);
+      ctx.arc(x+14*s,y-25*s,16*s,0,Math.PI*2);
+      ctx.arc(x,y-19*s,18*s,0,Math.PI*2);
+      ctx.fill();
+    };
+    tree(28,92,1.05,false);
+    tree(71,88,.86,false);
+    tree(164,94,1.0,false);
+    tree(112,101,1.28,true);
+    tree(44,118,1.12,true);
+    tree(149,119,1.18,true);
+
+    ctx.fillStyle=deep?"rgba(42,24,56,.72)":"rgba(24,44,27,.62)";
+    ctx.fillRect(0,103,w,33);
+    ctx.fillStyle=deep?"rgba(100,70,145,.28)":"rgba(110,145,85,.25)";
+    ctx.fillRect(0,104,w,4);
+
+  }
+
   function renderStageArt(stage){
-    if(stage===4){
+    if(stage===INFINITE_STAGE){
       stageArt.className="stageInfinite";
       stageArt.innerHTML='<div class="trail1"></div><div class="trail2"></div><div class="trail3"></div><div class="rift"></div><div class="spark1"></div><div class="spark2"></div><div class="spark3"></div>';
       stageName.textContent="無限輪迴模式";
       stagePower.innerHTML=`建議戰力 ∞｜每 10 分鐘進入擂台<br>目前最高生存時間：${formatStageTime(meta.bestInfiniteSeconds||0)}<br>敵人擊破總數：${meta.infiniteTotalKills||0}`;
       return;
     }
-    if(stage===3){
+    if(stage===5){
+      stageArt.className="stageForest stageForestCanvas";
+      stageArt.innerHTML='<canvas id="forestStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
+      const canvas=document.getElementById("forestStageArtCanvas");
+      if(canvas)drawForestStagePreview(canvas.getContext("2d"),190,136,true);
+      stageName.textContent="第四關下・幽影樹海";
+    }else if(stage===4){
+      stageArt.className="stageForest stageForestCanvas";
+      stageArt.innerHTML='<canvas id="forestStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
+      const canvas=document.getElementById("forestStageArtCanvas");
+      if(canvas)drawForestStagePreview(canvas.getContext("2d"),190,136,false);
+      stageName.textContent="第四關上・幽影林徑";
+    }else if(stage===3){
       stageArt.className="stageSnow";
       stageArt.innerHTML='<div class="snowHill1"></div><div class="snowHill2"></div><div class="iceRock"></div><div class="pine"></div><div class="flake1"></div><div class="flake2"></div><div class="flake3"></div>';
       stageName.textContent="第三關・雪原";
@@ -1989,11 +2083,17 @@
     gardenStage.classList.toggle("active",currentStage===1);
     desertStage.classList.toggle("active",currentStage===2);
     snowStage.classList.toggle("active",currentStage===3);
-    infiniteStage.classList.toggle("active",currentStage===4);
+    forestPathStage.classList.toggle("active",currentStage===4);
+    forestSeaStage.classList.toggle("active",currentStage===5);
+    infiniteStage.classList.toggle("active",currentStage===INFINITE_STAGE);
     desertStage.disabled=stageAvailability(2)!=="open";
     snowStage.disabled=stageAvailability(3)!=="open";
+    forestPathStage.disabled=stageAvailability(4)!=="open";
+    forestSeaStage.disabled=stageAvailability(5)!=="open";
     desertStage.classList.toggle("locked",stageAvailability(2)!=="open");
     snowStage.classList.toggle("locked",stageAvailability(3)!=="open");
+    forestPathStage.classList.toggle("locked",stageAvailability(4)!=="open");
+    forestSeaStage.classList.toggle("locked",stageAvailability(5)!=="open");
     gardenStage.innerHTML=stageButtonMarkup("第一關・菜園",1);
     desertStage.innerHTML=stageAvailability(2)==="open"?
       stageButtonMarkup("第二關・沙漠",2):
@@ -2001,7 +2101,29 @@
     snowStage.innerHTML=stageAvailability(3)==="open"?
       stageButtonMarkup("第三關・雪原",3):
       stageButtonMarkup("第三關・雪原（未解鎖）",3);
-    infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",4);
+    forestPathStage.innerHTML=stageAvailability(4)==="open"?
+      stageButtonMarkup("第四關上・幽影林徑",4):
+      stageButtonMarkup("第四關上・幽影林徑（未解鎖）",4);
+    forestSeaStage.innerHTML=stageAvailability(5)==="open"?
+      stageButtonMarkup("第四關下・幽影樹海",5):
+      stageButtonMarkup("第四關下・幽影樹海（未解鎖）",5);
+    infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",INFINITE_STAGE);
+    const homeStages=[
+      [homeGardenStage,1,"第一關・菜園"],
+      [homeDesertStage,2,"第二關・沙漠"],
+      [homeSnowStage,3,"第三關・雪原"],
+      [homeForestPathStage,4,"第四關上・幽影林徑"],
+      [homeForestSeaStage,5,"第四關下・幽影樹海"],
+      [homeInfiniteStage,INFINITE_STAGE,"無限輪迴模式"]
+    ];
+    for(const [button,stage,label] of homeStages){
+      if(!button)continue;
+      const open=stageAvailability(stage)==="open";
+      button.classList.toggle("active",currentStage===stage);
+      button.classList.toggle("locked",!open);
+      button.disabled=!open&&stage!==INFINITE_STAGE;
+      button.innerHTML=open?stageButtonMarkup(label,stage):stageButtonMarkup(`${label}（未解鎖）`,stage);
+    }
   };
 
   const player={
@@ -2056,6 +2178,18 @@
     polarbear:{hp:360,speed:60,damage:38,xp:7,r:25,color:"#e7f1f3",defense:30},
     seal:{hp:180,speed:84,damage:24,xp:4,r:19,color:"#91aebe",defense:18},
     whale:{hp:120000,speed:24,damage:52,xp:340,r:72,color:"#568caa",defense:70},
+    poisonmush:{hp:360,speed:56,damage:32,xp:8,r:20,color:"#7b4b31",defense:28},
+    blackslime:{hp:420,speed:92,damage:36,xp:9,r:20,color:"#17141c",defense:35},
+    leafcrow:{hp:330,speed:118,damage:30,xp:8,r:18,color:"#2d241d",defense:22},
+    vine:{hp:620,speed:42,damage:44,xp:11,r:23,color:"#355d2e",defense:55},
+    barkguard:{hp:880,speed:34,damage:58,xp:14,r:26,color:"#60462f",defense:80},
+    ghostfire:{hp:520,speed:110,damage:42,xp:12,r:18,color:"#45d7ff",defense:32},
+    poisonvine:{hp:780,speed:48,damage:54,xp:15,r:24,color:"#3f7a32",defense:70},
+    nighthawk:{hp:680,speed:125,damage:60,xp:14,r:20,color:"#202034",defense:36},
+    oldwood:{hp:1200,speed:30,damage:72,xp:20,r:28,color:"#4d3c2c",defense:110},
+    witch:{hp:900,speed:70,damage:66,xp:18,r:23,color:"#352047",defense:50},
+    rottenwood:{hp:220000,speed:26,damage:70,xp:560,r:74,color:"#60462f",defense:90},
+    shadowtree:{hp:390000,speed:24,damage:95,xp:760,r:82,color:"#35273a",defense:140},
     skeleton:{hp:160,speed:70,damage:24,xp:14,r:18,color:"#d8d0c0",defense:18},
     wisp:{hp:125,speed:100,damage:22,xp:13,r:16,color:"#4db6ff",defense:8},
     bat:{hp:105,speed:128,damage:18,xp:12,r:15,color:"#4b304e",defense:8},
@@ -2108,10 +2242,13 @@
     {type:"whale",name:"暴雪鯨魚",stage:3,unlock:()=>!!meta.stage3Cleared,skill:"急凍光線・暴風雪壓制",stats:{hp:120000,damage:52,defense:70,speed:24}}
   ];
   function stageAvailability(stage){
+    if(stage===INFINITE_STAGE)return "open";
     if(stage>IMPLEMENTED_STAGE_COUNT)return "comingSoon";
     if(stage<=1)return "open";
     if(stage===2)return meta.desertUnlocked?"open":"locked";
     if(stage===3)return meta.snowUnlocked?"open":"locked";
+    if(stage===4)return meta.forestPathUnlocked?"open":"locked";
+    if(stage===5)return meta.forestSeaUnlocked?"open":"locked";
     return "locked";
   }
   function stageBookUnlocked(stage){
@@ -2868,6 +3005,18 @@
         defense:[60,76,92]
       };
     }
+    if(type==="rottenwood"){
+      return {
+        hp:[55000,70000,95000],
+        defense:[90,120,160]
+      };
+    }
+    if(type==="shadowtree"){
+      return {
+        hp:[95000,125000,170000],
+        defense:[140,180,240]
+      };
+    }
     return {
       hp:[70000,70000,110000],
       defense:[15,22,34]
@@ -2904,7 +3053,9 @@
         else if(type==="reaper"){hp=98000*bossHpMult;size=68;speed=36;damage=42*bossDamageMult;xp=520;defense=60+bossZone*5;}
         else if(type==="stoneface"){hp=120000*bossHpMult;size=64;speed=30;damage=30*bossDamageMult;xp=340;defense=45+bossZone*4;}
         else{hp=70000*bossHpMult;size=62;speed=52;damage=32*bossDamageMult;xp=280;defense=15+bossZone*3;}
-      }else if(currentStage===3){hp=120000;size=72;speed=24;damage=52;xp=420;defense=70;}
+      }else if(currentStage===5){hp=390000;size=82;speed=24;damage=95;xp=760;defense=140;}
+      else if(currentStage===4){hp=220000;size=74;speed=26;damage=70;xp=560;defense=90;}
+      else if(currentStage===3){hp=120000;size=72;speed=24;damage=52;xp=420;defense=70;}
       else if(currentStage===2){hp=120000;size=64;speed=30;damage=30;xp=300;defense=45;}
       else{hp=70000;size=62;speed=52;damage=32;xp=250;defense=15;}
     }
@@ -2925,6 +3076,12 @@
 
   function enemyPoolForCurrentTime(){
     if(!isInfiniteMode()){
+      if(currentStage===5){
+        return time<60?["ghostfire","nighthawk"]:time<240?["ghostfire","nighthawk","poisonvine"]:["ghostfire","poisonvine","nighthawk","oldwood","witch"];
+      }
+      if(currentStage===4){
+        return time<60?["poisonmush","blackslime"]:time<240?["poisonmush","blackslime","leafcrow"]:["poisonmush","blackslime","leafcrow","vine","barkguard"];
+      }
       if(currentStage===3){
         return time<60?["penguin","seal"]:time<240?["penguin","seal","snowman"]:["penguin","seal","snowman","polarbear"];
       }
@@ -2944,6 +3101,22 @@
     if(zone===1)return "stoneface";
     if(zone===2)return "whale";
     return "reaper";
+  }
+
+  function normalFinalBossType(){
+    if(currentStage===5)return "shadowtree";
+    if(currentStage===4)return "rottenwood";
+    if(currentStage===3)return "whale";
+    if(currentStage===2)return "stoneface";
+    return "plant";
+  }
+
+  function normalMidBossType(slot=0,sec=0){
+    if(currentStage===5)return slot%2?"oldwood":"witch";
+    if(currentStage===4)return slot%2?"barkguard":"vine";
+    if(currentStage===3)return sec===360||slot%2?"polarbear":"snowman";
+    if(currentStage===2)return sec===360||slot%2?"scorpion":"vulture";
+    return sec===360||slot%2?"plant":"bombcloud";
   }
 
   function infiniteBossHpMultiplier(zone){
@@ -2994,8 +3167,8 @@
       if([120,270,420].includes(sec)&&!timeline.seen.has("early-elite"+sec)){timeline.seen.add("early-elite"+sec);spawnWave(2,"elite");}
       if([180,360].includes(sec)&&!timeline.seen.has("early-boss"+sec)){
         timeline.seen.add("early-boss"+sec);
-        spawnEnemy(currentStage===3?(sec===360?"polarbear":"snowman"):currentStage===2?(sec===360?"scorpion":"centipede"):(sec===360?"bombcloud":"plant"),"boss");
-        announce("BOSS 出現！",currentStage===3?"雪原強敵正在逼近":currentStage===2?"沙漠強敵正在逼近":"強敵已進入菜園","#ff775e");
+        spawnEnemy(normalMidBossType(0,sec),"boss");
+        announce("BOSS 出現！",`${currentStageLabel()}強敵正在逼近`,"#ff775e");
       }
     }else if(sec<DURATION){
       const elapsed=Math.floor(time-escalationStart);
@@ -3006,7 +3179,7 @@
       if(eliteSlot>0&&!timeline.seen.has("rush-elite"+eliteSlot)){timeline.seen.add("rush-elite"+eliteSlot);spawnWave(2+Math.floor(time/240),"elite");}
       if(bossSlot>0&&!timeline.seen.has("rush-boss"+bossSlot)){
         timeline.seen.add("rush-boss"+bossSlot);
-        spawnEnemy(currentStage===3?(bossSlot%2?"polarbear":"snowman"):currentStage===2?(bossSlot%2?"scorpion":"vulture"):(bossSlot%2?"plant":"bombcloud"),"boss");
+        spawnEnemy(normalMidBossType(bossSlot),"boss");
         announce("終盤 BOSS 出現！","高威脅敵人加入戰場","#ff775e");
       }
     }
@@ -3034,12 +3207,12 @@
   }
 
   function spawnFinalBoss(){
-    spawnEnemy(isInfiniteMode()?bossTypeForZone(infiniteBossZone):(currentStage===3?"whale":currentStage===2?"stoneface":"plant"),"final");
+    spawnEnemy(isInfiniteMode()?bossTypeForZone(infiniteBossZone):normalFinalBossType(),"final");
     const boss=enemies[enemies.length-1];
     boss.x=bossArena.x+Math.min(210,bossArena.r*.58);
     boss.y=bossArena.y;
     finalPhase="fight";
-    const bossName=boss.type==="whale"?"暴雪鯨魚！":boss.type==="reaper"?"惡魔死神！":boss.type==="stoneface"?"遠古石面怪！":"霸王食人花！";
+    const bossName=boss.type==="shadowtree"?"幽影樹王！":boss.type==="rottenwood"?"腐木樹衛！":boss.type==="whale"?"暴雪鯨魚！":boss.type==="reaper"?"惡魔死神！":boss.type==="stoneface"?"遠古石面怪！":"霸王食人花！";
     text(boss.x,boss.y-boss.r-24,bossName,"#ff4f68",28);
     effects.push({kind:"shockwave",x:boss.x,y:boss.y,r:20,max:190,life:.75});
     beep(80,.8,.06,"sawtooth");
@@ -4387,7 +4560,8 @@
 
   function drawGround(){
     const zone=effectiveZone();
-    rect(0,0,W,H,zone>=3?"#2a0f1b":zone===2?"#cfefff":zone===1?"#d7b66f":"#79bd58");
+    const forestStage=!isInfiniteMode()&&(currentStage===4||currentStage===5);
+    rect(0,0,W,H,forestStage?(currentStage===5?"#162019":"#263b25"):zone>=3?"#2a0f1b":zone===2?"#cfefff":zone===1?"#d7b66f":"#79bd58");
     const grid=64,camera=cameraPosition();
     const left=camera.x-W/2-grid,top=camera.y-H/2-grid;
     const firstX=Math.floor(left/grid),firstY=Math.floor(top/grid);
@@ -4424,7 +4598,37 @@
 
   function drawGroundTile(targetCtx,zone,gx,gy,x,y,grid=64){
     const hash=((gx*928371+gy*1237)%7+7)%7;
-    if(zone>=3){
+    const forestStage=!isInfiniteMode()&&(currentStage===4||currentStage===5);
+    if(forestStage){
+      targetCtx.fillStyle=currentStage===5?(hash%2?"#18251d":"#111a15"):(hash%2?"#2c462b":"#243821");
+      targetCtx.fillRect(x,y,grid,grid);
+      if(hash===1){
+        targetCtx.fillStyle="#49301f";targetCtx.fillRect(x+11,y+28,9,30);
+        targetCtx.fillStyle="#274d2c";targetCtx.fillRect(x+2,y+10,28,22);
+        targetCtx.fillStyle="#396d3a";targetCtx.fillRect(x+12,y+5,22,20);
+      }
+      if(hash===2){
+        targetCtx.fillStyle="#4e3a26";targetCtx.fillRect(x+41,y+38,16,5);
+        targetCtx.fillRect(x+45,y+29,5,15);
+      }
+      if(hash===3){
+        targetCtx.fillStyle=currentStage===5?"#5a3f2f":"#72553b";
+        targetCtx.fillRect(x+20,y+45,9,7);
+        targetCtx.fillStyle=currentStage===5?"#3f3427":"#5f4a2d";
+        targetCtx.fillRect(x+26,y+41,8,5);
+      }
+      if(hash===5){
+        targetCtx.fillStyle=currentStage===5?"#335029":"#49723a";
+        targetCtx.fillRect(x+35,y+16,18,7);
+        targetCtx.fillRect(x+42,y+10,6,17);
+      }
+      if(hash===6){
+        targetCtx.fillStyle=currentStage===5?"#274025":"#456f39";
+        targetCtx.fillRect(x+8,y+50,30,4);
+        targetCtx.fillStyle=currentStage===5?"#39281e":"#5a3e28";
+        targetCtx.fillRect(x+22,y+44,5,10);
+      }
+    }else if(zone>=3){
       targetCtx.fillStyle=hash%2?"#321421":"#3c1825";
       targetCtx.fillRect(x,y,grid,grid);
       targetCtx.fillStyle="#160912";
@@ -4507,16 +4711,21 @@
     if(!bossArena.active)return;
     const center=worldToScreen(bossArena.x,bossArena.y);
     const zone=bossArena.zone??effectiveZone();
+    const forestStage=!isInfiniteMode()&&(currentStage===4||currentStage===5);
     ctx.save();
     ctx.globalAlpha=.12;
-    ctx.fillStyle=zone>=3?"#b62031":zone===2?"#dff8ff":"#f7d58a";ctx.beginPath();ctx.arc(center.x,center.y,bossArena.r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=forestStage?"#4f8d42":zone>=3?"#b62031":zone===2?"#dff8ff":"#f7d58a";ctx.beginPath();ctx.arc(center.x,center.y,bossArena.r,0,Math.PI*2);ctx.fill();
     ctx.globalAlpha=1;
     const blocks=44;
     for(let i=0;i<blocks;i++){
       const a=i*Math.PI*2/blocks;
       const x=center.x+Math.cos(a)*bossArena.r,y=center.y+Math.sin(a)*bossArena.r;
       ctx.save();ctx.translate(x,y);ctx.rotate(a);
-      if(zone>=3){
+      if(forestStage){
+        rect(-12,-18,24,30,i%2?"#4d3322":"#63422b");
+        rect(-20,-28,40,18,i%2?"#2e6336":"#3d7a42");
+        rect(-9,8,18,5,"#20160f");
+      }else if(zone>=3){
         rect(-10,-18,20,28,i%2?"#ff6a2a":"#d52635");
         rect(-6,-28,12,14,"#ffd15b");
         rect(-13,8,26,5,"#260912");
@@ -4531,7 +4740,7 @@
       }
       ctx.restore();
     }
-    ctx.strokeStyle=zone>=3?"#ff2e3e":zone===2?"#72ddff":"#ff5a55";ctx.lineWidth=4;ctx.globalAlpha=.62;
+    ctx.strokeStyle=forestStage?"#86d06f":zone>=3?"#ff2e3e":zone===2?"#72ddff":"#ff5a55";ctx.lineWidth=4;ctx.globalAlpha=.62;
     ctx.beginPath();ctx.arc(center.x,center.y,bossArena.r-15,0,Math.PI*2);ctx.stroke();
     ctx.restore();
   }
@@ -4636,6 +4845,22 @@
       rect(-18,-8,36,20,"#91aebe");rect(8,-15,16,17,"#b7d2de");rect(14,-10,4,4,"#111827");rect(20,-5,7,3,"#dff8ff");rect(-24,2,12,5,"#7d9dab");
     }else if(e.type==="whale"){
       rect(-28,-15,56,30,"#568caa");rect(-36,-8,14,13,"#7db5cf");rect(16,-24,16,14,"#7db5cf");rect(15,-8,5,5,"#101827");rect(-18,9,34,5,"#d8f6ff");
+    }else if(e.type==="poisonmush"){
+      rect(-12,-4,24,28,"#d8c7a1");rect(-24,-20,48,20,"#6b432e");rect(-10,-25,20,10,"#b97a46");rect(-6,2,4,4,"#111");rect(5,2,4,4,"#111");
+    }else if(e.type==="blackslime"){
+      rect(-22,-8,44,22,"#17141c");rect(-16,-18,32,16,"#24212b");rect(-8,-24,16,8,"#302b38");rect(-7,-7,4,4,"#b8f4ff");rect(4,-7,4,4,"#b8f4ff");
+    }else if(e.type==="leafcrow"){
+      rect(-16,-5,32,18,"#2d241d");rect(-8,-16,16,14,"#3f3326");rect(12,-8,16,8,"#5b3d1c");rect(-22,-3,12,10,"#1d1714");rect(2,-11,4,4,"#fff4b8");
+    }else if(e.type==="vine"||e.type==="poisonvine"){
+      rect(-10,-25,20,50,e.type==="poisonvine"?"#3f7a32":"#355d2e");rect(-22,-10,14,22,"#4d8f3f");rect(8,-16,17,22,"#4d8f3f");rect(-5,-12,4,4,"#ffe6a2");rect(5,-12,4,4,"#ffe6a2");
+    }else if(e.type==="barkguard"||e.type==="oldwood"||e.type==="rottenwood"||e.type==="shadowtree"){
+      rect(-18,-30,36,58,e.type==="shadowtree"?"#35273a":"#60462f");rect(-13,-22,26,15,e.type==="shadowtree"?"#4c3852":"#7a5b3b");rect(-22,-45,10,16,"#2c5e34");rect(13,-45,12,18,"#2c5e34");rect(-9,-13,5,5,"#111");rect(5,-13,5,5,"#111");rect(-7,8,14,5,"#2b1d16");
+    }else if(e.type==="ghostfire"){
+      rect(-15,-20,30,35,"#45d7ff");rect(-9,-28,18,18,"#92f4ff");rect(-5,-7,4,5,"#0e1d26");rect(6,-7,4,5,"#0e1d26");
+    }else if(e.type==="nighthawk"){
+      rect(-6,-28,12,48,"#202034");rect(-34,-12,28,16,"#151521");rect(6,-12,34,16,"#151521");rect(-4,-20,4,4,"#d9f6ff");rect(5,-20,4,4,"#d9f6ff");rect(-2,-13,6,5,"#6b4b1e");
+    }else if(e.type==="witch"){
+      rect(-14,-20,28,46,"#352047");rect(-18,-30,36,10,"#181020");rect(-8,-45,16,18,"#181020");rect(-10,-16,20,18,"#cfa987");rect(-5,-10,4,4,"#111");rect(5,-10,4,4,"#111");rect(20,-14,7,13,"#b8f4ff");rect(21,-10,5,8,"#6fdd4f");
     }else if(e.type==="skeleton"){
       rect(-10,-18,20,18,"#d8d0c0");rect(-7,-13,5,5,"#111");rect(3,-13,5,5,"#111");rect(-5,-4,10,4,"#111");rect(-8,0,16,20,"#c5bca8");rect(-16,1,7,18,"#c5bca8");rect(9,1,7,18,"#c5bca8");
     }else if(e.type==="wisp"){
@@ -5465,13 +5690,17 @@
     if(currentStage===1)meta.stage1Cleared=true;
     if(currentStage===2)meta.stage2Cleared=true;
     if(currentStage===3)meta.stage3Cleared=true;
+    if(currentStage===4)meta.stage4Cleared=true;
+    if(currentStage===5)meta.stage5Cleared=true;
     if(currentStage===1&&!meta.desertUnlocked)meta.desertUnlocked=true;
     if(currentStage===2&&!meta.snowUnlocked)meta.snowUnlocked=true;
+    if(currentStage===3&&!meta.forestPathUnlocked)meta.forestPathUnlocked=true;
+    if(currentStage===4&&!meta.forestSeaUnlocked)meta.forestSeaUnlocked=true;
     saveMeta();
     renderMeta();
     endScreen.classList.remove("hidden");
-    document.getElementById("endTitle").textContent=currentStage===3?"雪原深處征服成功！":currentStage===2?"沙漠遺跡征服成功！":"菜園守護成功！";
-    document.getElementById("endSub").textContent=currentStage===3?"兔兔擊敗了暴雪鯨魚":currentStage===2?"兔兔擊敗了遠古石面怪":"兔兔擊敗了最終魔王";
+    document.getElementById("endTitle").textContent=currentStage===5?"幽影樹海征服成功！":currentStage===4?"幽影林徑征服成功！":currentStage===3?"雪原深處征服成功！":currentStage===2?"沙漠遺跡征服成功！":"菜園守護成功！";
+    document.getElementById("endSub").textContent=currentStage===5?"兔兔擊敗了幽影樹王":currentStage===4?"兔兔擊敗了腐木樹衛":currentStage===3?"兔兔擊敗了暴雪鯨魚":currentStage===2?"兔兔擊敗了遠古石面怪":"兔兔擊敗了最終魔王";
     document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
     beep(660,.4,.05);
   }
@@ -5524,7 +5753,8 @@
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
   const characterBtn=document.getElementById("characterBtn"),adventureBookBtn=document.getElementById("adventureBookBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter"),closeAdventureBook=document.getElementById("closeAdventureBook"),closeShop=document.getElementById("closeShop");
   const chooseStageBtn=document.getElementById("chooseStageBtn"),closeStage=document.getElementById("closeStage"),closeRewards=document.getElementById("closeRewards");
-  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),infiniteStage=document.getElementById("infiniteStageModal");
+  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),infiniteStage=document.getElementById("infiniteStageModal");
+  const homeGardenStage=document.getElementById("gardenStage"),homeDesertStage=document.getElementById("desertStage"),homeSnowStage=document.getElementById("snowStage"),homeForestPathStage=document.getElementById("forestPathStage"),homeForestSeaStage=document.getElementById("forestSeaStage"),homeInfiniteStage=document.getElementById("infiniteStage");
   function updateMuteButton(){
     muteBtn.classList.toggle("muted",muted);
     muteBtn.innerHTML=`<span class="systemSoundIcon" aria-hidden="true">${muted?"🔇":"🔊"}</span>`;
@@ -5776,7 +6006,15 @@
   gardenStage.addEventListener("click",()=>{playUiClick();currentStage=1;renderMeta();});
   desertStage.addEventListener("click",()=>{if(meta.desertUnlocked){playUiClick();currentStage=2;renderMeta();}});
   snowStage.addEventListener("click",()=>{if(meta.snowUnlocked){playUiClick();currentStage=3;renderMeta();}});
-  infiniteStage.addEventListener("click",()=>{playUiClick();currentStage=4;renderMeta();});
+  forestPathStage.addEventListener("click",()=>{if(meta.forestPathUnlocked){playUiClick();currentStage=4;renderMeta();}});
+  forestSeaStage.addEventListener("click",()=>{if(meta.forestSeaUnlocked){playUiClick();currentStage=5;renderMeta();}});
+  infiniteStage.addEventListener("click",()=>{playUiClick();currentStage=INFINITE_STAGE;renderMeta();});
+  homeGardenStage?.addEventListener("click",()=>{playUiClick();currentStage=1;renderMeta();});
+  homeDesertStage?.addEventListener("click",()=>{if(meta.desertUnlocked){playUiClick();currentStage=2;renderMeta();}});
+  homeSnowStage?.addEventListener("click",()=>{if(meta.snowUnlocked){playUiClick();currentStage=3;renderMeta();}});
+  homeForestPathStage?.addEventListener("click",()=>{if(meta.forestPathUnlocked){playUiClick();currentStage=4;renderMeta();}});
+  homeForestSeaStage?.addEventListener("click",()=>{if(meta.forestSeaUnlocked){playUiClick();currentStage=5;renderMeta();}});
+  homeInfiniteStage?.addEventListener("click",()=>{playUiClick();currentStage=INFINITE_STAGE;renderMeta();});
   characterBtn.addEventListener("click",()=>{
     playUiClick();
     renderMeta();
