@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=398;
+  const APP_VERSION=400;
   const INFINITE_STAGE=6;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
@@ -67,7 +67,7 @@
   let bossArena={active:false,x:0,y:0,r:360};
   let audio=null,muted=false;
   let runCoins=0,runCoinsSettled=false,walletCoins=0,autoSaveTimer=0,coinDebugExpanded=false,testModeSilentPaused=false;
-  let autoTrainingActive=false,autoTrainingSource="",autoTrainingPromptOpen=false,autoTrainingSettled=false;
+  let autoTrainingActive=false,autoTrainingSource="",autoTrainingPromptOpen=false,shopPurchasePromptOpen=false,autoTrainingSettled=false;
   let coinSaveStatus={saveLocal:"-",saveSession:"-",metaLocal:"-",metaSession:"-",coinLocal:"-",coinSession:"-",coinCookie:"-"};
   let critSampleBuffer=null,critSampleLoading=false,critSoundLastTime=0;
   const CARROT_BASE_COOLDOWN=.72;
@@ -1333,8 +1333,8 @@
     const ticketBought=Math.max(0,Math.floor(Number(meta.autoTrainingTicketBoughtToday)||0));
     const canBuyTicket=ticketBought<3&&walletCoins>=300;
     const goods=[
-      {icon:"📿",name:"自動研修護符",state:meta.autoTrainingCharm?"SOLD":"BUY",price:6000,disabled:meta.autoTrainingCharm||!canBuyCharm,sub:meta.autoTrainingCharm?"已持有":"本局自動選技・經驗 +20%",action:"charm"},
-      {icon:"🎟️",name:"自動研修券",state:ticketBought>=3?"SOLD":"BUY",price:300,disabled:ticketBought>=3||!canBuyTicket,sub:`持有 ${meta.autoTrainingTickets||0}｜今日 ${ticketBought}/3`,action:"ticket"}
+      {icon:"📿",name:"自動研修護符",state:meta.autoTrainingCharm?"SOLD":"BUY",price:6000,disabled:meta.autoTrainingCharm||!canBuyCharm,sub:meta.autoTrainingCharm?"已持有":"輪迴專用・自動選技・經驗 +20%",action:"charm"},
+      {icon:"🎟️",name:"自動研修券",state:ticketBought>=3?"SOLD":"BUY",price:300,disabled:ticketBought>=3||!canBuyTicket,sub:`一般關卡用｜持有 ${meta.autoTrainingTickets||0}｜今日 ${ticketBought}/3`,action:"ticket"}
     ];
     shopGrid.innerHTML=goods.map((item,index)=>{
       if(Array.isArray(item)){
@@ -1372,6 +1372,51 @@
     saveMeta();
     syncCoinDisplay();
     return true;
+  }
+  function shopItemInfo(action){
+    if(action==="charm"){
+      return {
+        title:"購買自動研修護符？",
+        message:"自動研修護符為輪迴模式專用。\n進入輪迴時可自動選擇場內技能，並獲得經驗 +20%。\n一般關卡不會使用護符。\n\n價格：💎 6,000",
+        confirmLabel:"購買"
+      };
+    }
+    if(action==="ticket"){
+      return {
+        title:"購買自動研修券？",
+        message:"自動研修券為一般關卡專用。\n進入一般關卡時可自動選擇場內技能。\n輪迴模式不會使用研修券。\n\n價格：💎 300",
+        confirmLabel:"購買"
+      };
+    }
+    return null;
+  }
+  function requestBuyShopItem(action){
+    const info=shopItemInfo(action);
+    if(!info){
+      buyShopItem(action);
+      return;
+    }
+    shopPurchasePromptOpen=true;
+    settingsOverlay.classList.add("visible","dialogOnly");
+    settingsOverlay.setAttribute("aria-hidden","false");
+    openSettingsDialog({
+      title:info.title,
+      message:info.message,
+      confirmLabel:info.confirmLabel,
+      cancelLabel:"取消",
+      onConfirm:()=>{
+        closeSettingsDialog();
+        settingsOverlay.classList.remove("visible","dialogOnly");
+        settingsOverlay.setAttribute("aria-hidden","true");
+        shopPurchasePromptOpen=false;
+        buyShopItem(action);
+      },
+      onCancel:()=>{
+        settingsOverlay.classList.remove("visible","dialogOnly");
+        settingsOverlay.setAttribute("aria-hidden","true");
+        shopPurchasePromptOpen=false;
+      }
+    });
   }
   function buyShopItem(action){
     resetAutoTrainingDailyPurchase();
@@ -3536,6 +3581,10 @@
     startWithTransition();
   }
   function startWithAutoTraining(source){
+    if((isInfiniteMode()&&source!=="charm")||(!isInfiniteMode()&&source!=="ticket")){
+      startWithoutAutoTraining();
+      return;
+    }
     autoTrainingActive=true;
     autoTrainingSource=source;
     autoTrainingSettled=false;
@@ -3549,17 +3598,18 @@
   function requestAutoTrainingThenStart(){
     if(autoTrainingPromptOpen)return;
     resetAutoTrainingDailyPurchase();
+    const infinite=isInfiniteMode();
     const hasCharm=!!meta.autoTrainingCharm;
     const tickets=Math.max(0,Math.floor(Number(meta.autoTrainingTickets)||0));
-    if(!hasCharm&&tickets<=0){
+    const source=infinite?(hasCharm?"charm":""):(tickets>0?"ticket":"");
+    if(!source){
       startWithoutAutoTraining();
       return;
     }
-    const source=hasCharm?"charm":"ticket";
     const title=source==="charm"?"啟用自動研修護符？":"使用自動研修券？";
     const message=source==="charm"
-      ?"本局會自動選擇場內技能，並額外獲得經驗 +20%。\n護符不會在一般關卡結束時消耗。"
-      :`本局會自動選擇場內技能。\n目前持有 ${tickets} 張，進入關卡後會扣 1 張。`;
+      ?"輪迴模式會自動選擇場內技能，並額外獲得經驗 +20%。\n自動研修券不適用於輪迴模式。"
+      :`一般關卡會自動選擇場內技能。\n目前持有 ${tickets} 張，進入關卡後會扣 1 張。\n自動研修護符不適用於一般關卡。`;
     autoTrainingPromptOpen=true;
     settingsOverlay.classList.add("visible","dialogOnly");
     settingsOverlay.setAttribute("aria-hidden","false");
@@ -7086,7 +7136,7 @@
     const button=e.target.closest("button[data-shop-action]");
     if(!button||button.disabled)return;
     playUiClick();
-    buyShopItem(button.dataset.shopAction);
+    requestBuyShopItem(button.dataset.shopAction);
   });
   closeShop.addEventListener("click",()=>{
     playUiClick();
@@ -7108,12 +7158,12 @@
   closeSettingsBtn.addEventListener("click",()=>{playUiClick();closeSettingsOverlay();});
   settingsOverlay.addEventListener("click",e=>{
     if(e.target!==settingsOverlay)return;
-    if(autoTrainingPromptOpen)cancelSettingsDialog();
+    if(autoTrainingPromptOpen||shopPurchasePromptOpen)cancelSettingsDialog();
     else closeSettingsOverlay();
   });
   settingsDialog.addEventListener("click",e=>{
     if(e.target!==settingsDialog)return;
-    if(autoTrainingPromptOpen)cancelSettingsDialog();
+    if(autoTrainingPromptOpen||shopPurchasePromptOpen)cancelSettingsDialog();
     else closeSettingsDialog();
   });
   settingsDialogConfirm.addEventListener("click",()=>{playUiClick();confirmSettingsDialog();});
@@ -7136,7 +7186,7 @@
       confirmSettingsDialog();
     }else if(e.key==="Escape"){
       e.preventDefault();
-      if(autoTrainingPromptOpen)cancelSettingsDialog();
+      if(autoTrainingPromptOpen||shopPurchasePromptOpen)cancelSettingsDialog();
       else closeSettingsDialog();
     }
   });
