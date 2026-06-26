@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=403;
+  const APP_VERSION=404;
   const INFINITE_STAGE=6;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
@@ -2834,8 +2834,8 @@
     nighthawk:{hp:680,speed:125,damage:60,xp:14,r:20,color:"#202034",defense:36},
     oldwood:{hp:1200,speed:30,damage:72,xp:20,r:28,color:"#4d3c2c",defense:110},
     witch:{hp:900,speed:70,damage:66,xp:18,r:23,color:"#352047",defense:50},
-    rottenwood:{hp:1201200,speed:26,damage:112,xp:560,r:74,color:"#60462f",defense:137},
-    shadowtree:{hp:1856400,speed:24,damage:144,xp:760,r:82,color:"#35273a",defense:177},
+    rottenwood:{hp:1801800,speed:26,damage:134,xp:560,r:74,color:"#60462f",defense:206},
+    shadowtree:{hp:2784600,speed:24,damage:173,xp:760,r:82,color:"#35273a",defense:266},
     skeleton:{hp:160,speed:70,damage:24,xp:14,r:18,color:"#d8d0c0",defense:18},
     wisp:{hp:125,speed:100,damage:22,xp:13,r:16,color:"#4db6ff",defense:8},
     bat:{hp:105,speed:128,damage:18,xp:12,r:15,color:"#4b304e",defense:8},
@@ -2900,8 +2900,8 @@
     {type:"plant",name:"霸王食人花",stage:1,unlock:()=>!!meta.stage1Cleared,skill:"近身壓場・噴火骨彈",stats:{hp:70000,damage:32,defense:15,speed:52}},
     {type:"stoneface",name:"遠古石面怪",stage:2,unlock:()=>!!meta.stage2Cleared,skill:"落石砸擊・25% 機率暈眩 1 秒",stats:{hp:120000,damage:30,defense:45,speed:30}},
     {type:"whale",name:"暴雪鯨魚",stage:3,unlock:()=>!!meta.stage3Cleared,skill:"急凍光線・暴風雪壓制",stats:{hp:600000,damage:68,defense:80,speed:24}},
-    {type:"rottenwood",name:"腐木樹衛",stage:4,unlock:()=>!!meta.stage4Cleared,skill:"樹鞭・枯葉風暴・樹精投擲",stats:{hp:1201200,damage:112,defense:137,speed:26}},
-    {type:"shadowtree",name:"幽影樹王",stage:5,unlock:()=>!!meta.stage5Cleared,skill:"粗樹鞭・強化風暴・毒菇迷失",stats:{hp:1856400,damage:144,defense:177,speed:24}}
+    {type:"rottenwood",name:"腐木樹衛",stage:4,unlock:()=>!!meta.stage4Cleared,skill:"樹鞭・枯葉風暴・樹精投擲",stats:{hp:1801800,damage:134,defense:206,speed:26}},
+    {type:"shadowtree",name:"幽影樹王",stage:5,unlock:()=>!!meta.stage5Cleared,skill:"粗樹鞭・強化風暴・毒菇迷失",stats:{hp:2784600,damage:173,defense:266,speed:24}}
   ];
   function stageAvailability(stage){
     if(stage===INFINITE_STAGE)return "open";
@@ -3763,14 +3763,14 @@
     }
     if(type==="rottenwood"){
       return {
-        hp:[273000,382200,546000],
-        defense:[137,177,232]
+        hp:[409500,573300,819000],
+        defense:[206,266,348]
       };
     }
     if(type==="shadowtree"){
       return {
-        hp:[400400,582400,873600],
-        defense:[177,246,328]
+        hp:[600600,873600,1310400],
+        defense:[266,369,492]
       };
     }
     return {
@@ -3809,8 +3809,8 @@
         else if(type==="reaper"){hp=98000*bossHpMult;size=68;speed=36;damage=42*bossDamageMult;xp=520;defense=60+bossZone*5;}
         else if(type==="stoneface"){hp=120000*bossHpMult;size=64;speed=30;damage=30*bossDamageMult;xp=340;defense=45+bossZone*4;}
         else{hp=70000*bossHpMult;size=62;speed=52;damage=32*bossDamageMult;xp=280;defense=15+bossZone*3;}
-      }else if(currentStage===5){hp=1856400;size=82;speed=24;damage=144;xp=760;defense=177;}
-      else if(currentStage===4){hp=1201200;size=74;speed=26;damage=112;xp=560;defense=137;}
+      }else if(currentStage===5){hp=2784600;size=82;speed=24;damage=173;xp=760;defense=266;}
+      else if(currentStage===4){hp=1801800;size=74;speed=26;damage=134;xp=560;defense=206;}
       else if(currentStage===3){hp=600000;size=72;speed=24;damage=68;xp=420;defense=80;}
       else if(currentStage===2){hp=120000;size=64;speed=30;damage=30;xp=300;defense=45;}
       else{hp=70000;size=62;speed=52;damage=32;xp=250;defense=15;}
@@ -4795,6 +4795,7 @@
       }
       if(e.kind==="final"&&(e.type==="rottenwood"||e.type==="shadowtree")){
         const shadow=e.type==="shadowtree";
+        const forestSkillDamage=1.3;
         e.phase-=dt;
         if(e.phase<=0){
           e.phase=shadow?2.65:3.15;
@@ -4802,7 +4803,7 @@
           effects.push({
             kind:"beamWarning",x:e.x,y:e.y,a,
             width:shadow?104:76,delay:.95,life:1.45,
-            damage:e.damage*(shadow?.9:.72),
+            damage:e.damage*(shadow?.9:.72)*forestSkillDamage,
             color:shadow?"#5a315f":"#654221",
             line:"#ff334f",forestWhip:true,confuse:shadow?2.5:0,hit:false
           });
@@ -4828,7 +4829,7 @@
             kind:shadow?"poisonMushroom":"treantSeed",
             x:e.x,y:e.y,targetX:tx,targetY:ty,
             delay:shadow?1.35:1.05,life:shadow?2.2:1.8,
-            damage:e.damage*(shadow?.72:.64),
+            damage:e.damage*(shadow?.72:.64)*forestSkillDamage,
             ownerId:e.id,landed:false
           });
           beep(shadow?190:150,.18,.035,"triangle");
