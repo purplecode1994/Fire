@@ -3608,7 +3608,7 @@
     }
     const title=source==="charm"?"啟用自動研修護符？":"使用自動研修券？";
     const message=source==="charm"
-      ?"輪迴模式會自動選擇場內技能，並額外獲得經驗 +20%。\n自動研修券不適用於輪迴模式。"
+      ?"輪迴模式會自動選擇場內技能，並額外\n獲得經驗 +20%。\n自動研修券不適用於輪迴模式。"
       :`一般關卡會自動選擇場內技能。\n目前持有 ${tickets} 張，進入關卡後會扣 1 張。\n自動研修護符不適用於一般關卡。`;
     autoTrainingPromptOpen=true;
     settingsOverlay.classList.add("visible","dialogOnly");
