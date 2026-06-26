@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=400;
+  const APP_VERSION=402;
   const INFINITE_STAGE=6;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
@@ -2024,6 +2024,114 @@
       }
       return;
     }
+    {
+      const sky=ctx.createLinearGradient(0,0,0,h);
+      sky.addColorStop(0,"#101022");
+      sky.addColorStop(.42,"#242742");
+      sky.addColorStop(.72,"#6d7285");
+      sky.addColorStop(1,"#11131b");
+      ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+      px(0,0,w,h,"#0b0b13");
+      ctx.fillStyle=sky;ctx.fillRect(3,3,w-6,h-6);
+
+      for(let i=0;i<26;i++){
+        const x=8+(i*37)%174,y=6+(i*23)%62;
+        px(x,y,i%7?1:2,i%7?1:2,i%3?"#c7c9ea":"#eef2ff");
+      }
+      ctx.fillStyle="#c7c9e8";
+      ctx.beginPath();ctx.arc(105,19,9,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#15142a";
+      ctx.beginPath();ctx.arc(111,17,10,0,Math.PI*2);ctx.fill();
+
+      const mist=(y,a,c="#d7d9e8")=>{
+        ctx.save();
+        ctx.globalAlpha=a;
+        ctx.fillStyle=c;
+        ctx.beginPath();
+        ctx.moveTo(0,y);
+        ctx.bezierCurveTo(35,y-12,55,y+9,88,y-2);
+        ctx.bezierCurveTo(122,y-15,146,y+8,190,y-5);
+        ctx.lineTo(190,y+16);
+        ctx.bezierCurveTo(143,y+25,118,y+7,86,y+19);
+        ctx.bezierCurveTo(48,y+29,28,y+10,0,y+22);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      };
+      mist(45,.17);
+      mist(62,.25);
+      mist(79,.20,"#b9bdcf");
+
+      const farTree=(x,wid,c,top=0)=>{
+        px(x,top,wid,h-top,c);
+        px(x+Math.max(1,wid-3),top,2,h-top,"#0b0b14");
+        if(wid>7)line([[x+wid*.45,22],[x+wid*.1,43],[x+wid*.32,67]],"#232435",1.5);
+      };
+      for(const t of [[24,5,"#333747",0],[45,4,"#2b2f3e",0],[72,6,"#2c3040",7],[119,5,"#34384a",0],[143,7,"#252938",0],[167,5,"#2c3040",3]])farTree(...t);
+
+      ctx.fillStyle="#293040";
+      ctx.beginPath();
+      ctx.moveTo(14,89);
+      ctx.quadraticCurveTo(46,52,82,77);
+      ctx.quadraticCurveTo(109,49,141,76);
+      ctx.quadraticCurveTo(163,59,184,86);
+      ctx.lineTo(184,111);ctx.lineTo(14,111);ctx.closePath();ctx.fill();
+      ctx.fillStyle="#3b4354";
+      ctx.beginPath();
+      ctx.moveTo(43,91);
+      ctx.quadraticCurveTo(74,65,100,83);
+      ctx.quadraticCurveTo(132,67,164,89);
+      ctx.lineTo(164,111);ctx.lineTo(43,111);ctx.closePath();ctx.fill();
+
+      const trunk=(x,wid,c,hi="#292637")=>{
+        px(x,0,wid,h,c);
+        px(x+wid-4,0,3,h,"#05060b");
+        px(x+3,0,2,h,hi);
+        line([[x+wid*.55,17],[x+wid*.33,43],[x+wid*.52,72],[x+wid*.28,111]],hi,2);
+      };
+      trunk(2,22,"#05070c","#1b1b29");
+      trunk(163,25,"#05070c","#1b1b29");
+      trunk(32,10,"#141720","#343144");
+      trunk(138,9,"#141720","#343144");
+      line([[22,29],[42,17],[55,18]],"#05070c",4);
+      line([[160,31],[142,20],[127,18]],"#05070c",4);
+      line([[41,53],[61,43],[76,46]],"#252738",3);
+      line([[145,57],[126,45],[110,47]],"#252738",3);
+
+      ctx.fillStyle="#111820";
+      ctx.beginPath();
+      ctx.moveTo(0,103);
+      ctx.quadraticCurveTo(41,92,82,102);
+      ctx.quadraticCurveTo(121,91,190,101);
+      ctx.lineTo(190,136);ctx.lineTo(0,136);ctx.closePath();ctx.fill();
+      ctx.fillStyle="#080b10";
+      ctx.beginPath();
+      ctx.moveTo(0,114);
+      ctx.quadraticCurveTo(52,102,92,112);
+      ctx.quadraticCurveTo(139,102,190,113);
+      ctx.lineTo(190,136);ctx.lineTo(0,136);ctx.closePath();ctx.fill();
+      ctx.fillStyle="#17151b";
+      ctx.beginPath();
+      ctx.moveTo(62,136);
+      ctx.quadraticCurveTo(78,116,98,104);
+      ctx.quadraticCurveTo(119,117,135,136);
+      ctx.closePath();ctx.fill();
+      line([[71,128],[92,119],[113,124],[128,116]],"#2a252a",3);
+
+      for(let i=0;i<92;i++){
+        const x=(i*13)%190;
+        const y=134-(i%8)*4;
+        line([[x,y],[x+(i%2?-1:1)*(5+i%6),y-12-(i%4)*4]],i%3?"#18231f":"#2f3b38",1.2);
+      }
+      for(let i=0;i<12;i++){
+        const x=11+(i*19)%168,y=70+(i*31)%46;
+        px(x,y,1,2,i%2?"#f0f6d2":"#b5d7d1");
+      }
+      px(175,111,2,2,"#a5abb8");
+      px(178,109,5,5,"rgba(180,185,195,.55)");
+      px(181,112,2,2,"#a5abb8");
+      return;
+    }
     const sky=ctx.createLinearGradient(0,0,0,h);
     sky.addColorStop(0,deep?"#0b1020":"#111b2a");
     sky.addColorStop(.58,deep?"#141b22":"#182a28");
@@ -2715,7 +2823,7 @@
     snowman:{hp:260,speed:42,damage:30,xp:6,r:23,color:"#edf8ff",defense:24},
     polarbear:{hp:360,speed:60,damage:38,xp:7,r:25,color:"#e7f1f3",defense:30},
     seal:{hp:180,speed:84,damage:24,xp:4,r:19,color:"#91aebe",defense:18},
-    whale:{hp:120000,speed:24,damage:52,xp:340,r:72,color:"#568caa",defense:70},
+    whale:{hp:600000,speed:24,damage:68,xp:340,r:72,color:"#568caa",defense:80},
     poisonmush:{hp:360,speed:56,damage:32,xp:8,r:20,color:"#7b4b31",defense:28},
     blackslime:{hp:420,speed:92,damage:36,xp:9,r:20,color:"#17141c",defense:35},
     leafcrow:{hp:330,speed:118,damage:30,xp:8,r:18,color:"#2d241d",defense:22},
@@ -2726,8 +2834,8 @@
     nighthawk:{hp:680,speed:125,damage:60,xp:14,r:20,color:"#202034",defense:36},
     oldwood:{hp:1200,speed:30,damage:72,xp:20,r:28,color:"#4d3c2c",defense:110},
     witch:{hp:900,speed:70,damage:66,xp:18,r:23,color:"#352047",defense:50},
-    rottenwood:{hp:220000,speed:26,damage:70,xp:560,r:74,color:"#60462f",defense:90},
-    shadowtree:{hp:390000,speed:24,damage:95,xp:760,r:82,color:"#35273a",defense:140},
+    rottenwood:{hp:858000,speed:26,damage:107,xp:560,r:74,color:"#60462f",defense:130},
+    shadowtree:{hp:1326000,speed:24,damage:137,xp:760,r:82,color:"#35273a",defense:169},
     skeleton:{hp:160,speed:70,damage:24,xp:14,r:18,color:"#d8d0c0",defense:18},
     wisp:{hp:125,speed:100,damage:22,xp:13,r:16,color:"#4db6ff",defense:8},
     bat:{hp:105,speed:128,damage:18,xp:12,r:15,color:"#4b304e",defense:8},
@@ -2791,9 +2899,9 @@
   const bossBestiary=[
     {type:"plant",name:"霸王食人花",stage:1,unlock:()=>!!meta.stage1Cleared,skill:"近身壓場・噴火骨彈",stats:{hp:70000,damage:32,defense:15,speed:52}},
     {type:"stoneface",name:"遠古石面怪",stage:2,unlock:()=>!!meta.stage2Cleared,skill:"落石砸擊・25% 機率暈眩 1 秒",stats:{hp:120000,damage:30,defense:45,speed:30}},
-    {type:"whale",name:"暴雪鯨魚",stage:3,unlock:()=>!!meta.stage3Cleared,skill:"急凍光線・暴風雪壓制",stats:{hp:120000,damage:52,defense:70,speed:24}},
-    {type:"rottenwood",name:"腐木樹衛",stage:4,unlock:()=>!!meta.stage4Cleared,skill:"樹鞭・枯葉風暴・樹精投擲",stats:{hp:220000,damage:70,defense:90,speed:26}},
-    {type:"shadowtree",name:"幽影樹王",stage:5,unlock:()=>!!meta.stage5Cleared,skill:"粗樹鞭・強化風暴・毒菇迷失",stats:{hp:390000,damage:95,defense:140,speed:24}}
+    {type:"whale",name:"暴雪鯨魚",stage:3,unlock:()=>!!meta.stage3Cleared,skill:"急凍光線・暴風雪壓制",stats:{hp:600000,damage:68,defense:80,speed:24}},
+    {type:"rottenwood",name:"腐木樹衛",stage:4,unlock:()=>!!meta.stage4Cleared,skill:"樹鞭・枯葉風暴・樹精投擲",stats:{hp:858000,damage:107,defense:130,speed:26}},
+    {type:"shadowtree",name:"幽影樹王",stage:5,unlock:()=>!!meta.stage5Cleared,skill:"粗樹鞭・強化風暴・毒菇迷失",stats:{hp:1326000,damage:137,defense:169,speed:24}}
   ];
   function stageAvailability(stage){
     if(stage===INFINITE_STAGE)return "open";
@@ -3643,8 +3751,8 @@
     }
     if(type==="whale"){
       return {
-        hp:[120000,120000,186000],
-        defense:[70,86,104]
+        hp:[150000,180000,270000],
+        defense:[80,105,135]
       };
     }
     if(type==="reaper"){
@@ -3655,14 +3763,14 @@
     }
     if(type==="rottenwood"){
       return {
-        hp:[55000,70000,95000],
-        defense:[90,120,160]
+        hp:[195000,273000,390000],
+        defense:[130,169,221]
       };
     }
     if(type==="shadowtree"){
       return {
-        hp:[95000,125000,170000],
-        defense:[140,180,240]
+        hp:[286000,416000,624000],
+        defense:[169,234,312]
       };
     }
     return {
@@ -3697,13 +3805,13 @@
         const bossZone=Math.max(0,infiniteBossZone);
         const bossHpMult=infiniteBossHpMultiplier(bossZone);
         const bossDamageMult=1+bossZone*.18;
-        if(type==="whale"){hp=120000*bossHpMult;size=72;speed=24;damage=52*bossDamageMult;xp=420;defense=70+bossZone*4;}
+        if(type==="whale"){hp=600000*bossHpMult;size=72;speed=24;damage=68*bossDamageMult;xp=420;defense=80+bossZone*4;}
         else if(type==="reaper"){hp=98000*bossHpMult;size=68;speed=36;damage=42*bossDamageMult;xp=520;defense=60+bossZone*5;}
         else if(type==="stoneface"){hp=120000*bossHpMult;size=64;speed=30;damage=30*bossDamageMult;xp=340;defense=45+bossZone*4;}
         else{hp=70000*bossHpMult;size=62;speed=52;damage=32*bossDamageMult;xp=280;defense=15+bossZone*3;}
-      }else if(currentStage===5){hp=390000;size=82;speed=24;damage=95;xp=760;defense=140;}
-      else if(currentStage===4){hp=220000;size=74;speed=26;damage=70;xp=560;defense=90;}
-      else if(currentStage===3){hp=120000;size=72;speed=24;damage=52;xp=420;defense=70;}
+      }else if(currentStage===5){hp=1326000;size=82;speed=24;damage=137;xp=760;defense=169;}
+      else if(currentStage===4){hp=858000;size=74;speed=26;damage=107;xp=560;defense=130;}
+      else if(currentStage===3){hp=600000;size=72;speed=24;damage=68;xp=420;defense=80;}
       else if(currentStage===2){hp=120000;size=64;speed=30;damage=30;xp=300;defense=45;}
       else{hp=70000;size=62;speed=52;damage=32;xp=250;defense=15;}
     }
