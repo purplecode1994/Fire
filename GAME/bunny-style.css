@@ -654,6 +654,48 @@
     #stageSelect button.locked,#stageSelectModal button.locked { color: #b9b2c7; background: #5a5667; box-shadow: inset -5px -5px #3d394b,5px 5px #0b0920; }
     #stageSelect button.locked:active,#stageSelectModal button.locked:active { transform: none; }
     #stageSelect button.locked .stageBadge,#stageSelectModal button.locked .stageBadge { background: #4c4657; color: #d6d0e1; }
+    #stageSelectModal #bossChallengeStageModal {
+      color: #fff2f2;
+      background: #74243a;
+      box-shadow: inset -5px -5px #3e1324,inset 3px 3px #b85867,5px 5px #0b0920;
+    }
+    #stageSelectModal #bossChallengeStageModal .stageBadge {
+      background: #28101a;
+      border-color: #ffd2d2;
+      color: #ffb4bd;
+    }
+    #stageSelectModal #bossChallengeStageModal.active {
+      color: #fff;
+      background: #5f182f;
+      box-shadow: inset 5px 5px #2b0c18,inset -3px -3px #a63e55;
+      transform: translate(3px,3px);
+    }
+    #stageSelectModal #bossChallengeStageModal:active {
+      color: #fff;
+      background: #4d1027;
+      box-shadow: inset 5px 5px #220812,inset -2px -2px #8f3146;
+      transform: translate(4px,4px);
+    }
+    .bossChallengePanel {
+      border: 2px solid #8f74bd;
+      background: #21183b;
+      padding: 10px;
+      box-shadow: 5px 5px #0b0920;
+    }
+    .bossChallengePanel h2 {
+      margin: 0 0 6px;
+      color: #ffe45f;
+      font-size: 20px;
+      text-align: center;
+    }
+    .bossChallengePanel p {
+      margin: 0 0 10px;
+      color: #d9d0f0;
+      font-size: 13px;
+      line-height: 1.45;
+      text-align: center;
+    }
+    .bossChallengeList { display: grid; gap: 8px; }
     .stageGarden .gardenBed {
       position: absolute;
       bottom: 10px;
@@ -1312,6 +1354,51 @@
       line-height:1.35;
       font-size:12px;
       white-space:pre-line;
+    }
+    .skillBookCard {
+      min-height: 188px;
+      align-items: stretch;
+    }
+    .bookSkillIcon {
+      font-size: 34px;
+      line-height: 1;
+    }
+    .bookEvolutionPreview {
+      border-color: #55cfff;
+      background: linear-gradient(180deg,#132c54 0%,#253a70 100%);
+      box-shadow: inset 0 0 0 2px #0b1b35,0 0 10px #55cfff88;
+    }
+    .bookSkillMeta {
+      color: #9fe9ff;
+      font-size: 12px;
+      line-height: 1.35;
+      margin: -1px 0 4px;
+    }
+    .bookSkillLevels {
+      display: grid;
+      gap: 3px;
+      margin-top: 7px;
+    }
+    .bookSkillLevels div {
+      display: grid;
+      grid-template-columns: 42px minmax(0,1fr);
+      gap: 6px;
+      align-items: center;
+      min-width: 0;
+      padding: 3px 5px;
+      border: 1px solid #5d4a86;
+      background: #241b41;
+      font-size: 11px;
+      line-height: 1.25;
+    }
+    .bookSkillLevels span {
+      color: #ffe45f;
+      font-weight: bold;
+    }
+    .bookSkillLevels em {
+      min-width: 0;
+      color: #efe8ff;
+      font-style: normal;
     }
     .bookBossGrid,
     .bookSkillGrid,

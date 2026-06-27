@@ -6,8 +6,9 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=404;
+  const APP_VERSION=428;
   const INFINITE_STAGE=6;
+  const BOSS_CHALLENGE_STAGE=7;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -51,9 +52,10 @@
   let kills=0,score=0,eliteKills=0,bossKills=0,nextId=1,levelQueue=0;
   let eligibleKills=0,instantKills=0,instantKillTimer=0;
   let kps=0,kpsWindowKills=0,kpsWindowTime=0,kpsPressure=0;
-  let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0;
+  let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0,gemPressureRecycleTimer=0;
   let carrotVolley=0,pinkyBoostTimer=0,pinkyDamageBoost=1,pendingCarrotShots=0;
-  let poisonTimer=0,poisonRate=0,stunTimer=0,confuseTimer=0,potionHealTimer=0,currentStage=1,infiniteBossZone=0;
+  let poisonTimer=0,poisonRate=0,stunTimer=0,confuseTimer=0,potionHealTimer=0,blizzardTimer=0,blizzardPushTimer=0,blizzardPushAngle=0,blizzardPushSpeed=0,currentStage=1,infiniteBossZone=0;
+  let bossChallengeType="plant",bossChallengeSourceStage=1,bossChallengeMenuOpen=false,bossChallengeStartTime=0;
   let encirclementPressure=0,encirclementCharge=0,encirclementSampleClock=0,encirclementPressureRounds=0;
   let encirclementReservedHp=0,encirclementSectorBits=0,encirclementSectorCount=0,encirclementPrewarn=false,encirclementDebts=[];
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
@@ -491,6 +493,7 @@
     return profile==="desktop"?1:2;
   }
   function currentStageLabel(){
+    if(isBossChallengeMode())return "頭目挑戰";
     if(isInfiniteMode())return infiniteZoneName();
     if(currentStage===5)return "幽影樹海";
     if(currentStage===4)return "幽影林徑";
@@ -1693,6 +1696,9 @@
     forestPathStage.classList.toggle("active",currentStage===4);
     forestSeaStage.classList.toggle("active",currentStage===5);
     infiniteStage.classList.toggle("active",currentStage===INFINITE_STAGE);
+    bossChallengeStage?.classList.toggle("hidden",!devModeActive);
+    bossChallengeStage?.classList.toggle("active",isBossChallengeMode());
+    bossChallengePanel?.classList.toggle("hidden",!devModeActive||!bossChallengeMenuOpen);
     desertStage.disabled=stageAvailability(2)!=="open";
     snowStage.disabled=stageAvailability(3)!=="open";
     forestPathStage.disabled=stageAvailability(4)!=="open";
@@ -1703,6 +1709,7 @@
     forestPathStage.innerHTML=stageAvailability(4)==="open"?stageButtonMarkup("第四關上・幽影林徑",4):stageButtonMarkup("第四關上・幽影林徑（未解鎖）",4);
     forestSeaStage.innerHTML=stageAvailability(5)==="open"?stageButtonMarkup("第四關下・幽影樹海",5):stageButtonMarkup("第四關下・幽影樹海（未解鎖）",5);
     infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",INFINITE_STAGE);
+    if(bossChallengeStage)bossChallengeStage.innerHTML=stageButtonMarkup("頭目挑戰模式",BOSS_CHALLENGE_STAGE);
     document.getElementById("start").textContent="開始割草";
   }
 
@@ -1737,8 +1744,9 @@
 
   function stageRecommendedPower(stage){
     if(stage===INFINITE_STAGE)return 2000;
-    if(stage===5)return 15000;
-    if(stage===4)return 9000;
+    if(stage===BOSS_CHALLENGE_STAGE)return 0;
+    if(stage===5)return 10500;
+    if(stage===4)return 7800;
     return stage===3?4800:stage===2?850:120;
   }
 
@@ -1753,6 +1761,7 @@
   }
 
   function stageButtonMarkup(label,stage){
+    if(stage===BOSS_CHALLENGE_STAGE)return `<span class="stageLabel">${label}</span><span class="stageBadge challenge">測試</span>`;
     const info=stageDifficultyInfo(stage);
     return `<span class="stageLabel">${label}</span><span class="stageBadge ${info.className}">${info.label}</span>`;
   }
@@ -1770,6 +1779,15 @@
   function isInfiniteMode(){
     return currentStage===INFINITE_STAGE;
   }
+  function isBossChallengeMode(){
+    return currentStage===BOSS_CHALLENGE_STAGE;
+  }
+  function bossChallengeZone(){
+    return Math.max(0,bossChallengeSourceStage-1);
+  }
+  function resetBossChallengeDamageStats(){
+    bossChallengeStartTime=time;
+  }
 
   function infiniteZoneAt(value=time){
     if(!isInfiniteMode())return Math.max(0,currentStage-1);
@@ -1784,6 +1802,7 @@
   }
 
   function effectiveZone(){
+    if(isBossChallengeMode())return bossChallengeZone();
     if(isInfiniteMode()){
       if(finalPhase!=="none")return Math.max(0,infiniteBossZone);
       return infiniteZoneAt();
@@ -1810,6 +1829,8 @@
   function finalBossDisplayName(type){
     if(type==="whale")return "暴雪鯨魚";
     if(type==="reaper")return "惡魔死神";
+    if(type==="rottenwood")return "腐木樹衛";
+    if(type==="shadowtree")return "幽影樹王";
     if(type==="stoneface")return "遠古石面怪";
     return "霸王食人花";
   }
@@ -1820,6 +1841,7 @@
     return Math.floor(normalStagePointReward()*.3);
   }
   function stageTimerLabel(){
+    if(isBossChallengeMode())return `頭目挑戰 ${finalBossDisplayName(bossChallengeType)}`;
     if(isInfiniteMode()){
       if(finalPhase!=="none"){
         const bossType=bossTypeForZone(infiniteBossZone);
@@ -2513,6 +2535,18 @@
   }
 
   function renderStageArt(stage){
+    if(stage===BOSS_CHALLENGE_STAGE){
+      stageArt.className="stageBossChallenge";
+      stageArt.innerHTML="";
+      const type=bossChallengeType||"plant";
+      const canvas=bookPreviewCanvas(type,{size:96});
+      canvas.style.width="96px";
+      canvas.style.height="96px";
+      stageArt.appendChild(canvas);
+      stageName.textContent=`頭目挑戰（測試版）・${finalBossDisplayName(type)}`;
+      stagePower.innerHTML="此為測試模式用；要更新請詢問用戶。";
+      return;
+    }
     if(stage===INFINITE_STAGE){
       stageArt.className="stageInfinite stageInfiniteCanvas";
       stageArt.innerHTML='<canvas id="infiniteStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
@@ -2732,6 +2766,9 @@
     forestPathStage.classList.toggle("active",currentStage===4);
     forestSeaStage.classList.toggle("active",currentStage===5);
     infiniteStage.classList.toggle("active",currentStage===INFINITE_STAGE);
+    bossChallengeStage?.classList.toggle("hidden",!devModeActive);
+    bossChallengeStage?.classList.toggle("active",isBossChallengeMode());
+    bossChallengePanel?.classList.toggle("hidden",!devModeActive||!bossChallengeMenuOpen);
     desertStage.disabled=stageAvailability(2)!=="open";
     snowStage.disabled=stageAvailability(3)!=="open";
     forestPathStage.disabled=stageAvailability(4)!=="open";
@@ -2754,6 +2791,7 @@
       stageButtonMarkup("第四關下・幽影樹海",5):
       stageButtonMarkup("第四關下・幽影樹海（未解鎖）",5);
     infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",INFINITE_STAGE);
+    if(bossChallengeStage)bossChallengeStage.innerHTML=stageButtonMarkup("頭目挑戰模式",BOSS_CHALLENGE_STAGE);
     const homeStages=[
       [homeGardenStage,1,"第一關・菜園"],
       [homeDesertStage,2,"第二關・沙漠"],
@@ -2793,12 +2831,12 @@
     {id:"speed",icon:"👟",name:"兔兔快跑",desc:"+12% 移動速度",basic:true,apply(){player.speed*=1.12;}},
     {id:"heal",icon:"💚",name:"生命回復",desc:"基礎回復 +20%・每秒回復最大生命 1.2%",cap:5,apply(){player.regen+=0.012;player.regenBoost+=0.2;}},
     {id:"haste",icon:"⏩",name:"攻擊速度",desc:"+15% 攻擊速度",basic:true,apply(){player.attackSpeed*=1.15;}},
-    {id:"damage",icon:"⚔",name:"胡蘿蔔威力",desc:"+18% 攻擊力",basic:true,apply(){player.damage*=1.18;}},
+    {id:"damage",icon:"🗡️",name:"胡蘿蔔威力",desc:"+18% 攻擊力",basic:true,apply(){player.damage*=1.18;}},
     {id:"crit",icon:"🍀",name:"幸運一擊",desc:"+7% 基礎爆擊率",basic:true,valid(){return player.crit<1;},apply(){const old=player.crit;player.crit=Math.min(1,player.crit+.07);player.critStack=Math.min(1,player.critStack+player.crit-old);}},
     {id:"critd",icon:"💥",name:"爆擊強化",desc:"+30% 場內爆擊傷害",basic:true,apply(){player.critDamage+=.3;}},
-    {id:"pierce",icon:"➶",name:"銳利蘿蔔",desc:"+1 穿透敵人數",basic:true,apply(){player.pierce++;}},
+    {id:"pierce",icon:"🏹",name:"穿透胡蘿蔔",desc:"+1 穿透敵人數",basic:true,apply(){player.pierce++;}},
     {id:"multi",icon:"🥕",name:"同步發射",desc:"同步發射 +1；點滿後含本體共 6 支蘿蔔，並以散射射出",valid(){return player.projectiles<6;},apply(){player.projectiles++;}},
-    {id:"vital",icon:"❤",name:"強健兔兔",desc:"+20% 最大生命並回復",basic:true,apply(){player.maxHp*=1.2;player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.3);}},
+    {id:"vital",icon:"❤️",name:"血多皮厚",desc:"+20% 最大生命並回復",basic:true,apply(){player.maxHp*=1.2;player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.3);}},
     {id:"area",icon:"⭕",name:"範圍性胡蘿蔔",desc:"+18% 附加技能範圍、+4% 全武器與技能傷害",basic:true,apply(){player.area*=1.18;player.areaDamage*=1.04;}},
     {id:"orbit",icon:"🌀",name:"蘿蔔旋風",desc:"環繞胡蘿蔔傷害敵人；LV5進化高速切割",valid(){return skills.orbit<5;},apply(){skills.orbit++;}},
     {id:"burst",icon:"🌱",name:"菜園爆發",desc:"定時造成範圍傷害；LV5進化巨大衝擊圈",valid(){return skills.burst<5;},apply(){skills.burst++;}},
@@ -2807,6 +2845,26 @@
     {id:"brain",icon:"🧠",name:"超級頭腦",desc:"經驗獲取量累計：LV1 +40%／LV2 +100%／LV3 +180%／LV4 +280%／LV5 +400%",valid(){return skills.brain<5;},apply(){const gain=[.4,.6,.8,1,1.2][skills.brain]||0;player.xpGain+=gain;skills.brain++;}},
     {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+8% 無視防禦（第二關 / 第三關 / 無限輪迴）",cap:5,valid(){return (currentStage===2||currentStage===3||isInfiniteMode())&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.08;}}
   ];
+  function maxBossChallengeFieldSkills(){
+    let applied=0;
+    for(const upgrade of upgrades){
+      const target=upgrade.id==="multi"?5:(upgrade.cap||5);
+      for(let i=0;i<target;i++){
+        upgrade.apply();
+        if(Object.prototype.hasOwnProperty.call(upgradeLevels,upgrade.id)){
+          upgradeLevels[upgrade.id]=(upgradeLevels[upgrade.id]||0)+1;
+        }
+        applied++;
+      }
+    }
+    const level=Math.min(MAX_PLAYER_LEVEL,applied+1);
+    player.level=level;
+    player.xp=0;
+    player.nextXp=xpRequirement(level,0);
+    player.hp=player.maxHp;
+    levelQueue=0;
+    text(player.x,player.y-52,`測試模式：場內技能全滿 LV${level}`,"#ffe45f",18,"pickup");
+  }
 
   const enemyData={
     turtle:{hp:34,speed:48,damage:10,xp:4,r:18,color:"#55a94d"},
@@ -2844,22 +2902,23 @@
     reaper:{hp:98000,speed:36,damage:42,xp:520,r:68,color:"#331421",defense:60}
   };
   const adventureSkillEntries=[
-    {id:"damage",icon:"⚔",name:"胡蘿蔔威力",type:"攻擊",effect:"+18% 攻擊力",detail:"直接提升主武器基礎傷害。"},
-    {id:"haste",icon:"⏩",name:"攻擊速度",type:"攻速",effect:"+15% 攻擊速度",detail:"提升胡蘿蔔每秒發射頻率。"},
-    {id:"crit",icon:"🍀",name:"幸運一擊",type:"爆擊",effect:"+7% 基礎爆擊率",detail:"提高爆擊觸發機率。"},
-    {id:"critd",icon:"💥",name:"爆擊強化",type:"爆傷",effect:"+30% 場內爆擊傷害",detail:"只放大爆擊時的傷害上限。"},
-    {id:"multi",icon:"🥕",name:"同步發射",type:"主武器",effect:"+1 發同步蘿蔔",detail:"點滿後含本體共 6 支，並以散射發射。"},
-    {id:"pierce",icon:"➶",name:"銳利蘿蔔",type:"穿透",effect:"+1 穿透數",detail:"讓主武器連續打穿更多敵人。"},
-    {id:"speed",icon:"👟",name:"兔兔快跑",type:"移動",effect:"+12% 移動速度",detail:"讓兔兔更容易拉扯與閃避。"},
-    {id:"vital",icon:"❤",name:"強健兔兔",type:"生存",effect:"+20% 最大生命",detail:"提升最大生命並立即回一段血。"},
-    {id:"heal",icon:"💚",name:"生命回復",type:"回復",effect:"基礎回復 +20%・每秒回復最大生命 1.2%",detail:"兼顧固定回復與最大生命回復。"},
-    {id:"area",icon:"⭕",name:"範圍性胡蘿蔔",type:"範圍",effect:"+18% 附加技能範圍・+4% 全武器技能傷害",detail:"不影響小胡蘿蔔本體大小，只放大巨大胡蘿蔔與各種附加技能範圍。"},
-    {id:"orbit",icon:"🌀",name:"蘿蔔旋風",type:"技能",effect:"環繞切割；LV5 高速進化",detail:"貼身護體，適合清理近身怪。"},
-    {id:"burst",icon:"🌱",name:"菜園爆發",type:"技能",effect:"定時爆圈；LV5 巨大衝擊圈",detail:"穩定補充範圍傷害。"},
-    {id:"peanut",icon:"🥜",name:"花生跟班",type:"跟班",effect:"自動丟石頭；LV5 貫穿滾石",detail:"提供額外遠程火力。"},
-    {id:"pinky",icon:"🍌",name:"PINKY 跟班",type:"增益",effect:"香蕉返回接住後增傷加速",detail:"接到香蕉可短時間爆發。"},
-    {id:"brain",icon:"🧠",name:"超級頭腦",type:"成長",effect:"LV5 累計 +400% 經驗獲取",detail:"累計效果：LV1 +40%／LV2 +100%／LV3 +180%／LV4 +280%／LV5 +400%。"},
-    {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",type:"破防",effect:"+8% 無視防禦",detail:"第二關、第三關與輪迴特別實用。"}
+    {id:"damage",icon:"🗡️",name:"胡蘿蔔威力",type:"攻擊",effect:"+18% 攻擊力",detail:"直接提升主武器基礎傷害。",levels:["+18% 攻擊力","+36% 攻擊力","+54% 攻擊力","+72% 攻擊力","+90% 攻擊力"]},
+    {id:"haste",icon:"⏩",name:"攻擊速度",type:"攻速",effect:"+15% 攻擊速度",detail:"提升胡蘿蔔每秒發射頻率。",levels:["+15% 攻擊速度","+30% 攻擊速度","+45% 攻擊速度","+60% 攻擊速度","+75% 攻擊速度"]},
+    {id:"crit",icon:"🍀",name:"幸運一擊",type:"爆擊",effect:"+7% 基礎爆擊率",detail:"提高爆擊觸發機率。",levels:["+7% 爆擊率","+14% 爆擊率","+21% 爆擊率","+28% 爆擊率","+35% 爆擊率"]},
+    {id:"critd",icon:"💥",name:"爆擊強化",type:"爆傷",effect:"+30% 場內爆擊傷害",detail:"只放大爆擊時的傷害上限。",levels:["+30% 爆擊傷害","+60% 爆擊傷害","+90% 爆擊傷害","+120% 爆擊傷害","+150% 爆擊傷害"]},
+    {id:"multi",icon:"🥕",name:"同步發射",type:"主武器",effect:"+1 發同步蘿蔔",detail:"點滿後含本體共 6 支，並以散射發射。",levels:["同步 2 支蘿蔔","同步 3 支蘿蔔","同步 4 支蘿蔔","同步 5 支蘿蔔","同步 6 支蘿蔔"]},
+    {id:"giantCarrot",icon:"🥕",name:"巨大胡蘿蔔",type:"進化型態",effect:"同步發射 LV5 解鎖",detail:"每 3 秒投出巨大胡蘿蔔；爆炸傷害 1280% 基礎傷害，燃燒每秒造成爆炸總傷害 18%。",evolution:true,levels:["未解鎖","未解鎖","未解鎖","未解鎖","同步發射 LV5：巨大胡蘿蔔"]},
+    {id:"pierce",icon:"🏹",name:"穿透胡蘿蔔",type:"穿透",effect:"+1 穿透數",detail:"讓主武器連續打穿更多敵人。",levels:["+1 穿透","+2 穿透","+3 穿透","+4 穿透","+5 穿透"]},
+    {id:"speed",icon:"👟",name:"兔兔快跑",type:"移動",effect:"+12% 移動速度",detail:"讓兔兔更容易拉扯與閃避。",levels:["+12% 移動速度","+24% 移動速度","+36% 移動速度","+48% 移動速度","+60% 移動速度"]},
+    {id:"vital",icon:"❤️",name:"血多皮厚",type:"生存",effect:"+20% 最大生命",detail:"提升最大生命並立即回一段血。",levels:["+20% 最大生命","+40% 最大生命","+60% 最大生命","+80% 最大生命","+100% 最大生命"]},
+    {id:"heal",icon:"💚",name:"生命回復",type:"回復",effect:"基礎回復 +20%・每秒回復最大生命 1.2%",detail:"兼顧固定回復與最大生命回復。",levels:["基礎回復 +20%・最大生命 1.2%/秒","基礎回復 +40%・最大生命 2.4%/秒","基礎回復 +60%・最大生命 3.6%/秒","基礎回復 +80%・最大生命 4.8%/秒","基礎回復 +100%・最大生命 6.0%/秒"]},
+    {id:"area",icon:"⭕",name:"範圍性胡蘿蔔",type:"範圍",effect:"+18% 附加技能範圍・+4% 全武器與技能傷害",detail:"不影響小胡蘿蔔本體大小，只放大巨大胡蘿蔔與各種附加技能範圍。",levels:["+18% 範圍・+4% 傷害","+36% 範圍・+8% 傷害","+54% 範圍・+12% 傷害","+72% 範圍・+16% 傷害","+90% 範圍・+20% 傷害"]},
+    {id:"orbit",icon:"🌀",name:"蘿蔔旋風",type:"技能",effect:"環繞切割；LV5 高速進化",detail:"貼身護體，適合清理近身怪。",levels:["旋轉蘿蔔 1","旋轉蘿蔔 2","旋轉蘿蔔 3","旋轉蘿蔔 4","高速切割圓環"]},
+    {id:"burst",icon:"🌱",name:"菜園爆發",type:"技能",effect:"定時爆圈；LV5 巨大衝擊圈",detail:"穩定補充範圍傷害。",levels:["冷卻約 5.38 秒・小範圍爆發","冷卻約 4.96 秒・範圍與傷害提升","冷卻約 4.54 秒・範圍與傷害提升","冷卻約 4.12 秒・範圍與傷害提升","冷卻 2.4 秒・巨大衝擊圈"]},
+    {id:"peanut",icon:"🥜",name:"花生跟班",type:"跟班",effect:"自動丟石頭；LV5 貫穿滾石",detail:"提供額外遠程火力。",levels:["冷卻約 1.14 秒・花生丟石頭","冷卻約 0.98 秒・石頭傷害提升","冷卻約 0.82 秒・石頭傷害提升","冷卻約 0.66 秒・石頭傷害提升","冷卻 0.5 秒・貫穿滾石"]},
+    {id:"pinky",icon:"🍌",name:"PINKY 跟班",type:"增益",effect:"香蕉返回接住後增傷加速",detail:"固定每 3 秒丟出香蕉，接回後短時間爆發。",levels:["冷卻 3 秒・香蕉往返","冷卻 3 秒・增益效果提升","冷卻 3 秒・增益效果提升","冷卻 3 秒・增益效果提升","冷卻 3 秒・PINKY 增益進化"]},
+    {id:"brain",icon:"🧠",name:"超級頭腦",type:"成長",effect:"LV5 累計 +400% 經驗獲取",detail:"累計提高關卡內經驗獲取量。",levels:["+40% 經驗獲取","+100% 經驗獲取","+180% 經驗獲取","+280% 經驗獲取","+400% 經驗獲取"]},
+    {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",type:"破防",effect:"+8% 無視防禦",detail:"第二關、第三關與輪迴特別實用。",levels:["+8% 無視防禦","+16% 無視防禦","+24% 無視防禦","+32% 無視防禦","+40% 無視防禦"]}
   ];
   const stageBestiary={
     1:[
@@ -2899,11 +2958,12 @@
   const bossBestiary=[
     {type:"plant",name:"霸王食人花",stage:1,unlock:()=>!!meta.stage1Cleared,skill:"近身壓場・噴火骨彈",stats:{hp:70000,damage:32,defense:15,speed:52}},
     {type:"stoneface",name:"遠古石面怪",stage:2,unlock:()=>!!meta.stage2Cleared,skill:"落石砸擊・25% 機率暈眩 1 秒",stats:{hp:120000,damage:30,defense:45,speed:30}},
-    {type:"whale",name:"暴雪鯨魚",stage:3,unlock:()=>!!meta.stage3Cleared,skill:"急凍光線・暴風雪壓制",stats:{hp:600000,damage:68,defense:80,speed:24}},
+    {type:"whale",name:"暴雪鯨魚",stage:3,unlock:()=>!!meta.stage3Cleared,skill:"急凍光線・零度",stats:{hp:600000,damage:68,defense:80,speed:24}},
     {type:"rottenwood",name:"腐木樹衛",stage:4,unlock:()=>!!meta.stage4Cleared,skill:"樹鞭・枯葉風暴・樹精投擲",stats:{hp:1801800,damage:134,defense:206,speed:26}},
     {type:"shadowtree",name:"幽影樹王",stage:5,unlock:()=>!!meta.stage5Cleared,skill:"粗樹鞭・強化風暴・毒菇迷失",stats:{hp:2784600,damage:173,defense:266,speed:24}}
   ];
   function stageAvailability(stage){
+    if(stage===BOSS_CHALLENGE_STAGE)return devModeActive?"open":"locked";
     if(stage===INFINITE_STAGE)return "open";
     if(stage>IMPLEMENTED_STAGE_COUNT)return "comingSoon";
     if(stage<=1)return "open";
@@ -2970,6 +3030,40 @@
     small.textContent=lines;
     info.appendChild(titleEl);
     info.appendChild(small);
+    card.appendChild(preview);
+    card.appendChild(info);
+    return card;
+  }
+  function renderSkillBookCard(entry){
+    const card=document.createElement("div");
+    card.className=`bookCard skillBookCard ${entry.evolution?"bookEvolutionCard":""}`.trim();
+    const preview=document.createElement("div");
+    preview.className=`bookPreview ${entry.evolution?"bookEvolutionPreview":""}`.trim();
+    const icon=document.createElement("div");
+    icon.className="bookSkillIcon";
+    icon.textContent=entry.icon;
+    preview.appendChild(icon);
+    const info=document.createElement("div");
+    info.className="bookInfo";
+    const titleEl=document.createElement("b");
+    titleEl.textContent=entry.name;
+    const meta=document.createElement("div");
+    meta.className="bookSkillMeta";
+    meta.textContent=`${entry.type}｜${entry.effect}`;
+    const detail=document.createElement("small");
+    detail.textContent=entry.detail;
+    const levels=document.createElement("div");
+    levels.className="bookSkillLevels";
+    (entry.levels||[]).forEach((line,index)=>{
+      const row=document.createElement("div");
+      row.className=index===4?"maxLevel":"";
+      row.innerHTML=`<span>LV${index+1}</span><em>${line}</em>`;
+      levels.appendChild(row);
+    });
+    info.appendChild(titleEl);
+    info.appendChild(meta);
+    info.appendChild(detail);
+    info.appendChild(levels);
     card.appendChild(preview);
     card.appendChild(info);
     return card;
@@ -3096,15 +3190,9 @@
       const grid=document.createElement("div");
       grid.className="bookSkillGrid";
       for(const entry of adventureSkillEntries){
-        grid.appendChild(renderBookCard({
-          title:`${entry.icon} ${entry.name}`,
-          lines:`類型 ${entry.type}\n效果 ${entry.effect}\n說明 ${entry.detail}`,
-          previewType:"turtle",
-          silhouette:false
-        }));
+        grid.appendChild(renderSkillBookCard(entry));
       }
       adventureBookContent.appendChild(grid);
-      grid.querySelectorAll(".bookPreview").forEach((el,i)=>{el.textContent="";const icon=document.createElement("div");icon.style.fontSize="34px";icon.style.lineHeight="1";icon.textContent=adventureSkillEntries[i].icon;el.appendChild(icon);});
       return;
     }
     if(bookMainTab==="stages"){
@@ -3652,12 +3740,12 @@
     kps=kpsWindowKills=kpsWindowTime=kpsPressure=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;runCoins=0;runCoinsSettled=false;
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;runCoins=0;runCoinsSettled=false;
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
     infiniteClearCount=0;
     poisonTimer=poisonRate=stunTimer=confuseTimer=0;
-    potionHealTimer=0;
+    potionHealTimer=0;blizzardTimer=0;blizzardPushTimer=0;blizzardPushAngle=0;blizzardPushSpeed=0;
     running=true;paused=false;ended=false;runRewarded=false;escalationStart=null;killSurgeActive=false;
     finalPhase="none";finalTimer=0;bossArena.active=false;bossArena.zone=effectiveZone();bossArena.r=currentStage>=2||isInfiniteMode()?470:430;bossArena.x=player.x;bossArena.y=player.y;
     keys.up=keys.down=keys.left=keys.right=false;
@@ -3670,10 +3758,18 @@
       player.xpGain+=.2;
       text(player.x,player.y-46,autoTrainingSource==="charm"?"自動研修・經驗+20%":"自動研修啟動","#8fffd0",18,"pickup");
     }
+    if(isBossChallengeMode())maxBossChallengeFieldSkills();
     intro.classList.add("hidden");endScreen.classList.add("hidden");levelScreen.classList.add("hidden");pauseScreen.classList.add("hidden");
     pauseBtn.classList.add("visible");
     positionMonitorTabs();
     updateMonitorButtons();
+    if(isBossChallengeMode()){
+      time=DURATION;
+      resetBossChallengeDamageStats();
+      timeline.seen.clear();
+      beginFinalBossEntrance();
+      announce("頭目挑戰（測試版）","此為測試模式用；要更新請詢問用戶。","#ffe45f",4);
+    }
     last=performance.now();
   }
   function startWithTransition(){
@@ -3705,6 +3801,10 @@
   }
   function requestAutoTrainingThenStart(){
     if(autoTrainingPromptOpen)return;
+    if(isBossChallengeMode()){
+      startWithoutAutoTraining();
+      return;
+    }
     resetAutoTrainingDailyPurchase();
     const infinite=isInfiniteMode();
     const hasCharm=!!meta.autoTrainingCharm;
@@ -3809,6 +3909,13 @@
         else if(type==="reaper"){hp=98000*bossHpMult;size=68;speed=36;damage=42*bossDamageMult;xp=520;defense=60+bossZone*5;}
         else if(type==="stoneface"){hp=120000*bossHpMult;size=64;speed=30;damage=30*bossDamageMult;xp=340;defense=45+bossZone*4;}
         else{hp=70000*bossHpMult;size=62;speed=52;damage=32*bossDamageMult;xp=280;defense=15+bossZone*3;}
+      }else if(isBossChallengeMode()){
+        if(type==="shadowtree"){hp=2784600;size=82;speed=24;damage=173;xp=760;defense=266;}
+        else if(type==="rottenwood"){hp=1801800;size=74;speed=26;damage=134;xp=560;defense=206;}
+        else if(type==="whale"){hp=600000;size=72;speed=24;damage=68;xp=420;defense=80;}
+        else if(type==="stoneface"){hp=120000;size=64;speed=30;damage=30;xp=300;defense=45;}
+        else if(type==="reaper"){hp=4176900;size=76;speed=30;damage=260;xp=980;defense=399;}
+        else{hp=70000;size=62;speed=52;damage=32;xp=250;defense=15;}
       }else if(currentStage===5){hp=2784600;size=82;speed=24;damage=173;xp=760;defense=266;}
       else if(currentStage===4){hp=1801800;size=74;speed=26;damage=134;xp=560;defense=206;}
       else if(currentStage===3){hp=600000;size=72;speed=24;damage=68;xp=420;defense=80;}
@@ -3820,9 +3927,12 @@
     if(killSurgeActive)hp*=KILL_SURGE_HP_MULTIPLIER;
     const enemy={id:nextId++,type,kind,defense,x:player.x+Math.cos(angle)*range,y:player.y+Math.sin(angle)*range,r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,cling:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1,kpsSpawned:!!flags.kpsSpawned,spawnAt:time,lastHitAt:time,burnTime:0,burnDps:0,cullTimer:0};
     if(kind==="final"){
-      const phaseConfig=finalBossPhaseConfig(type);
-      const hpScale=isInfiniteMode()?infiniteBossHpMultiplier(Math.max(0,infiniteBossZone)):1;
-      const defenseScale=isInfiniteMode()?Math.max(0,infiniteBossZone)*4:0;
+      const phaseConfig=isBossChallengeMode()&&type==="reaper"
+        ?{hp:[900900,1310400,1965600],defense:[399,554,738]}
+        :finalBossPhaseConfig(type);
+      const challengeBossZone=isBossChallengeMode()&&bossChallengeSourceStage>=6&&type!=="reaper"?3:0;
+      const hpScale=isInfiniteMode()?infiniteBossHpMultiplier(Math.max(0,infiniteBossZone)):(challengeBossZone?infiniteBossHpMultiplier(challengeBossZone):1);
+      const defenseScale=isInfiniteMode()?Math.max(0,infiniteBossZone)*4:challengeBossZone*4;
       enemy.finalPhaseHp=phaseConfig.hp.map(value=>Math.round(value*hpScale));
       enemy.finalPhaseDefense=phaseConfig.defense.map(value=>value+defenseScale);
       applyFinalBossPhase(enemy,0);
@@ -3860,6 +3970,7 @@
   }
 
   function normalFinalBossType(){
+    if(isBossChallengeMode())return bossChallengeType;
     if(currentStage===5)return "shadowtree";
     if(currentStage===4)return "rottenwood";
     if(currentStage===3)return "whale";
@@ -3897,6 +4008,7 @@
 
   function timeline(){
     const sec=Math.floor(time);
+    if(isBossChallengeMode())return;
     if(isInfiniteMode()){
       if(sec>0&&sec%600===0&&!timeline.seen.has("infinite-boss-"+sec)){
         timeline.seen.add("infinite-boss-"+sec);
@@ -3948,13 +4060,14 @@
   timeline.seen=new Set();
 
   function isForestBossArena(){
-    return bossArena.active&&!isInfiniteMode()&&(currentStage===4||currentStage===5);
+    const stage=isBossChallengeMode()?bossChallengeSourceStage:currentStage;
+    return bossArena.active&&!isInfiniteMode()&&(stage===4||stage===5);
   }
 
   function setupBossObstacles(){
     bossObstacles=[];
     if(!isForestBossArena())return;
-    const lower=currentStage===5;
+    const lower=(isBossChallengeMode()?bossChallengeSourceStage:currentStage)===5;
     const list=lower
       ?[
         [-235,-120,34,70,1.05],[-100,-245,32,66,.95],[115,-230,34,70,1.05],
@@ -4144,9 +4257,10 @@
 
   function beginCarrotVolley(){
     if(!enemies.length&&!chests.some(c=>!c.opened))return false;
-    pendingCarrotShots=Math.max(1,player.projectiles);
+    const bossFight=finalPhase==="fight";
+    pendingCarrotShots=bossFight?1:Math.max(1,player.projectiles);
     carrotVolley++;
-    if(player.projectiles>=6&&giantCarrotCooldown<=0){
+    if(!bossFight&&player.projectiles>=6&&giantCarrotCooldown<=0){
       const target=getSharedTarget();
       if(target){
         const a=Math.atan2(target.y-player.y,target.x-player.x);
@@ -4163,7 +4277,8 @@
   function fireCarrotShot(){
     const targetInfo=pickReservedAwareTarget(player.damage*player.areaDamage);
     const target=targetInfo.target;
-    const volleyCount=Math.max(1,Math.min(6,player.projectiles));
+    const bossFight=finalPhase==="fight";
+    const volleyCount=bossFight?1:Math.max(1,Math.min(6,player.projectiles));
     const volleyIndex=Math.max(0,Math.min(volleyCount-1,volleyCount-pendingCarrotShots));
     const spreadStep=volleyCount<=1?0:0.095;
     const spreadOffset=volleyCount<=1?0:(volleyIndex-(volleyCount-1)/2)*spreadStep;
@@ -4174,7 +4289,7 @@
       x:player.x,y:player.y,
       vx:Math.cos(angle)*520,vy:Math.sin(angle)*520,
       r:6,life:1.8,
-      damage:player.damage*player.areaDamage,pierce:player.pierce,angle,
+      damage:player.damage*player.areaDamage,pierce:bossFight?0:player.pierce,angle,
       reservedTargetId:target&&!("opened" in target)?target.id:0,
       reservedDamage:targetInfo.reservedAmount||0
     });
@@ -4291,6 +4406,7 @@
     if(e.kind==="final"&&e.hp<=0&&e.bars>1){
       e.bars--;
       applyFinalBossPhase(e,e.totalBars-e.bars);
+      if(e.type==="whale"&&e.bars===1)e.shoot=5;
       e.speed*=1.12;
       e.damage*=1.18;
       e.phase=0;
@@ -4637,9 +4753,21 @@
     if(stunTimer<=0&&(dx||dy)){
       const l=Math.hypot(dx,dy),strength=Math.min(1,l);
       dx/=l;dy/=l;
-      moved=player.speed*(pinkyBoostTimer>0?(skills.pinky>=5?1.25:1.15):1)*dt*strength;
+      const blizzardMove=blizzardTimer>0?.7:1;
+      moved=player.speed*(pinkyBoostTimer>0?(skills.pinky>=5?1.25:1.15):1)*blizzardMove*dt*strength;
       player.x+=dx*moved;player.y+=dy*moved;
       if(dx)player.facing=Math.sign(dx);
+    }
+    if(blizzardTimer>0){
+      blizzardTimer=Math.max(0,blizzardTimer-dt);
+      blizzardPushTimer-=dt;
+      if(blizzardPushTimer<=0){
+        blizzardPushTimer=rand(.55,1.15);
+        blizzardPushAngle=Math.random()*Math.PI*2;
+        blizzardPushSpeed=rand(12,32);
+      }
+      player.x+=Math.cos(blizzardPushAngle)*blizzardPushSpeed*dt;
+      player.y+=Math.sin(blizzardPushAngle)*blizzardPushSpeed*dt;
     }
     if(bossArena.active){
       const ax=player.x-bossArena.x,ay=player.y-bossArena.y,d=Math.hypot(ax,ay),limit=bossArena.r-player.r-18;
@@ -4648,7 +4776,10 @@
       resolveBossObstacles(player,player.r);
     }
     updateChests(dt,moved);
-    if(player.regen||player.regenFlat)player.hp=Math.min(player.maxHp,player.hp+((player.regenFlat*player.regenBoost)+player.maxHp*player.regen)*dt);
+    if(player.regen||player.regenFlat){
+      const blizzardRegen=blizzardTimer>0?.8:1;
+      player.hp=Math.min(player.maxHp,player.hp+((player.regenFlat*player.regenBoost)+player.maxHp*player.regen)*blizzardRegen*dt);
+    }
     if(poisonTimer>0){
       poisonTimer=Math.max(0,poisonTimer-dt);
       player.hp-=player.maxHp*poisonRate*dt;
@@ -4747,7 +4878,8 @@
       if(dist(e,player)<e.r+player.r){
         hurt(e.damage);
       }
-      const ranged=e.type==="plant"&&currentStage!==1;
+      const sourceStage=isBossChallengeMode()?bossChallengeSourceStage:currentStage;
+      const ranged=e.type==="plant"&&sourceStage!==1;
       if(ranged&&e.shoot<=0&&dist(e,player)<650){
         const shotSpeed=e.kind==="normal"?185:e.kind==="elite"?225:250;
         enemyShots.push({kind:"normal",x:e.x,y:e.y,vx:Math.cos(a)*shotSpeed,vy:Math.sin(a)*shotSpeed,r:e.kind==="normal"?7:10,damage:e.damage*.55,life:4,poison:0});
@@ -4763,7 +4895,7 @@
           }
         }
       }
-      if(e.kind==="final"&&e.type==="plant"&&currentStage!==1){
+      if(e.kind==="final"&&e.type==="plant"&&sourceStage!==1){
         e.phase-=dt;if(e.phase<=0){e.phase=2.2;for(let i=0;i<8;i++){const q=i*Math.PI/4;enemyShots.push({x:e.x,y:e.y,vx:Math.cos(q)*150,vy:Math.sin(q)*150,life:4,r:12,damage:12});}}
       }
       if(e.kind==="final"&&e.type==="whale"){
@@ -4774,6 +4906,13 @@
           effects.push({kind:"beamWarning",x:e.x,y:e.y,a,width:70,delay:1.05,life:1.55,percent:.35,color:"#66d7ff",line:"#ff4a58",hit:false});
           if(e.bars<=2)text(player.x,player.y-55,"暴風雪逼近！","#d8f6ff",18);
           beep(180,.24,.035,"triangle");
+        }
+        if(e.bars===1&&e.shoot<=0){
+          e.shoot=5;
+          blizzardTimer=10;
+          blizzardPushTimer=0;
+          text(player.x,player.y-62,"零度暴風雪！","#d8f6ff",20,"boss");
+          beep(118,.38,.045,"triangle");
         }
       }
       if(e.kind==="final"&&e.type==="reaper"){
@@ -4812,9 +4951,10 @@
         e.shoot-=dt;
         if(e.shoot<=0){
           e.shoot=shadow?8.5:10;
+          const stormRange=shadow&&e.phaseIndex>=2?205*1.3:(shadow?205:160);
           effects.push({
             kind:"leafStorm",ownerId:e.id,x:e.x,y:e.y,
-            r:shadow?205:160,life:shadow?5.4:4.4,maxLife:shadow?5.4:4.4,
+            r:stormRange,life:shadow?5.4:4.4,maxLife:shadow?5.4:4.4,
             pull:shadow?170:110,dark:shadow,phase:rand(0,Math.PI*2)
           });
           text(e.x,e.y-e.r-32,shadow?"幽影枯葉風暴！":"枯葉風暴！",shadow?"#c59cff":"#d2ff93",20,"boss");
@@ -5126,10 +5266,7 @@
     }
     for(const a of areas){
       if(a.delay>0){a.delay-=dt;continue;}
-      if(!a.started){
-        a.started=true;
-        beep(a.wave%2===0?760:260,.11,a.evolved?.035:.025,a.wave%2===0?"square":"triangle");
-      }
+      if(!a.started)a.started=true;
       a.life-=dt;
       a.r+=(a.max-a.r)*dt*(a.evolved?4.2:3.5);
       const band=Math.max(24,a.max*.16);
@@ -5160,9 +5297,35 @@
   }
 
   function updateGems(dt){
+    const pressure=perfWorkCurrent.gemUpdate||0;
+    if(pressure>30000&&gems.length>80){
+      const interval=pressure>50000?.07:pressure>40000?.12:.2;
+      gemPressureRecycleTimer+=dt;
+      while(gemPressureRecycleTimer>=interval){
+        gemPressureRecycleTimer-=interval;
+        const batch=pressure>50000?3:pressure>40000?2:1;
+        for(let b=0;b<batch;b++){
+          let pick=null;
+          for(let tries=0;tries<18;tries++){
+            const candidate=gems[Math.floor(Math.random()*gems.length)];
+            if(!candidate||candidate.dead)continue;
+            const age=time-(candidate.spawnTime??time);
+            const dx=candidate.x-player.x,dy=candidate.y-player.y;
+            const far=dx*dx+dy*dy>420*420;
+            if(age>2.2||far){pick=candidate;break;}
+          }
+          if(!pick)break;
+          pick.dead=true;
+          gainXp(pick.value||0);
+        }
+      }
+    }else{
+      gemPressureRecycleTimer=0;
+    }
     const frameBucket=Math.floor(time*60);
     for(let i=0;i<gems.length;i++){
       const g=gems[i];
+      if(g.dead)continue;
       const lifeTime=time-(g.spawnTime??time);
       const d=dist(g,player);
       const magnetized=d<player.magnet;
@@ -5417,7 +5580,17 @@
       }
     }
     effects=effects.filter(e=>e.life===undefined||e.life>0);
-    for(const t of texts){t.y-=30*dt;t.life-=dt;}texts=texts.filter(t=>t.life>0);
+    for(const t of texts){
+      if(t.kind==="critical"){
+        t.x+=(t.vx||0)*dt;
+        t.y+=(t.vy||0)*dt;
+        t.vy=(t.vy||0)+(t.gravity||0)*dt;
+      }else{
+        t.y-=30*dt;
+      }
+      t.life-=dt;
+    }
+    texts=texts.filter(t=>t.life>0);
     if(instantKillTimer>0){
       instantKillTimer-=dt;
       if(instantKillTimer<=0)instantKills=0;
@@ -5433,7 +5606,15 @@
       if(kind==="critical"&&sameKindCount>=MAX_CRITICAL_TEXTS)return;
       if(kind==="boss"&&sameKindCount>=MAX_BOSS_TEXTS)return;
     }
-    texts.push({x,y,value:String(value),color,size,kind,life:1});
+    const item={x,y,value:String(value),color,size,kind,life:1};
+    if(kind==="critical"){
+      item.life=1.08;
+      item.maxLife=item.life;
+      item.vx=rand(-34,34);
+      item.vy=rand(-112,-86);
+      item.gravity=150;
+    }
+    texts.push(item);
   }
 
   function compactDamageNumber(value,unit){
@@ -5465,6 +5646,9 @@
   function drawCriticalText(t,p){
     ctx.save();
     ctx.translate(p.x,p.y-6);
+    const progress=clamp(1-t.life/(t.maxLife||1),0,1);
+    const scale=1-.28*progress;
+    ctx.scale(scale,scale);
     ctx.globalAlpha=clamp(t.life*2,0,1);
     ctx.font=`bold ${t.size}px sans-serif`;
     ctx.textAlign="center";
@@ -5538,8 +5722,9 @@
 
   function drawGround(){
     const zone=effectiveZone();
-    const forestStage=!isInfiniteMode()&&(currentStage===4||currentStage===5);
-    rect(0,0,W,H,forestStage?(currentStage===5?"#162019":"#263b25"):zone>=3?"#2a0f1b":zone===2?"#cfefff":zone===1?"#d7b66f":"#79bd58");
+    const stageForGround=isBossChallengeMode()?bossChallengeSourceStage:currentStage;
+    const forestStage=!isInfiniteMode()&&(stageForGround===4||stageForGround===5);
+    rect(0,0,W,H,forestStage?(stageForGround===5?"#162019":"#263b25"):zone>=3?"#2a0f1b":zone===2?"#cfefff":zone===1?"#d7b66f":"#79bd58");
     const grid=64,camera=cameraPosition();
     const left=camera.x-W/2-grid,top=camera.y-H/2-grid;
     const firstX=Math.floor(left/grid),firstY=Math.floor(top/grid);
@@ -5576,9 +5761,10 @@
 
   function drawGroundTile(targetCtx,zone,gx,gy,x,y,grid=64){
     const hash=((gx*928371+gy*1237)%7+7)%7;
-    const forestStage=!isInfiniteMode()&&(currentStage===4||currentStage===5);
+    const stageForGround=isBossChallengeMode()?bossChallengeSourceStage:currentStage;
+    const forestStage=!isInfiniteMode()&&(stageForGround===4||stageForGround===5);
     if(forestStage){
-      targetCtx.fillStyle=currentStage===5?(hash%2?"#18251d":"#111a15"):(hash%2?"#2c462b":"#243821");
+      targetCtx.fillStyle=stageForGround===5?(hash%2?"#18251d":"#111a15"):(hash%2?"#2c462b":"#243821");
       targetCtx.fillRect(x,y,grid,grid);
       if(hash===1){
         targetCtx.fillStyle="#49301f";targetCtx.fillRect(x+11,y+28,9,30);
@@ -5590,20 +5776,20 @@
         targetCtx.fillRect(x+45,y+29,5,15);
       }
       if(hash===3){
-        targetCtx.fillStyle=currentStage===5?"#5a3f2f":"#72553b";
+        targetCtx.fillStyle=stageForGround===5?"#5a3f2f":"#72553b";
         targetCtx.fillRect(x+20,y+45,9,7);
-        targetCtx.fillStyle=currentStage===5?"#3f3427":"#5f4a2d";
+        targetCtx.fillStyle=stageForGround===5?"#3f3427":"#5f4a2d";
         targetCtx.fillRect(x+26,y+41,8,5);
       }
       if(hash===5){
-        targetCtx.fillStyle=currentStage===5?"#335029":"#49723a";
+        targetCtx.fillStyle=stageForGround===5?"#335029":"#49723a";
         targetCtx.fillRect(x+35,y+16,18,7);
         targetCtx.fillRect(x+42,y+10,6,17);
       }
       if(hash===6){
-        targetCtx.fillStyle=currentStage===5?"#274025":"#456f39";
+        targetCtx.fillStyle=stageForGround===5?"#274025":"#456f39";
         targetCtx.fillRect(x+8,y+50,30,4);
-        targetCtx.fillStyle=currentStage===5?"#39281e":"#5a3e28";
+        targetCtx.fillStyle=stageForGround===5?"#39281e":"#5a3e28";
         targetCtx.fillRect(x+22,y+44,5,10);
       }
     }else if(zone>=3){
@@ -5776,9 +5962,36 @@
     ctx.restore();
   }
 
+  function drawBossChallengeWhaleSprite(){
+    rect(-42,-15,62,27,"#24496f");
+    rect(-49,-8,13,13,"#356e9a");
+    rect(13,-13,22,20,"#1b3b5f");
+    rect(31,-26,15,24,"#24496f");
+    rect(29,2,17,22,"#1b3b5f");
+    rect(-37,8,43,10,"#aee7f2");
+    rect(-37,10,8,12,"#e2fbff");
+    rect(-28,10,8,13,"#cdf4fb");
+    rect(-19,10,8,11,"#aee7f2");
+    rect(-25,-29,15,16,"#8fd8ee");
+    rect(-13,-34,19,21,"#6fc8e6");
+    rect(5,-25,13,13,"#8fd8ee");
+    rect(20,-29,9,9,"#bff6ff");
+    rect(28,-34,7,11,"#8fd8ee");
+    rect(-33,-4,8,5,"#07111d");
+    rect(-30,-3,4,3,"#dffbff");
+    rect(-35,-6,25,3,"#142c47");
+    rect(-3,0,12,8,"#8fcde0");
+    rect(7,10,12,17,"#6aa8c6");
+    rect(-10,-3,18,3,"#6b2a77");
+    rect(6,-9,14,3,"#6b2a77");
+    rect(22,1,12,3,"#6b2a77");
+    rect(-44,-2,9,3,"#10233f");
+  }
+
   function drawEnemy(e){
     const p=worldToScreen(e.x,e.y),s=e.r/18;
-    const snapshot=getEnemySnapshot(e.type);
+    const challengeWhale=isBossChallengeMode()&&e.kind==="final"&&e.type==="whale";
+    const snapshot=challengeWhale?null:getEnemySnapshot(e.type);
     if(snapshot){
       ctx.save();
       if(e.hit)ctx.globalAlpha=.55;
@@ -5789,7 +6002,9 @@
     }else{
       ctx.save();ctx.translate(p.x,p.y);ctx.scale(s,s);
       if(e.hit)ctx.globalAlpha=.55;
-      if(e.type==="turtle"){
+      if(challengeWhale){
+        drawBossChallengeWhaleSprite();
+      }else if(e.type==="turtle"){
       rect(-15,-10,27,23,"#397d3f");rect(-10,-14,22,22,"#67b551");rect(-5,-9,12,12,"#b0d867");rect(9,-10,11,9,"#ead17c");rect(14,-8,3,3,"#171624");
     }else if(e.type==="mushroom"){
       rect(-12,-2,24,17,"#9a633f");rect(-17,-12,34,16,"#7b4432");rect(-12,-9,7,6,"#e6b16e");rect(5,-9,7,6,"#e6b16e");rect(-7,3,4,5,"#171624");rect(4,3,4,5,"#171624");
@@ -6709,6 +6924,36 @@
     ctx.textAlign="left";
   }
 
+  function drawBlizzardOverlay(){
+    if(blizzardTimer<=0)return;
+    const strength=clamp(blizzardTimer/1.2,0,1);
+    ctx.save();
+    ctx.globalAlpha=.18*strength;
+    rect(0,0,W,H,"#cfefff");
+    ctx.globalAlpha=.28*strength;
+    ctx.strokeStyle="#f5fbff";
+    ctx.lineWidth=3;
+    for(let i=0;i<76;i++){
+      const drift=time*(120+(i%5)*24);
+      const x=((i*137+drift*.55+Math.sin(time*1.7+i)*28)%(W+140))-70;
+      const y=((i*79+drift)%(H+120))-60;
+      ctx.beginPath();
+      ctx.moveTo(x,y);
+      ctx.lineTo(x-18-(i%3)*5,y+18+(i%4)*4);
+      ctx.stroke();
+    }
+    ctx.globalAlpha=.52*strength;
+    ctx.font="bold 15px 'Courier New','Microsoft JhengHei',monospace";
+    ctx.textAlign="right";
+    ctx.lineWidth=4;
+    ctx.strokeStyle="#102031";
+    ctx.fillStyle="#d8f6ff";
+    ctx.strokeText(`零度 ${blizzardTimer.toFixed(1)}s`,W-16,H>W?210:78);
+    ctx.fillText(`零度 ${blizzardTimer.toFixed(1)}s`,W-16,H>W?210:78);
+    ctx.restore();
+    ctx.textAlign="left";
+  }
+
   function draw(){
     countPerfWork("enemyDraw",enemies.length);
     countPerfWork("projectileDraw",shots.length+petShots.length+enemyShots.length+bananas.length);
@@ -6814,6 +7059,7 @@
       }
     }
     drawPet();drawBunny();drawBossObstacles("canopy");
+    drawBlizzardOverlay();
     for(const t of texts){
       const p=worldToScreen(t.x,t.y);
       if(t.kind==="critical"){
@@ -6840,6 +7086,7 @@
   function awardRun(success){
     if(runRewarded)return 0;
     runRewarded=true;
+    if(isBossChallengeMode())return 0;
     const normalKills=Math.max(0,kills-eliteKills-bossKills);
     const baseEarned=Math.floor(normalKills/25)+eliteKills*3+bossKills*10+(success?25:0)+Math.floor(time/60)*3;
     settleRunCoins();
@@ -6890,6 +7137,16 @@
     pauseBtn.classList.remove("visible");pauseScreen.classList.add("hidden");
     updateMonitorButtons();
     const earned=awardRun(true);
+    if(isBossChallengeMode()){
+      renderMeta();
+      endScreen.classList.remove("hidden");
+      document.getElementById("endTitle").textContent="頭目挑戰完成";
+      document.getElementById("endSub").textContent=`兔兔擊敗了 ${finalBossDisplayName(bossChallengeType)}`;
+      const clearTime=Math.max(0,time-bossChallengeStartTime);
+      document.getElementById("endText").innerHTML=`此為測試模式用；要更新請詢問用戶。<br>擊敗時間 ${formatStageTime(clearTime)}<br>等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局不結算強化點數與通關解鎖`;
+      beep(660,.4,.05);
+      return;
+    }
     if(currentStage===1)meta.stage1Cleared=true;
     if(currentStage===2)meta.stage2Cleared=true;
     if(currentStage===3)meta.stage3Cleared=true;
@@ -6914,12 +7171,14 @@
     pauseBtn.classList.remove("visible");pauseScreen.classList.add("hidden");
     updateMonitorButtons();
     const earned=awardRun(false);
-    recordDeathRunStats();
+    if(!isBossChallengeMode())recordDeathRunStats();
     renderMeta();
     endScreen.classList.remove("hidden");
-    document.getElementById("endTitle").textContent="兔兔倒下了";
-    document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
-    document.getElementById("endText").innerHTML=`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>${rewardTotalLines()}`;
+    document.getElementById("endTitle").textContent=isBossChallengeMode()?"頭目挑戰失敗":"兔兔倒下了";
+    document.getElementById("endSub").textContent=isBossChallengeMode()?`挑戰 ${finalBossDisplayName(bossChallengeType)} 失敗`:`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
+    document.getElementById("endText").innerHTML=isBossChallengeMode()
+      ?`此為測試模式用；要更新請詢問用戶。<br>本局不結算強化點數、鑽石與死亡紀錄`
+      :`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>${rewardTotalLines()}`;
     beep(180,.7,.05,"sawtooth");
   }
 
@@ -6931,18 +7190,22 @@
     let earned=0;
     if(!runRewarded){
       runRewarded=true;
-      settleRunCoins();
-      settleAutoTrainingAfterRun();
-      earned=isInfiniteMode()?infiniteStagePointReward():Math.floor(time/60)*3;
-      meta.points+=earned;
-      meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
-      saveMeta();
+      if(!isBossChallengeMode()){
+        settleRunCoins();
+        settleAutoTrainingAfterRun();
+        earned=isInfiniteMode()?infiniteStagePointReward():Math.floor(time/60)*3;
+        meta.points+=earned;
+        meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
+        saveMeta();
+      }
     }
     renderMeta();
     endScreen.classList.remove("hidden");
     document.getElementById("endTitle").textContent="已離開關卡";
     document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
-    document.getElementById("endText").innerHTML=isInfiniteMode()
+    document.getElementById("endText").innerHTML=isBossChallengeMode()
+      ?`此為測試模式用；要更新請詢問用戶。<br>中途離開不結算強化點數與通關解鎖`
+      :isInfiniteMode()
       ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
       :`中途離開不計完整擊殺點數<br>生存點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
     beep(220,.22,.035,"square");
@@ -6957,7 +7220,7 @@
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
   const characterBtn=document.getElementById("characterBtn"),adventureBookBtn=document.getElementById("adventureBookBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter"),closeAdventureBook=document.getElementById("closeAdventureBook"),closeShop=document.getElementById("closeShop");
   const chooseStageBtn=document.getElementById("chooseStageBtn"),closeStage=document.getElementById("closeStage"),closeRewards=document.getElementById("closeRewards");
-  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),infiniteStage=document.getElementById("infiniteStageModal");
+  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),infiniteStage=document.getElementById("infiniteStageModal"),bossChallengeStage=document.getElementById("bossChallengeStageModal"),bossChallengePanel=document.getElementById("bossChallengePanel");
   const homeGardenStage=document.getElementById("gardenStage"),homeDesertStage=document.getElementById("desertStage"),homeSnowStage=document.getElementById("snowStage"),homeForestPathStage=document.getElementById("forestPathStage"),homeForestSeaStage=document.getElementById("forestSeaStage"),homeInfiniteStage=document.getElementById("infiniteStage");
   function updateMuteButton(){
     muteBtn.classList.toggle("muted",muted);
@@ -7214,6 +7477,23 @@
   forestPathStage.addEventListener("click",()=>{if(meta.forestPathUnlocked){playUiClick();currentStage=4;renderMeta();}});
   forestSeaStage.addEventListener("click",()=>{if(meta.forestSeaUnlocked){playUiClick();currentStage=5;renderMeta();}});
   infiniteStage.addEventListener("click",()=>{playUiClick();currentStage=INFINITE_STAGE;renderMeta();});
+  bossChallengeStage?.addEventListener("click",()=>{
+    if(!devModeActive)return;
+    playUiClick();
+    bossChallengeMenuOpen=!bossChallengeMenuOpen;
+    renderMeta();
+  });
+  bossChallengePanel?.addEventListener("click",e=>{
+    const button=e.target.closest("button[data-boss-type]");
+    if(!button||!devModeActive)return;
+    playUiClick();
+    // 頭目挑戰模式為測試用；要更新請詢問用戶。此模式需可整段移除，不影響一般關卡。
+    bossChallengeType=button.dataset.bossType||"plant";
+    bossChallengeSourceStage=Number(button.dataset.bossStage)||1;
+    currentStage=BOSS_CHALLENGE_STAGE;
+    bossChallengeMenuOpen=true;
+    renderMeta();
+  });
   homeGardenStage?.addEventListener("click",()=>{playUiClick();currentStage=1;renderMeta();});
   homeDesertStage?.addEventListener("click",()=>{if(meta.desertUnlocked){playUiClick();currentStage=2;renderMeta();}});
   homeSnowStage?.addEventListener("click",()=>{if(meta.snowUnlocked){playUiClick();currentStage=3;renderMeta();}});

@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>兔兔割草大冒險</title>
-    <link rel="stylesheet" href="bunny-style.css?v=404">
+    <link rel="stylesheet" href="bunny-style.css?v=428">
 </head>
 <body class="layout-portrait">
 <div id="wrap">
@@ -123,6 +123,19 @@
           <button id="forestPathStageModal" type="button">第四關上・幽影林徑｜挑戰</button>
           <button id="forestSeaStageModal" type="button">第四關下・幽影樹海｜挑戰</button>
           <button id="infiniteStageModal" type="button">無限輪迴模式｜危險</button>
+          <button id="bossChallengeStageModal" class="hidden" type="button">頭目挑戰模式｜測試</button>
+          <div id="bossChallengePanel" class="bossChallengePanel hidden">
+            <h2>頭目挑戰（測試版）</h2>
+            <p>此為測試模式用；要更新請詢問用戶。</p>
+            <div class="bossChallengeList">
+              <button type="button" data-boss-type="plant" data-boss-stage="1">菜園・霸王食人花</button>
+              <button type="button" data-boss-type="stoneface" data-boss-stage="2">沙漠・遠古石面怪</button>
+              <button type="button" data-boss-type="whale" data-boss-stage="3">雪原・暴雪鯨魚</button>
+              <button type="button" data-boss-type="rottenwood" data-boss-stage="4">樹徑・腐木樹衛</button>
+              <button type="button" data-boss-type="shadowtree" data-boss-stage="5">樹海・幽影樹王</button>
+              <button type="button" data-boss-type="reaper" data-boss-stage="6">惡魔城・惡魔死神</button>
+            </div>
+          </div>
         </div>
       </div>
       <button id="closeStage" type="button">返回首頁</button>
@@ -252,7 +265,7 @@
     </div>
   </div>
 </div>
-  <script src="bunny-logic.js?v=404"></script>
+  <script src="bunny-logic.js?v=428"></script>
 </body>
 </html>
 
