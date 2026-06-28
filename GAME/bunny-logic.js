@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=429;
+  const APP_VERSION=430;
   const INFINITE_STAGE=6;
   const BOSS_CHALLENGE_STAGE=7;
   ctx.imageSmoothingEnabled=false;
@@ -7526,9 +7526,11 @@
   addEventListener("keyup",e=>{if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],false);}});
   addEventListener("blur",()=>{Object.keys(keys).forEach(k=>keys[k]=false);resetStick();});
   addEventListener("focus",()=>{ensureAudioReady();});
+  function shouldProtectPageLeave(){
+    return running&&!ended;
+  }
   document.addEventListener("visibilitychange",()=>{
     if(document.hidden){
-      if(running&&!ended)settleRunCoins();
       saveMeta();
     }
     else{
@@ -7542,8 +7544,11 @@
     if(running&&!ended)settleRunCoins();
     saveMeta();
   });
-  addEventListener("beforeunload",()=>{
-    if(running&&!ended)settleRunCoins();
+  addEventListener("beforeunload",e=>{
+    if(shouldProtectPageLeave()){
+      e.preventDefault();
+      e.returnValue="目前正在關卡中，離開或重新整理會中斷本局進度。確定要離開嗎？";
+    }
     saveMeta();
   });
   addEventListener("resize",positionMonitorTabs);
