@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=431;
+  const APP_VERSION=432;
   const INFINITE_STAGE=6;
   const BOSS_CHALLENGE_STAGE=7;
   ctx.imageSmoothingEnabled=false;
@@ -78,6 +78,7 @@
   let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
   let sharedTargetCache=null,sharedTargetTimer=0;
+  let allowPageUnloadOnce=false,reloadConfirmActive=false,reloadConfirmWasPaused=false;
   let debugPanelMode="perf",audioDebugTimer=0;
   let devTestProfile="mobile",devInvincible=false,devAutoUpgrade=false;
   let devTestRecorder={active:false,profile:"mobile",interval:2,elapsed:0,lastSampleAt:0,startReal:0,samples:[],perfPeaks:{},summary:null,battery:null};
@@ -7460,14 +7461,46 @@
     updateMonitorButtons();
   }
   function askLeaveStage(){
+    reloadConfirmActive=false;
     const leaveConfirmText=leaveConfirm.querySelector(".leaveConfirmText");
     if(leaveConfirmText){
       leaveConfirmText.innerHTML=isInfiniteMode()
         ?"您確定要中途離開輪迴嗎？<br>將帶走完整鑽石，擊殺點數會扣除 70%。"
         :"您確定要中途離開關卡嗎？<br>將帶走完整鑽石，但不會帶走完整擊殺點數。";
     }
+    cancelLeaveBtn.textContent="否";
+    confirmLeaveBtn.textContent="是";
     leaveConfirm.classList.add("visible");
     leaveStageBtn.classList.add("hidden");
+    beep(260,.08,.02);
+  }
+  function clearReloadConfirm(){
+    reloadConfirmActive=false;
+    cancelLeaveBtn.textContent="否";
+    confirmLeaveBtn.textContent="是";
+  }
+  function askReloadPage(){
+    if(!shouldProtectPageLeave()){
+      allowPageUnloadOnce=true;
+      location.reload();
+      return;
+    }
+    reloadConfirmActive=true;
+    reloadConfirmWasPaused=paused;
+    paused=true;
+    resetStick();
+    renderPauseStats();
+    const leaveConfirmText=leaveConfirm.querySelector(".leaveConfirmText");
+    if(leaveConfirmText){
+      leaveConfirmText.innerHTML="目前正在關卡中。<br>重新整理會中斷本局進度，確定要重新整理嗎？";
+    }
+    cancelLeaveBtn.textContent="繼續遊戲";
+    confirmLeaveBtn.textContent="重新整理";
+    pauseScreen.classList.remove("hidden");
+    pauseBtn.classList.remove("visible");
+    leaveStageBtn.classList.add("hidden");
+    leaveConfirm.classList.add("visible");
+    updateMonitorButtons();
     beep(260,.08,.02);
   }
   function resetStick(){
@@ -7522,7 +7555,16 @@
     if(running)e.preventDefault();
   },{passive:false});
   const keyMap={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right"};
-  addEventListener("keydown",e=>{if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],true);}});
+  addEventListener("keydown",e=>{
+    if(e.code==="F5"||((e.ctrlKey||e.metaKey)&&e.code==="KeyR")){
+      if(shouldProtectPageLeave()){
+        e.preventDefault();
+        askReloadPage();
+      }
+      return;
+    }
+    if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],true);}
+  });
   addEventListener("keyup",e=>{if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],false);}});
   addEventListener("blur",()=>{Object.keys(keys).forEach(k=>keys[k]=false);resetStick();});
   addEventListener("focus",()=>{ensureAudioReady();});
@@ -7545,7 +7587,7 @@
     saveMeta();
   });
   addEventListener("beforeunload",e=>{
-    if(shouldProtectPageLeave()){
+    if(shouldProtectPageLeave()&&!allowPageUnloadOnce){
       e.preventDefault();
       e.returnValue="目前正在關卡中，離開或重新整理會中斷本局進度。確定要離開嗎？";
     }
@@ -7556,11 +7598,38 @@
   resumeBtn.addEventListener("click",()=>{if(!running||ended||!paused)return;playUiClick();resumeGame();});
   leaveStageBtn.addEventListener("click",()=>{playUiClick();askLeaveStage();});
   cancelLeaveBtn.addEventListener("click",()=>{
+    if(reloadConfirmActive){
+      leaveConfirm.classList.remove("visible");
+      clearReloadConfirm();
+      if(reloadConfirmWasPaused){
+        leaveStageBtn.classList.remove("hidden");
+        pauseScreen.classList.remove("hidden");
+        paused=true;
+      }else{
+        paused=false;
+        last=performance.now();
+        pauseScreen.classList.add("hidden");
+        pauseBtn.classList.add("visible");
+      }
+      updateMonitorButtons();
+      beep(480,.06,.02);
+      return;
+    }
     leaveConfirm.classList.remove("visible");
     leaveStageBtn.classList.remove("hidden");
     beep(480,.06,.02);
   });
-  confirmLeaveBtn.addEventListener("click",()=>{playUiClick();leaveStage();});
+  confirmLeaveBtn.addEventListener("click",()=>{
+    playUiClick();
+    if(reloadConfirmActive){
+      allowPageUnloadOnce=true;
+      clearReloadConfirm();
+      saveMeta();
+      location.reload();
+      return;
+    }
+    leaveStage();
+  });
   muteBtn.addEventListener("click",toggleMute);
   reloadAudioBtn.addEventListener("click",async()=>{
     playUiClick();
