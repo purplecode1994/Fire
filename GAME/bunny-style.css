@@ -372,7 +372,7 @@
       background: #ffda57;
       box-shadow: inset -5px -5px #d9962d,5px 5px #0b0920;
     }
-    #volumeSettings {
+    #volumeSettings,#graphicsSettings {
       margin: 10px 0 14px;
       padding: 10px;
       border: 2px solid #735d9b;
@@ -380,11 +380,34 @@
       box-shadow: inset 0 0 0 2px #2e2449;
       text-align: left;
     }
-    #volumeSettings b {
+    #volumeSettings b,#graphicsSettings b {
       display: block;
       margin: 2px 0 6px;
       color: #ffe15b;
       font-size: 13px;
+    }
+    #graphicsSettings {
+      margin-top: -4px;
+    }
+    .graphicsModeRow {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 7px;
+    }
+    .graphicsModeRow button {
+      margin: 0;
+      min-height: 32px;
+      padding: 7px 4px;
+      color: #efe7ff;
+      background: #3a2c5e;
+      box-shadow: inset -4px -4px #1d1533,3px 3px #0b0920;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .graphicsModeRow button.active {
+      color: #2b2140;
+      background: #ffda57;
+      box-shadow: inset 4px 4px #d9962d,2px 2px #0b0920;
     }
     .volumeRow {
       display: grid;
