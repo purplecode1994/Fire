@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=430;
+  const APP_VERSION=431;
   const INFINITE_STAGE=6;
   const BOSS_CHALLENGE_STAGE=7;
   ctx.imageSmoothingEnabled=false;
@@ -813,7 +813,7 @@
     });
   }
   function openSettingsOverlay(message){
-    settingsHint.textContent=message||"可匯出帳號碼到其他裝置，也能從這裡進入開發模式。";
+    settingsHint.textContent=message||"調整音效、效能與帳號資料，可減少手機耗電量。";
     renderVolumeSettings();
     renderGraphicsSettings();
     settingsOverlay.classList.add("visible");
