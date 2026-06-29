@@ -499,7 +499,7 @@
       background: #5e596b;
       box-shadow: inset -5px -5px #403c48,5px 5px #0b0920;
     }
-    #devResetBtn {
+    #devResetBtn,#abilityResetBtn {
       display: block;
       width: fit-content;
       max-width: 100%;
@@ -507,6 +507,13 @@
       padding: 10px 24px;
       min-height: 0;
       white-space: nowrap;
+    }
+    #abilityResetBtn {
+      color: #2b2140;
+      background: #ffda57;
+      box-shadow: inset -5px -5px #d9962d,5px 5px #0b0920;
+    }
+    #devResetBtn {
       color: #fff2d9;
       background: #8a5d59;
       box-shadow: inset -5px -5px #5b3b39,5px 5px #0b0920;

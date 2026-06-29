@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=432;
+  const APP_VERSION=435;
   const INFINITE_STAGE=6;
   const BOSS_CHALLENGE_STAGE=7;
   ctx.imageSmoothingEnabled=false;
@@ -25,7 +25,7 @@
   const adventureBookContent=document.getElementById("adventureBookContent"),bookSubTabs=document.getElementById("bookSubTabs");
   const bookTabSkills=document.getElementById("bookTabSkills"),bookTabStages=document.getElementById("bookTabStages"),bookTabBosses=document.getElementById("bookTabBosses");
   const rewardPlaytimeEl=document.getElementById("rewardPlaytime");
-  const devModeBtn=document.getElementById("devModeBtn"),devResetBtn=document.getElementById("devResetBtn");
+  const devModeBtn=document.getElementById("devModeBtn"),devResetBtn=document.getElementById("devResetBtn"),abilityResetBtn=document.getElementById("abilityResetBtn");
   const settingsOverlay=document.getElementById("settingsOverlay"),settingsHint=document.getElementById("settingsHint");
   const accountExportBtn=document.getElementById("accountExportBtn"),accountImportBtn=document.getElementById("accountImportBtn");
   const developerEntryBtn=document.getElementById("developerEntryBtn"),closeSettingsBtn=document.getElementById("closeSettingsBtn");
@@ -70,6 +70,7 @@
   let audio=null,muted=false;
   let runCoins=0,runCoinsSettled=false,walletCoins=0,autoSaveTimer=0,coinDebugExpanded=false,testModeSilentPaused=false;
   let autoTrainingActive=false,autoTrainingSource="",autoTrainingPromptOpen=false,shopPurchasePromptOpen=false,autoTrainingSettled=false;
+  let dialogOnlyOverlayHostWasHidden=false;
   let coinSaveStatus={saveLocal:"-",saveSession:"-",metaLocal:"-",metaSession:"-",coinLocal:"-",coinSession:"-",coinCookie:"-"};
   let critSampleBuffer=null,critSampleLoading=false,critSoundLastTime=0;
   const CARROT_BASE_COOLDOWN=.72;
@@ -185,7 +186,8 @@
       desertUnlocked:false,snowUnlocked:false,forestPathUnlocked:false,forestSeaUnlocked:false,
       stage1Cleared:false,stage2Cleared:false,stage3Cleared:false,stage4Cleared:false,stage5Cleared:false,
       muted:false,cheat8888Used:false,
-      autoTrainingCharm:false,autoTrainingTickets:0,autoTrainingTicketDate:"",autoTrainingTicketBoughtToday:0,
+      autoTrainingCharm:false,autoTrainingCharmUsedMinutes:0,autoTrainingTickets:0,autoTrainingTicketDate:"",autoTrainingTicketBoughtToday:0,
+      abilityResetTickets:0,abilityResetTicketDate:"",abilityResetTicketBoughtToday:0,
       masterVolume:.8,synthVolume:.6,critVolume:.7,giantExplosionVolume:.75,
       graphicsMode:1
     };
@@ -425,9 +427,13 @@
       data.giantExplosionVolume=Math.max(0,Math.min(1,Number(data.giantExplosionVolume)));
       data.graphicsMode=Math.max(0,Math.min(2,Math.floor(Number(data.graphicsMode??1))));
       data.autoTrainingCharm=!!data.autoTrainingCharm;
+      data.autoTrainingCharmUsedMinutes=Math.max(0,Math.min(480,Math.floor(Number(data.autoTrainingCharmUsedMinutes)||0)));
       data.autoTrainingTickets=Math.max(0,Math.floor(Number(data.autoTrainingTickets)||0));
       data.autoTrainingTicketDate=String(data.autoTrainingTicketDate||"");
       data.autoTrainingTicketBoughtToday=Math.max(0,Math.floor(Number(data.autoTrainingTicketBoughtToday)||0));
+      data.abilityResetTickets=Math.max(0,Math.floor(Number(data.abilityResetTickets)||0));
+      data.abilityResetTicketDate=String(data.abilityResetTicketDate||"");
+      data.abilityResetTicketBoughtToday=Math.max(0,Math.floor(Number(data.abilityResetTicketBoughtToday)||0));
       migrateLegacyStageClears(data);
       const recoveredCoins=readStoredCoins();
       if(recoveredCoins!==null)data.coins=Math.max(Math.floor(Number(data.coins)||0),recoveredCoins);
@@ -451,9 +457,13 @@
   function saveMeta(){
     meta.coins=Math.floor(Math.max(0,Number(meta.coins)||0));
     meta.autoTrainingCharm=!!meta.autoTrainingCharm;
+    meta.autoTrainingCharmUsedMinutes=Math.max(0,Math.min(480,Math.floor(Number(meta.autoTrainingCharmUsedMinutes)||0)));
     meta.autoTrainingTickets=Math.max(0,Math.floor(Number(meta.autoTrainingTickets)||0));
     meta.autoTrainingTicketDate=String(meta.autoTrainingTicketDate||"");
     meta.autoTrainingTicketBoughtToday=Math.max(0,Math.floor(Number(meta.autoTrainingTicketBoughtToday)||0));
+    meta.abilityResetTickets=Math.max(0,Math.floor(Number(meta.abilityResetTickets)||0));
+    meta.abilityResetTicketDate=String(meta.abilityResetTicketDate||"");
+    meta.abilityResetTicketBoughtToday=Math.max(0,Math.floor(Number(meta.abilityResetTicketBoughtToday)||0));
     meta.masterVolume=volumeValue("masterVolume");
     meta.synthVolume=volumeValue("synthVolume");
     meta.critVolume=volumeValue("critVolume");
@@ -911,10 +921,14 @@
         meta.stage4Cleared?1:0,
         meta.stage5Cleared?1:0,
         meta.autoTrainingCharm?1:0,
+        meta.autoTrainingCharmUsedMinutes||0,
         meta.autoTrainingTickets||0,
         meta.autoTrainingTicketDate||"",
         meta.autoTrainingTicketBoughtToday||0,
-        graphicsMode()
+        graphicsMode(),
+        meta.abilityResetTickets||0,
+        meta.abilityResetTicketDate||"",
+        meta.abilityResetTicketBoughtToday||0
       ]
     };
   }
@@ -963,10 +977,14 @@
           stage4Cleared:data.length>=33?!!data[31]:false,
           stage5Cleared:data.length>=33?!!data[32]:false,
           autoTrainingCharm:data.length>=37?!!data[33]:false,
-          autoTrainingTickets:data.length>=37?(data[34]||0):0,
-          autoTrainingTicketDate:data.length>=37?(data[35]||""):"",
-          autoTrainingTicketBoughtToday:data.length>=37?(data[36]||0):0,
-          graphicsMode:data.length>=38?Math.max(0,Math.min(2,Math.floor(Number(data[37])||0))):1
+          autoTrainingCharmUsedMinutes:data.length>=42?(data[34]||0):0,
+          autoTrainingTickets:data.length>=42?(data[35]||0):(data.length>=37?(data[34]||0):0),
+          autoTrainingTicketDate:data.length>=42?(data[36]||""):(data.length>=37?(data[35]||""):""),
+          autoTrainingTicketBoughtToday:data.length>=42?(data[37]||0):(data.length>=37?(data[36]||0):0),
+          graphicsMode:data.length>=42?Math.max(0,Math.min(2,Math.floor(Number(data[38])||0))):(data.length>=38?Math.max(0,Math.min(2,Math.floor(Number(data[37])||0))):1),
+          abilityResetTickets:data.length>=42?(data[39]||0):(data.length>=41?(data[38]||0):0),
+          abilityResetTicketDate:data.length>=42?(data[40]||""):(data.length>=41?(data[39]||""):""),
+          abilityResetTicketBoughtToday:data.length>=42?(data[41]||0):(data.length>=41?(data[40]||0):0)
         }
       };
     }
@@ -1001,6 +1019,7 @@
           cheat8888Used:!!data.c8,
           coins:data.cn||0,
           autoTrainingCharm:!!data.atc,
+          autoTrainingCharmUsedMinutes:data.atm||0,
           autoTrainingTickets:data.att||0,
           autoTrainingTicketDate:data.atd||"",
           autoTrainingTicketBoughtToday:data.atb||0
@@ -1171,6 +1190,23 @@
       total+=metaUpgradeCostAtLevel(def,level);
     }
     return total;
+  }
+  function totalMetaAbilityLevels(){
+    let total=0;
+    for(const def of metaDefs)total+=Math.max(0,Math.floor(Number(meta[def.id])||0));
+    return total;
+  }
+  function abilityResetTicketPrice(){
+    return Math.max(50,Math.min(1000,50+totalMetaAbilityLevels()*10));
+  }
+  function resetPermanentAbilities(){
+    let refund=0;
+    for(const def of metaDefs){
+      refund+=metaSpentCost(def,meta[def.id]||0);
+      meta[def.id]=0;
+    }
+    meta.points+=refund;
+    return refund;
   }
 
   function metaBulkUpgradeInfo(def,targetCount){
@@ -1424,6 +1460,13 @@
     renderVolumeSettings();
     previewVolumeKey(key);
   }
+  function autoTrainingCharmStatusText(){
+    if(!meta.autoTrainingCharm)return "輪迴專用・自動選技・經驗 +20%";
+    const used=Math.max(0,Math.min(480,Math.floor(Number(meta.autoTrainingCharmUsedMinutes)||0)));
+    const loss=Math.min(100,Math.floor(used/480*100));
+    const remain=Math.max(0,480-used);
+    return `持有｜損耗 ${loss}%｜剩餘 ${remain} 分`;
+  }
   function renderShop(){
     syncCoinDisplay();
     if(!shopGrid)return;
@@ -1431,9 +1474,13 @@
     const canBuyCharm=!meta.autoTrainingCharm&&walletCoins>=6000;
     const ticketBought=Math.max(0,Math.floor(Number(meta.autoTrainingTicketBoughtToday)||0));
     const canBuyTicket=ticketBought<3&&walletCoins>=300;
+    const resetTicketBought=Math.max(0,Math.floor(Number(meta.abilityResetTicketBoughtToday)||0));
+    const resetTicketPrice=abilityResetTicketPrice();
+    const canBuyResetTicket=resetTicketBought<1&&walletCoins>=resetTicketPrice;
     const goods=[
-      {icon:"📿",name:"自動研修護符",state:meta.autoTrainingCharm?"SOLD":"BUY",price:6000,disabled:meta.autoTrainingCharm||!canBuyCharm,sub:meta.autoTrainingCharm?"已持有":"輪迴專用・自動選技・經驗 +20%",action:"charm"},
-      {icon:"🎟️",name:"自動研修券",state:ticketBought>=3?"SOLD":"BUY",price:300,disabled:ticketBought>=3||!canBuyTicket,sub:`一般關卡用｜持有 ${meta.autoTrainingTickets||0}｜今日 ${ticketBought}/3`,action:"ticket"}
+      {icon:"📿",name:"自動研修護符",state:meta.autoTrainingCharm?"SOLD":"BUY",price:6000,disabled:meta.autoTrainingCharm||!canBuyCharm,sub:autoTrainingCharmStatusText(),action:"charm"},
+      {icon:"🎟️",name:"自動研修券",state:ticketBought>=3?"SOLD":"BUY",price:300,disabled:ticketBought>=3||!canBuyTicket,sub:`一般關卡用｜持有 ${meta.autoTrainingTickets||0}｜今日 ${ticketBought}/3`,action:"ticket"},
+      {icon:"🔄",name:"能力重置券",state:resetTicketBought>=1?"SOLD":"BUY",price:resetTicketPrice,disabled:resetTicketBought>=1||!canBuyResetTicket,sub:`重置永久能力並退還點數｜持有 ${meta.abilityResetTickets||0}｜今日 ${resetTicketBought}/1`,action:"abilityReset"}
     ];
     shopGrid.innerHTML=goods.map((item,index)=>{
       if(Array.isArray(item)){
@@ -1461,6 +1508,10 @@
       meta.autoTrainingTicketDate=key;
       meta.autoTrainingTicketBoughtToday=0;
     }
+    if(meta.abilityResetTicketDate!==key){
+      meta.abilityResetTicketDate=key;
+      meta.abilityResetTicketBoughtToday=0;
+    }
   }
   function spendDiamonds(amount){
     syncCoinState();
@@ -1484,6 +1535,13 @@
       return {
         title:"購買自動研修券？",
         message:"自動研修券為一般關卡專用。\n進入一般關卡時可自動選擇場內技能。\n輪迴模式不會使用研修券。\n\n價格：💎 300",
+        confirmLabel:"購買"
+      };
+    }
+    if(action==="abilityReset"){
+      return {
+        title:"購買能力重置券？",
+        message:`能力重置券可在角色資訊中使用。\n使用後會重置所有永久能力，並退還已花費的強化點數。\n每日限購 1 張。\n\n價格：💎 ${formatCommaNumber(abilityResetTicketPrice())}`,
         confirmLabel:"購買"
       };
     }
@@ -1522,6 +1580,7 @@
     if(action==="charm"){
       if(meta.autoTrainingCharm||!spendDiamonds(6000)){beep(180,.08,.025,"square");return;}
       meta.autoTrainingCharm=true;
+      meta.autoTrainingCharmUsedMinutes=0;
       saveMeta();
       renderShop();
       beep(760,.12,.035,"triangle");
@@ -1532,6 +1591,17 @@
       meta.autoTrainingTickets=Math.max(0,Math.floor(Number(meta.autoTrainingTickets)||0))+1;
       meta.autoTrainingTicketBoughtToday=Math.max(0,Math.floor(Number(meta.autoTrainingTicketBoughtToday)||0))+1;
       meta.autoTrainingTicketDate=todayKey();
+      saveMeta();
+      renderShop();
+      beep(760,.12,.035,"triangle");
+      return;
+    }
+    if(action==="abilityReset"){
+      const price=abilityResetTicketPrice();
+      if((meta.abilityResetTicketBoughtToday||0)>=1||!spendDiamonds(price)){beep(180,.08,.025,"square");return;}
+      meta.abilityResetTickets=Math.max(0,Math.floor(Number(meta.abilityResetTickets)||0))+1;
+      meta.abilityResetTicketBoughtToday=Math.max(0,Math.floor(Number(meta.abilityResetTicketBoughtToday)||0))+1;
+      meta.abilityResetTicketDate=todayKey();
       saveMeta();
       renderShop();
       beep(760,.12,.035,"triangle");
@@ -2797,6 +2867,11 @@
     metaPointsEl.innerHTML=`<span class="pointDiamond"></span><span>強化點數 ${formatCostShort(meta.points)}</span>`;
     metaRecordEl.innerHTML=`總擊破 ${meta.totalKills||0}｜菁英 ${meta.totalElites||0}｜BOSS ${meta.totalBosses||0}`;
     powerBox.innerHTML=`<span class="powerLabel">戰力</span><span class="powerValue">${combatPower()}</span>`;
+    if(abilityResetBtn){
+      const tickets=Math.max(0,Math.floor(Number(meta.abilityResetTickets)||0));
+      abilityResetBtn.classList.toggle("hidden",tickets<=0);
+      abilityResetBtn.textContent=`使用能力重置券（持有 ${tickets}）`;
+    }
     devResetBtn.classList.toggle("hidden",!devModeActive);
     document.getElementById("devTestBtn").classList.toggle("hidden",!devModeActive);
     renderStageArt(currentStage);
@@ -7223,10 +7298,14 @@
   function settleAutoTrainingAfterRun(){
     if(autoTrainingSettled)return;
     autoTrainingSettled=true;
-    if(autoTrainingSource!=="charm"||!isInfiniteMode()||time<28800)return;
-    const overHours=Math.max(0,time/3600-8);
-    const breakChance=Math.min(.75,.12+overHours*.08);
-    if(Math.random()<breakChance)meta.autoTrainingCharm=false;
+    if(autoTrainingSource!=="charm"||!isInfiniteMode()||!meta.autoTrainingCharm)return;
+    const usedMinutes=Math.floor(time/60);
+    if(usedMinutes<1)return;
+    meta.autoTrainingCharmUsedMinutes=Math.max(0,Math.min(480,Math.floor(Number(meta.autoTrainingCharmUsedMinutes)||0)+usedMinutes));
+    if(meta.autoTrainingCharmUsedMinutes>=480){
+      meta.autoTrainingCharm=false;
+      meta.autoTrainingCharmUsedMinutes=0;
+    }
   }
 
   function rewardTotalLines(){
@@ -7825,14 +7904,54 @@
   testModeStartBtn.addEventListener("click",()=>{startDevTestRecording();});
   testModeStopBtn.addEventListener("click",()=>{stopDevTestRecording();});
   testModeExportBtn.addEventListener("click",()=>{playUiClick();stopDevTestRecording();exportDevTestRecording();});
+  abilityResetBtn?.addEventListener("click",()=>{
+    const tickets=Math.max(0,Math.floor(Number(meta.abilityResetTickets)||0));
+    if(tickets<=0)return;
+    const refundPreview=metaDefs.reduce((sum,def)=>sum+metaSpentCost(def,meta[def.id]||0),0);
+    settingsOverlay.classList.add("visible","dialogOnly");
+    settingsOverlay.setAttribute("aria-hidden","false");
+    openSettingsDialog({
+      title:"使用能力重置券？",
+      message:`將重置所有永久能力，並退還 ${formatCostShort(refundPreview)} 強化點數。\n目前持有 ${tickets} 張能力重置券。`,
+      confirmLabel:"使用",
+      cancelLabel:"取消",
+      onConfirm:()=>{
+        closeSettingsDialog();
+        settingsOverlay.classList.remove("visible","dialogOnly");
+        settingsOverlay.setAttribute("aria-hidden","true");
+        if(Math.max(0,Math.floor(Number(meta.abilityResetTickets)||0))<=0)return;
+        meta.abilityResetTickets=Math.max(0,Math.floor(Number(meta.abilityResetTickets)||0)-1);
+        const refund=resetPermanentAbilities();
+        saveMeta();
+        renderMeta();
+        beep(700,.13,.035,"triangle");
+        settingsOverlay.classList.add("visible","dialogOnly");
+        settingsOverlay.setAttribute("aria-hidden","false");
+        openSettingsDialog({
+          title:"能力已重置",
+          message:`已退還 ${formatCostShort(refund)} 強化點數。`,
+          confirmLabel:"確定",
+          cancelLabel:"關閉",
+          onConfirm:()=>{
+            closeSettingsDialog();
+            settingsOverlay.classList.remove("visible","dialogOnly");
+            settingsOverlay.setAttribute("aria-hidden","true");
+          },
+          onCancel:()=>{
+            settingsOverlay.classList.remove("visible","dialogOnly");
+            settingsOverlay.setAttribute("aria-hidden","true");
+          }
+        });
+      },
+      onCancel:()=>{
+        settingsOverlay.classList.remove("visible","dialogOnly");
+        settingsOverlay.setAttribute("aria-hidden","true");
+      }
+    });
+  });
   devResetBtn.addEventListener("click",()=>{
     if(!devModeActive)return;
-    let refund=0;
-    for(const def of metaDefs){
-      refund+=metaSpentCost(def,meta[def.id]||0);
-      meta[def.id]=0;
-    }
-    meta.points+=refund;
+    resetPermanentAbilities();
     saveMeta();
     renderMeta();
     beep(180,.12,.04,"square");
