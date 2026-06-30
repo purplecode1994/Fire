@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=442;
+  const APP_VERSION=443;
   const INFINITE_STAGE=8;
   const BOSS_CHALLENGE_STAGE=9;
   ctx.imageSmoothingEnabled=false;
@@ -3277,7 +3277,7 @@
     {type:"rottenwood",name:"腐木樹衛",stage:4,unlock:()=>!!meta.stage4Cleared,skill:"樹鞭・枯葉風暴・樹精投擲",stats:{hp:1801800,damage:134,defense:206,speed:26}},
     {type:"shadowtree",name:"幽影樹王",stage:5,unlock:()=>!!meta.stage5Cleared,skill:"粗樹鞭・強化風暴・毒菇迷失",stats:{hp:2784600,damage:173,defense:266,speed:24}},
     {type:"cookiemonarch",name:"奶油餅乾女王",stage:6,unlock:()=>!!meta.stage6Cleared,skill:"餅乾壓模・圓形範圍",stats:{hp:3610000,damage:225,defense:330,speed:26}},
-    {type:"nightmaremaker",name:"發條夢魘師",stage:7,unlock:()=>!!meta.stage7Cleared,skill:"發條爆衝・X型火車重傷",stats:{hp:4850000,damage:300,defense:420,speed:30}}
+    {type:"nightmaremaker",name:"發條夢魘師",stage:7,unlock:()=>!!meta.stage7Cleared,skill:"發條爆衝・隨機鐵軌重傷",stats:{hp:4850000,damage:300,defense:420,speed:30}}
   ];
   function stageAvailability(stage){
     if(stage===BOSS_CHALLENGE_STAGE)return devModeActive?"open":"locked";
@@ -5338,15 +5338,23 @@
         e.phase-=dt;
         if(e.phase<=0){
           e.phase=e.bars===1?5:e.bars===2?8:10;
+          const angle=Math.floor(rand(0,12))*Math.PI*2/12;
+          const ca=Math.abs(Math.cos(angle)),sa=Math.abs(Math.sin(angle));
+          const halfLen=Math.min(ca<.001?Infinity:W*.5/ca,sa<.001?Infinity:H*.5/sa)+20;
+          const trainDuration=clamp((halfLen*2+220)/720,.8,1.7);
           effects.push({
             kind:"toyTrainCross",
-            x:bossArena.active?bossArena.x:player.x,
-            y:bossArena.active?bossArena.y:player.y,
+            x:player.x,
+            y:player.y,
+            angle,
+            halfLen,
             width:e.bars===1?118:e.bars===2?98:82,
-            delay:1.15,
-            life:4.4,
-            maxLife:4.4,
-            trainSpeed:rand(130,200),
+            railTime:1,
+            warnTime:.45,
+            delay:1.45,
+            life:1.45+trainDuration+.5,
+            maxLife:1.45+trainDuration+.5,
+            trainDuration,
             percent:e.bars===1?.9:e.bars===2?.72:.55,
             hit:false
           });
@@ -5935,18 +5943,25 @@
         e.life-=dt;
         e.delay-=dt;
         if(e.delay<=0)e.activeTime=(e.activeTime||0)+dt;
-        if(e.delay<=0&&!e.hit&&(e.activeTime||0)>=.28){
-          e.hit=true;
-          const dx=Math.abs(player.x-e.x);
-          const dy=Math.abs(player.y-e.y);
-          if(dx<e.width*.5+player.r||dy<e.width*.5+player.r){
+        if(e.delay<=0&&!e.hit){
+          const angle=e.angle||0;
+          const cos=Math.cos(angle),sin=Math.sin(angle);
+          const dx=player.x-e.x;
+          const dy=player.y-e.y;
+          const along=dx*cos+dy*sin;
+          const perp=Math.abs(-dx*sin+dy*cos);
+          const trainT=clamp((e.activeTime||0)/(e.trainDuration||1.2),0,1);
+          const halfLen=e.halfLen||Math.max(W,H)*.6;
+          const front=-halfLen-120+trainT*(halfLen*2+240);
+          if(perp<e.width*.5+player.r&&along>front-190&&along<front+40){
+            e.hit=true;
             hurtPercent(e.percent,false,true,true);
             poisonTimer=Math.max(poisonTimer,10);
             poisonRate=Math.max(poisonRate,0);
             text(player.x,player.y-58,"重傷 10s","#ff6a75",20,"boss");
+            burst(e.x,e.y,"#ff934f",20);
+            beep(62,.35,.06,"sawtooth");
           }
-          burst(e.x,e.y,"#ff934f",20);
-          beep(62,.35,.06,"sawtooth");
         }
       }
       if(e.kind==="leafStorm"){
@@ -6870,41 +6885,41 @@
       if(e.kind==="toyTrainCross"){
         const p=worldToScreen(e.x,e.y);
         const active=e.delay<=0;
-        const alpha=active?clamp(e.life*2,0,1):.36+.22*Math.sin(time*20);
+        const railTime=e.railTime||1;
+        const born=(e.maxLife||1)-e.life;
+        const railAlpha=clamp(born/railTime,0,1)*clamp(e.life*2,0,1);
+        const warning=born>=railTime&&!active;
+        const halfLen=e.halfLen||Math.max(W,H)*.6;
+        const width=e.width||90;
         ctx.save();
-        ctx.globalAlpha=active?.78:alpha;
-        ctx.fillStyle=active?"#241d20":"#9d2639";
-        rect(0,p.y-e.width*.34,W,e.width*.68,ctx.fillStyle);
-        rect(p.x-e.width*.34,0,e.width*.68,H,ctx.fillStyle);
-        ctx.globalAlpha=active?.9:.75;
-        ctx.strokeStyle=active?"#7f6f55":"#ff4058";
-        ctx.lineWidth=5;
+        ctx.translate(p.x,p.y);
+        ctx.rotate(e.angle||0);
+        ctx.globalAlpha=railAlpha*(active?.88:.62);
+        ctx.fillStyle=active?"#211b20":"#33262c";
+        ctx.fillRect(-halfLen,-width*.34,halfLen*2,width*.68);
+        ctx.globalAlpha=railAlpha*(warning?.85:active?.92:.72);
+        ctx.strokeStyle=warning?"#ff4058":active?"#8c7a58":"#7f6f55";
+        ctx.lineWidth=warning?7:5;
         ctx.beginPath();
-        ctx.moveTo(0,p.y-e.width*.22);ctx.lineTo(W,p.y-e.width*.22);
-        ctx.moveTo(0,p.y+e.width*.22);ctx.lineTo(W,p.y+e.width*.22);
-        ctx.moveTo(p.x-e.width*.22,0);ctx.lineTo(p.x-e.width*.22,H);
-        ctx.moveTo(p.x+e.width*.22,0);ctx.lineTo(p.x+e.width*.22,H);
+        ctx.moveTo(-halfLen,-width*.22);ctx.lineTo(halfLen,-width*.22);
+        ctx.moveTo(-halfLen,width*.22);ctx.lineTo(halfLen,width*.22);
         ctx.stroke();
-        ctx.globalAlpha=active?.75:.45;
-        ctx.fillStyle=active?"#d9ac5c":"#ff9ca8";
-        for(let x=-20;x<W+20;x+=42)rect(x,p.y-3,18,6,ctx.fillStyle);
-        for(let y=-20;y<H+20;y+=42)rect(p.x-3,y,6,18,ctx.fillStyle);
+        ctx.globalAlpha=railAlpha*(warning?.78:active?.72:.45);
+        ctx.fillStyle=warning?"#ff9ca8":"#d9ac5c";
+        for(let x=-halfLen+12;x<halfLen;x+=42)rect(x,-3,18,6,ctx.fillStyle);
         if(active){
           const t=e.activeTime||0;
-          const speed=e.trainSpeed||165;
-          const hx=(-170+t*speed)%(W+340)-90;
-          const vx=p.x;
-          const vy=(-190+t*speed*.92)%(H+380)-100;
-          const drawTrainCar=(x,y,w,h,vertical=false)=>{
+          const trainT=clamp(t/(e.trainDuration||1.2),0,1);
+          const head=-halfLen-120+trainT*(halfLen*2+240);
+          const drawTrainCar=(x,y,w,h)=>{
             rect(x-w/2,y-h/2,w,h,"#202532");
             rect(x-w/2+4,y-h/2+4,w-8,h-8,"#44536b");
-            rect(x-w/2+8,y-h/2+7,vertical?w-16:12,vertical?12:h-14,"#ffe46a");
+            rect(x-w/2+8,y-h/2+7,12,h-14,"#ffe46a");
             rect(x+w/2-10,y-h/2+6,6,h-12,"#d75b48");
             rect(x-w/2+5,y+h/2-5,w-10,3,"#111217");
           };
           ctx.globalAlpha=clamp(e.life*2,0,1);
-          for(let i=0;i<3;i++)drawTrainCar(hx-i*54,p.y,44,34,false);
-          for(let i=0;i<3;i++)drawTrainCar(vx,vy-i*54,34,44,true);
+          for(let i=0;i<4;i++)drawTrainCar(head-i*54,0,46,34);
         }
         ctx.restore();
         continue;
