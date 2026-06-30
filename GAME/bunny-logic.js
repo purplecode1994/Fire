@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=443;
+  const APP_VERSION=444;
   const INFINITE_STAGE=8;
   const BOSS_CHALLENGE_STAGE=9;
   ctx.imageSmoothingEnabled=false;
@@ -4628,7 +4628,7 @@
   function beginCarrotVolley(){
     if(!enemies.length&&!chests.some(c=>!c.opened))return false;
     const bossFight=finalPhase==="fight";
-    pendingCarrotShots=bossFight?1:Math.max(1,player.projectiles);
+    pendingCarrotShots=Math.max(1,Math.min(6,player.projectiles));
     carrotVolley++;
     if(!bossFight&&player.projectiles>=6&&giantCarrotCooldown<=0){
       const target=getSharedTarget();
@@ -4648,21 +4648,45 @@
     const targetInfo=pickReservedAwareTarget(player.damage*player.areaDamage);
     const target=targetInfo.target;
     const bossFight=finalPhase==="fight";
-    const volleyCount=bossFight?1:Math.max(1,Math.min(6,player.projectiles));
+    const volleyCount=Math.max(1,Math.min(6,player.projectiles));
     const volleyIndex=Math.max(0,Math.min(volleyCount-1,volleyCount-pendingCarrotShots));
-    const spreadStep=volleyCount<=1?0:0.095;
+    const spreadStep=bossFight?0:(volleyCount<=1?0:0.095);
     const spreadOffset=volleyCount<=1?0:(volleyIndex-(volleyCount-1)/2)*spreadStep;
     let angle;
     if(target)angle=Math.atan2(target.y-player.y,target.x-player.x)+spreadOffset+rand(-.01,.01);
     else angle=(player.facing<0?Math.PI:0)+spreadOffset+rand(-.01,.01);
-    shots.push({
+    const shot={
       x:player.x,y:player.y,
       vx:Math.cos(angle)*520,vy:Math.sin(angle)*520,
       r:6,life:1.8,
       damage:player.damage*player.areaDamage,pierce:bossFight?0:player.pierce,angle,
       reservedTargetId:target&&!("opened" in target)?target.id:0,
       reservedDamage:targetInfo.reservedAmount||0
-    });
+    };
+    if(bossFight&&target&&!("opened" in target)){
+      const baseAngle=Math.atan2(target.y-player.y,target.x-player.x);
+      const fan=volleyCount<=1?0:1.22;
+      const fanStep=volleyCount<=1?0:fan/(volleyCount-1);
+      const curveOffset=(volleyIndex-(volleyCount-1)/2)*fanStep;
+      const launchAngle=baseAngle+curveOffset;
+      const d=Math.max(80,Math.hypot(target.x-player.x,target.y-player.y));
+      const controlDist=clamp(d*.58,90,280);
+      const duration=clamp(d/570,.38,.92);
+      shot.curveBoss=true;
+      shot.curveAge=0;
+      shot.curveDuration=duration;
+      shot.sx=player.x;
+      shot.sy=player.y;
+      shot.cx=player.x+Math.cos(launchAngle)*controlDist;
+      shot.cy=player.y+Math.sin(launchAngle)*controlDist;
+      shot.tx=target.x;
+      shot.ty=target.y;
+      shot.vx=Math.cos(launchAngle)*520;
+      shot.vy=Math.sin(launchAngle)*520;
+      shot.angle=launchAngle;
+      shot.life=duration+.45;
+    }
+    shots.push(shot);
   }
 
   function firePet(){
@@ -5539,7 +5563,22 @@
   function updateShots(dt,list,isPet=false){
     for(const s of list){
       countPerfWork("projectileDraw");
-      s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;
+      if(s.curveBoss){
+        const ox=s.x,oy=s.y;
+        s.curveAge=(s.curveAge||0)+dt;
+        const t=clamp(s.curveAge/Math.max(.1,s.curveDuration||1),0,1);
+        const u=1-t;
+        s.x=u*u*s.sx+2*u*t*s.cx+t*t*s.tx;
+        s.y=u*u*s.sy+2*u*t*s.cy+t*t*s.ty;
+        s.vx=(s.x-ox)/Math.max(dt,.001);
+        s.vy=(s.y-oy)/Math.max(dt,.001);
+        s.angle=Math.atan2(s.vy,s.vx);
+        if(t>=1)s.life=Math.min(s.life,.08);
+      }else{
+        s.x+=s.vx*dt;
+        s.y+=s.vy*dt;
+      }
+      s.life-=dt;
       if(s.life<=0){
         releaseShotReservation(s);
         continue;
