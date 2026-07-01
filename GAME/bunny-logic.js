@@ -6,9 +6,14 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=444;
-  const INFINITE_STAGE=8;
-  const BOSS_CHALLENGE_STAGE=9;
+  const APP_VERSION=499;
+  const INFINITE_STAGE=12;
+  const BOSS_CHALLENGE_STAGE=13;
+  const EVENT_STAGE=14;
+  const EVENT_DURATION=600;
+  const EVENT_DAILY_LIMIT=3;
+  const RARE_BREAK_STONE_PRICE=30;
+  const EQUIPMENT_QUALITY_ORDER=["rare","uncommon","epic","legendary","mythic","immortal","eternal"];
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -18,10 +23,10 @@
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
   const autoTrainingGuard=document.getElementById("autoTrainingGuard");
   const characterScreen=document.getElementById("characterScreen"),rewardScreen=document.getElementById("rewardScreen"),stageScreen=document.getElementById("stageScreen"),adventureBookScreen=document.getElementById("adventureBookScreen"),shopScreen=document.getElementById("shopScreen");
-  const volumeSettings=document.getElementById("volumeSettings"),graphicsSettings=document.getElementById("graphicsSettings");
+  const volumeSettings=document.getElementById("volumeSettings"),graphicsSettings=document.getElementById("graphicsSettings"),computeSettings=document.getElementById("computeSettings");
   const rewardTrack=document.getElementById("rewardTrackModal"),accountBox=document.getElementById("accountBox");
   const pauseScreen=document.getElementById("pauseScreen"),pauseStats=document.getElementById("pauseStats");
-  const metaStatsEl=document.getElementById("metaStats"),metaPointsEl=document.getElementById("metaPoints"),metaRecordEl=document.getElementById("metaRecord"),powerBox=document.getElementById("powerBox");
+  const metaStatsEl=document.getElementById("metaStats"),metaPointsEl=document.getElementById("metaPoints"),metaRecordEl=document.getElementById("metaRecord"),powerBox=document.getElementById("powerBox"),characterModeTabs=document.getElementById("characterModeTabs"),abilityPanelBtn=document.getElementById("abilityPanelBtn"),equipmentPanelBtn=document.getElementById("equipmentPanelBtn"),equipmentPanel=document.getElementById("equipmentPanel");
   const adventureBookContent=document.getElementById("adventureBookContent"),bookSubTabs=document.getElementById("bookSubTabs");
   const bookTabSkills=document.getElementById("bookTabSkills"),bookTabStages=document.getElementById("bookTabStages"),bookTabBosses=document.getElementById("bookTabBosses");
   const rewardPlaytimeEl=document.getElementById("rewardPlaytime");
@@ -37,13 +42,13 @@
   const testModeMobileBtn=document.getElementById("testModeMobileBtn"),testModeDesktopBtn=document.getElementById("testModeDesktopBtn");
   const testModeStartBtn=document.getElementById("testModeStartBtn"),testModeStopBtn=document.getElementById("testModeStopBtn"),testModeExportBtn=document.getElementById("testModeExportBtn");
   const testInvincibleBtn=document.getElementById("testInvincibleBtn"),testAutoSkillBtn=document.getElementById("testAutoSkillBtn");
-  const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText"),coinBox=document.getElementById("coinBox"),coinCountEl=document.getElementById("coinCount"),coinDevSubBtn=document.getElementById("coinDevSubBtn"),coinDevAddBtn=document.getElementById("coinDevAddBtn"),coinDebugBox=document.getElementById("coinDebugBox"),shopCoinCount=document.getElementById("shopCoinCount"),shopGrid=document.getElementById("shopGrid");
-  const stageArt=document.getElementById("stageArt"),stageName=document.getElementById("stageName"),stagePower=document.getElementById("stagePower");
+  const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText"),coinBox=document.getElementById("coinBox"),coinCountEl=document.getElementById("coinCount"),coinDevSubBtn=document.getElementById("coinDevSubBtn"),coinDevAddBtn=document.getElementById("coinDevAddBtn"),coinDebugBox=document.getElementById("coinDebugBox"),shopCoinCount=document.getElementById("shopCoinCount"),shopGrid=document.getElementById("shopGrid"),shopTitle=document.getElementById("shopTitle"),shopModeShopBtn=document.getElementById("shopModeShopBtn"),shopModeForgeBtn=document.getElementById("shopModeForgeBtn"),shopModeEventBtn=document.getElementById("shopModeEventBtn");
+  const stageArt=document.getElementById("stageArt"),stageName=document.getElementById("stageName"),stagePower=document.getElementById("stagePower"),homeStageBadgeCanvas=document.getElementById("homeStageBadgeCanvas"),homeStageBadgeText=document.querySelector(".homeStageBadgeText");
   const keys={up:false,down:false,left:false,right:false};
   if(settingsOverlay&&settingsOverlay.parentElement!==wrap)wrap.appendChild(settingsOverlay);
   if(settingsDialog&&settingsDialog.parentElement!==wrap)wrap.appendChild(settingsDialog);
   const stick={active:false,pointerId:null,x:0,y:0,startX:0,startY:0};
-  let running=false,paused=false,ended=false,last=0,time=0,spawnClock=0,shotClock=0,battleStartDelay=0;
+  let running=false,paused=false,ended=false,last=0,time=0,spawnClock=0,shotClock=0,battleStartDelay=0,computeFrameCount=0;
   let giantCarrotCooldown=0;
   let enemies=[],shots=[],enemyShots=[],gems=[],effects=[],texts=[],areas=[],petShots=[],bananas=[],chests=[],pickups=[],bossObstacles=[];
   let groundCache={canvas:null,ctx:null,zone:null,firstX:null,firstY:null,cols:0,rows:0,grid:64};
@@ -59,7 +64,7 @@
   let encirclementPressure=0,encirclementCharge=0,encirclementSampleClock=0,encirclementPressureRounds=0;
   let encirclementReservedHp=0,encirclementSectorBits=0,encirclementSectorCount=0,encirclementPrewarn=false,encirclementDebts=[];
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
-  let runRewarded=false,transitioning=false;
+  let runRewarded=false,activityRewarded=false,transitioning=false;
   let settingsDialogState=null;
   let bookMainTab="skills",bookStageTab=1;
   const BATTLE_START_DELAY=1.6;
@@ -83,7 +88,7 @@
   let debugPanelMode="perf",audioDebugTimer=0;
   let devTestProfile="mobile",devInvincible=false,devAutoUpgrade=false;
   let devTestRecorder={active:false,profile:"mobile",interval:2,elapsed:0,lastSampleAt:0,startReal:0,samples:[],perfPeaks:{},summary:null,battery:null};
-  const IMPLEMENTED_STAGE_COUNT=7;
+  const IMPLEMENTED_STAGE_COUNT=11;
   let audioDebugCurrent={
     total:0,beep:0,external:0,xp:0,crit:0,
     ui:0,pickup:0,smallCarrot:0,giantLaunch:0,giantExplosion:0,
@@ -106,17 +111,45 @@
   const COIN_COOKIE_KEY="bunnyCarrotSurvivorsCoinsCookieV1";
   const SAVE_KEY="bunnyCarrotSurvivorsSaveV2";
   const BASE_META_DAMAGE=18;
+  const EQUIPMENT_UNLOCK_POWER=20000;
+  const EVENT_UNLOCK_POWER=20000;
+  const EQUIPMENT_DEFS={
+    bittenCarrot:{id:"bittenCarrot",name:"啃過的胡蘿蔔",type:"weapon",quality:"normal",attack:18},
+    wholeCarrot:{id:"wholeCarrot",name:"完整的胡蘿蔔",type:"weapon",quality:"rare",attack:100,price:5000},
+    soulRing:{id:"soulRing",name:"獵魂戒指",type:"ring",quality:"rare",price:3500,pointBonus:.05,pointBonusPerForge:.01,forge:{cost:100,success:.9,pointBonus:.01}}
+  };
+  const EQUIPMENT_QUALITY={
+    normal:{name:"一般",className:"normal",color:"#d8d3c8"},
+    rare:{name:"稀有",className:"rare",color:"#56b7ff"},
+    uncommon:{name:"罕見",className:"uncommon",color:"#bb7cff"},
+    epic:{name:"史詩",className:"epic",color:"#ff9f3f"},
+    legendary:{name:"傳說",className:"legendary",color:"#5ee071"},
+    mythic:{name:"神話",className:"mythic",color:"#ff5f8e"},
+    immortal:{name:"不朽",className:"immortal",color:"#f3f5ff"},
+    eternal:{name:"永恆",className:"eternal",color:"#ffe66b"}
+  };
+  // 裝備品質階級：稀有 -> 罕見 -> 史詩 -> 傳說 -> 神話 -> 不朽 -> 永恆。
+  // 一般=無框；活動關卡統一為強化試煉，產出活動硬幣後由活動商店兌換原石。
+  // 鍛造屋預備：藍框以上可鍛造，單件最多 +10；每日鍛造最多 7 次。
+  const FORGE_DAILY_LIMIT=7;
+  const FORGE_RULES={
+    rare:{cost:120,success:.9,attack:8},
+    uncommon:{cost:220,success:.75,attack:14},
+    legendary:{cost:420,success:.55,attack:24},
+    epic:{cost:700,success:.4,attack:40}
+  };
   const BASE_META_LIFE=100;
   const META_DAMAGE_STEP=1.2;
   const META_LIFE_STEP=8;
   const META_DAMAGE_TIER_GROWTH=.002;
   const META_LIFE_TIER_GROWTH=.005;
   const META_REGEN_BASE_STEP=.32;
-  const META_REGEN_STAGE_STEP=.02;
+  const META_REGEN_STAGE_STEP=.013;
   const MAX_CRIT_DAMAGE_LEVEL=100;
   const MAX_CRIT_DAMAGE_MULTIPLIER=3;
   const META_CRIT_DAMAGE_STEP=(MAX_CRIT_DAMAGE_MULTIPLIER-1.6)/MAX_CRIT_DAMAGE_LEVEL;
   const MAX_META_ARMOR_PEN=.7;
+  const MAX_TOTAL_ARMOR_PEN=1;
   const MAX_PLAYER_LEVEL=100;
   const FIXED_MAGNET_RANGE=120;
   const BURST_RADIUS_CAP=170;
@@ -162,34 +195,43 @@
     if(safeLevel<60)return 1.2;
     return 1.25;
   }
+  function metaDefCap(def){
+    if(!def||def.cap===undefined)return undefined;
+    return def.cap;
+  }
 
   const metaDefs=[
-    {id:"damage",name:"攻擊力",cost:5,desc:`每級 +${META_DAMAGE_STEP} 攻擊力；每10級成長 +${(META_DAMAGE_TIER_GROWTH*100).toFixed(1)}%`,value:m=>`+${scaledMetaGain(m.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
+    {id:"damage",name:"攻擊力",cost:5,cap:200,desc:`每級 +${META_DAMAGE_STEP} 攻擊力；每10級成長 +${(META_DAMAGE_TIER_GROWTH*100).toFixed(1)}%，最高 LV200`,value:m=>`+${scaledMetaGain(m.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
     {id:"crit",name:"爆擊率",cost:8,cap:100,desc:"分3階段成長，LV100 = 100%",value:m=>`${Math.round(metaCritChance(m.crit)*1000)/10}%`},
     {id:"speed",name:"攻擊速度",cost:7,cap:100,desc:"+3% 初始攻速，最高 LV100",value:m=>`+${Math.min(100,m.speed)*3}%`},
     {id:"critDamage",name:"爆擊傷害",cost:6,cap:MAX_CRIT_DAMAGE_LEVEL,desc:"分3階段成長，LV100 = 300%",value:m=>`${Math.round(baseMetaCritDamageMultiplier(m.critDamage)*100)}%`},
-    {id:"life",name:"生命力",cost:4,desc:`每級 +${META_LIFE_STEP} 最大生命；每10級成長 +${(META_LIFE_TIER_GROWTH*100).toFixed(1)}%`,value:m=>`+${scaledMetaGain(m.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
-    {id:"regen",name:"回復力",cost:10,desc:`每級 +${META_REGEN_BASE_STEP.toFixed(2)} HP/秒；每10級成長 +${META_REGEN_STAGE_STEP.toFixed(2)}`,value:m=>formatMetaRegenValue(Math.max(0,m.regen||0))},
+    {id:"life",name:"生命力",cost:4,cap:200,desc:`每級 +${META_LIFE_STEP} 最大生命；每10級成長 +${(META_LIFE_TIER_GROWTH*100).toFixed(1)}%，最高 LV200`,value:m=>`+${scaledMetaGain(m.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
+    {id:"regen",name:"回復力",cost:10,cap:200,desc:`每級 +${META_REGEN_BASE_STEP.toFixed(2)} HP/秒；每10級成長 +${META_REGEN_STAGE_STEP.toFixed(3)}，最高 LV200`,value:m=>formatMetaRegenValue(Math.max(0,m.regen||0))},
     {id:"armorPen",name:"無視防禦",cost:12,cap:100,unlock:m=>m.crit>=48,desc:"+0.7% 無視敵人防禦，最高 LV100（70%）",value:m=>`${(Math.min(100,m.armorPen)*0.7).toFixed(1).replace(/\\.0$/,"")}%`}
   ];
   let meta=loadMeta();
+  normalizeMetaCaps();
+  ensureEquipmentState();
   syncCoinState(true);
   let devModeActive=false;
+  let shopMode="shop";
+  let forgeMessage="";
   muted=!!meta.muted;
 
   function defaultMeta(){
     return{
       points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,
       totalDeathKills:0,totalDeaths:0,bestInfiniteSeconds:0,
-      infiniteTotalKills:0,coins:0,
+      infiniteTotalKills:0,coins:0,activityCoins:0,rareBreakStones:0,activityRunDate:"",activityRunsToday:0,
       claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,
+      equipmentUnlockSeen:false,equipmentInventory:["bittenCarrot"],equippedWeaponId:"bittenCarrot",equippedRingId:"",shopBoughtWholeCarrot:false,equipmentEnhance:{},equipmentBreakthrough:{},forgeDailyDate:"",forgeDailyUsed:0,
       desertUnlocked:false,snowUnlocked:false,forestPathUnlocked:false,forestSeaUnlocked:false,cookieUnlocked:false,toyUnlocked:false,
-      stage1Cleared:false,stage2Cleared:false,stage3Cleared:false,stage4Cleared:false,stage5Cleared:false,stage6Cleared:false,stage7Cleared:false,
+      stage1Cleared:false,stage2Cleared:false,stage3Cleared:false,stage4Cleared:false,stage5Cleared:false,stage6Cleared:false,stage7Cleared:false,stage8Cleared:false,stage9Cleared:false,stage10Cleared:false,stage11Cleared:false,
       muted:false,cheat8888Used:false,
       autoTrainingCharm:false,autoTrainingCharmUsedMinutes:0,autoTrainingTickets:0,autoTrainingTicketDate:"",autoTrainingTicketBoughtToday:0,
       abilityResetTickets:0,abilityResetTicketDate:"",abilityResetTicketBoughtToday:0,
       masterVolume:.8,synthVolume:.6,critVolume:.7,giantExplosionVolume:.75,
-      graphicsMode:1
+      graphicsMode:1,computeMode:1
     };
   }
 
@@ -426,6 +468,7 @@
       data.critVolume=Math.max(0,Math.min(1,Number(data.critVolume)));
       data.giantExplosionVolume=Math.max(0,Math.min(1,Number(data.giantExplosionVolume)));
       data.graphicsMode=Math.max(0,Math.min(2,Math.floor(Number(data.graphicsMode??1))));
+      data.computeMode=Math.max(0,Math.min(2,Math.floor(Number(data.computeMode??1))));
       data.autoTrainingCharm=!!data.autoTrainingCharm;
       data.autoTrainingCharmUsedMinutes=Math.max(0,Math.min(480,Math.floor(Number(data.autoTrainingCharmUsedMinutes)||0)));
       data.autoTrainingTickets=Math.max(0,Math.floor(Number(data.autoTrainingTickets)||0));
@@ -434,6 +477,11 @@
       data.abilityResetTickets=Math.max(0,Math.floor(Number(data.abilityResetTickets)||0));
       data.abilityResetTicketDate=String(data.abilityResetTicketDate||"");
       data.abilityResetTicketBoughtToday=Math.max(0,Math.floor(Number(data.abilityResetTicketBoughtToday)||0));
+      data.activityCoins=Math.max(0,Math.floor(Number(data.activityCoins)||0));
+      data.rareBreakStones=Math.max(0,Math.floor(Number(data.rareBreakStones)||0));
+      data.activityRunDate=String(data.activityRunDate||"");
+      data.activityRunsToday=Math.max(0,Math.floor(Number(data.activityRunsToday)||0));
+      if(!data.equipmentBreakthrough||typeof data.equipmentBreakthrough!=="object"||Array.isArray(data.equipmentBreakthrough))data.equipmentBreakthrough={};
       migrateLegacyStageClears(data);
       const recoveredCoins=readStoredCoins();
       if(recoveredCoins!==null)data.coins=Math.max(Math.floor(Number(data.coins)||0),recoveredCoins);
@@ -466,11 +514,17 @@
     meta.abilityResetTickets=Math.max(0,Math.floor(Number(meta.abilityResetTickets)||0));
     meta.abilityResetTicketDate=String(meta.abilityResetTicketDate||"");
     meta.abilityResetTicketBoughtToday=Math.max(0,Math.floor(Number(meta.abilityResetTicketBoughtToday)||0));
+    meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0));
+    meta.rareBreakStones=Math.max(0,Math.floor(Number(meta.rareBreakStones)||0));
+    meta.activityRunDate=String(meta.activityRunDate||"");
+    meta.activityRunsToday=Math.max(0,Math.floor(Number(meta.activityRunsToday)||0));
+    if(!meta.equipmentBreakthrough||typeof meta.equipmentBreakthrough!=="object"||Array.isArray(meta.equipmentBreakthrough))meta.equipmentBreakthrough={};
     meta.masterVolume=volumeValue("masterVolume");
     meta.synthVolume=volumeValue("synthVolume");
     meta.critVolume=volumeValue("critVolume");
     meta.giantExplosionVolume=volumeValue("giantExplosionVolume");
     meta.graphicsMode=graphicsMode();
+    meta.computeMode=computeMode();
     walletCoins=meta.coins;
     const raw=JSON.stringify(meta);
     coinSaveStatus.saveLocal=safeSetStorage(()=>localStorage,SAVE_KEY,raw)?"ok":"fail";
@@ -510,7 +564,12 @@
   }
   function currentStageLabel(){
     if(isBossChallengeMode())return "頭目挑戰";
+    if(currentStage===EVENT_STAGE)return "強化試煉";
     if(isInfiniteMode())return infiniteZoneName();
+    if(currentStage===11)return "虛空核心";
+    if(currentStage===10)return "星夜鐘塔";
+    if(currentStage===9)return "海底遺跡";
+    if(currentStage===8)return "熔岩工坊";
     if(currentStage===7)return "玩具夢工廠";
     if(currentStage===6)return "奶油餅乾屋";
     if(currentStage===5)return "幽影樹海";
@@ -518,6 +577,164 @@
     if(currentStage===3)return "雪原";
     if(currentStage===2)return "沙漠";
     return "菜園";
+  }
+  function homeStageBadgeLabel(stage=currentStage){
+    if(stage===INFINITE_STAGE)return "輪迴";
+    if(stage===BOSS_CHALLENGE_STAGE)return "頭目";
+    if(stage===EVENT_STAGE)return "試煉";
+    const labels={1:"菜園",2:"沙漠",3:"雪原",4:"林徑",5:"樹海",6:"餅乾屋",7:"夢工廠",8:"熔岩",9:"海底",10:"鐘塔",11:"虛空"};
+    return labels[stage]||"菜園";
+  }
+  function updateHomeStageBadge(stage=currentStage){
+    if(homeStageBadgeText)homeStageBadgeText.innerHTML=`我的<br>${homeStageBadgeLabel(stage)}`;
+    if(!homeStageBadgeCanvas)return;
+    const bctx=homeStageBadgeCanvas.getContext("2d");
+    if(!bctx)return;
+    const w=homeStageBadgeCanvas.width,h=homeStageBadgeCanvas.height,cx=w/2,cy=h/2;
+    bctx.clearRect(0,0,w,h);
+    bctx.imageSmoothingEnabled=false;
+    const palettes={
+      1:["#9bd889","#6fac5e","#523323","#f17910"],
+      2:["#f4c15e","#c68931","#6d4525","#f8dc73"],
+      3:["#d8f4ff","#8cc7df","#31546d","#ffffff"],
+      4:["#65448f","#224735","#111822","#d8d0ff"],
+      5:["#444565","#193421","#0c1119","#aab3ff"],
+      6:["#ffc2d6","#f5d7a2","#81544d","#ffffff"],
+      7:["#8ec9ef","#e48b55","#4a5c85","#ffdd5a"],
+      8:["#e15b32","#6d251e","#251214","#ffb347"],
+      9:["#56c9e1","#1b566d","#092938","#9ff6ff"],
+      10:["#58458f","#1b1730","#f1c95e","#fff0a8"],
+      11:["#9d5cff","#12091f","#32104d","#ff8cff"],
+      [INFINITE_STAGE]:["#9f57ff","#160821","#4d197a","#ff7dff"],
+      [EVENT_STAGE]:["#68d7ff","#14384b","#1f7b9a","#ffe45f"],
+      [BOSS_CHALLENGE_STAGE]:["#a33a3a","#1d0d16","#651c2e","#ffdb6c"]
+    };
+    const p=palettes[stage]||palettes[1];
+    bctx.save();
+    bctx.beginPath();
+    bctx.arc(cx,cy,39,0,Math.PI*2);
+    bctx.clip();
+    const g=bctx.createLinearGradient(0,0,0,h);
+    g.addColorStop(0,p[0]);
+    g.addColorStop(.48,p[1]);
+    g.addColorStop(1,p[2]);
+    bctx.fillStyle=g;
+    bctx.fillRect(0,0,w,h);
+    bctx.fillStyle="rgba(255,255,255,.72)";
+    bctx.fillRect(18,23,17,4);
+    bctx.fillRect(47,17,15,4);
+    bctx.fillStyle="rgba(0,0,0,.2)";
+    bctx.fillRect(0,50,w,36);
+    bctx.restore();
+    bctx.lineWidth=5;
+    bctx.strokeStyle="#2d1b21";
+    bctx.beginPath();
+    bctx.arc(cx,cy,39,0,Math.PI*2);
+    bctx.stroke();
+    bctx.lineWidth=3;
+    bctx.strokeStyle="#b58b61";
+    bctx.beginPath();
+    bctx.arc(cx,cy,35,0,Math.PI*2);
+    bctx.stroke();
+    bctx.save();
+    bctx.translate(cx,cy+6);
+    if(stage===1){
+      bctx.restore();
+      bctx.save();
+      bctx.beginPath();
+      bctx.arc(cx,cy,34,0,Math.PI*2);
+      bctx.clip();
+      const sky=bctx.createLinearGradient(0,10,0,63);
+      sky.addColorStop(0,"#f7a06b");
+      sky.addColorStop(.55,"#f8c281");
+      sky.addColorStop(1,"#7b442e");
+      bctx.fillStyle=sky;
+      bctx.fillRect(8,8,70,70);
+      bctx.fillStyle="#ffe0a0";
+      bctx.fillRect(14,36,58,8);
+      bctx.fillStyle="#5a2f20";
+      bctx.fillRect(5,49,78,28);
+      bctx.fillStyle="#7c4327";
+      bctx.fillRect(12,45,14,7);
+      bctx.fillRect(29,52,18,6);
+      bctx.fillRect(51,47,15,7);
+      bctx.fillStyle="#3c211b";
+      bctx.fillRect(4,58,78,18);
+      bctx.fillStyle="#9b5a32";
+      bctx.fillRect(18,61,12,4);
+      bctx.fillRect(42,64,18,4);
+      bctx.fillRect(58,56,13,4);
+      bctx.fillStyle="#d85b14";
+      bctx.fillRect(37,36,17,22);
+      bctx.fillRect(40,55,11,9);
+      bctx.fillStyle="#ff7f19";
+      bctx.fillRect(34,31,18,21);
+      bctx.fillRect(38,50,12,10);
+      bctx.fillStyle="#ffb13f";
+      bctx.fillRect(38,35,6,5);
+      bctx.fillStyle="#e6a05a";
+      bctx.fillRect(41,45,9,3);
+      bctx.fillStyle="#123f2b";
+      bctx.fillRect(42,18,8,17);
+      bctx.fillRect(33,25,9,8);
+      bctx.fillRect(51,26,9,8);
+      bctx.fillStyle="#2f8a32";
+      bctx.fillRect(43,16,9,14);
+      bctx.fillRect(31,24,10,9);
+      bctx.fillRect(52,25,9,9);
+      bctx.fillStyle="#7bc44b";
+      bctx.fillRect(46,18,4,7);
+      bctx.fillRect(35,26,4,4);
+      bctx.fillRect(54,27,4,4);
+      bctx.restore();
+      bctx.lineWidth=5;
+      bctx.strokeStyle="#2d1b21";
+      bctx.beginPath();
+      bctx.arc(cx,cy,39,0,Math.PI*2);
+      bctx.stroke();
+      bctx.lineWidth=4;
+      bctx.strokeStyle="#8e4f2f";
+      bctx.beginPath();
+      bctx.arc(cx,cy,34,0,Math.PI*2);
+      bctx.stroke();
+      bctx.strokeStyle="#b87544";
+      bctx.lineWidth=3;
+      bctx.beginPath();
+      bctx.arc(cx,cy,29,Math.PI*.08,Math.PI*.92);
+      bctx.stroke();
+      bctx.save();
+      bctx.translate(cx,cy+6);
+    }else if(stage===2){
+      bctx.fillStyle="#d99b39";
+      bctx.beginPath();bctx.moveTo(-32,22);bctx.lineTo(-3,-5);bctx.lineTo(22,22);bctx.fill();
+      bctx.fillStyle="#ffe15b";
+      bctx.beginPath();bctx.arc(22,-17,10,0,Math.PI*2);bctx.fill();
+      bctx.fillStyle="#21794a";bctx.fillRect(-26,0,5,24);bctx.fillRect(12,4,5,19);
+    }else if(stage===3){
+      bctx.fillStyle="#f0fbff";
+      bctx.beginPath();bctx.moveTo(-35,24);bctx.lineTo(-3,-21);bctx.lineTo(35,24);bctx.fill();
+      bctx.fillStyle="#7ec8e5";bctx.fillRect(-4,-24,8,43);bctx.fillRect(-18,-5,36,6);bctx.fillRect(-25,8,50,6);
+    }else if(stage===INFINITE_STAGE||stage===11){
+      bctx.strokeStyle=stage===11?"#ff7dff":"#b978ff";
+      bctx.lineWidth=5;
+      for(let r=8;r<26;r+=8){bctx.beginPath();bctx.arc(0,0,r,.2+r*.05,Math.PI*1.65+r*.04);bctx.stroke();}
+      bctx.fillStyle=stage===11?"#ff8cff":"#de7cff";bctx.fillRect(-4,-4,8,8);
+    }else if(stage===EVENT_STAGE){
+      bctx.fillStyle="#3bd7ff";bctx.fillRect(-16,-18,32,17);bctx.fillStyle="#1f7b9a";bctx.fillRect(-24,-1,48,22);bctx.fillStyle="#ffe45f";bctx.fillRect(-6,-26,12,8);
+    }else{
+      bctx.fillStyle=p[3];
+      bctx.beginPath();
+      bctx.moveTo(0,-24);
+      bctx.lineTo(22,-2);
+      bctx.lineTo(11,26);
+      bctx.lineTo(-18,19);
+      bctx.lineTo(-24,-8);
+      bctx.closePath();
+      bctx.fill();
+      bctx.fillStyle=p[0];
+      bctx.fillRect(-8,-8,16,16);
+    }
+    bctx.restore();
   }
   function orbitRingConfig(){
     const radius=55*player.area;
@@ -852,6 +1069,7 @@
     settingsHint.textContent=message||"調整音效、效能與帳號資料，可減少手機耗電量。";
     renderVolumeSettings();
     renderGraphicsSettings();
+    renderComputeSettings();
     settingsOverlay.classList.add("visible");
     settingsOverlay.setAttribute("aria-hidden","false");
   }
@@ -957,7 +1175,17 @@
         meta.cookieUnlocked?1:0,
         meta.toyUnlocked?1:0,
         meta.stage6Cleared?1:0,
-        meta.stage7Cleared?1:0
+        meta.stage7Cleared?1:0,
+        Array.isArray(meta.equipmentInventory)?meta.equipmentInventory:[],
+        meta.equippedWeaponId||"bittenCarrot",
+        meta.equipmentEnhance&&typeof meta.equipmentEnhance==="object"?meta.equipmentEnhance:{},
+        meta.shopBoughtWholeCarrot?1:0,
+        meta.stage8Cleared?1:0,
+        meta.stage9Cleared?1:0,
+        meta.stage10Cleared?1:0,
+        meta.stage11Cleared?1:0,
+        computeMode(),
+        meta.equippedRingId||""
       ]
     };
   }
@@ -1017,7 +1245,17 @@
           cookieUnlocked:data.length>=46?!!data[42]:false,
           toyUnlocked:data.length>=46?!!data[43]:false,
           stage6Cleared:data.length>=46?!!data[44]:false,
-          stage7Cleared:data.length>=46?!!data[45]:false
+          stage7Cleared:data.length>=46?!!data[45]:false,
+          equipmentInventory:data.length>=50&&Array.isArray(data[46])?data[46]:["bittenCarrot"],
+          equippedWeaponId:data.length>=50?(data[47]||"bittenCarrot"):"bittenCarrot",
+          equipmentEnhance:data.length>=50&&data[48]&&typeof data[48]==="object"?data[48]:{},
+          shopBoughtWholeCarrot:data.length>=50?!!data[49]:false,
+          stage8Cleared:data.length>=54?!!data[50]:false,
+          stage9Cleared:data.length>=54?!!data[51]:false,
+          stage10Cleared:data.length>=54?!!data[52]:false,
+          stage11Cleared:data.length>=54?!!data[53]:false,
+          computeMode:data.length>=55?Math.max(0,Math.min(2,Math.floor(Number(data[54])||0))):1,
+          equippedRingId:data.length>=56?(data[55]||""):""
         }
       };
     }
@@ -1210,9 +1448,17 @@
         multiplier+=(level-89)*2.2;
       }
     }
-    if(["speed","crit","critDamage"].includes(def.id)&&level>=30){
+    if(["speed","crit"].includes(def.id)&&level>=30){
       const extra=level-29;
       multiplier+=extra*.16+extra*extra*.022;
+    }
+    if(def.id==="critDamage"&&level>=30){
+      const extra=level-29;
+      multiplier+=extra*.22+extra*extra*.037;
+    }
+    if(def.id==="armorPen"&&level>=30){
+      const extra=level-29;
+      multiplier+=extra*.055+extra*extra*.007;
     }
     return Math.ceil(def.cost*multiplier);
   }
@@ -1223,6 +1469,136 @@
       total+=metaUpgradeCostAtLevel(def,level);
     }
     return total;
+  }
+  function normalizeMetaCaps(){
+    let refund=0;
+    for(const def of metaDefs){
+      const cap=metaDefCap(def);
+      if(cap===undefined)continue;
+      const level=Math.max(0,Math.floor(Number(meta[def.id])||0));
+      if(level<=cap)continue;
+      refund+=metaSpentCost(def,level)-metaSpentCost(def,cap);
+      meta[def.id]=cap;
+    }
+    if(refund>0){
+      meta.points=Math.max(0,Math.floor(Number(meta.points)||0))+refund;
+    }
+    return refund;
+  }
+  function ensureEquipmentState(){
+    if(!Array.isArray(meta.equipmentInventory))meta.equipmentInventory=[];
+    if(!meta.equipmentInventory.includes("bittenCarrot"))meta.equipmentInventory.unshift("bittenCarrot");
+    meta.equipmentInventory=[...new Set(meta.equipmentInventory.filter(id=>EQUIPMENT_DEFS[id]))];
+    if(!meta.equipmentEnhance||typeof meta.equipmentEnhance!=="object"||Array.isArray(meta.equipmentEnhance))meta.equipmentEnhance={};
+    if(!meta.equipmentBreakthrough||typeof meta.equipmentBreakthrough!=="object"||Array.isArray(meta.equipmentBreakthrough))meta.equipmentBreakthrough={};
+    for(const id of meta.equipmentInventory){
+      meta.equipmentEnhance[id]=Math.max(0,Math.min(10,Math.floor(Number(meta.equipmentEnhance[id])||0)));
+      const raw=meta.equipmentBreakthrough[id]||{};
+      meta.equipmentBreakthrough[id]={
+        unlocked:!!raw.unlocked,
+        level:Math.max(0,Math.min(10,Math.floor(Number(raw.level)||0)))
+      };
+    }
+    meta.forgeDailyDate=String(meta.forgeDailyDate||"");
+    meta.forgeDailyUsed=Math.max(0,Math.floor(Number(meta.forgeDailyUsed)||0));
+    if(!EQUIPMENT_DEFS[meta.equippedWeaponId]||!meta.equipmentInventory.includes(meta.equippedWeaponId)){
+      meta.equippedWeaponId="bittenCarrot";
+    }
+    if(!EQUIPMENT_DEFS[meta.equippedRingId]||!meta.equipmentInventory.includes(meta.equippedRingId)||EQUIPMENT_DEFS[meta.equippedRingId].type!=="ring"){
+      meta.equippedRingId="";
+    }
+    meta.shopBoughtWholeCarrot=!!meta.shopBoughtWholeCarrot||meta.equipmentInventory.includes("wholeCarrot");
+  }
+  function equippedWeapon(){
+    ensureEquipmentState();
+    return EQUIPMENT_DEFS[meta.equippedWeaponId]||EQUIPMENT_DEFS.bittenCarrot;
+  }
+  function equipmentBaseDamage(){
+    return equipmentAttack(equippedWeapon());
+  }
+  function equipmentQualityInfo(item){
+    return EQUIPMENT_QUALITY[item?.quality]||EQUIPMENT_QUALITY.normal;
+  }
+  function equipmentEnhanceLevel(id){
+    ensureEquipmentState();
+    return Math.max(0,Math.min(10,Math.floor(Number(meta.equipmentEnhance?.[id])||0)));
+  }
+  function equipmentBreakState(id){
+    ensureEquipmentState();
+    const raw=meta.equipmentBreakthrough?.[id]||{};
+    return {
+      unlocked:!!raw.unlocked,
+      level:Math.max(0,Math.min(10,Math.floor(Number(raw.level)||0)))
+    };
+  }
+  function setEquipmentBreakState(id,state){
+    if(!meta.equipmentBreakthrough||typeof meta.equipmentBreakthrough!=="object"||Array.isArray(meta.equipmentBreakthrough))meta.equipmentBreakthrough={};
+    meta.equipmentBreakthrough[id]={
+      unlocked:!!state.unlocked,
+      level:Math.max(0,Math.min(10,Math.floor(Number(state.level)||0)))
+    };
+  }
+  function equipmentBreakLevel(id){
+    const state=equipmentBreakState(id);
+    return state.unlocked?state.level:0;
+  }
+  function equipmentBreakUnlocked(id){
+    return equipmentBreakState(id).unlocked;
+  }
+  function equipmentForgeTotalLevel(id){
+    return equipmentEnhanceLevel(id)+equipmentBreakLevel(id);
+  }
+  function forgeRuleFor(item){
+    return item?item.forge||FORGE_RULES[item.quality]||null:null;
+  }
+  function equipmentAttack(item){
+    if(!item)return 1;
+    if(item.type!=="weapon")return 0;
+    const rule=forgeRuleFor(item);
+    const plus=rule?equipmentForgeTotalLevel(item.id)*rule.attack:0;
+    return Math.max(1,Math.floor((Number(item.attack)||0)+plus));
+  }
+  function soulPointBonusRate(){
+    ensureEquipmentState();
+    const item=EQUIPMENT_DEFS.soulRing;
+    if(!item||meta.equippedRingId!==item.id||!meta.equipmentInventory.includes(item.id))return 0;
+    return (item.pointBonus||0)+equipmentEnhanceLevel(item.id)*(item.pointBonusPerForge||0);
+  }
+  function pointRewardMultiplier(){
+    return 1+soulPointBonusRate();
+  }
+  function formatPercentRate(rate){
+    return `${(rate*100).toFixed(1).replace(/\.0$/,"")}%`;
+  }
+  function equipmentMainStatText(item){
+    if(!item)return "";
+    if(item.type==="ring")return `強化點數 +${formatPercentRate((item.pointBonus||0)+equipmentEnhanceLevel(item.id)*(item.pointBonusPerForge||0))}`;
+    return `攻擊力 +${equipmentAttack(item)}`;
+  }
+  function equipmentForgeGainText(item,rule){
+    if(item?.type==="ring")return `成功 +${formatPercentRate(rule?.pointBonus||0)} 點數`;
+    return `成功 +${rule?.attack||0} 攻擊`;
+  }
+  function equipmentForgeCost(item,rule,level=equipmentEnhanceLevel(item?.id)){
+    const base=Math.max(0,Math.floor(Number(rule?.cost)||0));
+    const forgeLevel=Math.max(0,Math.floor(Number(level)||0));
+    return Math.max(1,Math.ceil(base*(1+forgeLevel*.01)));
+  }
+  function equipmentAdvancedForgeCost(item,rule,level=equipmentBreakLevel(item?.id)){
+    return equipmentForgeCost(item,rule,10+level);
+  }
+  function resetForgeDaily(){
+    const key=todayKey();
+    if(meta.forgeDailyDate!==key){
+      meta.forgeDailyDate=key;
+      meta.forgeDailyUsed=0;
+    }
+  }
+  function equipmentUnlocked(power=combatPower()){
+    return !!meta.equipmentUnlockSeen||power>=EQUIPMENT_UNLOCK_POWER;
+  }
+  function baseMetaDamageValue(level=meta.damage){
+    return equipmentBaseDamage()+scaledMetaGain(level,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH);
   }
   function totalMetaAbilityLevels(){
     let total=0;
@@ -1247,8 +1623,9 @@
     let level=meta[def.id]||0;
     let count=0;
     let totalCost=0;
+    const cap=metaDefCap(def);
     while(count<targetCount){
-      if(def.cap!==undefined&&level>=def.cap)break;
+      if(cap!==undefined&&level>=cap)break;
       const cost=metaUpgradeCostAtLevel(def,level);
       if(points<cost)break;
       points-=cost;
@@ -1469,6 +1846,50 @@
     renderGraphicsSettings();
     playUiClick();
   }
+  function computeMode(){
+    return Math.max(0,Math.min(2,Math.floor(Number(meta.computeMode??1))));
+  }
+  function renderComputeSettings(){
+    if(!computeSettings)return;
+    const mode=computeMode();
+    for(const button of computeSettings.querySelectorAll("button[data-compute-mode]")){
+      button.classList.toggle("active",Number(button.dataset.computeMode)===mode);
+    }
+  }
+  function computeGridStride(){
+    if(computeMode()===0)return 4;
+    if(computeMode()===1)return 2;
+    return 1;
+  }
+  function computeEnemyCap(){
+    if(computeMode()===0)return 100;
+    if(computeMode()===1)return 140;
+    return 200;
+  }
+  function computeTargetTTL(){
+    if(computeMode()===0)return .30;
+    if(computeMode()===1)return .20;
+    return .12;
+  }
+  function computeOffScreenDiv(){
+    if(computeMode()===0)return 8;
+    if(computeMode()===1)return 5;
+    return 3;
+  }
+  function computeHudInterval(){
+    if(computeMode()===0)return .25;
+    if(computeMode()===1)return .15;
+    return .10;
+  }
+  function computeSectorCount(){
+    return computeMode()===0?4:8;
+  }
+  function setComputeMode(value){
+    meta.computeMode=Math.max(0,Math.min(2,Math.floor(Number(value)||0)));
+    saveMeta();
+    renderComputeSettings();
+    playUiClick();
+  }
   function masterVolume(){
     return volumeValue("masterVolume");
   }
@@ -1504,17 +1925,45 @@
     syncCoinDisplay();
     if(!shopGrid)return;
     resetAutoTrainingDailyPurchase();
+    resetForgeDaily();
+    const forgeMode=shopMode==="forge";
+    const eventMode=shopMode==="event";
+    shopTitle.textContent="冒險市集";
+    shopModeShopBtn?.classList.toggle("active",!forgeMode&&!eventMode);
+    shopModeForgeBtn?.classList.toggle("active",forgeMode);
+    shopModeEventBtn?.classList.toggle("active",eventMode);
+    shopGrid.classList.toggle("forgeGrid",forgeMode);
+    shopGrid.classList.toggle("eventGrid",eventMode);
+    document.querySelector(".shopHero")?.classList.toggle("forgeHero",forgeMode);
+    document.querySelector(".shopHero")?.classList.toggle("eventHero",eventMode);
+    if(forgeMode){
+      renderForgeShop();
+      return;
+    }
+    if(eventMode){
+      renderEventShop();
+      return;
+    }
     const canBuyCharm=!meta.autoTrainingCharm&&walletCoins>=6000;
     const ticketBought=Math.max(0,Math.floor(Number(meta.autoTrainingTicketBoughtToday)||0));
     const canBuyTicket=ticketBought<3&&walletCoins>=300;
     const resetTicketBought=Math.max(0,Math.floor(Number(meta.abilityResetTicketBoughtToday)||0));
     const resetTicketPrice=abilityResetTicketPrice();
     const canBuyResetTicket=resetTicketBought<1&&walletCoins>=resetTicketPrice;
+    const showEquipmentShop=equipmentUnlocked();
+    const wholeCarrot=EQUIPMENT_DEFS.wholeCarrot;
+    const soulRing=EQUIPMENT_DEFS.soulRing;
+    const ownsWholeCarrot=meta.shopBoughtWholeCarrot||meta.equipmentInventory?.includes("wholeCarrot");
+    const ownsSoulRing=meta.equipmentInventory?.includes("soulRing");
     const goods=[
       {icon:"📿",name:"自動研修護符",state:meta.autoTrainingCharm?"SOLD":"BUY",price:6000,disabled:meta.autoTrainingCharm||!canBuyCharm,sub:autoTrainingCharmStatusText(),action:"charm"},
       {icon:"🎟️",name:"自動研修券",state:ticketBought>=3?"SOLD":"BUY",price:300,disabled:ticketBought>=3||!canBuyTicket,sub:`一般關卡用｜持有 ${meta.autoTrainingTickets||0}｜今日 ${ticketBought}/3`,action:"ticket"},
       {icon:"🔄",name:"能力重置券",state:resetTicketBought>=1?"SOLD":"BUY",price:resetTicketPrice,disabled:resetTicketBought>=1||!canBuyResetTicket,sub:`重置永久能力並退還點數｜持有 ${meta.abilityResetTickets||0}｜今日 ${resetTicketBought}/1`,action:"abilityReset"}
     ];
+    if(showEquipmentShop){
+      goods.push({icon:"🥕",name:wholeCarrot.name,state:ownsWholeCarrot?"SOLD":"BUY",price:wholeCarrot.price,disabled:ownsWholeCarrot||walletCoins<wholeCarrot.price,sub:"稀有武器｜攻擊力 +100｜購買後放入裝備欄",action:"wholeCarrot"});
+      goods.push({icon:"💍",name:soulRing.name,state:ownsSoulRing?"SOLD":"BUY",price:soulRing.price,disabled:ownsSoulRing||walletCoins<soulRing.price,sub:"稀有戒指｜穿戴後強化點數 +5%｜可鍛造至 +10",action:"soulRing"});
+    }
     shopGrid.innerHTML=goods.map((item,index)=>{
       if(Array.isArray(item)){
         const [icon,name,state]=item;
@@ -1531,9 +1980,174 @@
       </div>
     `;}).join("");
   }
+  function renderEventShop(){
+    syncCoinDisplay();
+    const activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0));
+    const stones=Math.max(0,Math.floor(Number(meta.rareBreakStones)||0));
+    const canBuy=activityCoins>=RARE_BREAK_STONE_PRICE;
+    const devTools=devModeActive?`
+      <div class="shopEventBalance">開發工具｜活動幣
+        <button type="button" class="shopBuyBtn" data-dev-shop-action="activityCoinSub">-100</button>
+        <button type="button" class="shopBuyBtn" data-dev-shop-action="activityCoinAdd">+100</button>
+      </div>
+    `:"";
+    shopGrid.innerHTML=`
+      ${devTools}
+      <div class="shopEventBalance">活動兌換幣 ${formatCommaNumber(activityCoins)}｜稀有突破原石 ${formatCommaNumber(stones)}</div>
+      <div class="shopCard">
+        <div class="shopCardIcon">🔷</div>
+        <div class="shopCardName">稀有突破原石</div>
+        <div class="shopCardSub">稀有裝備鍛造 +10 後可突破｜持有 ${formatCommaNumber(stones)}</div>
+        <button type="button" class="shopBuyBtn" data-shop-action="rareBreakStone" ${canBuy?"":"disabled"}>BUY 活動幣 ${RARE_BREAK_STONE_PRICE}</button>
+      </div>
+    `;
+  }
+  function adjustActivityCoinsForDev(delta){
+    if(!devModeActive)return;
+    meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0)+Math.floor(Number(delta)||0));
+    saveMeta();
+    renderShop();
+    beep(delta>=0?780:240,.08,.02,"square");
+    countAudioSubtype("ui");
+  }
+  function resetEquipmentForDev(){
+    if(!devModeActive)return;
+    meta.equipmentInventory=["bittenCarrot"];
+    meta.equippedWeaponId="bittenCarrot";
+    meta.equippedRingId="";
+    meta.shopBoughtWholeCarrot=false;
+    meta.equipmentEnhance={};
+    meta.equipmentBreakthrough={};
+    meta.forgeDailyDate=todayKey();
+    meta.forgeDailyUsed=0;
+    forgeMessage="開發模式：裝備已初始化";
+    ensureEquipmentState();
+    saveMeta();
+    renderMeta();
+    renderShop();
+    beep(760,.12,.035,"triangle");
+    countAudioSubtype("ui");
+  }
+  function resetDailyLimitsForDev(){
+    if(!devModeActive)return;
+    const key=todayKey();
+    meta.forgeDailyDate=key;
+    meta.forgeDailyUsed=0;
+    meta.activityRunDate=key;
+    meta.activityRunsToday=0;
+    meta.autoTrainingTicketDate=key;
+    meta.autoTrainingTicketBoughtToday=0;
+    meta.abilityResetTicketDate=key;
+    meta.abilityResetTicketBoughtToday=0;
+    forgeMessage="開發模式：今日次數已重置";
+    saveMeta();
+    renderMeta();
+    renderShop();
+    beep(860,.12,.03,"triangle");
+    countAudioSubtype("ui");
+  }
+  function renderForgeShop(){
+    ensureEquipmentState();
+    syncCoinDisplay();
+    const used=Math.max(0,Math.floor(Number(meta.forgeDailyUsed)||0));
+    const forgeable=meta.equipmentInventory.map(id=>EQUIPMENT_DEFS[id]).filter(item=>item&&forgeRuleFor(item));
+    const devTools=devModeActive?`
+      <div class="forgeHeader">
+        <b>開發工具</b>
+        <button type="button" class="shopBuyBtn" data-dev-shop-action="equipmentInit">裝備初始化</button>
+        <button type="button" class="shopBuyBtn" data-dev-shop-action="dailyReset">重置今日次數</button>
+      </div>
+    `:"";
+    if(!forgeable.length){
+      shopGrid.innerHTML=`
+        <div class="forgePanel">
+          <div class="forgeScene">
+            <div class="forgeFire"></div>
+            <div class="forgeAnvil"></div>
+            <div class="forgeHammer"></div>
+            <div class="forgeSmith"></div>
+          </div>
+          ${devTools}
+          <div class="forgeEmpty">尚未持有可鍛造裝備。<br>先到精靈商店購買藍框以上武器。</div>
+        </div>
+      `;
+      return;
+    }
+    shopGrid.innerHTML=`
+      <div class="forgePanel">
+        <div class="forgeScene">
+          <div class="forgeFire"></div>
+          <div class="forgeAnvil"></div>
+          <div class="forgeHammer"></div>
+          <div class="forgeSmith"></div>
+        </div>
+        ${devTools}
+        <div class="forgeHeader">
+          <b>今日鍛造 ${used}/${FORGE_DAILY_LIMIT}</b>
+          <span>${forgeMessage||"藍框以上裝備可鍛造，單件最高 +10。"}</span>
+        </div>
+        <div class="forgeList">
+          ${forgeable.map(item=>{
+            const rule=forgeRuleFor(item);
+            const quality=equipmentQualityInfo(item);
+            const level=equipmentEnhanceLevel(item.id);
+            const breakState=equipmentBreakState(item.id);
+            const advanced=breakState.unlocked;
+            const advancedLevel=advanced?breakState.level:0;
+            const totalLevel=level+advancedLevel;
+            const canBreak=item.type==="weapon"&&item.quality==="rare"&&level>=10&&!advanced;
+            const statText=equipmentMainStatText(item);
+            const gainText=equipmentForgeGainText(item,rule);
+            const forgeCost=advanced?equipmentAdvancedForgeCost(item,rule,advancedLevel):equipmentForgeCost(item,rule,level);
+            const maxed=advanced?advancedLevel>=10:(level>=10&&!canBreak);
+            const needsStone=canBreak&&(meta.rareBreakStones||0)<1;
+            const blocked=canBreak?needsStone:(used>=FORGE_DAILY_LIMIT||maxed||walletCoins<forgeCost);
+            return `
+              <div class="forgeItem ${quality.className}${canBreak?" breakReady":""}">
+                <div class="forgeItemInfo">
+                  <b>${item.name} <span class="${quality.className}">${quality.name}</span>${totalLevel?` +${totalLevel}`:""}</b>
+                  <small>目前${statText}｜鍛造 +${level}/10${advanced?`｜進階 +${advancedLevel}/10`:""}｜成功率 ${Math.round(rule.success*100)}%｜${gainText}</small>
+                </div>
+                <button type="button" class="shopBuyBtn" data-forge-id="${item.id}" ${blocked?"disabled":""}>
+                  ${canBreak?(needsStone?"需要原石":"突破"):maxed?"已滿級":used>=FORGE_DAILY_LIMIT?"今日已滿":walletCoins<forgeCost?"鑽石不足":`鍛造 💎 ${formatCommaNumber(forgeCost)}`}
+                </button>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }
   function todayKey(){
     const now=new Date();
     return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  }
+  function resetActivityDaily(){
+    const key=todayKey();
+    if(meta.activityRunDate!==key){
+      meta.activityRunDate=key;
+      meta.activityRunsToday=0;
+    }
+  }
+  function activityRunsLeft(){
+    resetActivityDaily();
+    return Math.max(0,EVENT_DAILY_LIMIT-Math.max(0,Math.floor(Number(meta.activityRunsToday)||0)));
+  }
+  function consumeActivityRun(){
+    resetActivityDaily();
+    if(activityRunsLeft()<=0)return false;
+    meta.activityRunsToday=Math.max(0,Math.floor(Number(meta.activityRunsToday)||0))+1;
+    meta.activityRunDate=todayKey();
+    saveMeta();
+    return true;
+  }
+  function settleActivityReward(){
+    if(activityRewarded)return 0;
+    activityRewarded=true;
+    const earned=Math.floor(Math.max(0,kills)*.001);
+    meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))+earned;
+    saveMeta();
+    return earned;
   }
   function resetAutoTrainingDailyPurchase(){
     const key=todayKey();
@@ -1576,6 +2190,27 @@
         title:"購買能力重置券？",
         message:`能力重置券可在角色資訊中使用。\n使用後會重置所有永久能力，並退還已花費的強化點數。\n每日限購 1 張。\n\n價格：💎 ${formatCommaNumber(abilityResetTicketPrice())}`,
         confirmLabel:"購買"
+      };
+    }
+    if(action==="wholeCarrot"){
+      return {
+        title:"購買完整的胡蘿蔔？",
+        message:`完整的胡蘿蔔是稀有武器。\n攻擊力 +100，購買後會放入裝備欄，不會自動穿上。\n\n價格：💎 ${formatCommaNumber(EQUIPMENT_DEFS.wholeCarrot.price)}`,
+        confirmLabel:"購買"
+      };
+    }
+    if(action==="soulRing"){
+      return {
+        title:"購買獵魂戒指？",
+        message:`獵魂戒指是稀有戒指。\n買到後會放入裝備欄，需要穿戴才會生效。\n穿戴後擊殺結算的強化點數 +5%。\n可在鍛造屋強化到 +10，每級再 +1%，最高 +15%。\n\n價格：💎 ${formatCommaNumber(EQUIPMENT_DEFS.soulRing.price)}`,
+        confirmLabel:"購買"
+      };
+    }
+    if(action==="rareBreakStone"){
+      return {
+        title:"兌換稀有突破原石？",
+        message:`用活動兌換幣交換稀有突破原石。\n稀有裝備鍛造 +10 後，可用它開啟進階鍛造。\n\n價格：活動幣 ${RARE_BREAK_STONE_PRICE}`,
+        confirmLabel:"兌換"
       };
     }
     return null;
@@ -1638,7 +2273,85 @@
       saveMeta();
       renderShop();
       beep(760,.12,.035,"triangle");
+      return;
     }
+    if(action==="wholeCarrot"){
+      ensureEquipmentState();
+      const item=EQUIPMENT_DEFS.wholeCarrot;
+      if(meta.shopBoughtWholeCarrot||meta.equipmentInventory.includes(item.id)||!spendDiamonds(item.price)){beep(180,.08,.025,"square");return;}
+      meta.equipmentInventory.push(item.id);
+      meta.shopBoughtWholeCarrot=true;
+      saveMeta();
+      renderShop();
+      renderMeta();
+      beep(760,.12,.035,"triangle");
+    }
+    if(action==="soulRing"){
+      ensureEquipmentState();
+      const item=EQUIPMENT_DEFS.soulRing;
+      if(meta.equipmentInventory.includes(item.id)||!spendDiamonds(item.price)){beep(180,.08,.025,"square");return;}
+      meta.equipmentInventory.push(item.id);
+      saveMeta();
+      renderShop();
+      renderMeta();
+      beep(760,.12,.035,"triangle");
+    }
+    if(action==="rareBreakStone"){
+      const cost=RARE_BREAK_STONE_PRICE;
+      if((meta.activityCoins||0)<cost){beep(180,.08,.025,"square");return;}
+      meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))-cost;
+      meta.rareBreakStones=Math.max(0,Math.floor(Number(meta.rareBreakStones)||0))+1;
+      saveMeta();
+      renderShop();
+      beep(760,.12,.035,"triangle");
+    }
+  }
+  function forgeEquipment(id){
+    ensureEquipmentState();
+    resetForgeDaily();
+    const item=EQUIPMENT_DEFS[id];
+    const rule=forgeRuleFor(item);
+    if(!item||!rule||!meta.equipmentInventory.includes(id)){beep(180,.08,.025,"square");return;}
+    const level=equipmentEnhanceLevel(id);
+    const breakState=equipmentBreakState(id);
+    const canBreak=item.type==="weapon"&&item.quality==="rare"&&level>=10&&!breakState.unlocked;
+    if(canBreak){
+      if((meta.rareBreakStones||0)<1){
+        forgeMessage="需要稀有突破原石";
+        beep(180,.08,.025,"square");
+        renderShop();
+        return;
+      }
+      meta.rareBreakStones=Math.max(0,Math.floor(Number(meta.rareBreakStones)||0))-1;
+      setEquipmentBreakState(id,{unlocked:true,level:0});
+      forgeMessage=`${item.name} 突破成功，開啟進階鍛造！`;
+      saveMeta();
+      renderShop();
+      renderMeta();
+      beep(940,.18,.045,"triangle");
+      return;
+    }
+    const advanced=breakState.unlocked;
+    const advancedLevel=advanced?breakState.level:0;
+    const forgeCost=advanced?equipmentAdvancedForgeCost(item,rule,advancedLevel):equipmentForgeCost(item,rule,level);
+    if((advanced?advancedLevel>=10:level>=10)||meta.forgeDailyUsed>=FORGE_DAILY_LIMIT||!spendDiamonds(forgeCost)){beep(180,.08,.025,"square");return;}
+    meta.forgeDailyUsed=Math.max(0,Math.floor(Number(meta.forgeDailyUsed)||0))+1;
+    if(Math.random()<rule.success){
+      if(advanced){
+        setEquipmentBreakState(id,{unlocked:true,level:Math.min(10,advancedLevel+1)});
+        forgeMessage=`${item.name} 進階鍛造成功！目前 +${level+Math.min(10,advancedLevel+1)}`;
+      }else{
+        meta.equipmentEnhance[id]=Math.min(10,level+1);
+        forgeMessage=`${item.name} 鍛造成功！目前 +${meta.equipmentEnhance[id]}`;
+      }
+      beep(880,.12,.04,"triangle");
+    }else{
+      forgeMessage=`${item.name} 鍛造失敗，裝備沒有損壞。`;
+      beep(240,.12,.035,"square");
+    }
+    saveMeta();
+    renderShop();
+    renderMeta();
   }
   function refreshWalletFromUi(){
     if(devModeActive)coinDebugExpanded=!coinDebugExpanded;
@@ -1861,6 +2574,21 @@
 
   function renderMeta(){
     renderAccount();
+    ensureEquipmentState();
+    const currentPower=combatPower();
+    const canUseEquipment=equipmentUnlocked(currentPower);
+    if(characterModeTabs){
+      characterModeTabs.classList.toggle("hidden",!canUseEquipment);
+      if(canUseEquipment&&!meta.equipmentUnlockSeen){
+        characterModeTabs.classList.add("unlocking");
+        meta.equipmentUnlockSeen=true;
+        saveMeta();
+        setTimeout(()=>characterModeTabs.classList.remove("unlocking"),900);
+      }else{
+        characterModeTabs.classList.remove("unlocking");
+      }
+    }
+    if(!canUseEquipment)setCharacterTab("ability");
     metaPointsEl.innerHTML=`<span class="pointDiamond"></span><span>強化點數 ${formatCostShort(meta.points)}</span>`;
     metaRecordEl.innerHTML=`總擊破 ${meta.totalKills||0}｜菁英 ${meta.totalElites||0}｜BOSS ${meta.totalBosses||0}`;
     metaStatsEl.innerHTML="";
@@ -1870,9 +2598,13 @@
       const tier=Math.floor(meta[def.id]/10)+1;
       const card=document.createElement("div");
       card.className="statCard";
-      card.innerHTML=`<b>${def.name} LV${meta[def.id]}</b><small>${def.desc}<br>目前 ${def.value(meta)}・強化階級 ${tier}</small>`;
+      const equipNote=def.id==="damage"
+        ?` <span class="equipmentAttackNote ${equipmentQualityInfo(equippedWeapon()).className}">(+${equipmentBaseDamage()}裝備)</span>`
+        :"";
+      card.innerHTML=`<b>${def.name} LV${meta[def.id]}</b><small>${def.desc}<br>目前 ${def.value(meta)}${equipNote}・強化階級 ${tier}</small>`;
       const button=document.createElement("button");
-      const maxed=def.cap!==undefined&&meta[def.id]>=def.cap;
+      const cap=metaDefCap(def);
+      const maxed=cap!==undefined&&meta[def.id]>=cap;
       button.textContent=maxed?"已滿級":`強化 1 點（花費 ${cost}）`;
       button.disabled=maxed||meta.points<cost;
       button.onclick=()=>{
@@ -1889,6 +2621,7 @@
       card.appendChild(button);
       metaStatsEl.appendChild(card);
     }
+    renderEquipmentPanel();
     gardenStage.classList.toggle("active",currentStage===1);
     desertStage.classList.toggle("active",currentStage===2);
     snowStage.classList.toggle("active",currentStage===3);
@@ -1926,6 +2659,58 @@
     return info.level>=5;
   }
 
+  function renderEquipmentPanel(){
+    if(!equipmentPanel)return;
+    ensureEquipmentState();
+    const inventory=meta.equipmentInventory.map(id=>EQUIPMENT_DEFS[id]).filter(Boolean);
+    const visibleSlots=Math.max(3,Math.ceil(inventory.length/3)*3);
+    const slots=[];
+    for(let i=0;i<visibleSlots;i++){
+      const item=inventory[i];
+      if(!item){
+        slots.push(`<div class="equipmentSlot empty"></div>`);
+        continue;
+      }
+      const quality=equipmentQualityInfo(item);
+      const equipped=item.type==="ring"?meta.equippedRingId===item.id:meta.equippedWeaponId===item.id;
+      const totalLevel=equipmentForgeTotalLevel(item.id);
+      const breakUnlocked=equipmentBreakUnlocked(item.id);
+      const statText=equipmentMainStatText(item);
+      const typeText=item.type==="weapon"?"武器":item.type==="ring"?"戒指":"裝備";
+      const iconText=item.type==="ring"?"💍":"🥕";
+      const activeText=equipped?"｜已穿戴":(item.type==="ring"?"｜未穿戴":"");
+      const forgeText=totalLevel?`｜${breakUnlocked?"進階鍛造":"鍛造"} +${totalLevel}`:"";
+      slots.push(`
+        <button type="button" class="equipmentSlot ${quality.className}${equipped?" equipped":""}" data-equip-id="${item.id}">
+          <span class="equipmentIcon">${iconText}</span>
+          <b>${item.name}</b>
+          <small>${quality.name}｜${typeText}<br>${statText}${forgeText}${activeText}</small>
+        </button>
+      `);
+    }
+    const weapon=equippedWeapon();
+    const quality=equipmentQualityInfo(weapon);
+    const weaponLevel=equipmentForgeTotalLevel(weapon.id);
+    const weaponBreak=equipmentBreakUnlocked(weapon.id);
+    equipmentPanel.innerHTML=`
+      <div class="equipmentSummary">
+        <b>目前武器</b>
+        <span class="${quality.className}">${weapon.name}｜攻擊力 +${equipmentAttack(weapon)}${weaponLevel?`｜${weaponBreak?"進階鍛造":"鍛造"} +${weaponLevel}`:""}</span>
+      </div>
+      <div class="equipmentGrid">${slots.join("")}</div>
+      <p class="equipmentHint">同類型武器一次只能穿一把；戒指需穿戴後才會生效，按一下可穿脫。</p>
+    `;
+  }
+
+  function setCharacterTab(tab){
+    const showEquipment=tab==="equipment";
+    abilityPanelBtn?.classList.toggle("active",!showEquipment);
+    equipmentPanelBtn?.classList.toggle("active",showEquipment);
+    metaStatsEl?.classList.toggle("hidden",showEquipment);
+    equipmentPanel?.classList.toggle("hidden",!showEquipment);
+    if(showEquipment)renderEquipmentPanel();
+  }
+
   function combatPower(){
     const damageLevel=Math.max(0,meta.damage);
     const speedLevel=Math.max(0,Math.min(100,meta.speed));
@@ -1935,7 +2720,7 @@
     const lifeLevel=Math.max(0,meta.life);
     const regenLevel=Math.max(0,meta.regen);
 
-    const baseDamage=BASE_META_DAMAGE+scaledMetaGain(damageLevel,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH);
+    const baseDamage=baseMetaDamageValue(damageLevel);
     const attackRate=1+speedLevel*.03;
     const critChance=metaCritChance(critLevel);
     const critDamage=Math.min(MAX_CRIT_DAMAGE_MULTIPLIER,1.6+critDamageLevel*META_CRIT_DAMAGE_STEP);
@@ -1950,8 +2735,13 @@
   function stageRecommendedPower(stage){
     if(stage===INFINITE_STAGE)return 2000;
     if(stage===BOSS_CHALLENGE_STAGE)return 0;
-    if(stage===7)return 18000;
-    if(stage===6)return 14500;
+    if(stage===EVENT_STAGE)return Math.max(1,combatPower());
+    if(stage===11)return 48000;
+    if(stage===10)return 39000;
+    if(stage===9)return 32000;
+    if(stage===8)return 26000;
+    if(stage===7)return 22500;
+    if(stage===6)return 18000;
     if(stage===5)return 10500;
     if(stage===4)return 7800;
     return stage===3?4800:stage===2?850:120;
@@ -1966,9 +2756,19 @@
     if(ratio<1.6)return {label:"普通",className:"normal"};
     return {label:"容易",className:"easy"};
   }
+  function stageDifficultyMonsterMultiplier(stage=currentStage){
+    if(isInfiniteMode()||isBossChallengeMode()||isEventMode())return 1;
+    if(stage===INFINITE_STAGE||stage===BOSS_CHALLENGE_STAGE||stage===EVENT_STAGE)return 1;
+    const info=stageDifficultyInfo(stage);
+    if(info.className==="danger")return 1.5;
+    if(info.className==="hard")return 1.25;
+    if(info.className==="challenge")return 1.1;
+    return 1;
+  }
 
   function stageButtonMarkup(label,stage){
     if(stage===BOSS_CHALLENGE_STAGE)return `<span class="stageLabel">${label}</span><span class="stageBadge challenge">測試</span>`;
+    if(stage===EVENT_STAGE)return `<span class="stageLabel">${label}</span><span class="stageBadge easy">今日 ${activityRunsLeft()}/${EVENT_DAILY_LIMIT}</span>`;
     const info=stageDifficultyInfo(stage);
     return `<span class="stageLabel">${label}</span><span class="stageBadge ${info.className}">${info.label}</span>`;
   }
@@ -1989,6 +2789,9 @@
   function isBossChallengeMode(){
     return currentStage===BOSS_CHALLENGE_STAGE;
   }
+  function isEventMode(){
+    return currentStage===EVENT_STAGE;
+  }
   function bossChallengeZone(){
     return Math.max(0,bossChallengeSourceStage-1);
   }
@@ -2005,7 +2808,18 @@
     if(zone===0)return "菜園";
     if(zone===1)return "沙漠";
     if(zone===2)return "雪原";
+    if(zone===3)return "幽影林徑";
+    if(zone===4)return "幽影樹海";
+    if(zone===5)return "奶油餅乾屋";
+    if(zone===6)return "玩具夢工廠";
+    if(zone===7)return "熔岩工坊";
+    if(zone===8)return "海底遺跡";
+    if(zone===9)return "星夜鐘塔";
+    if(zone===10)return "虛空核心";
     return "惡魔城";
+  }
+  function infiniteStageForZone(zone=infiniteZoneAt()){
+    return zone>=0&&zone<=10?zone+1:0;
   }
 
   function effectiveZone(){
@@ -2034,6 +2848,10 @@
     return Math.max(0,time-infiniteDisplayOffset);
   }
   function finalBossDisplayName(type){
+    if(type==="voiddevourer")return "虛空吞星者";
+    if(type==="clockwitch")return "時鐘魔女";
+    if(type==="abyssoctopus")return "深海章魚王";
+    if(type==="lavagolem")return "熔爐巨像";
     if(type==="nightmaremaker")return "發條夢魘師";
     if(type==="cookiemonarch")return "奶油餅乾女王";
     if(type==="whale")return "暴雪鯨魚";
@@ -2048,6 +2866,14 @@
   }
   function infiniteStagePointReward(){
     return Math.floor(normalStagePointReward()*.3);
+  }
+  function applyPointRewardBonus(base){
+    const safeBase=Math.max(0,Math.floor(Number(base)||0));
+    return Math.floor(safeBase*pointRewardMultiplier());
+  }
+  function pointRewardLine(earned){
+    const bonus=soulPointBonusRate();
+    return `本局獲得強化點數 ${earned}${bonus>0?`（獵魂 +${formatPercentRate(bonus)}）`:""}`;
   }
   function stageTimerLabel(){
     if(isBossChallengeMode())return `頭目挑戰 ${finalBossDisplayName(bossChallengeType)}`;
@@ -2179,79 +3005,91 @@
     };
     if(!deep){
       const sky=ctx.createLinearGradient(0,0,0,h);
-      sky.addColorStop(0,"#2c1a55");
-      sky.addColorStop(.55,"#72509a");
-      sky.addColorStop(1,"#9fc2b3");
+      sky.addColorStop(0,"#201141");
+      sky.addColorStop(.45,"#51317c");
+      sky.addColorStop(.78,"#2b2750");
+      sky.addColorStop(1,"#111827");
       ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
 
-      ctx.fillStyle="#e9eaff";
+      ctx.fillStyle="#0e0d2b";
       ctx.beginPath();
-      ctx.arc(102,29,12,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle="#35225d";
+      ctx.arc(96,26,16,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#654a93";
       ctx.beginPath();
-      ctx.arc(97,27,13,0,Math.PI*2);ctx.fill();
-      for(let i=0;i<16;i++)px(12+(i*31)%166,42+(i*19)%66,1,2,i%2?"#e8ffd3":"#b7ffd5");
-
-      const farTrunk=(x,y,s,c)=>{
-        px(x-2*s,y-52*s,4*s,92*s,c);
-        px(x+1*s,y-52*s,1*s,92*s,"#314945");
-        ctx.fillStyle="#2f554c";
-        ctx.beginPath();
-        ctx.arc(x-10*s,y-54*s,12*s,0,Math.PI*2);
-        ctx.arc(x+8*s,y-57*s,15*s,0,Math.PI*2);
-        ctx.arc(x,y-68*s,16*s,0,Math.PI*2);
-        ctx.fill();
-      };
-      for(const t of [[45,100,.45,"#54706c"],[62,96,.52,"#415f5d"],[80,104,.42,"#65817a"],[118,101,.48,"#465f5d"],[139,96,.55,"#385551"],[154,105,.42,"#55736a"]])farTrunk(...t);
-      ctx.fillStyle="rgba(187,210,199,.35)";
-      ctx.beginPath();
-      ctx.moveTo(56,117);
-      ctx.quadraticCurveTo(84,88,98,83);
-      ctx.quadraticCurveTo(113,90,137,117);
-      ctx.closePath();ctx.fill();
-
-      const trunk=(x,wid,c,hi="#244a43")=>{
-        px(x,0,wid,h,c);
-        px(x+wid-5,0,3,h,"#061b17");
-        px(x+4,0,2,h,hi);
-        line([[x+wid*.5,18],[x+wid*.35,44],[x+wid*.48,72],[x+wid*.28,105]],hi,2);
-      };
-      trunk(0,24,"#061912","#1d443d");
-      trunk(162,28,"#061912","#1d443d");
-      trunk(30,9,"#162725","#36544d");
-      trunk(145,10,"#162725","#36544d");
-      line([[23,29],[42,15],[64,11]],"#071912",4);
-      line([[164,30],[145,15],[125,11]],"#071912",4);
-      line([[31,44],[50,34],[62,36]],"#213b35",3);
-      line([[149,45],[130,35],[119,37]],"#213b35",3);
-
-      ctx.fillStyle="#163426";
-      ctx.beginPath();
-      ctx.moveTo(0,92);
-      ctx.quadraticCurveTo(38,76,73,89);
-      ctx.quadraticCurveTo(101,77,124,89);
-      ctx.quadraticCurveTo(153,76,190,92);
-      ctx.lineTo(190,136);ctx.lineTo(0,136);ctx.closePath();ctx.fill();
-      ctx.fillStyle="#1f4a35";
-      ctx.beginPath();
-      ctx.moveTo(27,130);
-      ctx.quadraticCurveTo(65,100,94,95);
-      ctx.quadraticCurveTo(125,102,159,130);
-      ctx.closePath();ctx.fill();
-      ctx.fillStyle="#0b1f17";
-      ctx.beginPath();
-      ctx.moveTo(0,116);
-      ctx.quadraticCurveTo(53,106,95,114);
-      ctx.quadraticCurveTo(135,106,190,116);
-      ctx.lineTo(190,136);ctx.lineTo(0,136);ctx.closePath();ctx.fill();
-      for(let i=0;i<70;i++){
-        const x=(i*11)%190;
-        const y=136-(i%6)*4;
-        line([[x,y],[x+(i%2?-1:1)*(6+i%5),y-13-(i%4)*3]],i%3?"#204535":"#3f6758",1.4);
+      ctx.arc(102,23,16,0,Math.PI*2);ctx.fill();
+      for(let i=0;i<18;i++){
+        const x=20+(i*29)%154,y=8+(i*17)%53;
+        px(x,y,i%6?1:2,i%6?1:2,i%3?"#d7cbff":"#fff8dc");
       }
-      for(let i=0;i<12;i++){
-        const x=7+(i*17)%178,y=70+(i*23)%56;
-        px(x,y,1,2,i%2?"#e8ffd3":"#b7ffd5");
+
+      const farTrunk=(x,wid,c,top=16)=>{
+        px(x,top,wid,h-top,c);
+        px(x+Math.max(1,wid-2),top,1,h-top,"#0f1021");
+        line([[x+wid*.5,top+15],[x+wid*.12,top+32],[x+wid*.26,top+49]],"#1d1a34",1.4);
+      };
+      for(const t of [[25,4,"#211c3b",18],[41,5,"#181936",12],[60,4,"#241d3e",23],[132,5,"#1d1a37",18],[148,4,"#171733",10],[162,5,"#241d3d",22]])farTrunk(...t);
+
+      const trunk=(x,wid,c,hi="#1d2240")=>{
+        px(x,0,wid,h,c);
+        px(x+wid-4,0,3,h,"#05050d");
+        px(x+3,0,2,h,hi);
+        line([[x+wid*.55,18],[x+wid*.24,42],[x+wid*.42,68],[x+wid*.22,112]],hi,2);
+      };
+      trunk(0,22,"#050712","#171d35");
+      trunk(168,22,"#050712","#171d35");
+      trunk(33,9,"#111326","#292a48");
+      trunk(145,10,"#111326","#292a48");
+      line([[19,14],[36,4],[51,0]],"#050712",4);
+      line([[22,34],[42,22],[57,18]],"#050712",4);
+      line([[171,13],[153,2],[139,0]],"#050712",4);
+      line([[168,34],[149,21],[132,16]],"#050712",4);
+      line([[38,47],[55,35],[68,37]],"#222748",2.5);
+      line([[150,48],[133,36],[120,38]],"#222748",2.5);
+
+      ctx.fillStyle="#10291f";
+      ctx.beginPath();
+      ctx.moveTo(0,95);
+      ctx.quadraticCurveTo(32,79,72,91);
+      ctx.quadraticCurveTo(101,78,124,91);
+      ctx.quadraticCurveTo(154,79,190,95);
+      ctx.lineTo(190,136);ctx.lineTo(0,136);ctx.closePath();ctx.fill();
+      ctx.fillStyle="#1d4738";
+      ctx.beginPath();
+      ctx.moveTo(8,132);
+      ctx.quadraticCurveTo(37,104,73,99);
+      ctx.quadraticCurveTo(107,103,132,100);
+      ctx.quadraticCurveTo(160,105,182,132);
+      ctx.lineTo(8,132);ctx.fill();
+      ctx.fillStyle="#071411";
+      ctx.beginPath();
+      ctx.moveTo(0,120);
+      ctx.quadraticCurveTo(51,110,95,118);
+      ctx.quadraticCurveTo(139,110,190,120);
+      ctx.lineTo(190,136);ctx.lineTo(0,136);ctx.closePath();ctx.fill();
+
+      const path=ctx.createLinearGradient(0,92,0,136);
+      path.addColorStop(0,"#34233b");
+      path.addColorStop(1,"#17131a");
+      ctx.fillStyle=path;
+      ctx.beginPath();
+      ctx.moveTo(88,136);
+      ctx.bezierCurveTo(84,124,88,112,95,104);
+      ctx.bezierCurveTo(104,95,110,89,114,82);
+      ctx.lineTo(125,85);
+      ctx.bezierCurveTo(115,96,108,104,105,115);
+      ctx.bezierCurveTo(102,124,105,131,109,136);
+      ctx.closePath();ctx.fill();
+      line([[92,133],[97,116],[103,101],[114,84]],"#51415a",2);
+
+      for(let i=0;i<78;i++){
+        const left=i%2===0;
+        const x=left?((i*9)%82):(108+(i*11)%80);
+        const y=136-(i%8)*4;
+        line([[x,y],[x+(left?1:-1)*(5+i%5),y-12-(i%4)*3]],i%3?"#224b3d":"#446a5c",1.2);
+      }
+      for(let i=0;i<16;i++){
+        const x=6+(i*17)%180,y=70+(i*23)%57;
+        px(x,y,1,1,i%2?"#e7fff5":"#c0ffd8");
       }
       return;
     }
@@ -2684,43 +3522,32 @@
     };
 
     const sky=ctx.createLinearGradient(0,0,0,h);
-    sky.addColorStop(0,"#481b9a");
-    sky.addColorStop(.5,"#7f48bd");
-    sky.addColorStop(1,"#f7b65b");
-    px(0,0,w,h,"#2c160c");
-    px(3,3,w-6,h-6,"#5d2c12");
-    px(8,8,w-16,h-16,"#8b4a1f");
-    ctx.fillStyle=sky;ctx.fillRect(18,19,w-36,h-38);
-    ctx.strokeStyle="#3b1d0e";ctx.lineWidth=5;ctx.strokeRect(3,3,w-6,h-6);
-    ctx.strokeStyle="#d28a32";ctx.lineWidth=2;ctx.strokeRect(10,10,w-20,h-20);
-    line([[10,15],[31,8],[52,14],[73,8],[94,14],[116,8],[141,13],[180,8]],"#4b230f",9);
-    line([[10,15],[31,8],[52,14],[73,8],[94,14],[116,8],[141,13],[180,8]],"#b96d24",4);
-    line([[8,h-9],[31,h-19],[57,h-8],[82,h-19],[106,h-9],[132,h-19],[158,h-10],[182,h-18]],"#4b230f",13);
-    line([[8,h-9],[31,h-19],[57,h-8],[82,h-19],[106,h-9],[132,h-19],[158,h-10],[182,h-18]],"#b96d24",5);
-    line([[12,18],[5,43],[14,63],[6,86],[14,119]],"#4b230f",10);
-    line([[12,18],[5,43],[14,63],[6,86],[14,119]],"#b96d24",4);
-    line([[178,18],[185,43],[176,64],[184,86],[176,119]],"#4b230f",10);
-    line([[178,18],[185,43],[176,64],[184,86],[176,119]],"#b96d24",4);
+    sky.addColorStop(0,"#3f217d");
+    sky.addColorStop(.52,"#6d3a96");
+    sky.addColorStop(1,"#d67231");
+    ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
 
-    const sunX=137,sunY=37;
-    ctx.strokeStyle="#ffb04a";ctx.lineWidth=2;
-    for(let i=0;i<24;i++){
-      const a=i*Math.PI/12;
-      line([[sunX+Math.cos(a)*20,sunY+Math.sin(a)*20],[sunX+Math.cos(a)*31,sunY+Math.sin(a)*31]],"#d7832b",1.4);
+    const sunX=148,sunY=31;
+    for(let i=0;i<16;i++){
+      const a=i*Math.PI/8;
+      line([[sunX+Math.cos(a)*20,sunY+Math.sin(a)*20],[sunX+Math.cos(a)*96,sunY+Math.sin(a)*96]],"#b77a4a",6);
+      line([[sunX+Math.cos(a)*19,sunY+Math.sin(a)*19],[sunX+Math.cos(a)*90,sunY+Math.sin(a)*90]],"#d09355",2);
     }
-    ctx.fillStyle="#ffb52d";ctx.beginPath();ctx.arc(sunX,sunY,22,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#ffe13d";ctx.beginPath();ctx.arc(sunX-3,sunY-4,17,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#ef922e";ctx.beginPath();ctx.arc(sunX,sunY,23,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#ffd85a";ctx.beginPath();ctx.arc(sunX-2,sunY-3,18,0,Math.PI*2);ctx.fill();
+    px(sunX-16,sunY-19,25,4,"#ffed7e");px(sunX-18,sunY+11,29,4,"#fcb74b");
 
-    ctx.fillStyle="#d87727";
-    ctx.beginPath();ctx.moveTo(18,82);ctx.quadraticCurveTo(55,54,85,80);ctx.quadraticCurveTo(122,52,173,76);ctx.lineTo(173,105);ctx.lineTo(18,105);ctx.closePath();ctx.fill();
-    ctx.fillStyle="#f2a43d";
-    ctx.beginPath();ctx.moveTo(20,89);ctx.quadraticCurveTo(62,64,100,88);ctx.quadraticCurveTo(132,65,173,85);ctx.lineTo(173,112);ctx.lineTo(20,112);ctx.closePath();ctx.fill();
-    ctx.fillStyle="#ffcf63";
-    ctx.beginPath();ctx.moveTo(15,98);ctx.quadraticCurveTo(54,74,94,97);ctx.quadraticCurveTo(134,74,178,96);ctx.lineTo(178,124);ctx.lineTo(15,124);ctx.closePath();ctx.fill();
-    px(15,118,160,10,"#ffd36d");
-    px(15,125,160,5,"#e49a3e");
-    line([[70,73],[88,82],[113,80],[129,73]],"#be6b2a",3);
-    line([[60,108],[82,98],[104,104],[123,96],[143,105]],"#a76632",2);
+    ctx.fillStyle="#ba6621";
+    ctx.beginPath();ctx.moveTo(0,80);ctx.quadraticCurveTo(38,58,72,75);ctx.quadraticCurveTo(101,53,131,73);ctx.quadraticCurveTo(158,57,190,75);ctx.lineTo(190,113);ctx.lineTo(0,113);ctx.closePath();ctx.fill();
+    ctx.fillStyle="#e08a2b";
+    ctx.beginPath();ctx.moveTo(0,91);ctx.quadraticCurveTo(40,66,78,88);ctx.quadraticCurveTo(112,66,151,84);ctx.quadraticCurveTo(171,91,190,86);ctx.lineTo(190,120);ctx.lineTo(0,120);ctx.closePath();ctx.fill();
+    ctx.fillStyle="#f8bb48";
+    ctx.beginPath();ctx.moveTo(0,104);ctx.quadraticCurveTo(44,80,86,101);ctx.quadraticCurveTo(120,79,165,97);ctx.quadraticCurveTo(179,102,190,98);ctx.lineTo(190,136);ctx.lineTo(0,136);ctx.closePath();ctx.fill();
+    ctx.fillStyle="#f8d269";
+    ctx.beginPath();ctx.moveTo(0,115);ctx.quadraticCurveTo(41,93,83,111);ctx.quadraticCurveTo(124,91,190,112);ctx.lineTo(190,136);ctx.lineTo(0,136);ctx.closePath();ctx.fill();
+    line([[20,98],[48,91],[80,94],[110,88],[143,91]],"#d17828",2);
+    line([[39,119],[68,111],[101,116],[132,108],[164,113]],"#d48a32",2);
+    for(let i=0;i<28;i++)px(10+(i*19)%174,113+(i*11)%20,2+(i%3),1,i%2?"#d08431":"#b96f2c");
 
     const cactus=(x,y,s,tall=true)=>{
       const trunkH=tall?54:34;
@@ -2732,67 +3559,320 @@
       px(x+10*s,y-(trunkH-31)*s,7*s,24*s,"#174b32");
       px(x+17*s,y-(trunkH-31)*s,7*s,9*s,"#174b32");
     };
-    cactus(39,108,.75,true);
-    cactus(154,107,.72,true);
-    cactus(99,95,.34,false);
-    cactus(116,92,.28,false);
-    cactus(134,95,.3,false);
-    cactus(63,96,.28,false);
-    px(47,111,28,12,"#1f5f35");px(51,106,22,8,"#2e7440");
-    px(136,113,23,10,"#1f5f35");px(139,108,16,8,"#2e7440");
-    px(83,112,8,4,"#90643a");px(127,112,12,4,"#90643a");
+    cactus(28,111,.72,true);
+    cactus(159,112,.66,true);
+    cactus(104,101,.38,false);
+    cactus(74,105,.28,false);
+    px(6,128,9,6,"#3e8d42");px(8,124,3,7,"#2b7440");px(16,125,4,8,"#2b7440");
+    px(64,123,10,5,"#d89944");px(67,120,7,3,"#8f6b46");px(73,121,5,3,"#b68748");
+    px(168,125,15,6,"#9b6a39");px(171,120,8,5,"#c69454");
   }
 
   function drawCookieStagePreview(ctx,w,h){
     ctx.imageSmoothingEnabled=false;
     const px=(x,y,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(ww),Math.round(hh));};
     const sky=ctx.createLinearGradient(0,0,0,h);
-    sky.addColorStop(0,"#e9c3d1");
-    sky.addColorStop(.48,"#ffd6b4");
-    sky.addColorStop(1,"#f7efd1");
+    sky.addColorStop(0,"#df5f98");
+    sky.addColorStop(.42,"#f095ba");
+    sky.addColorStop(1,"#ffe1d6");
     ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
-    px(0,96,w,40,"#f0d59d");
-    for(let i=0;i<8;i++)px(i*28+4,108+(i%2)*4,20,5,"#d7aa69");
-    const cloud=(x,y,s)=>{px(x,y,22*s,9*s,"#fff0d0");px(x+10*s,y-7*s,18*s,12*s,"#fff5dd");px(x+26*s,y+1*s,22*s,8*s,"#fff0d0");};
-    cloud(12,24,.8);cloud(118,20,.7);
-    px(48,62,86,55,"#b66b33");
-    px(42,56,98,12,"#fff5e7");
-    px(50,44,32,23,"#d9954e");px(92,38,38,29,"#d9954e");
-    px(45,39,40,12,"#fff8ec");px(88,32,45,14,"#fff8ec");
-    px(55,82,16,24,"#7b4028");px(88,72,18,17,"#7b4028");px(112,72,18,17,"#7b4028");
-    px(58,85,10,18,"#f6c47a");px(92,76,11,9,"#ffdca2");px(116,76,10,9,"#ffdca2");
-    for(let i=0;i<9;i++){px(86+i*5,67,3,3,["#ff6f8f","#62d0ff","#8bdd5b"][i%3]);}
-    px(34,69,8,42,"#ff7695");px(36,69,4,42,"#fff4e8");
-    px(139,72,10,39,"#ff7695");px(142,72,4,39,"#fff4e8");
-    px(155,70,26,12,"#f4a5c4");px(158,67,20,6,"#fff0f4");
-    px(160,83,17,17,"#f0e6c7");px(165,88,7,7,"#c76b48");
-    px(12,98,26,23,"#9b5537");px(13,99,24,4,"#d38a56");px(17,109,5,5,"#5b2b22");
+    px(0,93,w,43,"#f7efe4");
+    px(0,115,w,21,"#f0c8c8");
+    const cloud=(x,y,s)=>{px(x,y,19*s,9*s,"#fff0f7");px(x+9*s,y-7*s,18*s,13*s,"#fff7fb");px(x+24*s,y-1*s,21*s,10*s,"#fff0f7");px(x+39*s,y+4*s,13*s,6*s,"#ffe2ef");};
+    cloud(1,23,.82);cloud(125,19,.72);cloud(147,39,.55);
+    px(7,91,13,45,"#7e3f2c");px(11,91,5,45,"#b35e43");
+    for(let y=93;y<132;y+=12)px(5,y,17,5,"#f7d8d2");
+    px(155,96,30,20,"#f5b3cf");px(161,90,18,8,"#fff1f7");
+    px(4,124,26,11,"#f3b7d0");px(9,120,14,7,"#fff0f5");
+    px(48,58,93,59,"#b85c36");
+    px(48,80,93,37,"#6b3c2d");
+    px(53,60,83,49,"#d99a4f");
+    for(let x=58;x<132;x+=13)for(let y=65;y<101;y+=12){px(x,y,10,10,"#c8833f");px(x+1,y+1,8,8,"#e0ad62");}
+    px(57,43,26,20,"#c88745");px(91,34,37,30,"#c88745");
+    px(47,50,38,14,"#fff1f6");px(85,42,50,14,"#fff1f6");px(43,58,46,12,"#fff1f6");px(82,55,57,14,"#fff1f6");
+    for(let x=50;x<139;x+=12)px(x,63+(x%24?0:4),8,8,"#ffd4e3");
+    px(136,35,18,35,"#7a432e");px(136,33,18,9,"#fff5f7");px(140,28,10,8,"#ee74a5");
+    px(67,51,19,22,"#8a4b34");px(70,54,13,15,"#fff5f2");px(73,57,7,11,"#8fd3e6");px(73,62,7,2,"#7a4b3d");
+    px(60,83,24,29,"#7b3e2a");px(56,81,32,8,"#fff4f4");px(59,87,26,5,"#fff4f4");px(64,90,15,23,"#8a4c32");px(75,99,3,3,"#ffe096");
+    const candy=(x,y,c)=>{px(x,y,9,9,c);px(x-2,y+3,3,3,"#fff0f5");px(x+8,y+3,3,3,"#fff0f5");px(x+3,y+3,3,3,"#f7d1df");};
+    candy(18,104,"#e75f99");candy(31,113,"#f28ab6");candy(145,107,"#de5c9d");candy(169,118,"#eb79ab");candy(98,31,"#e76aa2");
+    for(let i=0;i<7;i++){const x=104+i*7,y=50+i%2*6;px(x,y,8,8,"#db5d9b");px(x+2,y+2,4,4,"#ffb5ce");}
+    px(111,28,12,12,"#f07dad");px(113,25,8,6,"#ffc0d8");
+    px(92,43,9,9,"#df6aa0");px(94,45,5,5,"#ffb7d0");px(96,47,4,4,"#b94d83");
+    for(let x=42;x<130;x+=21){px(x,119,18,6,"#d29a70");px(x+3,116,12,4,"#fff3e4");}
+    for(let i=0;i<20;i++){px((i*31+13)%w,101+(i*17)%28,3,3,["#d56b9b","#c07b55","#fff2e6"][i%3]);}
+    px(24,124,19,9,"#6d3b2a");px(29,119,10,7,"#9a5a3a");
+    px(151,122,22,7,"#6d3b2a");px(158,116,10,8,"#9a5a3a");
   }
 
   function drawToyStagePreview(ctx,w,h){
     ctx.imageSmoothingEnabled=false;
     const px=(x,y,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(ww),Math.round(hh));};
     const bg=ctx.createLinearGradient(0,0,0,h);
-    bg.addColorStop(0,"#b7dfee");
-    bg.addColorStop(.52,"#d7eecf");
-    bg.addColorStop(1,"#c9f2e4");
+    bg.addColorStop(0,"#96cfe0");
+    bg.addColorStop(.56,"#bfe5e6");
+    bg.addColorStop(1,"#9dd0d8");
     ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
-    px(0,104,w,32,"#a8d8ca");
-    px(18,42,154,18,"#685c79");
-    px(23,45,144,12,"#2d2c45");
-    ctx.font="bold 18px monospace";ctx.textAlign="center";ctx.fillStyle="#ff756e";ctx.fillText("TOY",95,58);
-    ctx.fillStyle="#ffe15b";ctx.fillText("FACTORY",95,76);
-    px(20,90,150,8,"#49445d");for(let x=25;x<165;x+=14)px(x,92,6,4,"#cbd2da");
-    const gear=(x,y,r,c)=>{ctx.fillStyle=c;for(let i=0;i<8;i++){const a=i*Math.PI/4;px(x+Math.cos(a)*r-3,y+Math.sin(a)*r-3,6,6,c);}ctx.beginPath();ctx.arc(x,y,r*.75,0,Math.PI*2);ctx.fill();px(x-4,y-4,8,8,"#b7dfee");};
-    gear(55,112,16,"#e65757");gear(92,110,13,"#ffd15c");gear(126,112,15,"#62b86f");
-    px(12,62,30,31,"#6fa0d7");px(18,50,18,14,"#ffd15c");px(23,53,8,7,"#fff0ad");
-    px(145,60,30,36,"#f2a74f");px(151,66,18,13,"#fff0ad");px(156,86,9,8,"#3b3348");
-    px(62,76,18,19,"#d8d8d8");px(88,76,18,19,"#d8d8d8");px(67,80,3,4,"#111");px(94,80,3,4,"#111");px(65,90,9,3,"#e65757");px(91,90,9,3,"#e65757");
-    px(4,14,24,54,"#e86464");px(4,42,24,26,"#63bf77");px(6,16,20,24,"#ffda6b");
-    px(166,20,21,59,"#68b6db");px(166,48,21,31,"#ffda6b");
+    px(0,108,w,28,"#8ec7d0");
+    for(let x=8;x<w;x+=30){px(x,30,12,42,"#88bdd0");px(x+3,36,6,5,"#d9f0f4");px(x+3,48,6,5,"#d9f0f4");}
+    px(54,18,14,20,"#8abbd0");px(57,21,8,5,"#d9f0f4");px(58,30,6,8,"#d9f0f4");
+    px(116,12,12,46,"#84b8ce");px(130,16,18,5,"#84b8ce");px(146,16,5,38,"#84b8ce");
+    const gear=(x,y,r,c)=>{
+      ctx.fillStyle=c;
+      for(let i=0;i<8;i++){const a=i*Math.PI/4;px(x+Math.cos(a)*r-3,y+Math.sin(a)*r-3,6,6,c);}
+      ctx.beginPath();ctx.arc(x,y,r*.82,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#f6bd42";ctx.beginPath();ctx.arc(x,y,r*.34,0,Math.PI*2);ctx.fill();
+      px(x-3,y-3,6,6,"#6a557d");
+    };
+    gear(28,18,13,"#8f61a6");gear(70,9,10,"#7eb4d6");gear(150,20,12,"#7568a6");gear(174,36,8,"#7568a6");
+    px(0,75,w,9,"#50697d");px(0,81,w,6,"#344b60");for(let x=8;x<w;x+=16)px(x,78,7,3,"#c9d4de");
+    px(28,95,134,12,"#465e73");px(28,105,134,8,"#2e4054");for(let x=37;x<156;x+=18)px(x,99,8,4,"#cfdae3");
+    px(10,74,24,22,"#e35d4f");px(12,66,17,11,"#ffd04d");px(35,82,18,15,"#49a968");px(53,73,20,24,"#f2c747");
+    px(130,71,30,25,"#724aa7");px(138,78,16,10,"#67d38b");px(160,76,25,20,"#43a85d");px(168,68,14,9,"#ffd65d");
+    px(12,113,18,13,"#f3c839");px(16,108,10,6,"#ffdf61");px(49,118,18,13,"#d54841");px(53,114,10,5,"#ff7b66");
+    px(82,114,21,13,"#5aac55");px(87,110,11,5,"#77db6c");px(112,116,20,12,"#8452aa");px(117,112,10,5,"#b27ee5");
+    px(148,111,17,17,"#ed9c40");px(152,107,9,5,"#ffd35b");
+    px(72,91,31,10,"#61a8cf");px(76,88,23,4,"#a3e1f2");px(78,101,18,4,"#27556b");
+    px(103,88,18,14,"#f0a33c");px(108,91,8,6,"#ffe071");
+    px(3,121,18,8,"#e05f3f");px(171,116,16,12,"#6cc05a");
+  }
+
+  function drawAdvancedStagePreview(px,w,h,stage){
+    px.imageSmoothingEnabled=false;
+    const fill=(x,y,ww,hh,c)=>{px.fillStyle=c;px.fillRect(Math.round(x),Math.round(y),Math.round(ww),Math.round(hh));};
+    const themes={
+      8:{sky:"#31141b",ground:"#5b2617",accent:"#ff7938",light:"#ffd05a"},
+      9:{sky:"#072642",ground:"#164f69",accent:"#64d8ff",light:"#bdf7ff"},
+      10:{sky:"#191638",ground:"#3b2b4a",accent:"#e7c96b",light:"#fff2a8"},
+      11:{sky:"#090015",ground:"#201033",accent:"#9b4dff",light:"#f2a6ff"}
+    };
+    const t=themes[stage]||themes[8];
+    fill(0,0,w,h,t.sky);
+    const stripeAlpha=stage===9 ? .035 : .02;
+    for(let y=0;y<h;y+=8)fill(0,y,w,8,`rgba(255,255,255,${stripeAlpha})`);
+    fill(0,88,w,48,t.ground);
+    for(let x=0;x<w;x+=22)fill(x,104+(x%3)*5,13,3,t.accent);
+    if(stage===8){
+      fill(0,0,w,h,"#23131a");
+      fill(0,16,w,72,"#46191b");
+      for(let y=18;y<84;y+=12){
+        for(let x=(y%24?5:16);x<w;x+=34)fill(x,y,21,4,"#6b2722");
+      }
+      fill(0,82,w,54,"#241014");
+      for(let x=0;x<w;x+=26)fill(x,112,16,5,"#ff8a24");
+      for(let x=8;x<w;x+=24)fill(x,126,13,3,"#ffd15a");
+      fill(0,118,w,18,"#5c1d16");
+      for(let x=-10;x<w;x+=24){fill(x,121,18,5,"#ff5a22");fill(x+8,129,18,4,"#ffc34a");}
+      const flame=(x,y,s)=>{
+        fill(x+5*s,y+10*s,18*s,22*s,"#ff5a1f");
+        fill(x+8*s,y+4*s,12*s,24*s,"#ff9827");
+        fill(x+12*s,y,7*s,22*s,"#ffe36b");
+        fill(x+2*s,y+18*s,24*s,12*s,"#b32218");
+      };
+      fill(11,50,47,40,"#372d2a");
+      fill(16,42,37,10,"#6b5d54");
+      fill(17,52,35,9,"#241b1b");
+      flame(19,55,.9);
+      fill(6,86,58,8,"#181216");
+      fill(69,91,52,9,"#1b1316");fill(75,88,40,5,"#ff7a28");
+      fill(82,76,12,15,"#4b3228");fill(97,75,18,15,"#6a4634");
+      fill(105,51,55,11,"#423035");fill(111,58,7,25,"#26202a");fill(149,58,7,25,"#26202a");
+      fill(112,47,15,4,"#6e4a42");fill(133,47,15,4,"#6e4a42");
+      fill(138,67,35,28,"#46312a");fill(143,61,25,8,"#6e4b35");fill(150,72,10,10,"#ffbd4b");
+      fill(29,18,8,33,"#1e1720");fill(31,20,4,4,"#6f3940");fill(31,31,4,4,"#6f3940");fill(31,42,4,4,"#6f3940");
+      fill(76,12,7,44,"#211721");fill(78,17,3,4,"#6f3940");fill(78,29,3,4,"#6f3940");fill(78,41,3,4,"#6f3940");
+      fill(153,12,7,39,"#211721");fill(155,18,3,4,"#6f3940");fill(155,31,3,4,"#6f3940");
+      fill(78,103,37,11,"#1c1d22");fill(85,96,23,8,"#59626b");fill(93,88,6,12,"#8f9ba4");fill(74,115,46,5,"#090a0d");
+      fill(42,104,20,7,"#4a2e20");fill(45,100,14,4,"#8c5630");
+      fill(130,105,31,8,"#4a2e20");fill(134,101,22,4,"#8c5630");
+      for(let i=0;i<12;i++)fill((i*17+9)%w,76+(i*11)%46,3,3,i%2?"#ffcf63":"#ff7130");
+    }else if(stage===9){
+      fill(0,0,w,h,"#06172d");
+      const sea=px.createLinearGradient(0,0,0,h);
+      sea.addColorStop(0,"#126277");
+      sea.addColorStop(.45,"#0b334c");
+      sea.addColorStop(1,"#071323");
+      px.fillStyle=sea;px.fillRect(0,0,w,h);
+      for(let i=0;i<7;i++){
+        const x=18+i*25;
+        fill(x,0,9,68,"rgba(126,238,255,.08)");
+        fill(x+3,0,3,76,"rgba(190,255,255,.08)");
+      }
+      for(let y=7;y<29;y+=7)for(let x=28;x<w-24;x+=21)fill(x+(y%2)*5,y,11,2,"#2c8a9a");
+      fill(0,104,w,32,"#13253a");
+      for(let x=0;x<w;x+=22)fill(x,118+(x%3)*3,15,3,"#355061");
+      fill(74,50,49,50,"#173448");
+      fill(68,46,61,8,"#305d6a");
+      fill(72,39,53,8,"#4b7f87");
+      fill(80,31,38,8,"#2d6270");
+      fill(87,24,24,7,"#5b9198");
+      fill(81,57,8,36,"#244a56");fill(108,57,8,36,"#244a56");
+      fill(92,61,14,32,"#0a2232");fill(95,65,8,28,"#173449");
+      fill(70,96,58,6,"#3b6c72");fill(64,102,70,6,"#183047");
+      for(let i=0;i<6;i++)fill(78+i*8,42,5,3,"#8ec3bd");
+      fill(42,62,9,45,"#263f4e");fill(38,58,17,6,"#588083");fill(40,108,13,5,"#172838");
+      fill(25,71,10,40,"#233a48");fill(21,68,18,6,"#456a70");fill(23,111,14,5,"#142535");
+      fill(142,68,10,41,"#263f4e");fill(138,64,18,6,"#588083");fill(140,110,14,5,"#172838");
+      fill(6,45,20,85,"#070b18");fill(10,50,11,15,"#203447");fill(12,78,8,17,"#203447");fill(8,106,14,12,"#203447");
+      fill(168,43,20,88,"#070b18");fill(171,52,12,16,"#203447");fill(174,80,8,18,"#203447");fill(170,108,14,12,"#203447");
+      const bubble=(x,y,s=1)=>{px.strokeStyle="#67def2";px.lineWidth=Math.max(1,s);px.beginPath();px.arc(x,y,3*s,0,Math.PI*2);px.stroke();};
+      for(let i=0;i<17;i++)bubble(47+(i%3)*8,24+i*5,.7+(i%2)*.25);
+      for(let i=0;i<13;i++)bubble(145+(i%2)*9,18+i*6,.65+(i%3)*.15);
+      fill(29,117,8,10,"#42f0e7");fill(33,111,5,16,"#78fff4");fill(39,115,5,12,"#28c4d1");fill(24,121,17,4,"#168394");
+      fill(126,109,7,11,"#42f0e7");fill(132,104,5,17,"#78fff4");fill(138,112,5,11,"#28c4d1");fill(124,121,20,4,"#168394");
+      fill(70,83,10,4,"#4ecddd");fill(76,78,4,4,"#91fff8");fill(119,91,9,4,"#4ecddd");fill(128,88,4,4,"#91fff8");
+      for(let i=0;i<18;i++)fill((i*29+12)%w,42+(i*17)%80,2,2,i%2?"#3fd5e5":"#8ffcff");
+    }else if(stage===10){
+      const night=px.createLinearGradient(0,0,0,h);
+      night.addColorStop(0,"#101f4c");
+      night.addColorStop(.55,"#2b2460");
+      night.addColorStop(1,"#51306f");
+      px.fillStyle=night;px.fillRect(0,0,w,h);
+      for(let i=0;i<28;i++){
+        const x=(i*37+9)%w,y=(i*19+7)%82;
+        fill(x,y,i%5?2:3,i%5?2:3,i%3?"#fff1a8":"#f6c65a");
+        if(i%7===0){fill(x-3,y+1,8,1,"#ffe78e");fill(x+1,y-3,1,8,"#ffe78e");}
+      }
+      fill(0,106,w,30,"#17182f");
+      fill(60,35,70,86,"#202338");
+      fill(66,28,58,10,"#3c4056");
+      fill(73,14,44,15,"#24283e");fill(81,7,28,8,"#3d4057");fill(90,0,10,9,"#1a1e32");
+      fill(55,48,80,9,"#4a4050");fill(58,57,74,6,"#151827");
+      fill(64,116,62,11,"#111323");
+      fill(67,69,56,47,"#282a3d");fill(72,73,46,37,"#151827");
+      fill(77,78,36,28,"#2b2e43");
+      px.fillStyle="#e7b85b";px.beginPath();px.arc(95,92,18,0,Math.PI*2);px.fill();
+      px.fillStyle="#ffe38a";px.beginPath();px.arc(95,92,14,0,Math.PI*2);px.fill();
+      px.strokeStyle="#7f5532";px.lineWidth=2;px.beginPath();px.arc(95,92,16,0,Math.PI*2);px.stroke();
+      px.strokeStyle="#7f5532";px.lineWidth=1;
+      for(let i=0;i<12;i++){
+        const a=i*Math.PI/6;
+        px.beginPath();px.moveTo(95+Math.cos(a)*11,92+Math.sin(a)*11);px.lineTo(95+Math.cos(a)*14,92+Math.sin(a)*14);px.stroke();
+      }
+      px.beginPath();px.moveTo(95,92);px.lineTo(95,80);px.moveTo(95,92);px.lineTo(105,98);px.stroke();
+      fill(61,34,10,15,"#25283c");fill(119,34,10,15,"#25283c");
+      fill(64,29,4,10,"#ffd36b");fill(122,29,4,10,"#ffd36b");fill(63,39,7,4,"#664227");fill(121,39,7,4,"#664227");
+      fill(37,95,10,30,"#25283c");fill(140,95,10,30,"#25283c");
+      fill(40,88,4,10,"#ffd36b");fill(143,88,4,10,"#ffd36b");
+      fill(48,118,94,7,"#3f3346");
+      for(let x=70;x<=115;x+=15){fill(x,113,8,8,"#101424");fill(x+2,116,4,5,"#39405b");}
+      fill(56,61,8,6,"#4a4050");fill(126,61,8,6,"#4a4050");
+    }else{
+      fill(0,0,w,h,"#070014");
+      const voidBg=px.createRadialGradient(w/2,48,8,w/2,54,115);
+      voidBg.addColorStop(0,"#3d0b63");
+      voidBg.addColorStop(.45,"#1b0738");
+      voidBg.addColorStop(1,"#06000f");
+      px.fillStyle=voidBg;px.fillRect(0,0,w,h);
+      px.save();
+      px.translate(w/2,53);
+      for(let i=0;i<5;i++){
+        px.strokeStyle=`rgba(169,76,255,${.12+i*.055})`;
+        px.lineWidth=3+i;
+        px.beginPath();
+        px.arc(0,0,22+i*10,Math.PI*.12+i*.25,Math.PI*1.65+i*.35);
+        px.stroke();
+      }
+      px.restore();
+      for(let i=0;i<34;i++){
+        const x=(i*41+11)%w,y=(i*29+5)%95;
+        fill(x,y,i%6?2:3,i%6?2:3,i%3?"#b16cff":"#fff0ff");
+        if(i%11===0){fill(x-4,y+1,10,1,"#c97cff");fill(x+1,y-4,1,10,"#c97cff");}
+      }
+      px.strokeStyle="#c668ff";px.lineWidth=4;px.beginPath();px.arc(95,48,33,0,Math.PI*2);px.stroke();
+      px.strokeStyle="#f2b4ff";px.lineWidth=2;px.beginPath();px.arc(95,48,25,0,Math.PI*2);px.stroke();
+      px.strokeStyle="#8c2dff";px.lineWidth=2;px.beginPath();px.arc(95,48,42,0,Math.PI*2);px.stroke();
+      for(let i=0;i<8;i++){
+        const a=i*Math.PI/4;
+        fill(95+Math.cos(a)*37-2,48+Math.sin(a)*37-2,4,4,i%2?"#f0a0ff":"#9f5cff");
+      }
+      const core=px.createRadialGradient(95,48,2,95,48,22);
+      core.addColorStop(0,"#ffffff");
+      core.addColorStop(.2,"#ffb6ff");
+      core.addColorStop(.6,"#7d1dff");
+      core.addColorStop(1,"#080011");
+      px.fillStyle=core;px.beginPath();px.arc(95,48,22,0,Math.PI*2);px.fill();
+      px.strokeStyle="#f0a0ff";px.lineWidth=2;
+      for(let i=0;i<7;i++){
+        const a=i*Math.PI*2/7;
+        px.beginPath();px.moveTo(95,48);px.lineTo(95+Math.cos(a)*22,48+Math.sin(a)*20);px.stroke();
+      }
+      fill(0,94,w,42,"#120922");
+      fill(28,103,32,19,"#2c2740");fill(62,98,42,23,"#342c4c");fill(108,101,37,19,"#2b263d");fill(146,106,28,15,"#211e31");
+      fill(0,118,w,18,"#090611");
+      px.strokeStyle="#bb4fff";px.lineWidth=2;
+      px.beginPath();px.moveTo(34,112);px.lineTo(56,108);px.lineTo(80,119);px.lineTo(100,105);px.lineTo(129,116);px.stroke();
+      px.beginPath();px.moveTo(82,121);px.lineTo(95,105);px.lineTo(112,121);px.stroke();
+      const rock=(x,y,s)=>{fill(x,y,10*s,7*s,"#2b2937");fill(x+2*s,y-2*s,7*s,3*s,"#5b536e");fill(x+1*s,y+5*s,10*s,3*s,"#11101a");};
+      rock(12,83,1.1);rock(162,78,1.2);rock(38,68,.75);rock(139,61,.7);rock(153,98,.85);
+      for(let i=0;i<9;i++)fill(24+i*18,126+(i%2)*3,9,2,"#7b36c8");
+    }
+  }
+
+  function drawEventTrialStagePreview(ctx,w,h){
+    ctx.clearRect(0,0,w,h);
+    ctx.imageSmoothingEnabled=false;
+    const px=(x,y,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(ww),Math.round(hh));};
+    const bg=ctx.createLinearGradient(0,0,0,h);
+    bg.addColorStop(0,"#071426");
+    bg.addColorStop(.55,"#102c3f");
+    bg.addColorStop(1,"#171320");
+    ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+    for(let i=0;i<30;i++){
+      const x=(i*37+13)%w,y=(i*23+9)%h;
+      px(x,y,i%4?2:3,i%4?2:3,i%3?"#52d9ff":"#b7f8ff");
+    }
+    const wall=(x,y,ww,hh)=>{
+      px(x,y,ww,hh,"#263447");
+      px(x,y,ww,5,"#60768b");
+      px(x,y+hh-6,ww,6,"#0a0d14");
+      for(let i=0;i<ww;i+=18)px(x+i+3,y+9+(i%36),10,4,"#41566a");
+    };
+    wall(0,0,w,24);
+    wall(0,112,w,24);
+    wall(0,22,20,92);
+    wall(170,22,20,92);
+    px(24,90,142,22,"#263344");
+    px(28,93,134,5,"#596a7f");
+    px(42,101,28,5,"#151b28");
+    px(98,101,38,5,"#151b28");
+    const crystal=(x,y,s,c1,c2)=>{
+      ctx.fillStyle=c1;
+      ctx.beginPath();
+      ctx.moveTo(x,y-18*s);
+      ctx.lineTo(x+12*s,y-2*s);
+      ctx.lineTo(x+5*s,y+18*s);
+      ctx.lineTo(x-7*s,y+18*s);
+      ctx.lineTo(x-12*s,y-1*s);
+      ctx.closePath();
+      ctx.fill();
+      px(x-2*s,y-12*s,5*s,25*s,c2);
+      px(x+4*s,y-3*s,4*s,9*s,"#dffcff");
+    };
+    crystal(51,72,.9,"#1db7ff","#7cecff");
+    crystal(138,70,.75,"#56dbff","#b6f7ff");
+    crystal(93,56,1.15,"#279dff","#89f2ff");
+    ctx.save();
+    ctx.translate(95,76);
+    ctx.fillStyle="#2a1a34";
+    ctx.beginPath();
+    ctx.arc(0,0,27,0,Math.PI*2);
+    ctx.fill();
+    px(-22,-9,44,20,"#4b2c5a");
+    px(-17,-16,34,10,"#75507c");
+    px(-14,-4,8,8,"#fff0a0");
+    px(6,-4,8,8,"#fff0a0");
+    px(-6,9,12,5,"#190b20");
+    ctx.restore();
+    for(let i=0;i<5;i++){
+      const x=52+i*21;
+      px(x,105,9,5,i%2?"#3bd7ff":"#f5d66a");
+      px(x+2,102,5,3,"#fff3a0");
+    }
   }
 
   function renderStageArt(stage){
+    updateHomeStageBadge(stage);
     if(stage===BOSS_CHALLENGE_STAGE){
       stageArt.className="stageBossChallenge";
       stageArt.innerHTML="";
@@ -2805,6 +3885,16 @@
       stagePower.innerHTML="此為測試模式用；要更新請詢問用戶。";
       return;
     }
+    if(stage===EVENT_STAGE){
+      resetActivityDaily();
+      stageArt.className="stageEvent stageEventCanvas";
+      stageArt.innerHTML='<canvas id="eventStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
+      const canvas=document.getElementById("eventStageArtCanvas");
+      if(canvas)drawEventTrialStagePreview(canvas.getContext("2d"),190,136);
+      stageName.textContent="強化試煉";
+      stagePower.innerHTML=`每日 ${activityRunsLeft()}/${EVENT_DAILY_LIMIT}｜10 分鐘挑戰<br>擊殺會轉換活動兌換幣`;
+      return;
+    }
     if(stage===INFINITE_STAGE){
       stageArt.className="stageInfinite stageInfiniteCanvas";
       stageArt.innerHTML='<canvas id="infiniteStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
@@ -2814,7 +3904,14 @@
       stagePower.innerHTML=`建議戰力 ∞｜每 10 分鐘進入擂台<br>目前最高生存時間：${formatStageTime(meta.bestInfiniteSeconds||0)}<br>敵人擊破總數：${meta.infiniteTotalKills||0}`;
       return;
     }
-    if(stage===7){
+    if(stage>=8&&stage<=11){
+      const stageNames={8:"第七關・熔岩工坊",9:"第八關・海底遺跡",10:"第九關・星夜鐘塔",11:"第十關・虛空核心"};
+      stageArt.className="stageAdvanced stageAdvancedCanvas";
+      stageArt.innerHTML='<canvas id="advancedStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
+      const canvas=document.getElementById("advancedStageArtCanvas");
+      if(canvas)drawAdvancedStagePreview(canvas.getContext("2d"),190,136,stage);
+      stageName.textContent=stageNames[stage]||currentStageLabel();
+    }else if(stage===7){
       stageArt.className="stageToy stageToyCanvas";
       stageArt.innerHTML='<canvas id="toyStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
       const canvas=document.getElementById("toyStageArtCanvas");
@@ -2887,10 +3984,12 @@
 
   function metaDetailLines(def){
     const tier=Math.floor(meta[def.id]/10)+1;
+    const weapon=equippedWeapon();
+    const weaponQuality=equipmentQualityInfo(weapon);
     if(def.id==="damage")return [
       `每級 +${metaDamagePerLevel(meta.damage).toFixed(3).replace(/\.?0+$/,"")} 攻擊`,
       "每10級成長 +0.2%",
-      `目前 ${def.value(meta)}`,
+      `目前 ${def.value(meta)} <span class="equipmentAttackNote ${weaponQuality.className}">(+${equipmentAttack(weapon)}裝備)</span>`,
       `費用階段 ${tier}`
     ];
     if(def.id==="life")return [
@@ -2901,7 +4000,7 @@
     ];
     if(def.id==="regen")return [
       `每級 +${metaRegenPerLevel(Math.max(1,meta.regen||1)).toFixed(2)} HP/秒`,
-      `每10級成長 +${META_REGEN_STAGE_STEP.toFixed(2)}`,
+      `每10級成長 +${META_REGEN_STAGE_STEP.toFixed(3)}`,
       `目前 ${def.value(meta)}`,
       `費用階段 ${tier}`
     ];
@@ -2963,14 +4062,29 @@
 
   renderMeta=function(){
     renderAccount();
+    ensureEquipmentState();
     document.querySelector(".homeTitle").innerHTML=`兔兔割草大冒險 <span class="homeVersion">V.${APP_VERSION}</span>`;
     document.getElementById("start").textContent="開始割草";
     characterBtn.textContent="角色資訊";
     adventureBookBtn.textContent="冒險筆記";
-    shopBtn.textContent="精靈商城";
+    shopBtn.textContent="冒險市集";
     metaPointsEl.innerHTML=`<span class="pointDiamond"></span><span>強化點數 ${formatCostShort(meta.points)}</span>`;
     metaRecordEl.innerHTML=`總擊破 ${meta.totalKills||0}｜菁英 ${meta.totalElites||0}｜BOSS ${meta.totalBosses||0}`;
-    powerBox.innerHTML=`<span class="powerLabel">戰力</span><span class="powerValue">${combatPower()}</span>`;
+    const currentPower=combatPower();
+    powerBox.innerHTML=`<span class="powerLabel">戰力</span><span class="powerValue">${currentPower}</span>`;
+    const canUseEquipment=equipmentUnlocked(currentPower);
+    if(characterModeTabs){
+      characterModeTabs.classList.toggle("hidden",!canUseEquipment);
+      if(canUseEquipment&&!meta.equipmentUnlockSeen){
+        characterModeTabs.classList.add("unlocking");
+        meta.equipmentUnlockSeen=true;
+        saveMeta();
+        setTimeout(()=>characterModeTabs.classList.remove("unlocking"),900);
+      }else{
+        characterModeTabs.classList.remove("unlocking");
+      }
+    }
+    if(!canUseEquipment)setCharacterTab("ability");
     if(abilityResetBtn){
       const tickets=Math.max(0,Math.floor(Number(meta.abilityResetTickets)||0));
       abilityResetBtn.classList.toggle("hidden",tickets<=0);
@@ -2985,7 +4099,8 @@
       const cost=metaUpgradeCost(def);
       const card=document.createElement("div");
       card.className="statCard";
-      const maxed=def.cap!==undefined&&meta[def.id]>=def.cap;
+      const cap=metaDefCap(def);
+      const maxed=cap!==undefined&&meta[def.id]>=cap;
       const detailLines=metaDetailLines(def);
       card.innerHTML=`<b>${def.name} LV${meta[def.id]}</b><small>${detailLines.map(detailLineMarkup).join("")}</small>`;
       const actions=document.createElement("div");
@@ -3034,7 +4149,26 @@
       card.appendChild(actions);
       metaStatsEl.appendChild(card);
     }
+    renderEquipmentPanel();
     setupMetaMarquees();
+    const bossMode=devModeActive&&bossChallengeMenuOpen;
+    const specialModeSelected=currentStage===INFINITE_STAGE&&!bossMode;
+    const eventModeSelected=currentStage===EVENT_STAGE&&!bossMode;
+    stageSelectModal?.classList.toggle("bossMode",bossMode);
+    stageSelectModal?.classList.toggle("specialMode",specialModeSelected);
+    stageSelectModal?.classList.toggle("eventMode",eventModeSelected);
+    stageModeNormalBtn?.classList.toggle("active",!bossMode&&!specialModeSelected&&!eventModeSelected);
+    stageModeBossBtn?.classList.toggle("active",bossMode);
+    stageModeSpecialBtn?.classList.toggle("active",specialModeSelected);
+    stageModeEventBtn?.classList.toggle("active",eventModeSelected);
+    if(stageModeNormalBtn)stageModeNormalBtn.innerHTML="一般<br>關卡";
+    stageModeBossBtn?.classList.toggle("locked",!devModeActive);
+    if(stageModeBossBtn)stageModeBossBtn.innerHTML=devModeActive?"頭目<br>挑戰":"頭目<br>挑戰 🔒";
+    const eventUnlocked=currentPower>=EVENT_UNLOCK_POWER;
+    stageModeEventBtn?.classList.toggle("locked",!eventUnlocked);
+    if(stageModeEventBtn)stageModeEventBtn.innerHTML=eventUnlocked?"活動<br>關卡":"活動<br>關卡 🔒";
+    if(stageModeSpecialBtn)stageModeSpecialBtn.innerHTML="特殊<br>關卡";
+    infiniteStage?.classList.toggle("active",specialModeSelected);
     gardenStage.classList.toggle("active",currentStage===1);
     desertStage.classList.toggle("active",currentStage===2);
     snowStage.classList.toggle("active",currentStage===3);
@@ -3042,22 +4176,34 @@
     forestSeaStage.classList.toggle("active",currentStage===5);
     cookieStage.classList.toggle("active",currentStage===6);
     toyStage.classList.toggle("active",currentStage===7);
+    lavaStage.classList.toggle("active",currentStage===8);
+    seaStage.classList.toggle("active",currentStage===9);
+    clockStage.classList.toggle("active",currentStage===10);
+    voidStage.classList.toggle("active",currentStage===11);
+    eventStage?.classList.toggle("active",eventModeSelected);
     infiniteStage.classList.toggle("active",currentStage===INFINITE_STAGE);
-    bossChallengeStage?.classList.toggle("hidden",!devModeActive);
-    bossChallengeStage?.classList.toggle("active",isBossChallengeMode());
-    bossChallengePanel?.classList.toggle("hidden",!devModeActive||!bossChallengeMenuOpen);
+    bossChallengeStage?.classList.add("hidden");
+    bossChallengePanel?.classList.toggle("hidden",!bossMode);
     desertStage.disabled=stageAvailability(2)!=="open";
     snowStage.disabled=stageAvailability(3)!=="open";
     forestPathStage.disabled=stageAvailability(4)!=="open";
     forestSeaStage.disabled=stageAvailability(5)!=="open";
     cookieStage.disabled=stageAvailability(6)!=="open";
     toyStage.disabled=stageAvailability(7)!=="open";
+    lavaStage.disabled=stageAvailability(8)!=="open";
+    seaStage.disabled=stageAvailability(9)!=="open";
+    clockStage.disabled=stageAvailability(10)!=="open";
+    voidStage.disabled=stageAvailability(11)!=="open";
     desertStage.classList.toggle("locked",stageAvailability(2)!=="open");
     snowStage.classList.toggle("locked",stageAvailability(3)!=="open");
     forestPathStage.classList.toggle("locked",stageAvailability(4)!=="open");
     forestSeaStage.classList.toggle("locked",stageAvailability(5)!=="open");
     cookieStage.classList.toggle("locked",stageAvailability(6)!=="open");
     toyStage.classList.toggle("locked",stageAvailability(7)!=="open");
+    lavaStage.classList.toggle("locked",stageAvailability(8)!=="open");
+    seaStage.classList.toggle("locked",stageAvailability(9)!=="open");
+    clockStage.classList.toggle("locked",stageAvailability(10)!=="open");
+    voidStage.classList.toggle("locked",stageAvailability(11)!=="open");
     gardenStage.innerHTML=stageButtonMarkup("第一關・菜園",1);
     desertStage.innerHTML=stageAvailability(2)==="open"?
       stageButtonMarkup("第二關・沙漠",2):
@@ -3077,7 +4223,28 @@
     toyStage.innerHTML=stageAvailability(7)==="open"?
       stageButtonMarkup("第六關・玩具夢工廠",7):
       stageButtonMarkup("第六關・玩具夢工廠（未解鎖）",7);
-    infiniteStage.innerHTML=stageButtonMarkup("無限輪迴模式",INFINITE_STAGE);
+    lavaStage.innerHTML=stageAvailability(8)==="open"?
+      stageButtonMarkup("第七關・熔岩工坊",8):
+      stageButtonMarkup("第七關・熔岩工坊（未解鎖）",8);
+    seaStage.innerHTML=stageAvailability(9)==="open"?
+      stageButtonMarkup("第八關・海底遺跡",9):
+      stageButtonMarkup("第八關・海底遺跡（未解鎖）",9);
+    clockStage.innerHTML=stageAvailability(10)==="open"?
+      stageButtonMarkup("第九關・星夜鐘塔",10):
+      stageButtonMarkup("第九關・星夜鐘塔（未解鎖）",10);
+    voidStage.innerHTML=stageAvailability(11)==="open"?
+      stageButtonMarkup("第十關・虛空核心",11):
+      stageButtonMarkup("第十關・虛空核心（未解鎖）",11);
+    if(eventStage){
+      eventStage.classList.toggle("hidden",!eventUnlocked);
+      const eventOpen=stageAvailability(EVENT_STAGE)==="open";
+      eventStage.disabled=!eventOpen;
+      eventStage.classList.toggle("locked",!eventOpen);
+      eventStage.innerHTML=eventOpen?
+        stageButtonMarkup("強化試煉",EVENT_STAGE):
+        stageButtonMarkup("強化試煉（未解鎖）",EVENT_STAGE);
+    }
+    infiniteStage.textContent="無限輪迴";
     if(bossChallengeStage)bossChallengeStage.innerHTML=stageButtonMarkup("頭目挑戰模式",BOSS_CHALLENGE_STAGE);
     const homeStages=[
       [homeGardenStage,1,"第一關・菜園"],
@@ -3132,7 +4299,7 @@
     {id:"peanut",icon:"🥜",name:"花生跟班",desc:"花生自動丟石頭；LV5進化貫穿滾石",valid(){return skills.peanut<5;},apply(){skills.peanut++;}},
     {id:"pinky",icon:"🍌",name:"PINKY 跟班",desc:"香蕉直線穿透後原路返回；接回強化攻擊與移速",valid(){return skills.pinky<5;},apply(){skills.pinky++;}},
     {id:"brain",icon:"🧠",name:"超級頭腦",desc:"經驗獲取量累計：LV1 +40%／LV2 +100%／LV3 +180%／LV4 +280%／LV5 +400%",valid(){return skills.brain<5;},apply(){const gain=[.4,.6,.8,1,1.2][skills.brain]||0;player.xpGain+=gain;skills.brain++;}},
-    {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+8% 無視防禦（第二關 / 第三關 / 無限輪迴）",cap:5,valid(){return (currentStage===2||currentStage===3||isInfiniteMode())&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.08;}}
+    {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+6% 無視防禦（第二關 / 第三關 / 無限輪迴）",cap:5,valid(){return (currentStage===2||currentStage===3||isInfiniteMode())&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.06;}}
   ];
   function maxBossChallengeFieldSkills(){
     let applied=0;
@@ -3156,6 +4323,12 @@
   }
 
   const enemyData={
+    coppercoin:{hp:100,speed:160,damage:18,xp:2,r:14,color:"#b87333",defense:18},
+    silvercoin:{hp:100,speed:160,damage:18,xp:2,r:15,color:"#c9d3df",defense:18},
+    goldcoin:{hp:100,speed:160,damage:18,xp:3,r:16,color:"#ffd95c",defense:18},
+    billmonster:{hp:100,speed:160,damage:18,xp:3,r:18,color:"#7bdc91",defense:18},
+    diamondcoin:{hp:100,speed:160,damage:18,xp:4,r:20,color:"#67d9ff",defense:18},
+    chestmimic:{hp:1200,speed:80,damage:40,xp:40,r:50,color:"#9b6b36",defense:40},
     turtle:{hp:34,speed:48,damage:10,xp:4,r:18,color:"#55a94d"},
     mushroom:{hp:22,speed:68,damage:8,xp:3,r:15,color:"#9b5a3d"},
     bombcloud:{hp:48,speed:42,damage:14,xp:6,r:20,color:"#60667b"},
@@ -3188,13 +4361,37 @@
     jamgummy:{hp:1250,speed:62,damage:64,xp:24,r:24,color:"#c6415d",defense:66},
     creampuff:{hp:1650,speed:50,damage:78,xp:28,r:27,color:"#f2d7a5",defense:125},
     gingerchef:{hp:1400,speed:72,damage:86,xp:30,r:24,color:"#a76435",defense:76},
-    cookiemonarch:{hp:3610000,speed:26,damage:225,xp:980,r:84,color:"#d99b57",defense:330},
+    cookiemonarch:{hp:2888000,speed:26,damage:225,xp:980,r:84,color:"#d99b57",defense:220},
     windupsoldier:{hp:1350,speed:86,damage:82,xp:30,r:22,color:"#c4c7ce",defense:90},
     toyplane:{hp:1000,speed:165,damage:74,xp:28,r:19,color:"#66a8df",defense:48},
     springfist:{hp:1550,speed:78,damage:98,xp:34,r:24,color:"#e16b5b",defense:78},
     blockgolem:{hp:1900,speed:50,damage:92,xp:38,r:28,color:"#e0b34c",defense:150},
     teddybear:{hp:2200,speed:58,damage:110,xp:42,r:29,color:"#9f6948",defense:120},
-    nightmaremaker:{hp:4850000,speed:30,damage:300,xp:1250,r:86,color:"#684a7d",defense:420},
+    nightmaremaker:{hp:2900750,speed:30,damage:300,xp:1250,r:86,color:"#684a7d",defense:280},
+    embermite:{hp:2600,speed:105,damage:125,xp:44,r:18,color:"#ff6a32",defense:120},
+    slagguard:{hp:3400,speed:55,damage:145,xp:52,r:25,color:"#6b4b3a",defense:180},
+    forgeimp:{hp:3000,speed:90,damage:135,xp:48,r:21,color:"#b84c2d",defense:95},
+    magmaworm:{hp:3800,speed:62,damage:155,xp:58,r:26,color:"#d15735",defense:150},
+    coalroller:{hp:4200,speed:46,damage:170,xp:64,r:28,color:"#3a302c",defense:220},
+    lavagolem:{hp:2750000,speed:24,damage:350,xp:1500,r:88,color:"#9a3d25",defense:340},
+    bubblejelly:{hp:4300,speed:78,damage:160,xp:64,r:22,color:"#7cd8ff",defense:120},
+    reefcrab:{hp:5200,speed:42,damage:185,xp:72,r:27,color:"#4d9ba8",defense:260},
+    spearurchin:{hp:4700,speed:58,damage:205,xp:70,r:24,color:"#356b9d",defense:180},
+    tideeel:{hp:3900,speed:125,damage:175,xp:66,r:19,color:"#54c7d4",defense:120},
+    ruinguard:{hp:6200,speed:38,damage:230,xp:82,r:30,color:"#516f86",defense:310},
+    abyssoctopus:{hp:3550000,speed:22,damage:410,xp:1800,r:90,color:"#5a4b9b",defense:390},
+    cograt:{hp:6500,speed:70,damage:230,xp:86,r:23,color:"#9b7d4a",defense:240},
+    clockguard:{hp:7600,speed:48,damage:260,xp:96,r:28,color:"#70605a",defense:330},
+    pendulumshade:{hp:7000,speed:92,damage:250,xp:92,r:22,color:"#403454",defense:230},
+    secondhand:{hp:5600,speed:140,damage:240,xp:90,r:18,color:"#c7b86a",defense:180},
+    nightclockmage:{hp:8200,speed:54,damage:290,xp:110,r:25,color:"#2f274d",defense:300},
+    clockwitch:{hp:4650000,speed:26,damage:500,xp:2100,r:88,color:"#4d2d68",defense:470},
+    voidling:{hp:9000,speed:92,damage:290,xp:120,r:22,color:"#2b1742",defense:260},
+    darkeye:{hp:8200,speed:64,damage:310,xp:118,r:24,color:"#20142f",defense:330},
+    riftcrawler:{hp:9800,speed:54,damage:340,xp:130,r:27,color:"#351a55",defense:400},
+    starlessknight:{hp:11500,speed:42,damage:380,xp:150,r:30,color:"#181827",defense:520},
+    gravityorb:{hp:10500,speed:38,damage:360,xp:145,r:29,color:"#27194c",defense:450},
+    voiddevourer:{hp:6100000,speed:20,damage:640,xp:2600,r:96,color:"#1a0d2b",defense:620},
     skeleton:{hp:160,speed:70,damage:24,xp:14,r:18,color:"#d8d0c0",defense:18},
     wisp:{hp:125,speed:100,damage:22,xp:13,r:16,color:"#4db6ff",defense:8},
     bat:{hp:105,speed:128,damage:18,xp:12,r:15,color:"#4b304e",defense:8},
@@ -3209,6 +4406,7 @@
     {id:"critd",icon:"💥",name:"爆擊強化",type:"爆傷",effect:"+30% 場內爆擊傷害",detail:"只放大爆擊時的傷害上限。",levels:["+30% 爆擊傷害","+60% 爆擊傷害","+90% 爆擊傷害","+120% 爆擊傷害","+150% 爆擊傷害"]},
     {id:"multi",icon:"🥕",name:"同步發射",type:"主武器",effect:"+1 發同步蘿蔔",detail:"點滿後含本體共 6 支，並以散射發射。",levels:["同步 2 支蘿蔔","同步 3 支蘿蔔","同步 4 支蘿蔔","同步 5 支蘿蔔","同步 6 支蘿蔔"]},
     {id:"giantCarrot",icon:"🥕",name:"巨大胡蘿蔔",type:"進化型態",effect:"同步發射 LV5 解鎖",detail:"每 3 秒投出巨大胡蘿蔔；爆炸傷害 1280% 基礎傷害，燃燒每秒造成爆炸總傷害 18%。",evolution:true,levels:["未解鎖","未解鎖","未解鎖","未解鎖","同步發射 LV5：巨大胡蘿蔔"]},
+    {id:"unknownCarrotActive",icon:"?",name:"??? 的胡蘿蔔",type:"主動技能",effect:"穿戴完整胡蘿蔔後 ???",detail:"???",evolution:true,unknownActive:true,levels:["???","???","???","???","???"]},
     {id:"pierce",icon:"🏹",name:"穿透胡蘿蔔",type:"穿透",effect:"+1 穿透數",detail:"讓主武器連續打穿更多敵人。",levels:["+1 穿透","+2 穿透","+3 穿透","+4 穿透","+5 穿透"]},
     {id:"speed",icon:"👟",name:"兔兔快跑",type:"移動",effect:"+12% 移動速度",detail:"讓兔兔更容易拉扯與閃避。",levels:["+12% 移動速度","+24% 移動速度","+36% 移動速度","+48% 移動速度","+60% 移動速度"]},
     {id:"vital",icon:"❤️",name:"血多皮厚",type:"生存",effect:"+20% 最大生命",detail:"提升最大生命並立即回一段血。",levels:["+20% 最大生命","+40% 最大生命","+60% 最大生命","+80% 最大生命","+100% 最大生命"]},
@@ -3219,7 +4417,7 @@
     {id:"peanut",icon:"🥜",name:"花生跟班",type:"跟班",effect:"自動丟石頭；LV5 貫穿滾石",detail:"提供額外遠程火力。",levels:["冷卻約 1.14 秒・花生丟石頭","冷卻約 0.98 秒・石頭傷害提升","冷卻約 0.82 秒・石頭傷害提升","冷卻約 0.66 秒・石頭傷害提升","冷卻 0.5 秒・貫穿滾石"]},
     {id:"pinky",icon:"🍌",name:"PINKY 跟班",type:"增益",effect:"香蕉返回接住後增傷加速",detail:"固定每 3 秒丟出香蕉，接回後短時間爆發。",levels:["冷卻 3 秒・香蕉往返","冷卻 3 秒・增益效果提升","冷卻 3 秒・增益效果提升","冷卻 3 秒・增益效果提升","冷卻 3 秒・PINKY 增益進化"]},
     {id:"brain",icon:"🧠",name:"超級頭腦",type:"成長",effect:"LV5 累計 +400% 經驗獲取",detail:"累計提高關卡內經驗獲取量。",levels:["+40% 經驗獲取","+100% 經驗獲取","+180% 經驗獲取","+280% 經驗獲取","+400% 經驗獲取"]},
-    {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",type:"破防",effect:"+8% 無視防禦",detail:"第二關、第三關與輪迴特別實用。",levels:["+8% 無視防禦","+16% 無視防禦","+24% 無視防禦","+32% 無視防禦","+40% 無視防禦"]}
+    {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",type:"破防",effect:"+6% 無視防禦",detail:"第二關、第三關與輪迴特別實用。",levels:["+6% 無視防禦","+12% 無視防禦","+18% 無視防禦","+24% 無視防禦","+30% 無視防禦"]}
   ];
   const stageBestiary={
     1:[
@@ -3268,20 +4466,80 @@
       {type:"springfist",name:"彈簧拳套",skill:"短距突進"},
       {type:"blockgolem",name:"積木方塊怪",skill:"高防慢速"},
       {type:"teddybear",name:"布偶熊",skill:"血厚壓迫"},
+    ],
+    8:[
+      {type:"embermite",name:"熔火小怪",skill:"高速貼近"},
+      {type:"slagguard",name:"爐渣守衛",skill:"高防慢推"},
+      {type:"forgeimp",name:"工坊小鬼",skill:"中速追擊"},
+      {type:"magmaworm",name:"熔岩蠕蟲",skill:"厚血壓迫"},
+      {type:"coalroller",name:"煤球滾怪",skill:"重甲近戰"},
+    ],
+    9:[
+      {type:"bubblejelly",name:"泡泡水母",skill:"浮游貼近"},
+      {type:"reefcrab",name:"礁岩蟹",skill:"重甲慢推"},
+      {type:"spearurchin",name:"槍刺海膽",skill:"高攻近戰"},
+      {type:"tideeel",name:"潮汐電鰻",skill:"高速突進"},
+      {type:"ruinguard",name:"遺跡守衛",skill:"高防壓場"},
+    ],
+    10:[
+      {type:"cograt",name:"齒輪鼠",skill:"穩定追擊"},
+      {type:"clockguard",name:"鐘塔守衛",skill:"高防慢推"},
+      {type:"pendulumshade",name:"鐘擺影怪",skill:"中速切入"},
+      {type:"secondhand",name:"秒針幽靈",skill:"高速貼近"},
+      {type:"nightclockmage",name:"夜鐘法師",skill:"遠距干擾"},
+    ],
+    11:[
+      {type:"voidling",name:"虛空幼體",skill:"暗影追擊"},
+      {type:"darkeye",name:"暗眼怪",skill:"索敵干擾"},
+      {type:"riftcrawler",name:"裂隙爬行者",skill:"重壓近戰"},
+      {type:"starlessknight",name:"無星騎士",skill:"高防慢推"},
+      {type:"gravityorb",name:"重力核心",skill:"牽引壓迫"},
     ]
   };
   const bossBestiary=[
-    {type:"plant",name:"霸王食人花",stage:1,unlock:()=>!!meta.stage1Cleared,skill:"近身壓場・噴火骨彈",stats:{hp:70000,damage:32,defense:15,speed:52}},
-    {type:"stoneface",name:"遠古石面怪",stage:2,unlock:()=>!!meta.stage2Cleared,skill:"落石砸擊・25% 機率暈眩 1 秒",stats:{hp:120000,damage:30,defense:45,speed:30}},
+    {type:"plant",name:"霸王食人花",stage:1,unlock:()=>!!meta.stage1Cleared,skill:"近身壓場・噴火骨彈",stats:{hp:110000,damage:32,defense:15,speed:52}},
+    {type:"stoneface",name:"遠古石面怪",stage:2,unlock:()=>!!meta.stage2Cleared,skill:"落石砸擊・25% 機率暈眩 1 秒",stats:{hp:205000,damage:30,defense:45,speed:30}},
     {type:"whale",name:"暴雪鯨魚",stage:3,unlock:()=>!!meta.stage3Cleared,skill:"急凍光線・零度",stats:{hp:600000,damage:68,defense:80,speed:24}},
     {type:"rottenwood",name:"腐木樹衛",stage:4,unlock:()=>!!meta.stage4Cleared,skill:"樹鞭・枯葉風暴・樹精投擲",stats:{hp:1801800,damage:134,defense:206,speed:26}},
     {type:"shadowtree",name:"幽影樹王",stage:5,unlock:()=>!!meta.stage5Cleared,skill:"粗樹鞭・強化風暴・毒菇迷失",stats:{hp:2784600,damage:173,defense:266,speed:24}},
-    {type:"cookiemonarch",name:"奶油餅乾女王",stage:6,unlock:()=>!!meta.stage6Cleared,skill:"餅乾壓模・圓形範圍",stats:{hp:3610000,damage:225,defense:330,speed:26}},
-    {type:"nightmaremaker",name:"發條夢魘師",stage:7,unlock:()=>!!meta.stage7Cleared,skill:"發條爆衝・隨機鐵軌重傷",stats:{hp:4850000,damage:300,defense:420,speed:30}}
+    {type:"cookiemonarch",name:"奶油餅乾女王",stage:6,unlock:()=>!!meta.stage6Cleared,skill:"餅乾壓模・圓形範圍",stats:{hp:2888000,damage:225,defense:220,speed:26}},
+    {type:"nightmaremaker",name:"發條夢魘師",stage:7,unlock:()=>!!meta.stage7Cleared,skill:"發條爆衝・隨機鐵軌重傷",stats:{hp:2900750,damage:300,defense:280,speed:30}},
+    {type:"lavagolem",name:"熔爐巨像",stage:8,unlock:()=>!!meta.stage8Cleared,skill:"熔岩裂縫・燃燒地板・鐵鎚震波",stats:{hp:2750000,damage:350,defense:340,speed:24}},
+    {type:"abyssoctopus",name:"深海章魚王",stage:9,unlock:()=>!!meta.stage9Cleared,skill:"潮汐拉扯・深海墨霧・水柱預告線",stats:{hp:3550000,damage:410,defense:390,speed:22}},
+    {type:"clockwitch",name:"時鐘魔女",stage:10,unlock:()=>!!meta.stage10Cleared,skill:"時間齒輪・倒轉領域・鐘擺斬擊",stats:{hp:4650000,damage:500,defense:470,speed:26}},
+    {type:"voiddevourer",name:"虛空吞星者",stage:11,unlock:()=>!!meta.stage11Cleared,skill:"黑洞牽引・暗幕・虛空射線",stats:{hp:6100000,damage:640,defense:620,speed:20}}
   ];
+  const EVENT_ENEMY_TYPES=new Set(["coppercoin","silvercoin","goldcoin","billmonster","diamondcoin","chestmimic"]);
+  function activityBaseStats(){
+    const baseHp=BASE_META_LIFE+scaledMetaGain(meta.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH);
+    const baseAttack=Math.max(1,Math.floor(baseMetaDamageValue(meta.damage)));
+    return {hp:Math.max(1,Math.floor(baseHp)),damage:baseAttack,defense:baseAttack};
+  }
+  function activityEnemyPool(){
+    return ["coppercoin","silvercoin","goldcoin","billmonster","diamondcoin"];
+  }
+  function activityMonsterStats(type){
+    const base=activityBaseStats();
+    const scale={
+      coppercoin:{hp:.8,damage:.8,defense:.75,r:14,xp:2},
+      silvercoin:{hp:1,damage:1,defense:1,r:15,xp:2},
+      goldcoin:{hp:1.15,damage:1.1,defense:1.1,r:16,xp:3},
+      billmonster:{hp:1.25,damage:1.15,defense:.9,r:18,xp:3},
+      diamondcoin:{hp:1.45,damage:1.25,defense:1.25,r:20,xp:4},
+      chestmimic:{hp:12,damage:2.8,defense:2.2,r:52,xp:40}
+    }[type]||{hp:1,damage:1,defense:1,r:16,xp:2};
+    return {
+      hp:Math.max(1,Math.round(base.hp*scale.hp)),
+      damage:Math.max(1,Math.round(base.damage*scale.damage)),
+      defense:Math.max(0,Math.round(base.defense*scale.defense)),
+      r:scale.r,
+      xp:scale.xp
+    };
+  }
   function stageAvailability(stage){
     if(stage===BOSS_CHALLENGE_STAGE)return devModeActive?"open":"locked";
     if(stage===INFINITE_STAGE)return "open";
+    if(stage===EVENT_STAGE)return combatPower()>=EVENT_UNLOCK_POWER&&activityRunsLeft()>0?"open":"locked";
     if(stage>IMPLEMENTED_STAGE_COUNT)return "comingSoon";
     if(stage<=1)return "open";
     if(stage===2)return meta.desertUnlocked?"open":"locked";
@@ -3290,6 +4548,10 @@
     if(stage===5)return meta.forestSeaUnlocked?"open":"locked";
     if(stage===6)return meta.cookieUnlocked?"open":"locked";
     if(stage===7)return meta.toyUnlocked?"open":"locked";
+    if(stage===8)return meta.stage7Cleared?"open":"locked";
+    if(stage===9)return meta.stage8Cleared?"open":"locked";
+    if(stage===10)return meta.stage9Cleared?"open":"locked";
+    if(stage===11)return meta.stage10Cleared?"open":"locked";
     return "locked";
   }
   function stageBookUnlocked(stage){
@@ -3306,7 +4568,7 @@
     if(silhouette)c.classList.add("bookLockedSilhouette");
     return c;
   }
-  const snowSnapshotTypes=new Set(["penguin","snowman","polarbear","seal","whale","poisonmush","blackslime","leafcrow","vine","barkguard","ghostfire","poisonvine","nighthawk","oldwood","witch","rottenwood","shadowtree","tinygummy","cookieguard","jamgummy","creampuff","gingerchef","cookiemonarch","windupsoldier","toyplane","springfist","blockgolem","teddybear","nightmaremaker"]);
+  const snowSnapshotTypes=new Set(["penguin","snowman","polarbear","seal","whale","poisonmush","blackslime","leafcrow","vine","barkguard","ghostfire","poisonvine","nighthawk","oldwood","witch","rottenwood","shadowtree","tinygummy","cookieguard","jamgummy","creampuff","gingerchef","cookiemonarch","windupsoldier","toyplane","springfist","blockgolem","teddybear","nightmaremaker","embermite","slagguard","forgeimp","magmaworm","coalroller","lavagolem","bubblejelly","reefcrab","spearurchin","tideeel","ruinguard","abyssoctopus","cograt","clockguard","pendulumshade","secondhand","nightclockmage","clockwitch","voidling","darkeye","riftcrawler","starlessknight","gravityorb","voiddevourer"]);
   const enemySnapshotCache=new Map();
   function getEnemySnapshot(type){
     if(!snowSnapshotTypes.has(type))return null;
@@ -3355,11 +4617,11 @@
   }
   function renderSkillBookCard(entry){
     const card=document.createElement("div");
-    card.className=`bookCard skillBookCard ${entry.evolution?"bookEvolutionCard":""}`.trim();
+    card.className=`bookCard skillBookCard ${entry.evolution?"bookEvolutionCard":""} ${entry.unknownActive?"bookUnknownActiveCard":""}`.trim();
     const preview=document.createElement("div");
     preview.className=`bookPreview ${entry.evolution?"bookEvolutionPreview":""}`.trim();
     const icon=document.createElement("div");
-    icon.className="bookSkillIcon";
+    icon.className=`bookSkillIcon ${entry.unknownActive?"bookUnknownSkillIcon":""}`.trim();
     icon.textContent=entry.icon;
     preview.appendChild(icon);
     const info=document.createElement("div");
@@ -3495,6 +4757,57 @@
       rect(-16,-13,32,33,"#9f6948");rect(-12,-26,24,18,"#b9825b");rect(-20,-27,9,9,"#8d573a");rect(11,-27,9,9,"#8d573a");rect(-6,-17,4,4,"#1d1714");rect(5,-17,4,4,"#1d1714");rect(-4,-9,8,5,"#e0b58f");
     }else if(type==="nightmaremaker"){
       rect(-24,-26,48,48,"#684a7d");rect(-16,-36,32,16,"#8c63a8");rect(-7,-14,5,5,"#dff7ff");rect(7,-14,5,5,"#dff7ff");rect(-28,12,56,8,"#3a2a4a");rect(-18,23,10,13,"#d9b255");rect(8,23,10,13,"#d9b255");
+    }else if(type==="embermite"){
+      rect(-13,-13,26,26,"#d94d27");rect(-8,-21,16,16,"#ff8a35");rect(-4,-6,4,4,"#1f1210");rect(5,-6,4,4,"#1f1210");rect(-12,10,6,10,"#ffb14d");rect(6,10,6,10,"#ffb14d");
+    }else if(type==="slagguard"){
+      rect(-18,-20,36,40,"#5b4136");rect(-13,-24,26,9,"#9a6b4c");rect(-8,-10,5,5,"#ffbb55");rect(5,-10,5,5,"#ffbb55");rect(-20,8,40,7,"#2a211e");
+    }else if(type==="forgeimp"){
+      rect(-13,-17,26,34,"#8f3327");rect(-18,-25,10,12,"#c8552f");rect(8,-25,10,12,"#c8552f");rect(-5,-8,4,4,"#ffe07a");rect(4,-8,4,4,"#ffe07a");rect(13,0,13,5,"#e0a34f");
+    }else if(type==="magmaworm"){
+      for(let i=0;i<5;i++){rect(-24+i*11,-6+(i%2)*3,13,15,i%2?"#b9472c":"#e05d31");rect(-21+i*11,-9,7,4,"#ff9d49");}
+      rect(26,-5,12,13,"#ff7a3a");rect(30,-1,3,3,"#1f1210");
+    }else if(type==="coalroller"){
+      rect(-22,-18,44,36,"#282522");rect(-17,-13,34,26,"#494038");rect(-10,-6,5,5,"#ff8e42");rect(6,-6,5,5,"#ff8e42");rect(-18,17,36,6,"#1a1715");
+    }else if(type==="lavagolem"){
+      rect(-28,-34,56,62,"#6b392a");rect(-20,-24,40,20,"#8d4d35");rect(-12,-12,7,7,"#ffb14d");rect(7,-12,7,7,"#ffb14d");rect(-24,6,48,8,"#3b241d");rect(-34,-4,10,28,"#7a422f");rect(24,-4,10,28,"#7a422f");
+    }else if(type==="bubblejelly"){
+      rect(-16,-18,32,28,"#6fd3ff");rect(-11,-24,22,12,"#a8f2ff");rect(-6,-7,4,4,"#10233a");rect(5,-7,4,4,"#10233a");rect(-13,12,5,14,"#4aa4d8");rect(0,12,5,16,"#4aa4d8");rect(9,12,5,13,"#4aa4d8");
+    }else if(type==="reefcrab"){
+      rect(-18,-11,36,22,"#4d9ba8");rect(-24,-7,8,14,"#377783");rect(16,-7,8,14,"#377783");rect(-8,-15,5,5,"#101827");rect(5,-15,5,5,"#101827");rect(-14,12,6,8,"#72c6cf");rect(8,12,6,8,"#72c6cf");
+    }else if(type==="spearurchin"){
+      rect(-16,-16,32,32,"#365f98");rect(-23,-3,46,6,"#89d8ff");rect(-3,-23,6,46,"#89d8ff");rect(-6,-5,4,4,"#101827");rect(5,-5,4,4,"#101827");
+    }else if(type==="tideeel"){
+      for(let i=0;i<5;i++){rect(-25+i*11,-4+Math.sin(i)*5,13,10,i%2?"#77cfe5":"#4aa5c8");}
+      rect(26,-5,13,12,"#91e6f0");rect(30,-1,3,3,"#10233a");
+    }else if(type==="ruinguard"){
+      rect(-18,-24,36,48,"#5d7782");rect(-13,-18,26,34,"#8aa4aa");rect(-7,-10,5,5,"#0f1820");rect(5,-10,5,5,"#0f1820");rect(-22,10,44,6,"#30464e");
+    }else if(type==="abyssoctopus"){
+      rect(-27,-25,54,42,"#51408b");rect(-19,-34,38,22,"#7254b5");rect(-10,-13,6,6,"#d9f3ff");rect(7,-13,6,6,"#d9f3ff");for(let i=0;i<5;i++)rect(-26+i*13,14+(i%2)*5,8,22,"#3c3270");
+    }else if(type==="cograt"){
+      rect(-15,-8,30,18,"#8a7248");rect(-20,-12,10,9,"#b09b65");rect(9,-12,10,9,"#b09b65");rect(8,-2,4,4,"#1b1510");rect(-3,0,5,3,"#d6c07b");rect(12,6,14,4,"#6d5435");
+    }else if(type==="clockguard"){
+      rect(-17,-22,34,44,"#6b6054");rect(-12,-17,24,34,"#a28f6a");rect(-8,-6,5,5,"#241f20");rect(5,-6,5,5,"#241f20");rect(-15,8,30,5,"#43362e");rect(-4,-29,8,10,"#c4a35a");
+    }else if(type==="pendulumshade"){
+      rect(-12,-24,24,44,"#30263f");rect(-19,-31,38,10,"#171020");rect(-6,-14,4,4,"#dff7ff");rect(5,-14,4,4,"#dff7ff");rect(12,-2,18,5,"#bfa15a");
+    }else if(type==="secondhand"){
+      rect(-4,-28,8,56,"#c9a64d");rect(-20,-4,40,8,"#6d5230");rect(-8,-8,16,16,"#efe0a7");rect(-3,-3,6,6,"#1a1510");
+    }else if(type==="nightclockmage"){
+      rect(-14,-23,28,47,"#2e2348");rect(-18,-33,36,12,"#161020");rect(-8,-43,16,16,"#161020");rect(-9,-17,18,18,"#c8a68c");rect(-5,-11,4,4,"#101018");rect(5,-11,4,4,"#101018");rect(18,-5,10,16,"#ffd560");
+    }else if(type==="clockwitch"){
+      rect(-25,-30,50,56,"#4a2e61");rect(-30,-42,60,14,"#201025");rect(-11,-23,22,22,"#d2a78f");rect(-6,-15,5,5,"#111");rect(6,-15,5,5,"#111");rect(-28,16,56,9,"#2a173a");rect(20,-8,10,28,"#d6b75e");
+    }else if(type==="voidling"){
+      rect(-14,-15,28,30,"#25123c");rect(-9,-22,18,14,"#3a1d62");rect(-6,-5,4,4,"#c58bff");rect(5,-5,4,4,"#c58bff");rect(-12,13,6,10,"#130b20");rect(6,13,6,10,"#130b20");
+    }else if(type==="darkeye"){
+      rect(-17,-17,34,34,"#1d132f");rect(-10,-10,20,20,"#6336a0");rect(-5,-5,10,10,"#0a0610");rect(-22,-2,8,4,"#a36bff");rect(14,3,8,4,"#a36bff");
+    }else if(type==="riftcrawler"){
+      for(let i=0;i<5;i++){rect(-24+i*10,-8+(i%2)*4,12,16,i%2?"#2c1848":"#41205f");rect(-22+i*10,9,4,6,"#7d52b8");}
+      rect(24,-7,14,14,"#6d3aae");rect(28,-2,4,4,"#f0d7ff");
+    }else if(type==="starlessknight"){
+      rect(-16,-24,32,46,"#211934");rect(-12,-18,24,34,"#4a3a61");rect(-7,-10,5,5,"#b58cff");rect(5,-10,5,5,"#b58cff");rect(-23,-2,8,24,"#151020");rect(15,-2,8,24,"#151020");
+    }else if(type==="gravityorb"){
+      rect(-18,-18,36,36,"#160b25");rect(-12,-12,24,24,"#5b2f90");rect(-6,-6,12,12,"#d8b2ff");rect(-28,-2,10,4,"#9d6cff");rect(18,2,10,4,"#9d6cff");
+    }else if(type==="voiddevourer"){
+      rect(-32,-28,64,54,"#180b2b");rect(-23,-36,46,20,"#2f1551");rect(-13,-16,8,8,"#d5a3ff");rect(7,-16,8,8,"#d5a3ff");rect(-26,8,52,8,"#08050d");rect(-36,-2,10,32,"#261044");rect(26,-2,10,32,"#261044");
     }
     px.restore();
   }
@@ -3507,12 +4820,12 @@
     if(bookMainTab==="stages"){
       bookSubTabs.classList.remove("hidden");
       bookSubTabs.innerHTML="";
-      [1,2,3,4,5,6,7].forEach(stage=>{
+      [1,2,3,4,5,6,7,8,9,10,11].forEach(stage=>{
         const btn=document.createElement("button");
         const state=stageAvailability(stage);
         const unlocked=state==="open";
         btn.type="button";
-        btn.textContent=stage===1?"菜園":stage===2?"沙漠":stage===3?"雪原":stage===4?"幽影林徑":stage===5?"幽影樹海":stage===6?"奶油餅乾屋":"玩具夢工廠";
+        btn.textContent=stage===1?"菜園":stage===2?"沙漠":stage===3?"雪原":stage===4?"幽影林徑":stage===5?"幽影樹海":stage===6?"奶油餅乾屋":stage===7?"玩具夢工廠":stage===8?"熔岩工坊":stage===9?"海底遺跡":stage===10?"星夜鐘塔":"虛空核心";
         btn.classList.toggle("active",bookStageTab===stage);
         btn.classList.toggle("locked",!unlocked);
         btn.classList.toggle("comingSoon",state==="comingSoon");
@@ -4068,7 +5381,7 @@
     const baseCrit=metaCritChance(meta.crit);
     Object.assign(player,{
       x:0,y:0,r:18,speed:210,hp:maxHp,maxHp,regen:0,regenFlat:metaRegenFlatTotal(meta.regen),regenBoost:1,
-      level:1,xp:0,nextXp:xpRequirement(1,0),damage:BASE_META_DAMAGE+scaledMetaGain(meta.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH),
+      level:1,xp:0,nextXp:xpRequirement(1,0),damage:baseMetaDamageValue(meta.damage),
       attackSpeed:1+meta.speed*.03,projectiles:1,
       crit:baseCrit,critStack:baseCrit,critDamage:baseMetaCritDamageMultiplier(meta.critDamage),
       pierce:0,magnet:FIXED_MAGNET_RANGE,area:1,areaDamage:1,invuln:0,
@@ -4083,7 +5396,7 @@
     kps=kpsWindowKills=kpsWindowTime=kpsPressure=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;runCoins=0;runCoinsSettled=false;
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
     infiniteClearCount=0;
@@ -4096,7 +5409,13 @@
   }
 
   function start(){
-    initAudio();reset();
+    initAudio();
+    if(isEventMode()&&!consumeActivityRun()){
+      beep(180,.08,.025,"square");
+      renderMeta();
+      return;
+    }
+    reset();
     if(autoTrainingActive){
       player.xpGain+=.2;
       text(player.x,player.y-46,autoTrainingSource==="charm"?"自動研修・經驗+20%":"自動研修啟動","#8fffd0",18,"pickup");
@@ -4188,7 +5507,7 @@
   function finalBossPhaseConfig(type){
     if(type==="stoneface"){
       return {
-        hp:[120000,120000,180000],
+        hp:[55000,65000,85000],
         defense:[45,58,72]
       };
     }
@@ -4200,8 +5519,8 @@
     }
     if(type==="reaper"){
       return {
-        hp:[98000,98000,156000],
-        defense:[60,76,92]
+        hp:[900900,1310400,1965600],
+        defense:[399,554,738]
       };
     }
     if(type==="rottenwood"){
@@ -4218,18 +5537,42 @@
     }
     if(type==="cookiemonarch"){
       return {
-        hp:[780000,1130000,1700000],
-        defense:[330,430,560]
+        hp:[962667,962667,962666],
+        defense:[220,220,220]
       };
     }
     if(type==="nightmaremaker"){
       return {
-        hp:[1050000,1520000,2280000],
-        defense:[420,560,720]
+        hp:[966917,966917,966916],
+        defense:[280,280,280]
+      };
+    }
+    if(type==="lavagolem"){
+      return {
+        hp:[825000,825000,1100000],
+        defense:[340,390,450]
+      };
+    }
+    if(type==="abyssoctopus"){
+      return {
+        hp:[1050000,1050000,1450000],
+        defense:[390,450,520]
+      };
+    }
+    if(type==="clockwitch"){
+      return {
+        hp:[1350000,1400000,1900000],
+        defense:[470,540,620]
+      };
+    }
+    if(type==="voiddevourer"){
+      return {
+        hp:[1750000,1850000,2500000],
+        defense:[620,700,820]
       };
     }
     return {
-      hp:[70000,70000,110000],
+      hp:[30000,35000,45000],
       defense:[15,22,34]
     };
   }
@@ -4252,6 +5595,17 @@
     if(kind==="elite"&&type==="teddybear"){hp+=2000;damage+=100;}
     if(kind==="boss"){hp*=35;size*=2.25;speed*=.82;damage*=2.8;xp*=35;}
     let defense=base.defense||0;
+    if(isEventMode()&&EVENT_ENEMY_TYPES.has(type)){
+      const eventStats=activityMonsterStats(type);
+      hp=eventStats.hp;
+      damage=eventStats.damage;
+      defense=eventStats.defense;
+      size=eventStats.r;
+      speed=type==="chestmimic"?80:160;
+      xp=eventStats.xp;
+      if(kind==="elite"){hp*=1.8;damage*=1.3;defense=Math.round(defense*1.25);size*=1.2;xp*=2;}
+      if(kind==="boss"||type==="chestmimic"){hp=eventStats.hp;damage=eventStats.damage;defense=eventStats.defense;size=eventStats.r;speed=80;xp=eventStats.xp;}
+    }
     const zone=effectiveZone();
     if(zone>=1&&defense===0)defense=5;
     if(kind==="elite")defense+=zone>=1?10:0;
@@ -4261,26 +5615,45 @@
         const bossZone=Math.max(0,infiniteBossZone);
         const bossHpMult=infiniteBossHpMultiplier(bossZone);
         const bossDamageMult=1+bossZone*.18;
-        if(type==="whale"){hp=600000*bossHpMult;size=72;speed=24;damage=68*bossDamageMult;xp=420;defense=80+bossZone*4;}
-        else if(type==="reaper"){hp=98000*bossHpMult;size=68;speed=36;damage=42*bossDamageMult;xp=520;defense=60+bossZone*5;}
+        if(type==="voiddevourer"){hp=6100000*bossHpMult;size=96;speed=20;damage=640*bossDamageMult;xp=2600;defense=620+bossZone*4;}
+        else if(type==="clockwitch"){hp=4650000*bossHpMult;size=88;speed=26;damage=500*bossDamageMult;xp=2100;defense=470+bossZone*4;}
+        else if(type==="abyssoctopus"){hp=3550000*bossHpMult;size=90;speed=22;damage=410*bossDamageMult;xp=1800;defense=390+bossZone*4;}
+        else if(type==="lavagolem"){hp=2750000*bossHpMult;size=88;speed=24;damage=350*bossDamageMult;xp=1500;defense=340+bossZone*4;}
+        else if(type==="whale"){hp=600000*bossHpMult;size=72;speed=24;damage=68*bossDamageMult;xp=420;defense=80+bossZone*4;}
+        else if(type==="reaper"){hp=4176900*bossHpMult;size=76;speed=30;damage=260*bossDamageMult;xp=980;defense=399+bossZone*4;}
         else if(type==="stoneface"){hp=120000*bossHpMult;size=64;speed=30;damage=30*bossDamageMult;xp=340;defense=45+bossZone*4;}
         else{hp=70000*bossHpMult;size=62;speed=52;damage=32*bossDamageMult;xp=280;defense=15+bossZone*3;}
       }else if(isBossChallengeMode()){
-        if(type==="nightmaremaker"){hp=4850000;size=86;speed=30;damage=300;xp=1250;defense=420;}
-        else if(type==="cookiemonarch"){hp=3610000;size=84;speed=26;damage=225;xp=980;defense=330;}
+        if(type==="voiddevourer"){hp=6100000;size=96;speed=20;damage=640;xp=2600;defense=620;}
+        else if(type==="clockwitch"){hp=4650000;size=88;speed=26;damage=500;xp=2100;defense=470;}
+        else if(type==="abyssoctopus"){hp=3550000;size=90;speed=22;damage=410;xp=1800;defense=390;}
+        else if(type==="lavagolem"){hp=2750000;size=88;speed=24;damage=350;xp=1500;defense=340;}
+        else if(type==="nightmaremaker"){hp=2900750;size=86;speed=30;damage=300;xp=1250;defense=280;}
+        else if(type==="cookiemonarch"){hp=2888000;size=84;speed=26;damage=225;xp=980;defense=220;}
         else if(type==="shadowtree"){hp=2784600;size=82;speed=24;damage=173;xp=760;defense=266;}
         else if(type==="rottenwood"){hp=1801800;size=74;speed=26;damage=134;xp=560;defense=206;}
         else if(type==="whale"){hp=600000;size=72;speed=24;damage=68;xp=420;defense=80;}
-        else if(type==="stoneface"){hp=120000;size=64;speed=30;damage=30;xp=300;defense=45;}
+        else if(type==="stoneface"){hp=205000;size=64;speed=30;damage=30;xp=300;defense=45;}
         else if(type==="reaper"){hp=4176900;size=76;speed=30;damage=260;xp=980;defense=399;}
-        else{hp=70000;size=62;speed=52;damage=32;xp=250;defense=15;}
-      }else if(currentStage===7){hp=4850000;size=86;speed=30;damage=300;xp=1250;defense=420;}
-      else if(currentStage===6){hp=3610000;size=84;speed=26;damage=225;xp=980;defense=330;}
+        else{hp=110000;size=62;speed=52;damage=32;xp=250;defense=15;}
+      }else if(currentStage===11){hp=6100000;size=96;speed=20;damage=640;xp=2600;defense=620;}
+      else if(currentStage===10){hp=4650000;size=88;speed=26;damage=500;xp=2100;defense=470;}
+      else if(currentStage===9){hp=3550000;size=90;speed=22;damage=410;xp=1800;defense=390;}
+      else if(currentStage===8){hp=2750000;size=88;speed=24;damage=350;xp=1500;defense=340;}
+      else if(currentStage===7){hp=2900750;size=86;speed=30;damage=300;xp=1250;defense=280;}
+      else if(currentStage===6){hp=2888000;size=84;speed=26;damage=225;xp=980;defense=220;}
       else if(currentStage===5){hp=2784600;size=82;speed=24;damage=173;xp=760;defense=266;}
       else if(currentStage===4){hp=1801800;size=74;speed=26;damage=134;xp=560;defense=206;}
       else if(currentStage===3){hp=600000;size=72;speed=24;damage=68;xp=420;defense=80;}
-      else if(currentStage===2){hp=120000;size=64;speed=30;damage=30;xp=300;defense=45;}
-      else{hp=70000;size=62;speed=52;damage=32;xp=250;defense=15;}
+      else if(currentStage===2){hp=205000;size=64;speed=30;damage=30;xp=300;defense=45;}
+      else{hp=110000;size=62;speed=52;damage=32;xp=250;defense=15;}
+    }
+    const normalDifficultyMult=!isInfiniteMode()&&!isBossChallengeMode()&&!isEventMode()?stageDifficultyMonsterMultiplier(currentStage):1;
+    if(normalDifficultyMult!==1){
+      hp*=normalDifficultyMult;
+      damage*=normalDifficultyMult;
+      defense=Math.round(defense*normalDifficultyMult);
+      speed*=normalDifficultyMult;
     }
     if(kind==="normal"&&kpsPressure>0)hp*=1+kpsPressure*.35;
     if(kind==="elite"&&kpsPressure>0)hp*=1+kpsPressure*.18;
@@ -4291,17 +5664,31 @@
         ?{hp:[900900,1310400,1965600],defense:[399,554,738]}
         :finalBossPhaseConfig(type);
       const challengeBossZone=isBossChallengeMode()&&bossChallengeSourceStage>=6&&type!=="reaper"?3:0;
-      const hpScale=isInfiniteMode()?infiniteBossHpMultiplier(Math.max(0,infiniteBossZone)):(challengeBossZone?infiniteBossHpMultiplier(challengeBossZone):1);
+      const stageBossDifficultyMult=!isInfiniteMode()&&!isBossChallengeMode()?stageDifficultyMonsterMultiplier(currentStage):1;
+      const hpScale=(isInfiniteMode()?infiniteBossHpMultiplier(Math.max(0,infiniteBossZone)):(challengeBossZone?infiniteBossHpMultiplier(challengeBossZone):1))*stageBossDifficultyMult;
       const defenseScale=isInfiniteMode()?Math.max(0,infiniteBossZone)*4:challengeBossZone*4;
       enemy.finalPhaseHp=phaseConfig.hp.map(value=>Math.round(value*hpScale));
-      enemy.finalPhaseDefense=phaseConfig.defense.map(value=>value+defenseScale);
+      enemy.finalPhaseDefense=phaseConfig.defense.map(value=>Math.round((value+defenseScale)*stageBossDifficultyMult));
       applyFinalBossPhase(enemy,0);
     }
     enemies.push(enemy);
   }
 
   function enemyPoolForCurrentTime(){
+    if(isEventMode())return activityEnemyPool();
     if(!isInfiniteMode()){
+      if(currentStage===11){
+        return time<60?["voidling","darkeye"]:time<240?["voidling","darkeye","riftcrawler"]:["voidling","darkeye","riftcrawler","starlessknight","gravityorb"];
+      }
+      if(currentStage===10){
+        return time<60?["cograt","secondhand"]:time<240?["cograt","secondhand","pendulumshade"]:["cograt","secondhand","pendulumshade","clockguard","nightclockmage"];
+      }
+      if(currentStage===9){
+        return time<60?["bubblejelly","tideeel"]:time<240?["bubblejelly","tideeel","spearurchin"]:["bubblejelly","tideeel","spearurchin","reefcrab","ruinguard"];
+      }
+      if(currentStage===8){
+        return time<60?["embermite","forgeimp"]:time<240?["embermite","forgeimp","magmaworm"]:["embermite","forgeimp","magmaworm","slagguard","coalroller"];
+      }
       if(currentStage===7){
         return time<60?["windupsoldier","toyplane"]:time<240?["windupsoldier","toyplane","springfist"]:["windupsoldier","toyplane","springfist","blockgolem","teddybear"];
       }
@@ -4325,6 +5712,14 @@
     if(zone===0)return time%600<60?["turtle","mushroom"]:["turtle","mushroom","bombcloud","plant"];
     if(zone===1)return ["snake","mouse","vulture","centipede","scorpion"];
     if(zone===2)return ["penguin","seal","snowman","polarbear"];
+    if(zone===3)return ["poisonmush","blackslime","leafcrow","vine","barkguard"];
+    if(zone===4)return ["ghostfire","poisonvine","nighthawk","oldwood","witch"];
+    if(zone===5)return ["tinygummy","cookieguard","jamgummy","creampuff","gingerchef"];
+    if(zone===6)return ["windupsoldier","toyplane","springfist","blockgolem","teddybear"];
+    if(zone===7)return ["embermite","forgeimp","magmaworm","slagguard","coalroller"];
+    if(zone===8)return ["bubblejelly","tideeel","spearurchin","reefcrab","ruinguard"];
+    if(zone===9)return ["cograt","secondhand","pendulumshade","clockguard","nightclockmage"];
+    if(zone===10)return ["voidling","darkeye","riftcrawler","starlessknight","gravityorb"];
     return ["skeleton","wisp","bat","eyeball","imp"];
   }
 
@@ -4332,11 +5727,23 @@
     if(zone===0)return "plant";
     if(zone===1)return "stoneface";
     if(zone===2)return "whale";
+    if(zone===3)return "rottenwood";
+    if(zone===4)return "shadowtree";
+    if(zone===5)return "cookiemonarch";
+    if(zone===6)return "nightmaremaker";
+    if(zone===7)return "lavagolem";
+    if(zone===8)return "abyssoctopus";
+    if(zone===9)return "clockwitch";
+    if(zone===10)return "voiddevourer";
     return "reaper";
   }
 
   function normalFinalBossType(){
     if(isBossChallengeMode())return bossChallengeType;
+    if(currentStage===11)return "voiddevourer";
+    if(currentStage===10)return "clockwitch";
+    if(currentStage===9)return "abyssoctopus";
+    if(currentStage===8)return "lavagolem";
     if(currentStage===7)return "nightmaremaker";
     if(currentStage===6)return "cookiemonarch";
     if(currentStage===5)return "shadowtree";
@@ -4347,6 +5754,10 @@
   }
 
   function normalMidBossType(slot=0,sec=0){
+    if(currentStage===11)return slot%2?"gravityorb":"starlessknight";
+    if(currentStage===10)return slot%2?"nightclockmage":"clockguard";
+    if(currentStage===9)return slot%2?"ruinguard":"reefcrab";
+    if(currentStage===8)return slot%2?"coalroller":"slagguard";
     if(currentStage===7)return slot%2?"teddybear":"blockgolem";
     if(currentStage===6)return slot%2?"creampuff":"gingerchef";
     if(currentStage===5)return slot%2?"oldwood":"witch";
@@ -4379,6 +5790,18 @@
   function timeline(){
     const sec=Math.floor(time);
     if(isBossChallengeMode())return;
+    if(isEventMode()){
+      if(sec>0&&sec%30===0&&!timeline.seen.has("event-wave"+sec)){
+        timeline.seen.add("event-wave"+sec);
+        spawnWave(8+Math.floor(sec/30)*2);
+      }
+      if(sec>=EVENT_DURATION&&!timeline.seen.has("event-boss")){
+        timeline.seen.add("event-boss");
+        spawnEnemy("chestmimic","boss");
+        announce("寶箱怪物出現！","錢幣攻擊正在靠近","#ffd45e",4);
+      }
+      return;
+    }
     if(isInfiniteMode()){
       if(sec>0&&sec%600===0&&!timeline.seen.has("infinite-boss-"+sec)){
         timeline.seen.add("infinite-boss-"+sec);
@@ -4429,15 +5852,21 @@
   }
   timeline.seen=new Set();
 
+  function bossArenaSourceStage(){
+    return isBossChallengeMode()?bossChallengeSourceStage:currentStage;
+  }
+
   function isForestBossArena(){
-    const stage=isBossChallengeMode()?bossChallengeSourceStage:currentStage;
+    const stage=bossArenaSourceStage();
     return bossArena.active&&!isInfiniteMode()&&(stage===4||stage===5);
   }
 
   function setupBossObstacles(){
     bossObstacles=[];
-    if(!isForestBossArena())return;
-    const lower=(isBossChallengeMode()?bossChallengeSourceStage:currentStage)===5;
+    if(!bossArena.active||isInfiniteMode())return;
+    const stage=bossArenaSourceStage();
+    if(stage===4||stage===5){
+    const lower=stage===5;
     const list=lower
       ?[
         [-235,-120,34,70,1.05],[-100,-245,32,66,.95],[115,-230,34,70,1.05],
@@ -4449,7 +5878,31 @@
       ];
     bossObstacles=list.map(([ox,oy,w,h,leaf])=>({
       x:bossArena.x+ox,y:bossArena.y+oy,w,h,leaf,
-      dark:lower
+      dark:lower,kind:"tree"
+    }));
+      return;
+    }
+    const stageObstacles={
+      8:[
+        [-210,-130,54,62,"forge"],[205,-115,52,66,"forge"],
+        [-170,170,46,58,"anvil"],[175,188,48,58,"anvil"]
+      ],
+      9:[
+        [-225,-112,48,92,"ruin"],[220,-88,46,88,"ruin"],
+        [-170,190,54,82,"coral"],[120,220,50,84,"ruin"],[0,-235,62,46,"coral"]
+      ],
+      10:[
+        [-225,-95,52,72,"gear"],[215,-132,54,76,"gear"],
+        [-185,178,50,70,"pendulum"],[170,190,50,70,"pendulum"],[0,-225,70,44,"gear"]
+      ],
+      11:[
+        [-220,-135,50,86,"void"],[225,-118,50,86,"void"],
+        [-175,170,48,78,"crystal"],[170,190,48,78,"crystal"],[0,-245,72,42,"void"]
+      ]
+    }[stage];
+    if(!stageObstacles)return;
+    bossObstacles=stageObstacles.map(([ox,oy,w,h,kind])=>({
+      x:bossArena.x+ox,y:bossArena.y+oy,w,h,kind
     }));
   }
 
@@ -4479,6 +5932,72 @@
     if(!bossObstacles.length)return;
     for(const o of bossObstacles){
       const p=worldToScreen(o.x,o.y);
+      if(o.kind&&o.kind!=="tree"){
+        if(layer!=="trunk")continue;
+        ctx.save();
+        ctx.globalAlpha=.32;
+        ctx.fillStyle="#05040a";
+        ctx.beginPath();
+        ctx.ellipse(p.x,p.y+o.h/2+5,o.w*.72,8,0,0,Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha=1;
+        if(o.kind==="forge"){
+          rect(p.x-o.w/2,p.y-o.h/2,o.w,o.h,"#51352c");
+          rect(p.x-o.w/2+5,p.y-o.h/2+5,o.w-10,10,"#bb6a36");
+          rect(p.x-o.w/2+8,p.y+o.h/2-18,o.w-16,8,"#ff7d31");
+          rect(p.x-o.w/2+12,p.y-o.h/2+20,8,o.h-28,"#2a1b18");
+        }else if(o.kind==="anvil"){
+          rect(p.x-o.w/2,p.y-o.h/2+14,o.w,24,"#5f6770");
+          rect(p.x-o.w/2+8,p.y-o.h/2+6,o.w-16,10,"#828b92");
+          rect(p.x-10,p.y+o.h/2-20,20,22,"#3b3f45");
+        }else if(o.kind==="ruin"){
+          rect(p.x-o.w/2,p.y-o.h/2,o.w,o.h,"#35556a");
+          rect(p.x-o.w/2+5,p.y-o.h/2+6,o.w-10,8,"#80b6c8");
+          rect(p.x-o.w/2+8,p.y-o.h/2+26,o.w-16,7,"#203947");
+          rect(p.x-o.w/2+6,p.y+o.h/2-14,o.w-12,8,"#6aa1b8");
+        }else if(o.kind==="coral"){
+          rect(p.x-o.w/2+8,p.y-o.h/2+10,o.w-16,o.h-18,"#244d60");
+          rect(p.x-o.w/2+2,p.y-o.h/2+20,10,30,"#61d1e8");
+          rect(p.x+o.w/2-12,p.y-o.h/2+16,10,38,"#52a6c9");
+          rect(p.x-8,p.y-o.h/2,16,16,"#8be8ff");
+        }else if(o.kind==="gear"){
+          ctx.fillStyle="#6b563c";
+          ctx.beginPath();
+          ctx.arc(p.x,p.y,o.w*.45,0,Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle="#2c2330";
+          ctx.beginPath();
+          ctx.arc(p.x,p.y,o.w*.22,0,Math.PI*2);
+          ctx.fill();
+          for(let i=0;i<8;i++){
+            const a=i*Math.PI/4;
+            rect(p.x+Math.cos(a)*o.w*.42-5,p.y+Math.sin(a)*o.w*.42-5,10,10,"#b08a48");
+          }
+        }else if(o.kind==="pendulum"){
+          rect(p.x-8,p.y-o.h/2,16,o.h,"#3b2a44");
+          rect(p.x-o.w/2,p.y+o.h/2-20,o.w,18,"#9e7448");
+          rect(p.x-o.w/2+6,p.y+o.h/2-15,o.w-12,5,"#ffd66a");
+        }else if(o.kind==="void"){
+          rect(p.x-o.w/2,p.y-o.h/2,o.w,o.h,"#171028");
+          rect(p.x-o.w/2+6,p.y-o.h/2+8,o.w-12,o.h-16,"#311454");
+          rect(p.x-4,p.y-o.h/2+8,8,o.h-16,"#9c57ff");
+          rect(p.x-o.w/2+10,p.y+o.h/2-14,o.w-20,6,"#05020d");
+        }else if(o.kind==="crystal"){
+          ctx.fillStyle="#271145";
+          ctx.beginPath();
+          ctx.moveTo(p.x,p.y-o.h/2);
+          ctx.lineTo(p.x+o.w/2,p.y-4);
+          ctx.lineTo(p.x+o.w*.18,p.y+o.h/2);
+          ctx.lineTo(p.x-o.w*.28,p.y+o.h/2-8);
+          ctx.lineTo(p.x-o.w/2,p.y-2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.globalAlpha=.82;
+          rect(p.x-4,p.y-o.h/2+10,8,o.h-24,"#d17cff");
+        }
+        ctx.restore();
+        continue;
+      }
       const leafW=52*o.leaf,leafH=42*o.leaf;
       if(layer==="canopy"){
         ctx.save();
@@ -4534,7 +6053,7 @@
     boss.x=bossArena.x+Math.min(210,bossArena.r*.58);
     boss.y=bossArena.y;
     finalPhase="fight";
-    const bossName=boss.type==="shadowtree"?"幽影樹王！":boss.type==="rottenwood"?"腐木樹衛！":boss.type==="whale"?"暴雪鯨魚！":boss.type==="reaper"?"惡魔死神！":boss.type==="stoneface"?"遠古石面怪！":"霸王食人花！";
+    const bossName=boss.type==="nightmaremaker"?"發條夢魘師！":boss.type==="cookiemonarch"?"奶油餅乾女王！":boss.type==="shadowtree"?"幽影樹王！":boss.type==="rottenwood"?"腐木樹衛！":boss.type==="whale"?"暴雪鯨魚！":boss.type==="reaper"?"惡魔死神！":boss.type==="stoneface"?"遠古石面怪！":"霸王食人花！";
     text(boss.x,boss.y-boss.r-24,bossName,"#ff4f68",28);
     effects.push({kind:"shockwave",x:boss.x,y:boss.y,r:20,max:190,life:.75});
     beep(80,.8,.06,"sawtooth");
@@ -4597,7 +6116,7 @@
   function getSharedTarget(force=false){
     if(force||sharedTargetTimer<=0||targetInvalid(sharedTargetCache)){
       sharedTargetCache=nearest(player.x,player.y);
-      sharedTargetTimer=.12;
+      sharedTargetTimer=computeTargetTTL();
     }
     return sharedTargetCache;
   }
@@ -4785,7 +6304,7 @@
       if(critical)amount*=1+rand(.01,.10);
     }
     if(source!=="chestBomb"){
-      const ignored=Math.min(.75,player.armorPen);
+      const ignored=Math.min(MAX_TOTAL_ARMOR_PEN,player.armorPen);
       const effectiveDefense=(e.defense||0)*(1-ignored);
       amount*=100/(100+effectiveDefense);
     }
@@ -4843,6 +6362,10 @@
         );
       }
       if(mode>=1)effects.push({kind:"slash",x:e.x,y:e.y,life:.22,r:e.r*1.8});
+    }
+    if(isEventMode()&&e.type==="chestmimic"){
+      win();
+      return;
     }
     if(e.kind==="final"){
       if(isInfiniteMode())finishInfiniteBoss();
@@ -4910,6 +6433,15 @@
       return !u.valid||u.valid();
     }),picked=[];
     while(picked.length<4&&pool.length){const i=Math.floor(Math.random()*pool.length);picked.push(pool.splice(i,1)[0]);}
+    if(!picked.length){
+      levelQueue=0;
+      levelScreen.classList.add("hidden");
+      levelScreen.classList.remove("autoTrainingLocked");
+      if(autoTrainingGuard)autoTrainingGuard.classList.add("hidden");
+      paused=false;
+      updateMonitorButtons();
+      return;
+    }
     for(const u of picked){
       const card=document.createElement("div");card.className="choice";
       let current="";
@@ -5169,7 +6701,7 @@
     if(bossArena.active){
       const ax=player.x-bossArena.x,ay=player.y-bossArena.y,d=Math.hypot(ax,ay),limit=bossArena.r-player.r-18;
       if(d>limit){player.x=bossArena.x+ax/d*limit;player.y=bossArena.y+ay/d*limit;}
-      if(isInfiniteMode()&&bossArena.zone>=3&&d>bossArena.r-58)hurtPercent(.08);
+      if(isInfiniteMode()&&infiniteStageForZone(bossArena.zone)===0&&d>bossArena.r-58)hurtPercent(.08);
       resolveBossObstacles(player,player.r);
     }
     updateChests(dt,moved);
@@ -5256,7 +6788,7 @@
       }
       const screenPos=worldToScreen(e.x,e.y);
       const nearScreen=screenPos.x>-90&&screenPos.x<W+90&&screenPos.y>-90&&screenPos.y<H+90;
-      const farBucket=((e.id||enemyIndex)+Math.floor(time*60))%3;
+      const farBucket=((e.id||enemyIndex)+Math.floor(time*60))%computeOffScreenDiv();
       if(!nearScreen&&farBucket!==0){
         const aLite=Math.atan2(player.y-e.y,player.x-e.x);
         let speedLite=e.speed;
@@ -5281,6 +6813,15 @@
         const shotSpeed=e.kind==="normal"?185:e.kind==="elite"?225:250;
         enemyShots.push({kind:"normal",x:e.x,y:e.y,vx:Math.cos(a)*shotSpeed,vy:Math.sin(a)*shotSpeed,r:e.kind==="normal"?7:10,damage:e.damage*.55,life:4,poison:0});
         e.shoot=e.kind==="normal"?rand(2.1,3.2):e.kind==="elite"?rand(1.3,2):rand(.8,1.35);
+      }
+      if(isEventMode()&&e.type==="chestmimic"&&e.shoot<=0&&dist(e,player)<720){
+        const spread=e.kind==="boss"?5:3;
+        const center=Math.atan2(player.y-e.y,player.x-e.x);
+        for(let i=0;i<spread;i++){
+          const q=center+(i-(spread-1)/2)*.16;
+          enemyShots.push({kind:"coin",x:e.x,y:e.y,vx:Math.cos(q)*210,vy:Math.sin(q)*210,r:8,damage:e.damage*.45,life:4,poison:0});
+        }
+        e.shoot=e.kind==="boss"?1.35:2.2;
       }
       if(e.kind==="final"&&e.type==="stoneface"){
         e.phase-=dt;
@@ -5386,6 +6927,90 @@
           beep(92,.32,.05,"sawtooth");
         }
       }
+      if(e.kind==="final"&&e.type==="lavagolem"){
+        e.phase-=dt;
+        if(e.phase<=0){
+          e.phase=e.bars===1?2.4:e.bars===2?3.1:3.8;
+          const count=e.bars===1?5:e.bars===2?4:3;
+          for(let i=0;i<count;i++){
+            const a=rand(0,Math.PI*2);
+            const rr=rand(20,150);
+            effects.push({
+              kind:"cookiePress",
+              x:player.x+Math.cos(a)*rr,
+              y:player.y+Math.sin(a)*rr,
+              r:48,
+              startR:8,
+              delay:1.2,
+              maxDelay:1.2,
+              life:1.55,
+              percent:0,
+              damage:e.damage*.62,
+              hit:false
+            });
+          }
+          const a=Math.atan2(player.y-e.y,player.x-e.x);
+          effects.push({kind:"beamWarning",x:e.x,y:e.y,a,width:82,delay:1.05,life:1.5,damage:e.damage*.85,color:"#6b1d14",line:"#ff3c22",hit:false});
+          text(player.x,player.y-58,"熔岩裂縫！","#ff8a38",19,"boss");
+          beep(92,.25,.05,"sawtooth");
+        }
+      }
+      if(e.kind==="final"&&e.type==="abyssoctopus"){
+        e.phase-=dt;
+        if(e.phase<=0){
+          e.phase=e.bars===1?3.2:e.bars===2?4.1:4.8;
+          const baseA=Math.atan2(player.y-e.y,player.x-e.x);
+          const count=e.bars===1?3:e.bars===2?2:1;
+          for(let i=0;i<count;i++){
+            effects.push({kind:"beamWarning",x:e.x,y:e.y,a:baseA+(i-(count-1)/2)*.22,width:58,delay:1.05,life:1.55,percent:.35,color:"#145d7a",line:"#ff4a58",hit:false});
+          }
+          player.slowStatus=Math.max(player.slowStatus||0,1.2);
+          text(player.x,player.y-58,"深海水柱！","#9eeaff",19,"boss");
+          beep(150,.25,.04,"triangle");
+        }
+      }
+      if(e.kind==="final"&&e.type==="clockwitch"){
+        e.phase-=dt;
+        if(e.phase<=0){
+          e.phase=e.bars===1?3.4:e.bars===2?4.3:5.2;
+          const angle=(e.bars===1?0:Math.PI/2)+(Math.floor(time)%2?Math.PI:0);
+          effects.push({
+            kind:"toyTrainCross",
+            x:player.x,
+            y:player.y,
+            angle,
+            halfLen:Math.max(W,H)*.7,
+            width:e.bars===1?96:e.bars===2?78:64,
+            railTime:.75,
+            warnTime:.45,
+            delay:1.2,
+            life:2.5,
+            maxLife:2.5,
+            trainDuration:1.05,
+            percent:e.bars===1?.58:e.bars===2?.45:.32,
+            hit:false
+          });
+          if(e.bars<=2)confuseTimer=Math.max(confuseTimer,2.2);
+          text(player.x,player.y-58,"鐘擺斬擊！","#fff2a8",19,"boss");
+          beep(230,.2,.035,"square");
+        }
+      }
+      if(e.kind==="final"&&e.type==="voiddevourer"){
+        e.phase-=dt;
+        if(e.phase<=0){
+          e.phase=e.bars===1?5.2:e.bars===2?6.4:7.6;
+          effects.push({
+            kind:"leafStorm",ownerId:e.id,x:player.x,y:player.y,
+            r:e.bars===1?260:e.bars===2?220:185,life:4.2,maxLife:4.2,
+            pull:e.bars===1?270:e.bars===2?220:170,dark:true,phase:rand(0,Math.PI*2)
+          });
+          const baseA=Math.atan2(player.y-e.y,player.x-e.x);
+          const count=e.bars===1?4:e.bars===2?3:2;
+          for(let i=0;i<count;i++)effects.push({kind:"beamWarning",x:e.x,y:e.y,a:baseA+(i-(count-1)/2)*.26,width:50,delay:1.15,life:1.65,percent:.45,color:"#2a103d",line:"#ff2e8a",hit:false});
+          text(player.x,player.y-62,"黑洞牽引！","#d9a6ff",20,"boss");
+          beep(72,.38,.055,"sawtooth");
+        }
+      }
       if(e.kind==="final"&&(e.type==="rottenwood"||e.type==="shadowtree")){
         const shadow=e.type==="shadowtree";
         const forestSkillDamage=1.3;
@@ -5434,22 +7059,25 @@
       if(closeDist<dangerRadius){
         let ang=Math.atan2(e.y-player.y,e.x-player.x);
         if(ang<0)ang+=Math.PI*2;
-        const sector=Math.min(7,Math.floor(ang/(Math.PI/4)));
+        const sectorTotal=computeSectorCount();
+        const sector=Math.min(sectorTotal-1,Math.floor(ang/(Math.PI*2/sectorTotal)));
         sectorBits|=(1<<sector);
       }
     }
     enemies=enemies.filter(e=>!e.dead);
-    rebuildEnemyGrid();
+    if(computeFrameCount%computeGridStride()===0||enemyGrid.size===0)rebuildEnemyGrid();
     encirclementSectorBits=sectorBits;
     encirclementSectorCount=sectorBits.toString(2).replace(/0/g,"").length;
-    encirclementPrewarn=encirclementSectorCount>=6;
-    const pressureTarget=encirclementSectorCount/8;
+    const sectorTotal=computeSectorCount();
+    const fullEncirclement=encirclementSectorCount>=sectorTotal;
+    encirclementPrewarn=encirclementSectorCount>=Math.ceil(sectorTotal*.75);
+    const pressureTarget=encirclementSectorCount/sectorTotal;
     const riseLerp=pressureTarget>encirclementPressure?Math.min(1,dt*4.2):0;
     const fallLerp=pressureTarget<encirclementPressure?Math.min(1,dt*2.1):0;
     if(riseLerp)encirclementPressure+=(pressureTarget-encirclementPressure)*riseLerp;
     else if(fallLerp)encirclementPressure+=(pressureTarget-encirclementPressure)*fallLerp;
     if(pressureTarget<=0.01)encirclementPressure=Math.max(0,encirclementPressure-dt*.1);
-    if(encirclementSectorCount>=8){
+    if(fullEncirclement){
       const sampleDuration=currentEncirclementSampleDuration();
       encirclementCharge=Math.min(100,encirclementCharge+encirclementChargeRate(encirclementCharge)*dt);
       encirclementSampleClock=Math.min(sampleDuration,encirclementSampleClock+dt);
@@ -5460,7 +7088,7 @@
         encirclementPressureRounds=0;
       }
     }
-    if(encirclementSectorCount>=8&&encirclementSampleClock>=currentEncirclementSampleDuration()){
+    if(fullEncirclement&&encirclementSampleClock>=currentEncirclementSampleDuration()){
       const percent=encirclementStagePercent(encirclementCharge);
       if(percent>0)startEncirclementDot(percent);
       else{
@@ -5829,6 +7457,7 @@
 
   function update(dt){
     if(!running||paused||ended)return;
+    computeFrameCount++;
     sharedTargetTimer=Math.max(0,sharedTargetTimer-dt);
     debugFrameMs=debugFrameMs*.88+dt*1000*.12;
     debugPeakFrameMs=Math.max(debugFrameMs,debugPeakFrameMs*.965);
@@ -5892,7 +7521,7 @@
       updateAnnouncements(dt);
     }
     hudSampleTimer+=dt;
-    if(hudSampleTimer>=.1){
+    if(hudSampleTimer>=computeHudInterval()){
       hudSampleTimer=0;
       hudEnemyCount=livingEnemyCount();
       hudKills=kills;
@@ -5915,17 +7544,21 @@
     if(!preBattleActive&&finalPhase==="none"&&(isInfiniteMode()||time<DURATION)&&spawnClock<=0){
       countPerfWork("spawn");
       const livingCount=nearbyLivingEnemyCount();
+      const enemyCap=computeEnemyCap();
       let targetEnemyCount=0;
       let variance=.12;
-      if(kps>=10){
-        targetEnemyCount=Math.min(200,Math.round(kps*10));
-        variance=targetEnemyCount>=200?.3:.2;
+      if(isEventMode()){
+        targetEnemyCount=Math.min(enemyCap,Math.round(34+time/5));
+        variance=.08;
+      }else if(kps>=10){
+        targetEnemyCount=Math.min(enemyCap,Math.round(kps*10));
+        variance=targetEnemyCount>=enemyCap?.3:.2;
       }else{
         const baseTarget=time<240?60:72;
-        targetEnemyCount=Math.round(baseTarget*Math.min(1.35,intensity));
+        targetEnemyCount=Math.min(enemyCap,Math.round(baseTarget*Math.min(1.35,intensity)));
       }
       const minTarget=Math.round(targetEnemyCount*(1-variance));
-      const maxTarget=Math.round(targetEnemyCount*(1+variance));
+      const maxTarget=Math.min(enemyCap,Math.round(targetEnemyCount*(1+variance)));
       const needCount=Math.max(0,minTarget-livingCount);
       const densityGap=Math.max(0,targetEnemyCount-livingCount);
       spawnClock=kps>=10?Math.max(.08,.2-densityGap*.0004):Math.max(.12,.5/(intensity*.95));
@@ -5971,8 +7604,14 @@
         if(e.delay<=0&&!e.hit){
           e.hit=true;
           if(dist(e,player)<e.r+player.r){
-            hurtPercent(e.percent||.2,false,true,true);
-            text(player.x,player.y-55,`餅乾壓模 -${Math.round((e.percent||.2)*100)}%`,"#ffd7a3",18,"boss");
+            if(e.damage){
+              hurt(e.damage);
+              text(player.x,player.y-55,`熔岩裂縫 -${Math.round(e.damage)}`,"#ff9b4a",18,"boss");
+            }else{
+              const percent=e.percent??.2;
+              hurtPercent(percent,false,true,true);
+              text(player.x,player.y-55,`餅乾壓模 -${Math.round(percent*100)}%`,"#ffd7a3",18,"boss");
+            }
           }
           burst(e.x,e.y,"#e6ad64",18);
           beep(145,.22,.05,"triangle");
@@ -6236,11 +7875,19 @@
 
   function drawGround(){
     const zone=effectiveZone();
-    const stageForGround=isBossChallengeMode()?bossChallengeSourceStage:currentStage;
-    const forestStage=!isInfiniteMode()&&(stageForGround===4||stageForGround===5);
-    const cookieStageGround=!isInfiniteMode()&&stageForGround===6;
-    const toyStageGround=!isInfiniteMode()&&stageForGround===7;
-    rect(0,0,W,H,cookieStageGround?"#d9b37a":toyStageGround?"#8aaec0":forestStage?(stageForGround===5?"#162019":"#263b25"):zone>=3?"#2a0f1b":zone===2?"#cfefff":zone===1?"#d7b66f":"#79bd58");
+    const stageForGround=isInfiniteMode()?infiniteStageForZone(zone):(isBossChallengeMode()?bossChallengeSourceStage:currentStage);
+    const forestStage=stageForGround===4||stageForGround===5;
+    const cookieStageGround=stageForGround===6;
+    const toyStageGround=stageForGround===7;
+    const advancedGroundColors={
+      8:"#2b1511",
+      9:"#09293a",
+      10:"#252036",
+      11:"#10051f"
+    };
+    rect(0,0,W,H,advancedGroundColors[stageForGround]||(
+      cookieStageGround?"#d9b37a":toyStageGround?"#8aaec0":forestStage?(stageForGround===5?"#162019":"#263b25"):zone>=3?"#2a0f1b":zone===2?"#cfefff":zone===1?"#d7b66f":"#79bd58"
+    ));
     const grid=64,camera=cameraPosition();
     const left=camera.x-W/2-grid,top=camera.y-H/2-grid;
     const rawFirstX=Math.floor(left/grid),rawFirstY=Math.floor(top/grid);
@@ -6285,9 +7932,9 @@
 
   function drawGroundTile(targetCtx,zone,gx,gy,x,y,grid=64){
     const hash=((gx*928371+gy*1237)%7+7)%7;
-    const stageForGround=isBossChallengeMode()?bossChallengeSourceStage:currentStage;
-    const forestStage=!isInfiniteMode()&&(stageForGround===4||stageForGround===5);
-    if(!isInfiniteMode()&&stageForGround===6){
+    const stageForGround=isInfiniteMode()?infiniteStageForZone(zone):(isBossChallengeMode()?bossChallengeSourceStage:currentStage);
+    const forestStage=stageForGround===4||stageForGround===5;
+    if(stageForGround===6){
       targetCtx.fillStyle=hash%2?"#d7b079":"#cfa66e";
       targetCtx.fillRect(x,y,grid,grid);
       targetCtx.fillStyle="#b88954";
@@ -6305,7 +7952,7 @@
         targetCtx.fillStyle="#b17643";targetCtx.fillRect(x+18,y+22,18,4);
         targetCtx.fillStyle="#f1d9a5";targetCtx.fillRect(x+21,y+19,11,3);
       }
-    }else if(!isInfiniteMode()&&stageForGround===7){
+    }else if(stageForGround===7){
       targetCtx.fillStyle=hash%2?"#87aebd":"#7fa5b4";
       targetCtx.fillRect(x,y,grid,grid);
       targetCtx.fillStyle="#6e8e9c";
@@ -6322,6 +7969,77 @@
       if(hash===5){
         targetCtx.fillStyle="#5e7f8f";targetCtx.fillRect(x+18,y+29,21,4);
         targetCtx.fillStyle="#a6c0cc";targetCtx.fillRect(x+25,y+25,5,5);
+      }
+    }else if(stageForGround===8){
+      targetCtx.fillStyle=hash%2?"#2a1510":"#341914";
+      targetCtx.fillRect(x,y,grid,grid);
+      targetCtx.fillStyle="#1b0d0b";
+      targetCtx.fillRect(x,y,grid,3);
+      targetCtx.fillRect(x,y,3,grid);
+      targetCtx.fillStyle="rgba(255,120,45,.16)";
+      if(hash===1||hash===5){
+        targetCtx.fillRect(x+8,y+44,42,3);
+        targetCtx.fillStyle="#b74325";targetCtx.fillRect(x+18,y+41,18,2);
+      }
+      if(hash===2){
+        targetCtx.fillStyle="#5b2820";targetCtx.fillRect(x+39,y+12,10,7);
+        targetCtx.fillStyle="#f0a33d";targetCtx.fillRect(x+43,y+15,3,2);
+      }
+      if(hash===4){
+        targetCtx.fillStyle="#6e2519";targetCtx.fillRect(x+14,y+22,33,3);
+        targetCtx.fillStyle="#ff7b32";targetCtx.fillRect(x+27,y+20,8,2);
+      }
+    }else if(stageForGround===9){
+      targetCtx.fillStyle=hash%2?"#0b3043":"#0e3a4c";
+      targetCtx.fillRect(x,y,grid,grid);
+      targetCtx.fillStyle="#174f64";
+      targetCtx.fillRect(x,y,grid,2);
+      targetCtx.fillRect(x,y,2,grid);
+      if(hash===1){
+        targetCtx.fillStyle="#1b5c69";targetCtx.fillRect(x+9,y+45,34,4);
+        targetCtx.fillStyle="#65d8e9";targetCtx.fillRect(x+17,y+42,8,2);
+      }
+      if(hash===3){
+        targetCtx.fillStyle="#245766";targetCtx.fillRect(x+41,y+18,10,12);
+        targetCtx.fillStyle="#79f0ff";targetCtx.fillRect(x+45,y+14,3,3);
+      }
+      if(hash===6){
+        targetCtx.fillStyle="#0f2434";targetCtx.fillRect(x+17,y+28,25,3);
+        targetCtx.fillStyle="#3b8ea4";targetCtx.fillRect(x+26,y+25,6,2);
+      }
+    }else if(stageForGround===10){
+      targetCtx.fillStyle=hash%2?"#28233a":"#211d31";
+      targetCtx.fillRect(x,y,grid,grid);
+      targetCtx.fillStyle="#171525";
+      targetCtx.fillRect(x,y,grid,3);
+      targetCtx.fillRect(x,y,3,grid);
+      targetCtx.fillStyle="#4d415b";
+      targetCtx.fillRect(x+2,y+31,grid-4,2);
+      if(hash===0||hash===4){
+        targetCtx.fillStyle="#7f6942";targetCtx.fillRect(x+12,y+46,33,3);
+        targetCtx.fillStyle="#d8bd69";targetCtx.fillRect(x+21,y+44,14,2);
+      }
+      if(hash===2){
+        targetCtx.fillStyle="#3a304d";targetCtx.fillRect(x+42,y+13,8,9);
+        targetCtx.fillStyle="#e6d88b";targetCtx.fillRect(x+45,y+11,3,3);
+      }
+    }else if(stageForGround===11){
+      targetCtx.fillStyle=hash%2?"#110623":"#16082c";
+      targetCtx.fillRect(x,y,grid,grid);
+      targetCtx.fillStyle="#07030e";
+      targetCtx.fillRect(x,y,grid,3);
+      targetCtx.fillRect(x,y,3,grid);
+      if(hash===1||hash===5){
+        targetCtx.fillStyle="#3d1565";targetCtx.fillRect(x+10,y+42,40,3);
+        targetCtx.fillStyle="#b95cff";targetCtx.fillRect(x+24,y+40,10,2);
+      }
+      if(hash===3){
+        targetCtx.fillStyle="#25113e";targetCtx.fillRect(x+38,y+16,13,8);
+        targetCtx.fillStyle="#ed9cff";targetCtx.fillRect(x+44,y+14,3,3);
+      }
+      if(hash===6){
+        targetCtx.fillStyle="#2c0f4f";targetCtx.fillRect(x+16,y+27,28,3);
+        targetCtx.fillStyle="#742be0";targetCtx.fillRect(x+29,y+25,6,2);
       }
     }else if(forestStage){
       targetCtx.fillStyle=stageForGround===5?(hash%2?"#18251d":"#111a15"):(hash%2?"#2c462b":"#243821");
@@ -6435,21 +8153,32 @@
     if(!bossArena.active)return;
     const center=worldToScreen(bossArena.x,bossArena.y);
     const zone=bossArena.zone??effectiveZone();
-    const forestStage=!isInfiniteMode()&&(currentStage===4||currentStage===5);
+    const arenaStage=isInfiniteMode()?infiniteStageForZone(bossArena.zone):currentStage;
+    const forestStage=arenaStage===4||arenaStage===5;
+    const cookieArena=arenaStage===6;
+    const toyArena=arenaStage===7;
     ctx.save();
     ctx.globalAlpha=.12;
-    ctx.fillStyle=forestStage?"#4f8d42":zone>=3?"#b62031":zone===2?"#dff8ff":"#f7d58a";ctx.beginPath();ctx.arc(center.x,center.y,bossArena.r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=toyArena?"#8ed2ff":cookieArena?"#ffd28a":forestStage?"#4f8d42":arenaStage===0?"#b62031":zone===2?"#dff8ff":"#f7d58a";ctx.beginPath();ctx.arc(center.x,center.y,bossArena.r,0,Math.PI*2);ctx.fill();
     ctx.globalAlpha=1;
     const blocks=44;
     for(let i=0;i<blocks;i++){
       const a=i*Math.PI*2/blocks;
       const x=center.x+Math.cos(a)*bossArena.r,y=center.y+Math.sin(a)*bossArena.r;
       ctx.save();ctx.translate(x,y);ctx.rotate(a);
-      if(forestStage){
+      if(cookieArena){
+        rect(-13,-12,26,18,i%2?"#d4894b":"#f0b76a");
+        rect(-10,-20,20,9,"#fff0d8");
+        rect(-11,8,22,5,"#6b3a25");
+      }else if(toyArena){
+        rect(-13,-14,26,24,i%2?"#5aa5cb":"#e06768");
+        rect(-9,-22,18,8,i%2?"#ffe15b":"#8ddf75");
+        rect(-12,8,24,5,"#28445c");
+      }else if(forestStage){
         rect(-12,-18,24,30,i%2?"#4d3322":"#63422b");
         rect(-20,-28,40,18,i%2?"#2e6336":"#3d7a42");
         rect(-9,8,18,5,"#20160f");
-      }else if(zone>=3){
+      }else if(arenaStage===0){
         rect(-10,-18,20,28,i%2?"#ff6a2a":"#d52635");
         rect(-6,-28,12,14,"#ffd15b");
         rect(-13,8,26,5,"#260912");
@@ -6464,7 +8193,7 @@
       }
       ctx.restore();
     }
-    ctx.strokeStyle=forestStage?"#86d06f":zone>=3?"#ff2e3e":zone===2?"#72ddff":"#ff5a55";ctx.lineWidth=4;ctx.globalAlpha=.62;
+    ctx.strokeStyle=toyArena?"#78d7ff":cookieArena?"#ffd07b":forestStage?"#86d06f":arenaStage===0?"#ff2e3e":zone===2?"#72ddff":"#ff5a55";ctx.lineWidth=4;ctx.globalAlpha=.62;
     ctx.beginPath();ctx.arc(center.x,center.y,bossArena.r-15,0,Math.PI*2);ctx.stroke();
     ctx.restore();
   }
@@ -6548,6 +8277,37 @@
     rect(-44,-2,9,3,"#10233f");
   }
 
+  function drawMoneyEnemySprite(type){
+    if(type==="chestmimic"){
+      rect(-28,-16,56,34,"#7a4d24");
+      rect(-30,-20,60,12,"#b77a35");
+      rect(-24,-7,48,20,"#d49a47");
+      rect(-20,-2,8,6,"#17110a");rect(12,-2,8,6,"#17110a");
+      rect(-9,6,18,5,"#5c3217");rect(-3,-22,6,44,"#ffe05f");
+      rect(-34,15,68,7,"#3b2212");
+      return;
+    }
+    if(type==="billmonster"){
+      rect(-22,-13,44,26,"#78d98d");
+      rect(-17,-8,34,16,"#d8ffd8");
+      rect(-9,-5,4,5,"#19331f");rect(6,-5,4,5,"#19331f");
+      rect(-6,4,12,3,"#276b37");
+      rect(-24,13,7,9,"#78d98d");rect(17,13,7,9,"#78d98d");
+      return;
+    }
+    const palette={
+      coppercoin:["#7a3b20","#c87839","#ffd08a"],
+      silvercoin:["#687487","#c9d3df","#f6fbff"],
+      goldcoin:["#a46b12","#ffd95c","#fff2a6"],
+      diamondcoin:["#1d5c92","#67d9ff","#dcfbff"]
+    }[type]||["#7a3b20","#ffd95c","#fff2a6"];
+    rect(-15,-15,30,30,palette[0]);
+    rect(-12,-12,24,24,palette[1]);
+    rect(-7,-7,14,14,palette[2]);
+    rect(-5,-18,4,4,"#171624");rect(4,-18,4,4,"#171624");
+    rect(-9,17,6,5,palette[0]);rect(3,17,6,5,palette[0]);
+  }
+
   function drawEnemy(e){
     const p=worldToScreen(e.x,e.y),s=e.r/18;
     const challengeWhale=isBossChallengeMode()&&e.kind==="final"&&e.type==="whale";
@@ -6564,6 +8324,8 @@
       if(e.hit)ctx.globalAlpha=.55;
       if(challengeWhale){
         drawBossChallengeWhaleSprite();
+      }else if(EVENT_ENEMY_TYPES.has(e.type)){
+        drawMoneyEnemySprite(e.type);
       }else if(e.type==="turtle"){
       rect(-15,-10,27,23,"#397d3f");rect(-10,-14,22,22,"#67b551");rect(-5,-9,12,12,"#b0d867");rect(9,-10,11,9,"#ead17c");rect(14,-8,3,3,"#171624");
     }else if(e.type==="mushroom"){
@@ -7011,6 +8773,13 @@
 
   function drawEnemyShot(shot){
     const p=worldToScreen(shot.x,shot.y);
+    if(shot.kind==="coin"){
+      ctx.globalAlpha=.22;ctx.fillStyle="#ffd65a";ctx.beginPath();ctx.arc(p.x,p.y,shot.r+6,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;ctx.fillStyle="#b67819";ctx.beginPath();ctx.arc(p.x,p.y,shot.r,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#ffe98f";ctx.beginPath();ctx.arc(p.x,p.y,Math.max(2,shot.r-3),0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#8f5a12";ctx.fillRect(Math.round(p.x-1),Math.round(p.y-shot.r+3),2,Math.round(shot.r*2-6));
+      return;
+    }
     ctx.globalAlpha=.28;ctx.fillStyle="#ff263f";ctx.beginPath();ctx.arc(p.x,p.y,shot.r+7,0,Math.PI*2);ctx.fill();
     ctx.globalAlpha=1;ctx.fillStyle="#d71932";ctx.beginPath();ctx.arc(p.x,p.y,shot.r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle="#ff8b76";ctx.beginPath();ctx.arc(p.x-shot.r*.28,p.y-shot.r*.3,Math.max(2,shot.r*.3),0,Math.PI*2);ctx.fill();
@@ -7710,19 +9479,26 @@
     if(runRewarded)return 0;
     runRewarded=true;
     if(isBossChallengeMode())return 0;
+    if(isEventMode()){
+      const earned=settleActivityReward();
+      settleRunCoins();
+      meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
+      saveMeta();
+      return earned;
+    }
     const normalKills=Math.max(0,kills-eliteKills-bossKills);
     const baseEarned=Math.floor(normalKills/25)+eliteKills*3+bossKills*10+(success?25:0)+Math.floor(time/60)*3;
     settleRunCoins();
     settleAutoTrainingAfterRun();
     if(isInfiniteMode()){
-      const earned=Math.floor(baseEarned*.3);
+      const earned=applyPointRewardBonus(Math.floor(baseEarned*.3));
       meta.points+=earned;
       meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
       meta.infiniteTotalKills=(meta.infiniteTotalKills||0)+kills;
       saveMeta();
       return earned;
     }
-    const earned=baseEarned;
+    const earned=applyPointRewardBonus(baseEarned);
     meta.points+=earned;
     meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
     meta.totalKills+=kills;
@@ -7750,6 +9526,10 @@
 
   function recordDeathRunStats(){
     settleRunCoins();
+    if(isEventMode()){
+      saveMeta();
+      return;
+    }
     meta.totalDeaths=(meta.totalDeaths||0)+1;
     meta.totalDeathKills=(meta.totalDeathKills||0)+Math.max(0,kills);
     if(isInfiniteMode()){
@@ -7774,6 +9554,15 @@
       beep(660,.4,.05);
       return;
     }
+    if(isEventMode()){
+      renderMeta();
+      endScreen.classList.remove("hidden");
+      document.getElementById("endTitle").textContent="強化試煉完成";
+      document.getElementById("endSub").textContent="兔兔帶回了活動兌換幣";
+      document.getElementById("endText").innerHTML=`擊倒 ${kills}・寶箱怪 ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(earned)}<br>目前共 ${formatCommaNumber(meta.activityCoins||0)} 活動兌換幣<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+      beep(660,.4,.05);
+      return;
+    }
     if(currentStage===1)meta.stage1Cleared=true;
     if(currentStage===2)meta.stage2Cleared=true;
     if(currentStage===3)meta.stage3Cleared=true;
@@ -7781,6 +9570,10 @@
     if(currentStage===5)meta.stage5Cleared=true;
     if(currentStage===6)meta.stage6Cleared=true;
     if(currentStage===7)meta.stage7Cleared=true;
+    if(currentStage===8)meta.stage8Cleared=true;
+    if(currentStage===9)meta.stage9Cleared=true;
+    if(currentStage===10)meta.stage10Cleared=true;
+    if(currentStage===11)meta.stage11Cleared=true;
     if(currentStage===1&&!meta.desertUnlocked)meta.desertUnlocked=true;
     if(currentStage===2&&!meta.snowUnlocked)meta.snowUnlocked=true;
     if(currentStage===3&&!meta.forestPathUnlocked)meta.forestPathUnlocked=true;
@@ -7790,9 +9583,14 @@
     saveMeta();
     renderMeta();
     endScreen.classList.remove("hidden");
-    document.getElementById("endTitle").textContent=currentStage===7?"玩具夢工廠停止運轉！":currentStage===6?"奶油餅乾屋征服成功！":currentStage===5?"幽影樹海征服成功！":currentStage===4?"幽影林徑征服成功！":currentStage===3?"雪原深處征服成功！":currentStage===2?"沙漠遺跡征服成功！":"菜園守護成功！";
-    document.getElementById("endSub").textContent=currentStage===7?"兔兔擊敗了發條夢魘師":currentStage===6?"兔兔擊敗了奶油餅乾女王":currentStage===5?"兔兔擊敗了幽影樹王":currentStage===4?"兔兔擊敗了腐木樹衛":currentStage===3?"兔兔擊敗了暴雪鯨魚":currentStage===2?"兔兔擊敗了遠古石面怪":"兔兔擊敗了最終魔王";
-    document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+    const clearTitles={
+      1:"菜園守護成功！",2:"沙漠遺跡征服成功！",3:"雪原深處征服成功！",4:"幽影林徑征服成功！",
+      5:"幽影樹海征服成功！",6:"奶油餅乾屋征服成功！",7:"玩具夢工廠停止運轉！",8:"熔岩工坊冷卻成功！",
+      9:"海底遺跡探索成功！",10:"星夜鐘塔停止轉動！",11:"虛空核心封印成功！"
+    };
+    document.getElementById("endTitle").textContent=clearTitles[currentStage]||`${currentStageLabel()}征服成功！`;
+    document.getElementById("endSub").textContent=`兔兔擊敗了${finalBossDisplayName(normalFinalBossType())}`;
+    document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
     beep(660,.4,.05);
   }
 
@@ -7809,7 +9607,9 @@
     document.getElementById("endSub").textContent=isBossChallengeMode()?`挑戰 ${finalBossDisplayName(bossChallengeType)} 失敗`:`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
     document.getElementById("endText").innerHTML=isBossChallengeMode()
       ?`此為測試模式用；要更新請詢問用戶。<br>本局不結算強化點數、鑽石與死亡紀錄`
-      :`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>${rewardTotalLines()}`;
+      :isEventMode()
+      ?`擊倒 ${kills}・寶箱怪 ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(earned)}<br>目前共 ${formatCommaNumber(meta.activityCoins||0)} 活動兌換幣<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
+      :`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>${rewardTotalLines()}`;
     beep(180,.7,.05,"sawtooth");
   }
 
@@ -7822,12 +9622,19 @@
     if(!runRewarded){
       runRewarded=true;
       if(!isBossChallengeMode()){
-        settleRunCoins();
-        settleAutoTrainingAfterRun();
-        earned=isInfiniteMode()?infiniteStagePointReward():Math.floor(time/60)*3;
-        meta.points+=earned;
-        meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
-        saveMeta();
+        if(isEventMode()){
+          earned=settleActivityReward();
+          settleRunCoins();
+          meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
+          saveMeta();
+        }else{
+          settleRunCoins();
+          settleAutoTrainingAfterRun();
+          earned=applyPointRewardBonus(isInfiniteMode()?infiniteStagePointReward():Math.floor(time/60)*3);
+          meta.points+=earned;
+          meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
+          saveMeta();
+        }
       }
     }
     renderMeta();
@@ -7836,9 +9643,11 @@
     document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
     document.getElementById("endText").innerHTML=isBossChallengeMode()
       ?`此為測試模式用；要更新請詢問用戶。<br>中途離開不結算強化點數與通關解鎖`
+      :isEventMode()
+      ?`中途離開仍會帶走活動收益<br>擊倒 ${kills}・寶箱怪 ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(earned)}<br>目前共 ${formatCommaNumber(meta.activityCoins||0)} 活動兌換幣<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
       :isInfiniteMode()
-      ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局獲得強化點數 ${earned}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
-      :`中途離開不計完整擊殺點數<br>生存點數 ${earned}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+      ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
+      :`中途離開不計完整擊殺點數<br>生存點數 ${earned}${soulPointBonusRate()>0?`（獵魂 +${formatPercentRate(soulPointBonusRate())}）`:""}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
     beep(220,.22,.035,"square");
   }
 
@@ -7851,7 +9660,8 @@
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
   const characterBtn=document.getElementById("characterBtn"),adventureBookBtn=document.getElementById("adventureBookBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter"),closeAdventureBook=document.getElementById("closeAdventureBook"),closeShop=document.getElementById("closeShop");
   const chooseStageBtn=document.getElementById("chooseStageBtn"),closeStage=document.getElementById("closeStage"),closeRewards=document.getElementById("closeRewards");
-  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),cookieStage=document.getElementById("cookieStageModal"),toyStage=document.getElementById("toyStageModal"),infiniteStage=document.getElementById("infiniteStageModal"),bossChallengeStage=document.getElementById("bossChallengeStageModal"),bossChallengePanel=document.getElementById("bossChallengePanel");
+  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),cookieStage=document.getElementById("cookieStageModal"),toyStage=document.getElementById("toyStageModal"),lavaStage=document.getElementById("lavaStageModal"),seaStage=document.getElementById("seaStageModal"),clockStage=document.getElementById("clockStageModal"),voidStage=document.getElementById("voidStageModal"),eventStage=document.getElementById("eventStageModal"),infiniteStage=document.getElementById("infiniteStageModal"),bossChallengeStage=document.getElementById("bossChallengeStageModal"),bossChallengePanel=document.getElementById("bossChallengePanel");
+  const stageSelectModal=document.getElementById("stageSelectModal"),stageModeNormalBtn=document.getElementById("stageModeNormalBtn"),stageModeBossBtn=document.getElementById("stageModeBossBtn"),stageModeEventBtn=document.getElementById("stageModeEventBtn"),stageModeSpecialBtn=document.getElementById("stageModeSpecialBtn");
   const homeGardenStage=document.getElementById("gardenStage"),homeDesertStage=document.getElementById("desertStage"),homeSnowStage=document.getElementById("snowStage"),homeForestPathStage=document.getElementById("forestPathStage"),homeForestSeaStage=document.getElementById("forestSeaStage"),homeCookieStage=document.getElementById("cookieStage"),homeToyStage=document.getElementById("toyStage"),homeInfiniteStage=document.getElementById("infiniteStage");
   function updateMuteButton(){
     muteBtn.classList.toggle("muted",muted);
@@ -7902,7 +9712,7 @@
     const hpRegenPerSecond=player.maxHp*player.regen;
     const totalRegenPerSecond=boostedFlatRegen+hpRegenPerSecond;
     const baseMaxHp=BASE_META_LIFE+scaledMetaGain(meta.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH);
-    const baseDamageValue=BASE_META_DAMAGE+scaledMetaGain(meta.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH);
+    const baseDamageValue=baseMetaDamageValue(meta.damage);
     const baseMoveSpeed=210;
     const baseAttackSpeed=1+meta.speed*.03;
     const baseCritChance=metaCritChance(meta.crit);
@@ -7912,7 +9722,7 @@
     const speedBonusPct=Math.max(0,Math.round((player.speed/baseMoveSpeed-1)*100));
     const attackSpeedBonusPct=Math.max(0,Math.round((player.attackSpeed/baseAttackSpeed-1)*100));
     const critBonusPct=Math.max(0,Math.round((player.crit-baseCritChance)*100));
-    const armorPenBonusPct=Math.max(0,Math.round((Math.min(.75,player.armorPen)-baseArmorPen)*100));
+    const armorPenBonusPct=Math.max(0,Math.round((Math.min(MAX_TOTAL_ARMOR_PEN,player.armorPen)-baseArmorPen)*100));
     const giantCarrotBonusPct=Math.round((12.8-1)*100);
     const withBonus=(value,bonusPct,suffix="%")=>bonusPct>0?`${value}（+${bonusPct}${suffix}）`:String(value);
     const withFieldTotal=(baseValue,bonusPct,totalValue,suffix="",decimals=0)=>{
@@ -7943,7 +9753,7 @@
       ["生命回復",player.regen>0?`${boostedFlatRegen.toFixed(2)} + ${hpRegenPerSecond.toFixed(2)}<span class="pauseValueMain">= ${totalRegenPerSecond.toFixed(2)} HP/秒</span>`:`${boostedFlatRegen.toFixed(2)} HP/秒`],
       ["爆擊率",critBonusPct>0?`${Math.round(baseCritChance*100)}% + 場內${critBonusPct}%<span class="pauseValueMain">= ${Math.round(player.crit*100)}%</span>`:`${Math.round(player.crit*100)}%`],
       ["爆擊傷害",bonusCritDamagePercent>0?`${baseCritDamagePercent}% + 場內${bonusCritDamagePercent}%<span class="pauseValueMain">= ${Math.round(player.critDamage*100)}%</span>`:`${Math.round(player.critDamage*100)}%`],
-      ["無視防禦",withBonus(`${Math.round(Math.min(.75,player.armorPen)*100)}%`,armorPenBonusPct)],
+      ["無視防禦",withBonus(`${Math.round(Math.min(MAX_TOTAL_ARMOR_PEN,player.armorPen)*100)}%`,armorPenBonusPct)],
       ["胡蘿蔔數",player.projectiles],
       ["巨蘿蔔",player.projectiles>=6?`已解鎖・傷害 +${giantCarrotBonusPct}%`:"未解鎖"],
       ["穿透",player.pierce],
@@ -8182,7 +9992,46 @@
   forestSeaStage.addEventListener("click",()=>{if(meta.forestSeaUnlocked){playUiClick();currentStage=5;renderMeta();}});
   cookieStage.addEventListener("click",()=>{if(meta.cookieUnlocked){playUiClick();currentStage=6;renderMeta();}});
   toyStage.addEventListener("click",()=>{if(meta.toyUnlocked){playUiClick();currentStage=7;renderMeta();}});
+  lavaStage.addEventListener("click",()=>{if(stageAvailability(8)==="open"){playUiClick();currentStage=8;renderMeta();}});
+  seaStage.addEventListener("click",()=>{if(stageAvailability(9)==="open"){playUiClick();currentStage=9;renderMeta();}});
+  clockStage.addEventListener("click",()=>{if(stageAvailability(10)==="open"){playUiClick();currentStage=10;renderMeta();}});
+  voidStage.addEventListener("click",()=>{if(stageAvailability(11)==="open"){playUiClick();currentStage=11;renderMeta();}});
+  eventStage?.addEventListener("click",()=>{
+    if(stageAvailability(EVENT_STAGE)==="open"){
+      playUiClick();
+      bossChallengeMenuOpen=false;
+      currentStage=EVENT_STAGE;
+      renderMeta();
+    }else{
+      beep(180,.08,.025,"square");
+    }
+  });
   infiniteStage.addEventListener("click",()=>{playUiClick();currentStage=INFINITE_STAGE;renderMeta();});
+  stageModeNormalBtn?.addEventListener("click",()=>{
+    playUiClick();
+    bossChallengeMenuOpen=false;
+    if(currentStage===INFINITE_STAGE||currentStage===BOSS_CHALLENGE_STAGE||currentStage===EVENT_STAGE)currentStage=1;
+    renderMeta();
+  });
+  stageModeBossBtn?.addEventListener("click",()=>{
+    if(!devModeActive){beep(180,.08,.025,"square");return;}
+    playUiClick();
+    bossChallengeMenuOpen=true;
+    renderMeta();
+  });
+  stageModeEventBtn?.addEventListener("click",()=>{
+    if(combatPower()<EVENT_UNLOCK_POWER){beep(180,.08,.025,"square");return;}
+    playUiClick();
+    bossChallengeMenuOpen=false;
+    currentStage=EVENT_STAGE;
+    renderMeta();
+  });
+  stageModeSpecialBtn?.addEventListener("click",()=>{
+    playUiClick();
+    bossChallengeMenuOpen=false;
+    currentStage=INFINITE_STAGE;
+    renderMeta();
+  });
   bossChallengeStage?.addEventListener("click",()=>{
     if(!devModeActive)return;
     playUiClick();
@@ -8210,9 +10059,44 @@
   homeInfiniteStage?.addEventListener("click",()=>{playUiClick();currentStage=INFINITE_STAGE;renderMeta();});
   characterBtn.addEventListener("click",()=>{
     playUiClick();
+    setCharacterTab("ability");
     renderMeta();
     characterScreen.classList.remove("hidden");
     requestAnimationFrame(()=>requestAnimationFrame(setupMetaMarquees));
+  });
+  abilityPanelBtn?.addEventListener("click",()=>{
+    playUiClick();
+    setCharacterTab("ability");
+  });
+  equipmentPanelBtn?.addEventListener("click",()=>{
+    playUiClick();
+    setCharacterTab("equipment");
+  });
+  equipmentPanel?.addEventListener("click",e=>{
+    const button=e.target.closest("button[data-equip-id]");
+    if(!button)return;
+    const id=button.dataset.equipId;
+    if(!EQUIPMENT_DEFS[id])return;
+    ensureEquipmentState();
+    if(!meta.equipmentInventory.includes(id))return;
+    const item=EQUIPMENT_DEFS[id];
+    if(item.type==="ring"){
+      meta.equippedRingId=meta.equippedRingId===id?"":id;
+      saveMeta();
+      renderMeta();
+      setCharacterTab("equipment");
+      beep(meta.equippedRingId===id?720:360,.08,.025,"triangle");
+      return;
+    }
+    if(item.type!=="weapon"){
+      beep(260,.08,.025,"square");
+      return;
+    }
+    meta.equippedWeaponId=id;
+    saveMeta();
+    renderMeta();
+    setCharacterTab("equipment");
+    beep(720,.08,.025,"triangle");
   });
   closeCharacter.addEventListener("click",()=>{playUiClick();characterScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
   adventureBookBtn.addEventListener("click",()=>{
@@ -8225,11 +10109,48 @@
   bookTabStages.addEventListener("click",()=>{playUiClick();bookMainTab="stages";renderAdventureBook();});
   bookTabBosses.addEventListener("click",()=>{playUiClick();bookMainTab="bosses";renderAdventureBook();});
   shopBtn.addEventListener("click",()=>{
+    shopMode="shop";
+    forgeMessage="";
     renderShop();
     shopScreen.classList.remove("hidden");
     playUiClick();
   });
+  shopModeShopBtn?.addEventListener("click",()=>{
+    shopMode="shop";
+    forgeMessage="";
+    playUiClick();
+    renderShop();
+  });
+  shopModeForgeBtn?.addEventListener("click",()=>{
+    shopMode="forge";
+    playUiClick();
+    renderShop();
+  });
+  shopModeEventBtn?.addEventListener("click",()=>{
+    shopMode="event";
+    forgeMessage="";
+    playUiClick();
+    renderShop();
+  });
   shopGrid?.addEventListener("click",e=>{
+    const devButton=e.target.closest("button[data-dev-shop-action]");
+    if(devButton){
+      if(!devModeActive)return;
+      playUiClick();
+      const action=devButton.dataset.devShopAction;
+      if(action==="activityCoinAdd")adjustActivityCoinsForDev(100);
+      else if(action==="activityCoinSub")adjustActivityCoinsForDev(-100);
+      else if(action==="equipmentInit")resetEquipmentForDev();
+      else if(action==="dailyReset")resetDailyLimitsForDev();
+      return;
+    }
+    const forgeButton=e.target.closest("button[data-forge-id]");
+    if(forgeButton){
+      if(forgeButton.disabled)return;
+      playUiClick();
+      forgeEquipment(forgeButton.dataset.forgeId);
+      return;
+    }
     const button=e.target.closest("button[data-shop-action]");
     if(!button||button.disabled)return;
     playUiClick();
@@ -8276,6 +10197,11 @@
     const button=e.target.closest("button[data-graphics-mode]");
     if(!button)return;
     setGraphicsMode(button.dataset.graphicsMode);
+  });
+  computeSettings?.addEventListener("click",e=>{
+    const button=e.target.closest("button[data-compute-mode]");
+    if(!button)return;
+    setComputeMode(button.dataset.computeMode);
   });
   document.addEventListener("pointerdown",e=>{
     if(testModeOverlay.classList.contains("visible")&&!e.target.closest("#testModeOverlay")&&!e.target.closest("#devTestBtn")){

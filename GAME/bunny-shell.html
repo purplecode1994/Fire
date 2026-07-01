@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>兔兔割草大冒險</title>
-    <link rel="stylesheet" href="bunny-style.css?v=436">
+    <link rel="stylesheet" href="bunny-style.css?v=468">
 </head>
 <body class="layout-portrait">
 <div id="wrap">
@@ -35,7 +35,7 @@
         <b>等級獎勵（尚未開放）</b>
         <div id="rewardTrack"></div>
       </div>
-      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.444</span></h1>
+      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.499</span></h1>
       <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
@@ -55,6 +55,10 @@
         怪潮、菁英、BOSS 與最終魔王正在接近
       </div>
       <div id="homeStageCard">
+        <div id="homeStageBadge" aria-hidden="true">
+          <canvas id="homeStageBadgeCanvas" width="86" height="86"></canvas>
+          <div class="homeStageBadgeText">我的<br>菜園</div>
+        </div>
         <div id="stageArt"></div>
         <div id="stageName" class="stageName">第一關・菜園</div>
         <div id="stagePower" class="stagePower">建議戰力 120</div>
@@ -66,7 +70,7 @@
       <div class="cornerMenu">
         <button id="characterBtn" type="button">角色資訊</button>
         <button id="adventureBookBtn" type="button">冒險筆記</button>
-        <button id="shopBtn" type="button">精靈商城</button>
+        <button id="shopBtn" type="button">冒險市集</button>
       </div>
     </div>
   </div>
@@ -101,6 +105,14 @@
               <button type="button" data-graphics-mode="2">一般模式</button>
             </div>
           </div>
+          <div id="computeSettings" aria-label="後台計算設定">
+            <b>後台計算</b>
+            <div class="graphicsModeRow">
+              <button type="button" data-compute-mode="0">極省電</button>
+              <button type="button" data-compute-mode="1">普通省電</button>
+              <button type="button" data-compute-mode="2">一般模式</button>
+            </div>
+          </div>
           <div id="settingsActions">
             <button id="accountExportBtn" type="button">帳號匯出</button>
             <button id="accountImportBtn" type="button">帳號匯入</button>
@@ -126,6 +138,12 @@
     <div class="panel">
       <h1>選擇關卡</h1>
       <div class="panelBody">
+        <div id="stageModeTabs" class="stageModeTabs">
+          <button id="stageModeNormalBtn" type="button" class="active">一般<br>關卡</button>
+          <button id="stageModeBossBtn" type="button">頭目<br>挑戰 🔒</button>
+          <button id="stageModeEventBtn" type="button">活動<br>關卡</button>
+          <button id="stageModeSpecialBtn" type="button">特殊<br>關卡</button>
+        </div>
         <div id="stageSelectModal">
           <button id="gardenStageModal" type="button">第一關・菜園｜普通</button>
           <button id="desertStageModal" type="button">第二關・沙漠｜挑戰</button>
@@ -134,7 +152,12 @@
           <button id="forestSeaStageModal" type="button">第四關下・幽影樹海｜挑戰</button>
           <button id="cookieStageModal" type="button">第五關・奶油餅乾屋｜挑戰</button>
           <button id="toyStageModal" type="button">第六關・玩具夢工廠｜挑戰</button>
-          <button id="infiniteStageModal" type="button">無限輪迴模式｜危險</button>
+          <button id="lavaStageModal" type="button">第七關・熔岩工坊｜挑戰</button>
+          <button id="seaStageModal" type="button">第八關・海底遺跡｜挑戰</button>
+          <button id="clockStageModal" type="button">第九關・星夜鐘塔｜挑戰</button>
+          <button id="voidStageModal" type="button">第十關・虛空核心｜挑戰</button>
+          <button id="eventStageModal" class="eventCaveStage" type="button">強化試煉</button>
+          <button id="infiniteStageModal" type="button">無限輪迴</button>
           <button id="bossChallengeStageModal" class="hidden" type="button">頭目挑戰模式｜測試</button>
           <div id="bossChallengePanel" class="bossChallengePanel hidden">
             <h2>頭目挑戰（測試版）</h2>
@@ -147,6 +170,10 @@
               <button type="button" data-boss-type="shadowtree" data-boss-stage="5">樹海・幽影樹王</button>
               <button type="button" data-boss-type="cookiemonarch" data-boss-stage="6">餅乾屋・奶油餅乾女王</button>
               <button type="button" data-boss-type="nightmaremaker" data-boss-stage="7">玩具城・發條夢魘師</button>
+              <button type="button" data-boss-type="lavagolem" data-boss-stage="8">熔岩工坊・熔爐巨像</button>
+              <button type="button" data-boss-type="abyssoctopus" data-boss-stage="9">海底遺跡・深海章魚王</button>
+              <button type="button" data-boss-type="clockwitch" data-boss-stage="10">星夜鐘塔・時鐘魔女</button>
+              <button type="button" data-boss-type="voiddevourer" data-boss-stage="11">虛空核心・虛空吞星者</button>
               <button type="button" data-boss-type="reaper" data-boss-stage="8">惡魔城・惡魔死神</button>
             </div>
           </div>
@@ -159,12 +186,17 @@
     <div class="panel menuPanel">
       <h1>角色資訊</h1>
       <div id="powerBox">戰力 0</div>
+      <div id="characterModeTabs" class="characterModeTabs hidden">
+        <button id="abilityPanelBtn" type="button" class="active">能力屬性</button>
+        <button id="equipmentPanelBtn" type="button">裝備</button>
+      </div>
       <div class="metaTop">
         <span id="metaRecord">累計擊殺 0</span>
         <span id="metaPoints"><span class="pointDiamond"></span><span>強化點數 0</span></span>
       </div>
       <div class="panelBody">
         <div id="metaStats"></div>
+        <div id="equipmentPanel" class="equipmentPanel hidden"></div>
       </div>
       <button id="abilityResetBtn" type="button" class="hidden">使用能力重置券</button>
       <button id="devResetBtn" type="button" class="hidden">重製技能點</button>
@@ -188,9 +220,14 @@
   </div>
   <div id="shopScreen" class="screen hidden">
     <div class="panel menuPanel">
-      <h1>精靈商城</h1>
+      <h1 id="shopTitle">冒險市集</h1>
       <div class="shopTopBar">
         <div class="shopWallet"><span class="diamondIcon">💎</span> <span id="shopCoinCount">0</span></div>
+      </div>
+      <div class="shopModeTabs">
+        <button id="shopModeShopBtn" type="button" class="active">精靈商店</button>
+        <button id="shopModeForgeBtn" type="button">鍛造屋</button>
+        <button id="shopModeEventBtn" type="button">活動商店</button>
       </div>
       <div class="panelBody shopBody">
         <div class="shopHero">
@@ -280,7 +317,7 @@
     </div>
   </div>
 </div>
-  <script src="bunny-logic.js?v=436"></script>
+  <script src="bunny-logic.js?v=499"></script>
 </body>
 </html>
 

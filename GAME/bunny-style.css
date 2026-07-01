@@ -372,7 +372,7 @@
       background: #ffda57;
       box-shadow: inset -5px -5px #d9962d,5px 5px #0b0920;
     }
-    #volumeSettings,#graphicsSettings {
+    #volumeSettings,#graphicsSettings,#computeSettings {
       margin: 10px 0 14px;
       padding: 10px;
       border: 2px solid #735d9b;
@@ -380,13 +380,13 @@
       box-shadow: inset 0 0 0 2px #2e2449;
       text-align: left;
     }
-    #volumeSettings b,#graphicsSettings b {
+    #volumeSettings b,#graphicsSettings b,#computeSettings b {
       display: block;
       margin: 2px 0 6px;
       color: #ffe15b;
       font-size: 13px;
     }
-    #graphicsSettings {
+    #graphicsSettings,#computeSettings {
       margin-top: -4px;
     }
     .graphicsModeRow {
@@ -550,8 +550,34 @@
       opacity: .92;
     }
     #homeStageCard {
+      position: relative;
       width: min(340px,88%); margin: 12px auto 0; padding: 12px;
       border: 3px solid #fff0aa; background: #2b224d; box-shadow: 6px 6px #09071899;
+    }
+    #homeStageBadge {
+      position: fixed;
+      left: max(5px, calc((100vw - 540px) / 2 + 5px));
+      top: 286px;
+      width: 66px;
+      text-align: center;
+      pointer-events: none;
+      filter: drop-shadow(4px 4px 0 #080617aa);
+      z-index: 3;
+    }
+    #homeStageBadgeCanvas {
+      width: 66px;
+      height: 66px;
+      display: block;
+      image-rendering: pixelated;
+    }
+    .homeStageBadgeText {
+      margin-top: 3px;
+      color: #fff3c4;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.15;
+      text-shadow: 1px 1px 0 #111, 2px 2px 0 #6b3850;
+      white-space: nowrap;
     }
     #stageArt { position: relative; width: 150px; height: 110px; margin: 0 auto 8px; }
     #stageArt.stageGardenCanvas canvas {
@@ -652,7 +678,48 @@
       margin-top: 12px;
     }
     #stageScreen #closeStage { margin-top: 18px; }
+    .stageModeTabs {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 8px;
+      width: min(520px,92%);
+      margin: 4px auto 12px;
+      overflow: visible;
+      padding: 0 4px 8px;
+    }
+    .stageModeTabs button {
+      min-height: 44px;
+      padding: 8px 6px;
+      border: 2px solid #8c6eb3;
+      background: #392a59;
+      color: #eee8ff;
+      font-size: 15px;
+      font-weight: bold;
+      line-height: 1.18;
+      box-shadow: 5px 5px #08051b;
+    }
+    .stageModeTabs button.active {
+      background: #ffd85a;
+      color: #1a1230;
+      border-color: #fff3a8;
+      transform: translate(2px,2px);
+      box-shadow: 3px 3px #08051b;
+    }
+    .stageModeTabs button.locked {
+      background: #51485e;
+      color: #cfc7d8;
+      border-color: #746486;
+    }
+    .stageModeTabs button.locked:active { transform: none; }
     #stageSelect,#stageSelectModal { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 12px auto 0; width: min(300px,84%); }
+    #stageSelectModal.bossMode > button { display: none; }
+    #stageSelectModal.bossMode #bossChallengePanel { display: block; }
+    #stageSelectModal #infiniteStageModal { display: none; }
+    #stageSelectModal .eventCaveStage { display: none; }
+    #stageSelectModal.specialMode > button { display: none; }
+    #stageSelectModal.specialMode #infiniteStageModal { display: flex; }
+    #stageSelectModal.eventMode > button { display: none; }
+    #stageSelectModal.eventMode .eventCaveStage { display: flex; }
     #stageSelect button,#stageSelectModal button {
       position: relative;
       display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -882,6 +949,113 @@
     }
     #characterScreen .panelBody { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
     #adventureBookScreen .panelBody { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+    .characterModeTabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      max-width: 360px;
+      margin: 0 auto 10px;
+      transform-origin: top center;
+      overflow: hidden;
+    }
+    .characterModeTabs.hidden { display: none; }
+    .characterModeTabs.unlocking {
+      animation: equipmentUnlockSlide .85s cubic-bezier(.19,1,.22,1) both;
+    }
+    @keyframes equipmentUnlockSlide {
+      from { opacity: 0; max-height: 0; transform: translateY(-10px) scaleY(.15); }
+      to { opacity: 1; max-height: 70px; transform: translateY(0) scaleY(1); }
+    }
+    .characterModeTabs button {
+      min-height: 44px;
+      margin: 0;
+      padding: 8px 12px;
+      background: #3a2b5e;
+      color: #f4e9ff;
+      border: 2px solid #775aa3;
+      box-shadow: 5px 5px #070516;
+      font-size: 17px;
+    }
+    .characterModeTabs button.active {
+      background: #ffd84f;
+      color: #2a203d;
+      border-color: #fff1a8;
+      box-shadow: inset -4px -4px #d9912e,5px 5px #070516;
+    }
+    .equipmentPanel.hidden { display: none; }
+    .equipmentSummary {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border: 2px solid #8d68b4;
+      background: #1b1533;
+      color: #fff7c8;
+      font-size: 14px;
+    }
+    .equipmentSummary .rare,
+    .equipmentAttackNote.rare { color: #56b7ff; }
+    .equipmentSummary .uncommon,
+    .equipmentAttackNote.uncommon { color: #bb7cff; }
+    .equipmentSummary .legendary,
+    .equipmentAttackNote.legendary { color: #5ee071; }
+    .equipmentSummary .epic,
+    .equipmentAttackNote.epic { color: #ff9f3f; }
+    .equipmentSummary .mythic,
+    .equipmentAttackNote.mythic { color: #ff5f8e; }
+    .equipmentSummary .immortal,
+    .equipmentAttackNote.immortal { color: #f3f5ff; }
+    .equipmentSummary .eternal,
+    .equipmentAttackNote.eternal { color: #ffe66b; }
+    .equipmentAttackNote.normal { color: #d8d3c8; }
+    .equipmentGrid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .equipmentSlot {
+      min-height: 120px;
+      margin: 0;
+      padding: 8px 6px;
+      border: 2px solid #7f6f94;
+      background: #221a3d;
+      color: #fff7d7;
+      box-shadow: inset -4px -4px #151026,4px 4px #0007;
+      font-size: 12px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 5px;
+      text-align: center;
+    }
+    .equipmentSlot.empty {
+      background: #171126;
+      border-color: #493c65;
+      box-shadow: inset 0 0 0 2px #120d20;
+      pointer-events: none;
+    }
+    .equipmentSlot.rare { border-color: #56b7ff; box-shadow: inset 0 0 0 2px #183a69,4px 4px #0007; }
+    .equipmentSlot.uncommon { border-color: #bb7cff; box-shadow: inset 0 0 0 2px #4f2475,4px 4px #0007; }
+    .equipmentSlot.legendary { border-color: #5ee071; box-shadow: inset 0 0 0 2px #1f6730,4px 4px #0007; }
+    .equipmentSlot.epic { border-color: #ff9f3f; box-shadow: inset 0 0 0 2px #7a3e16,4px 4px #0007; }
+    .equipmentSlot.mythic { border-color: #ff5f8e; box-shadow: inset 0 0 0 2px #7c1b45,4px 4px #0007; }
+    .equipmentSlot.immortal { border-color: #f3f5ff; box-shadow: inset 0 0 0 2px #6e7897,4px 4px #0007; }
+    .equipmentSlot.eternal { border-color: #ffe66b; box-shadow: inset 0 0 0 2px #9f7b1b,4px 4px #0007; }
+    .equipmentSlot.equipped {
+      background: #2d244d;
+      outline: 2px solid #fff0a0;
+      outline-offset: -6px;
+    }
+    .equipmentIcon { font-size: 28px; line-height: 1; }
+    .equipmentSlot b { color: #ffe66b; font-size: 13px; }
+    .equipmentSlot small { color: #e9e2ff; line-height: 1.45; }
+    .equipmentHint {
+      margin: 12px 0 0;
+      color: #c8bfe4;
+      font-size: 12px;
+      text-align: center;
+    }
     .panelBody { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
     #rewardTrackModal { touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
     .panelBody,#rewardTrackModal {
@@ -1398,6 +1572,21 @@
       background: linear-gradient(180deg,#132c54 0%,#253a70 100%);
       box-shadow: inset 0 0 0 2px #0b1b35,0 0 10px #55cfff88;
     }
+    .bookUnknownActiveCard .bookEvolutionPreview {
+      background: linear-gradient(180deg,#07111f 0%,#0d1830 100%);
+    }
+    .bookUnknownSkillIcon {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      margin: auto;
+      color: #9fe9ff;
+      background: #030407;
+      border: 2px solid #55cfff;
+      box-shadow: inset 0 0 0 2px #101829;
+      font: 900 34px/1 'Courier New',monospace;
+    }
     .bookSkillMeta {
       color: #9fe9ff;
       font-size: 12px;
@@ -1471,6 +1660,47 @@
       justify-content:flex-end;
       margin:-4px 0 8px;
     }
+    .shopModeTabs {
+      display:grid;
+      grid-auto-flow:column;
+      grid-auto-columns:minmax(118px,1fr);
+      gap:10px;
+      margin:0 auto 10px;
+      width:min(520px,100%);
+      overflow-x:auto;
+      overflow-y:hidden;
+      padding:0 4px 8px;
+      scrollbar-color:#fff2a8 #2a2144;
+      scrollbar-width:thin;
+    }
+    .shopModeTabs::-webkit-scrollbar { height:8px; }
+    .shopModeTabs::-webkit-scrollbar-track { background:#2a2144; }
+    .shopModeTabs::-webkit-scrollbar-thumb { background:#fff2a8; }
+    .shopModeTabs button {
+      min-height:40px;
+      margin:0;
+      padding:8px 12px;
+      font-size:15px;
+      color:#fff1d6;
+      background:#4b3a6c;
+      box-shadow:inset -4px -4px #211638,4px 4px #070510;
+    }
+    .shopModeTabs button.active {
+      color:#271b35;
+      background:#ffdb58;
+      box-shadow:inset -4px -4px #d99434,4px 4px #070510;
+    }
+    .shopModeTabs button:disabled {
+      color:#d6cde9;
+      background:#5e5868;
+      opacity:.72;
+      filter:grayscale(.25);
+      cursor:default;
+      transform:none;
+    }
+    .shopModeTabs button:disabled:active {
+      transform:none;
+    }
     .shopWallet {
       min-width:118px;
       padding:8px 12px;
@@ -1493,6 +1723,9 @@
       border:3px solid #8d72bb;
       background:linear-gradient(#2d2148,#24193f 58%,#1a132f);
       overflow:hidden;
+    }
+    .shopHero.forgeHero {
+      display:none;
     }
     .shopShelves {
       position:absolute;
@@ -1592,6 +1825,18 @@
       grid-template-columns:repeat(3,minmax(0,1fr));
       gap:10px;
     }
+    .shopGrid.forgeGrid { grid-template-columns:1fr; }
+    .shopGrid.eventGrid { grid-template-columns:1fr; }
+    .shopEventBalance {
+      grid-column:1/-1;
+      padding:10px 12px;
+      border:2px solid #8d7ab6;
+      background:#171129;
+      color:#ffe45f;
+      font-weight:900;
+      text-align:center;
+      box-shadow:4px 4px 0 #0b0718;
+    }
     .shopCard {
       border:2px solid #7a63a8;
       background:#312651;
@@ -1662,6 +1907,139 @@
     }
     .shopSoldBtn:disabled:active {
       transform:none;
+    }
+    .forgePanel {
+      border:2px solid #8c6c4d;
+      background:#211828;
+      box-shadow:inset 0 0 0 2px #3b2731,5px 5px #080611;
+      padding:12px;
+      text-align:left;
+    }
+    .forgeScene {
+      position:relative;
+      height:150px;
+      overflow:hidden;
+      border:2px solid #5b4438;
+      background:
+        linear-gradient(#211824 0 35%,#3b2531 36% 58%,#261c24 59%),
+        repeating-linear-gradient(90deg,transparent 0 28px,rgba(255,255,255,.05) 29px 30px);
+      margin-bottom:12px;
+    }
+    .forgeFire {
+      position:absolute;
+      left:28px;
+      bottom:18px;
+      width:78px;
+      height:78px;
+      background:
+        radial-gradient(circle at 50% 64%,#fff49a 0 10px,#ffb13f 11px 24px,#e34b31 25px 38px,transparent 39px),
+        radial-gradient(circle at 40% 72%,rgba(255,100,50,.45),transparent 54px);
+      filter:drop-shadow(0 0 14px #ff9b3d);
+      animation:forgeFirePulse .75s steps(2,end) infinite;
+    }
+    .forgeAnvil {
+      position:absolute;
+      left:50%;
+      bottom:28px;
+      width:94px;
+      height:36px;
+      transform:translateX(-50%);
+      background:#5f6674;
+      box-shadow:inset -8px -8px #303642,0 16px #221c20;
+    }
+    .forgeAnvil::before {
+      content:"";
+      position:absolute;
+      left:-22px;
+      top:8px;
+      border-top:10px solid transparent;
+      border-bottom:10px solid transparent;
+      border-right:26px solid #5f6674;
+    }
+    .forgeHammer {
+      position:absolute;
+      right:90px;
+      top:42px;
+      width:70px;
+      height:16px;
+      background:#7b5a36;
+      transform:rotate(-24deg);
+      box-shadow:inset -8px -4px #3d2c1c;
+    }
+    .forgeHammer::before {
+      content:"";
+      position:absolute;
+      right:-18px;
+      top:-9px;
+      width:30px;
+      height:34px;
+      background:#9b9fa8;
+      box-shadow:inset -8px -8px #4d5260;
+    }
+    .forgeSmith {
+      position:absolute;
+      right:26px;
+      bottom:18px;
+      width:42px;
+      height:62px;
+      background:#8d684c;
+      box-shadow:inset -10px 0 #5c392e;
+    }
+    .forgeSmith::before {
+      content:"";
+      position:absolute;
+      left:7px;
+      top:-18px;
+      width:28px;
+      height:22px;
+      background:#d8b08b;
+      box-shadow:inset -7px 0 #9a705c;
+    }
+    .forgeHeader {
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      color:#fff1c4;
+      font-size:13px;
+      margin-bottom:10px;
+    }
+    .forgeHeader b { color:#ffdf5a; }
+    .forgeList { display:grid; gap:10px; }
+    .forgeItem {
+      display:grid;
+      grid-template-columns:1fr auto;
+      align-items:center;
+      gap:10px;
+      padding:10px;
+      border:2px solid #6e5395;
+      background:#30244f;
+    }
+    .forgeItem.rare { border-color:#56b7ff; box-shadow:inset 0 0 0 2px #183a69; }
+    .forgeItem.breakReady { border-color:#8fd7ff; box-shadow:inset 0 0 0 2px #235f90,0 0 14px #42c8ff66; }
+    .forgeItem.uncommon { border-color:#bb7cff; box-shadow:inset 0 0 0 2px #4f2475; }
+    .forgeItem.legendary { border-color:#5ee071; box-shadow:inset 0 0 0 2px #1f6730; }
+    .forgeItem.epic { border-color:#ff9f3f; box-shadow:inset 0 0 0 2px #7a3e16; }
+    .forgeItem.mythic { border-color:#ff5f8e; box-shadow:inset 0 0 0 2px #7c1b45; }
+    .forgeItem.immortal { border-color:#f3f5ff; box-shadow:inset 0 0 0 2px #6e7897; }
+    .forgeItem.eternal { border-color:#ffe66b; box-shadow:inset 0 0 0 2px #9f7b1b; }
+    .forgeItemInfo b {
+      color:#fff2bb;
+      display:block;
+      margin-bottom:4px;
+    }
+    .forgeItemInfo small {
+      color:#e7ddff;
+      line-height:1.45;
+    }
+    .forgeEmpty {
+      color:#e7ddff;
+      text-align:center;
+      line-height:1.7;
+      padding:12px 0 4px;
+    }
+    @keyframes forgeFirePulse {
+      from { transform:scale(1); opacity:.9; }
+      to { transform:scale(1.08); opacity:1; }
     }
     button {
       border: 0; margin-top: 15px; padding: 12px 28px; cursor: pointer;
@@ -1813,6 +2191,9 @@
     body.layout-portrait .shopGrid {
       grid-template-columns:repeat(3,minmax(0,1fr));
       gap:8px;
+    }
+    body.layout-portrait .shopGrid.forgeGrid {
+      grid-template-columns:1fr;
     }
     body.layout-portrait .shopCard {
       min-height:104px;
