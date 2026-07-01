@@ -556,13 +556,17 @@
     }
     #homeStageBadge {
       position: fixed;
-      left: max(5px, calc((100vw - 540px) / 2 + 5px));
-      top: 286px;
+      left: max(5px, calc((100vw - 540px) / 2 + 26px));
+      top: 432px;
       width: 66px;
       text-align: center;
-      pointer-events: none;
+      pointer-events: auto;
+      cursor: pointer;
       filter: drop-shadow(4px 4px 0 #080617aa);
       z-index: 3;
+    }
+    #homeStageBadge:active {
+      transform: translate(2px,2px);
     }
     #homeStageBadgeCanvas {
       width: 66px;

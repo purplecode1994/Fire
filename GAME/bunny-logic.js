@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=501;
+  const APP_VERSION=505;
   const INFINITE_STAGE=12;
   const BOSS_CHALLENGE_STAGE=13;
   const EVENT_STAGE=14;
@@ -43,7 +43,7 @@
   const testModeStartBtn=document.getElementById("testModeStartBtn"),testModeStopBtn=document.getElementById("testModeStopBtn"),testModeExportBtn=document.getElementById("testModeExportBtn");
   const testInvincibleBtn=document.getElementById("testInvincibleBtn"),testAutoSkillBtn=document.getElementById("testAutoSkillBtn");
   const accountLevelEl=document.getElementById("accountLevel"),accountExpFill=document.getElementById("accountExpFill"),accountExpText=document.getElementById("accountExpText"),coinBox=document.getElementById("coinBox"),coinCountEl=document.getElementById("coinCount"),coinDevSubBtn=document.getElementById("coinDevSubBtn"),coinDevAddBtn=document.getElementById("coinDevAddBtn"),coinDebugBox=document.getElementById("coinDebugBox"),shopCoinCount=document.getElementById("shopCoinCount"),shopGrid=document.getElementById("shopGrid"),shopTitle=document.getElementById("shopTitle"),shopModeShopBtn=document.getElementById("shopModeShopBtn"),shopModeForgeBtn=document.getElementById("shopModeForgeBtn"),shopModeEventBtn=document.getElementById("shopModeEventBtn");
-  const stageArt=document.getElementById("stageArt"),stageName=document.getElementById("stageName"),stagePower=document.getElementById("stagePower"),homeStageBadgeCanvas=document.getElementById("homeStageBadgeCanvas"),homeStageBadgeText=document.querySelector(".homeStageBadgeText");
+  const homeStageBadge=document.getElementById("homeStageBadge"),stageArt=document.getElementById("stageArt"),stageName=document.getElementById("stageName"),stagePower=document.getElementById("stagePower"),homeStageBadgeCanvas=document.getElementById("homeStageBadgeCanvas"),homeStageBadgeText=document.querySelector(".homeStageBadgeText");
   const keys={up:false,down:false,left:false,right:false};
   if(settingsOverlay&&settingsOverlay.parentElement!==wrap)wrap.appendChild(settingsOverlay);
   if(settingsDialog&&settingsDialog.parentElement!==wrap)wrap.appendChild(settingsDialog);
@@ -10058,6 +10058,15 @@
   homeCookieStage?.addEventListener("click",()=>{if(meta.cookieUnlocked){playUiClick();currentStage=6;renderMeta();}});
   homeToyStage?.addEventListener("click",()=>{if(meta.toyUnlocked){playUiClick();currentStage=7;renderMeta();}});
   homeInfiniteStage?.addEventListener("click",()=>{playUiClick();currentStage=INFINITE_STAGE;renderMeta();});
+  homeStageBadge?.addEventListener("click",()=>{
+    if(!devModeActive){
+      beep(180,.08,.025,"square");
+      return;
+    }
+    playUiClick();
+    try{sessionStorage.setItem("bunnyGardenPreviewDevUntil",String(Date.now()+30000));}catch(_error){}
+    location.href="my-garden-preview.html";
+  });
   characterBtn.addEventListener("click",()=>{
     playUiClick();
     setCharacterTab("ability");
