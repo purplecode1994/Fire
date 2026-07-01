@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=499;
+  const APP_VERSION=501;
   const INFINITE_STAGE=12;
   const BOSS_CHALLENGE_STAGE=13;
   const EVENT_STAGE=14;
@@ -586,7 +586,8 @@
     return labels[stage]||"菜園";
   }
   function updateHomeStageBadge(stage=currentStage){
-    if(homeStageBadgeText)homeStageBadgeText.innerHTML=`我的<br>${homeStageBadgeLabel(stage)}`;
+    stage=1;
+    if(homeStageBadgeText)homeStageBadgeText.innerHTML="我的<br>菜園";
     if(!homeStageBadgeCanvas)return;
     const bctx=homeStageBadgeCanvas.getContext("2d");
     if(!bctx)return;
