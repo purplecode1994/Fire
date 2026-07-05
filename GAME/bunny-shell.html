@@ -7,7 +7,15 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>兔兔割草大冒險</title>
-    <link rel="stylesheet" href="bunny-style.css?v=505">
+  <link rel="preload" as="image" href="assets/garden/早上.png">
+  <link rel="preload" as="image" href="assets/garden/中午.png">
+  <link rel="preload" as="image" href="assets/garden/下午.png">
+  <link rel="preload" as="image" href="assets/garden/晚上.png">
+  <link rel="preload" as="image" href="assets/garden/plant-button-frame-clean.png?v=1">
+  <link rel="preload" as="image" href="assets/garden/user-carrot-growth-v5/carrot-growth-13-empty.png">
+  <link rel="preload" as="image" href="assets/garden/user-carrot-growth-v5/carrot-growth-00-seed.png">
+  <link rel="preload" as="image" href="assets/garden/user-carrot-growth-v5/forge-house-hero.png?v=587">
+  <link rel="stylesheet" href="bunny-style.css?v=588">
 </head>
 <body class="layout-portrait">
 <div id="wrap">
@@ -35,7 +43,7 @@
         <b>等級獎勵（尚未開放）</b>
         <div id="rewardTrack"></div>
       </div>
-      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.505</span></h1>
+      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.588</span></h1>
       <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
@@ -55,7 +63,8 @@
         怪潮、菁英、BOSS 與最終魔王正在接近
       </div>
       <div id="homeStageCard">
-        <div id="homeStageBadge" role="button" tabindex="0" aria-label="我的菜園，開發模式限定">
+        <div id="homeStageBadge" role="button" tabindex="0" aria-label="我的菜園">
+          <img class="homeStageBadgeIcon" src="assets/garden/my-garden-badge-v1.png" alt="" aria-hidden="true">
           <canvas id="homeStageBadgeCanvas" width="86" height="86"></canvas>
           <div class="homeStageBadgeText">我的<br>菜園</div>
         </div>
@@ -81,6 +90,16 @@
         <div id="rewardPanelModal">
           <b id="rewardPlaytime">累計遊玩 0 分鐘</b>
           <div id="rewardTrackModal"></div>
+          <div id="gardenDepositBoxModal" class="gardenDepositBox">
+            <div class="gardenDepositHeader">
+              <b>菜園保管箱</b>
+              <span id="gardenStorageCount">倉庫 0/9</span>
+              <span id="gardenDepositCount">0 件</span>
+              <button id="gardenDepositMoveBtn" type="button">整理進倉庫</button>
+            </div>
+            <p>倉庫滿時，採收或測試獲得的胡蘿蔔會先放在這裡。</p>
+            <div id="gardenDepositList" class="gardenDepositList"></div>
+          </div>
         </div>
       </div>
       <button id="devModeBtn" type="button">設定</button>
@@ -132,6 +151,7 @@
           </div>
         </div>
       </div>
+      <div id="quickToast" aria-live="polite"></div>
     </div>
   </div>
   <div id="stageScreen" class="screen hidden">
@@ -145,6 +165,7 @@
           <button id="stageModeSpecialBtn" type="button">特殊<br>關卡</button>
         </div>
         <div id="stageSelectModal">
+          <button id="devUnlockStagesBtn" class="hidden" type="button">開發：一般關卡全部解鎖</button>
           <button id="gardenStageModal" type="button">第一關・菜園｜普通</button>
           <button id="desertStageModal" type="button">第二關・沙漠｜挑戰</button>
           <button id="snowStageModal" type="button">第三關・雪原｜挑戰</button>
@@ -156,7 +177,8 @@
           <button id="seaStageModal" type="button">第八關・海底遺跡｜挑戰</button>
           <button id="clockStageModal" type="button">第九關・星夜鐘塔｜挑戰</button>
           <button id="voidStageModal" type="button">第十關・虛空核心｜挑戰</button>
-          <button id="eventStageModal" class="eventCaveStage" type="button">強化試煉</button>
+          <button id="eventStageModal" class="eventCaveStage" type="button">胡鬧的胡蘿蔔</button>
+          <button id="eventTrialStageModal" class="eventTrialStage" type="button">強化試煉</button>
           <button id="infiniteStageModal" type="button">無限輪迴</button>
           <button id="bossChallengeStageModal" class="hidden" type="button">頭目挑戰模式｜測試</button>
           <div id="bossChallengePanel" class="bossChallengePanel hidden">
@@ -252,6 +274,114 @@
       <button id="closeShop" type="button">返回首頁</button>
     </div>
   </div>
+  <div id="gardenScreen" class="screen hidden">
+    <div class="gardenFramePanel">
+      <div class="page">
+        <div class="topBar">
+          <button class="backBtn" id="backBtn" type="button">返回</button>
+          <h1 class="title">我的菜園</h1>
+          <div class="version" id="versionText">V.-</div>
+        </div>
+        <p class="subtitle" id="titleSubtitle">超級菜鳥</p>
+        <section class="top">
+          <div class="resourceBox">
+            <div><b>稱號</b><span id="seedCount">超級菜鳥</span></div>
+            <div><b>今日狀態</b><span id="waterStatus">未種植</span></div>
+            <div class="resourceStats" id="gardenStatsText">播種 0 次　收成 0 次　共種植 0 天</div>
+          </div>
+        </section>
+        <section class="gardenCard">
+          <div class="gardenScene morning" id="gardenScene">
+            <div class="gardenSceneLoading" id="gardenSceneLoading">載入菜園中</div>
+            <div class="devTimeControl hidden" id="devTimeControl">
+              <div class="devTimeLabel" id="devTimeLabel">時辰：早上</div>
+              <button class="devTimeBtn" id="devTimeNextBtn" type="button">下一時辰</button>
+            </div>
+            <div class="cropFrame"><img id="cropImg" class="cropImg" alt="胡蘿蔔成長圖"></div>
+            <button class="gardenEventBtn hidden" id="gardenEventBtn" type="button" aria-label="處理菜園事件">!</button>
+            <button class="scenePlantBtn hidden" id="scenePlantBtn" type="button"><span id="scenePlantLabel">播種</span><small id="scenePlantSeedText">神秘種子 X 0</small></button>
+          </div>
+          <div class="stageLabel hidden" id="stageLabel">成長階段：無</div>
+          <div class="devStageControls hidden" id="devStageControls">
+            <button id="devStagePrevBtn" type="button">←</button>
+            <div class="devStageText" id="devStageText">開發預覽</div>
+            <button id="devStageNextBtn" type="button">→</button>
+          </div>
+          <div class="stagePips" id="stagePips"></div>
+        </section>
+        <section class="infoRow hidden">
+          <div class="infoBox"><b>成長值</b><span id="growthText">0 / 15</span></div>
+          <div class="infoBox"><b>稱號</b><span id="titleText">超級菜鳥</span></div>
+          <div class="infoBox"><b>品質運勢</b><span id="qualityText">+0</span></div>
+          <div class="infoBox"><b>施肥</b><span id="fertText">0 / 2</span></div>
+        </section>
+        <section class="actions">
+          <button class="actionBtn" id="waterBtn" type="button">澆水</button>
+          <button class="actionBtn" id="observeBtn" type="button">觀察</button>
+          <button class="actionBtn" id="fertBtn" type="button">施肥</button>
+          <button class="actionBtn" id="clearBtn" type="button">清理</button>
+        </section>
+        <div class="tabs">
+          <button class="tabBtn active" data-tab="garden" type="button">菜園</button>
+          <button class="tabBtn" data-tab="storage" type="button">倉庫</button>
+          <button class="tabBtn" data-tab="enhance" type="button">吸收強化</button>
+        </div>
+        <section class="storage" id="tabGarden">
+          <div class="storageTitle recordStorageTitle"><span class="recordTitleBar"><span>成長紀錄</span><span class="recordPlantNav"><button id="recordPrevPlantBtn" type="button" aria-label="上一批種植"><</button><span class="recordPlantLabel" id="recordPlantLabel">第 0 次種植</span><button id="recordNextPlantBtn" type="button" aria-label="下一批種植">></button></span></span><span class="recordHead"><span id="dayText">第 0 天</span></span></div>
+          <button class="recordDevClear hidden" id="devClearRecordsBtn" type="button">開發：清空紀錄與統計</button>
+          <div class="recordList" id="growthRecordList">
+            <div class="recordBox">等待菜園資料同步中。</div>
+          </div>
+        </section>
+        <section class="storage hidden" id="tabStorage">
+          <div class="storageTitle"><span>素材胡蘿蔔列表</span><span id="storageText">一排 3 格</span></div>
+          <div class="matGrid" id="storageGrid"></div>
+        </section>
+        <section class="storage hidden" id="tabEnhance">
+          <div class="storageTitle"><span>吸收強化</span><span id="enhanceText">先選主體</span></div>
+          <div class="enhanceHint">先點 1 支要強化的胡蘿蔔，再點其他胡蘿蔔作為素材。確認後會真的消耗素材。</div>
+          <div class="enhanceSummary">
+            <div class="enhanceBox"><b>強化主體</b><br><span id="enhanceBaseText">尚未選擇</span></div>
+            <div class="enhanceBox"><b>吸收素材</b><br><span id="enhanceMatText">尚未選擇</span></div>
+            <div class="enhanceBox"><b>預覽結果</b><br><span id="enhanceResultText">請先選擇主體。</span></div>
+          </div>
+          <div class="enhanceControls">
+            <button class="miniBtn" id="clearEnhanceBtn" type="button">清除選取</button>
+            <button class="miniBtn" id="confirmEnhanceBtn" type="button" disabled>確認吸收</button>
+          </div>
+          <div class="matGrid" id="enhanceGrid"></div>
+          <button class="actionBtn bottomHomeBtn" id="forgeBtn2" type="button">前往鍛造屋</button>
+        </section>
+        <button class="actionBtn bottomHomeBtn" id="bottomHomeBtn" type="button">返回首頁</button>
+      </div>
+      <div class="gardenConfirmOverlay hidden" id="gardenClearConfirm" role="dialog" aria-modal="true" aria-labelledby="gardenClearConfirmTitle">
+        <div class="gardenConfirmBox">
+          <h2 id="gardenClearConfirmTitle">清理菜園？</h2>
+          <p>清理後會移除這株胡蘿蔔，目前的成長與照顧狀態都會消失，是否要清理？</p>
+          <div class="gardenConfirmActions">
+            <button class="gardenConfirmBtn" id="cancelClearGardenBtn" type="button">取消</button>
+            <button class="gardenConfirmBtn danger" id="confirmClearGardenBtn" type="button">確認清理</button>
+          </div>
+        </div>
+      </div>
+      <div class="gardenConfirmOverlay hidden" id="gardenHarvestResult" role="dialog" aria-modal="true" aria-labelledby="gardenHarvestResultTitle">
+        <div class="gardenConfirmBox">
+          <h2 id="gardenHarvestResultTitle">採收結果</h2>
+          <p id="gardenHarvestResultText">這次採收到新的胡蘿蔔。</p>
+          <div class="gardenConfirmActions" style="grid-template-columns:1fr">
+            <button class="gardenConfirmBtn" id="closeHarvestResultBtn" type="button">知道了</button>
+          </div>
+        </div>
+      </div>
+      <div class="gardenConfirmOverlay hidden" id="gardenChoiceEvent" role="dialog" aria-modal="true" aria-labelledby="gardenChoiceEventTitle">
+        <div class="gardenConfirmBox">
+          <h2 id="gardenChoiceEventTitle">菜園事件</h2>
+          <p id="gardenChoiceEventText">菜園裡發生了一件小事。</p>
+          <div class="gardenConfirmActions gardenChoiceActions" id="gardenChoiceActions"></div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="levelup" class="screen hidden">
     <div class="levelPanel">
       <h1>升級！選擇一項</h1>
@@ -317,7 +447,7 @@
     </div>
   </div>
 </div>
-  <script src="bunny-logic.js?v=505"></script>
+  <script src="bunny-logic.js?v=588"></script>
 </body>
 </html>
 

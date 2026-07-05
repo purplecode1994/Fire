@@ -6,13 +6,27 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=505;
+  const APP_VERSION=588;
+  const GARDEN_PRELOAD_ASSETS=[
+    `assets/garden/早上.png?v=${APP_VERSION}`,
+    `assets/garden/中午.png?v=${APP_VERSION}`,
+    `assets/garden/下午.png?v=${APP_VERSION}`,
+    `assets/garden/晚上.png?v=${APP_VERSION}`,
+    `assets/garden/白天下雨.png?v=${APP_VERSION}`,
+    `assets/garden/plant-button-frame-clean.png?v=1`,
+    `assets/garden/user-carrot-growth-v5/carrot-growth-13-empty.png?v=${APP_VERSION}`,
+    `assets/garden/user-carrot-growth-v5/carrot-growth-00-seed.png?v=${APP_VERSION}`
+  ];
   const INFINITE_STAGE=12;
   const BOSS_CHALLENGE_STAGE=13;
   const EVENT_STAGE=14;
   const EVENT_DURATION=600;
   const EVENT_DAILY_LIMIT=3;
+  const ACTIVITY_CARROT_MODE="carrot";
+  const ACTIVITY_TRIAL_MODE="trial";
   const RARE_BREAK_STONE_PRICE=30;
+  const GARDEN_DRAIN_SHOVEL_PRICE=20;
+  const GARDEN_FERTILIZER_PRICE=10;
   const EQUIPMENT_QUALITY_ORDER=["rare","uncommon","epic","legendary","mythic","immortal","eternal"];
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
@@ -22,7 +36,7 @@
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
   const autoTrainingGuard=document.getElementById("autoTrainingGuard");
-  const characterScreen=document.getElementById("characterScreen"),rewardScreen=document.getElementById("rewardScreen"),stageScreen=document.getElementById("stageScreen"),adventureBookScreen=document.getElementById("adventureBookScreen"),shopScreen=document.getElementById("shopScreen");
+  const characterScreen=document.getElementById("characterScreen"),rewardScreen=document.getElementById("rewardScreen"),stageScreen=document.getElementById("stageScreen"),adventureBookScreen=document.getElementById("adventureBookScreen"),shopScreen=document.getElementById("shopScreen"),gardenScreen=document.getElementById("gardenScreen");
   const volumeSettings=document.getElementById("volumeSettings"),graphicsSettings=document.getElementById("graphicsSettings"),computeSettings=document.getElementById("computeSettings");
   const rewardTrack=document.getElementById("rewardTrackModal"),accountBox=document.getElementById("accountBox");
   const pauseScreen=document.getElementById("pauseScreen"),pauseStats=document.getElementById("pauseStats");
@@ -56,7 +70,7 @@
   let announcements=[],activeAnnouncement=null;
   let kills=0,score=0,eliteKills=0,bossKills=0,nextId=1,levelQueue=0;
   let eligibleKills=0,instantKills=0,instantKillTimer=0;
-  let kps=0,kpsWindowKills=0,kpsWindowTime=0,kpsPressure=0;
+  let kps=0,kpsWindowKills=0,kpsWindowTime=0,kpsPressure=0,kpsBonusTimer=0,kpsSpawnBonus=0;
   let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0,gemPressureRecycleTimer=0;
   let carrotVolley=0,pinkyBoostTimer=0,pinkyDamageBoost=1,pendingCarrotShots=0;
   let poisonTimer=0,poisonRate=0,stunTimer=0,confuseTimer=0,potionHealTimer=0,blizzardTimer=0,blizzardPushTimer=0,blizzardPushAngle=0,blizzardPushSpeed=0,currentStage=1,infiniteBossZone=0;
@@ -64,7 +78,9 @@
   let encirclementPressure=0,encirclementCharge=0,encirclementSampleClock=0,encirclementPressureRounds=0;
   let encirclementReservedHp=0,encirclementSectorBits=0,encirclementSectorCount=0,encirclementPrewarn=false,encirclementDebts=[];
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
+  let gardenDevDateOverride="";
   let runRewarded=false,activityRewarded=false,transitioning=false;
+  let activityStageMode=ACTIVITY_CARROT_MODE,lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:0,coins:0,points:0};
   let settingsDialogState=null;
   let bookMainTab="skills",bookStageTab=1;
   const BATTLE_START_DELAY=1.6;
@@ -82,7 +98,7 @@
   const CARROT_MIN_CHAIN_INTERVAL=2/60;
   let xpSoundLastTime=0;
   let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
-  let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0;
+  let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0,hudKpsBonus=0,hudWaveSeconds=0;
   let sharedTargetCache=null,sharedTargetTimer=0;
   let allowPageUnloadOnce=false,reloadConfirmActive=false,reloadConfirmWasPaused=false;
   let debugPanelMode="perf",audioDebugTimer=0;
@@ -128,8 +144,94 @@
     immortal:{name:"不朽",className:"immortal",color:"#f3f5ff"},
     eternal:{name:"永恆",className:"eternal",color:"#ffe66b"}
   };
+  const BREAK_STONE_QUALITIES=["normal","rare","uncommon","epic","legendary","mythic","immortal","eternal"];
+  const BREAK_STONE_NAMES={
+    normal:"一般突破原石",
+    rare:"稀有突破原石",
+    uncommon:"罕見突破原石",
+    epic:"史詩突破原石",
+    legendary:"傳說突破原石",
+    mythic:"神話突破原石",
+    immortal:"不朽突破原石",
+    eternal:"永恆突破原石"
+  };
+  const GARDEN_STORAGE_BASE_CAP=9;
+  const GARDEN_DEV_CARROT_CODE="8811";
+  const POINT_8888_CODE="8888";
+  const POINT_8888_REWARD=2000;
+  const POINT_DEV_CODE="00020000";
+  const POINT_DEV_REWARD=20000;
+  const POINT_MAX_CODE="09999999";
+  const POINT_MAX_TARGET=9999999;
+  const GARDEN_CARROT_QUALITIES=[
+    {id:"common",name:"凡品胡蘿蔔",rank:"一般",className:"gardenQCommon",asset:"assets/garden/harvest-carrots-v1/harvest-carrot-00-common.png",devWeight:55},
+    {id:"rare",name:"開脈胡蘿蔔",rank:"稀有",className:"gardenQRare",asset:"assets/garden/harvest-carrots-v1/harvest-carrot-01-rare.png",devWeight:25},
+    {id:"uncommon",name:"聚氣胡蘿蔔",rank:"罕見",className:"gardenQUncommon",asset:"assets/garden/harvest-carrots-v1/harvest-carrot-02-uncommon.png",devWeight:12},
+    {id:"epic",name:"玄靈胡蘿蔔",rank:"史詩",className:"gardenQEpic",asset:"assets/garden/harvest-carrots-v1/harvest-carrot-03-epic.png",devWeight:5},
+    {id:"legendary",name:"龍脈胡蘿蔔",rank:"傳說",className:"gardenQLegendary",asset:"assets/garden/harvest-carrots-v1/harvest-carrot-04-legendary.png",devWeight:2},
+    {id:"mythic",name:"天道胡蘿蔔",rank:"神話",className:"gardenQMythic",asset:"assets/garden/harvest-carrots-v1/harvest-carrot-05-mythic.png",devWeight:.8},
+    {id:"immortal",name:"萬劫胡蘿蔔",rank:"不朽",className:"gardenQImmortal",asset:"assets/garden/harvest-carrots-v1/harvest-carrot-06-immortal.png",devWeight:.19},
+    {id:"eternal",name:"太初胡蘿蔔",rank:"永恆",className:"gardenQEternal",asset:"assets/garden/harvest-carrots-v1/harvest-carrot-07-eternal.png",devWeight:.01}
+  ];
+  const GARDEN_ENHANCE_NEED={
+    common:2,
+    rare:4,
+    uncommon:7,
+    epic:11,
+    legendary:16,
+    mythic:22,
+    immortal:30,
+    eternal:40
+  };
+  const GARDEN_ENHANCE_RANKS=["D","D+","C","C+","B","B+","A","A+","S","S+"];
+  const GARDEN_ENHANCE_MAX_LEVEL=GARDEN_ENHANCE_RANKS.length-1;
+  const GARDEN_WATER_SLOTS=["morning","noon","afternoon","night"];
+  const GARDEN_WATER_SLOT_NAMES={morning:"早上",noon:"中午",afternoon:"下午",night:"晚上"};
+  const GARDEN_MAX_WATER_PER_DAY=2;
+  const GARDEN_MAX_OBSERVE_PER_DAY=2;
+  const GARDEN_RAIN_WATER_COUNT=3;
+  const GARDEN_MOISTURE_INITIAL=3;
+  const GARDEN_MOISTURE_MAX=8;
+  const GARDEN_EXTREME_MOISTURE_DEATH_RATE=.9;
+  const GARDEN_DRAIN_SHOVEL_COST=1;
+  const GARDEN_DRAIN_MOISTURE_REDUCE=2;
+  const GARDEN_CONDITION_IMAGES={
+    leafDry:"leafDry",
+    matureDry:"matureDry",
+    leafOverwater:"leafOverwater",
+    lushLeavesOverwater:"lushLeavesOverwater",
+    fatteningOverwater:"fatteningOverwater",
+    smallLeavesBugBite:"smallLeavesBugBite",
+    lushLeavesBugBite:"lushLeavesBugBite",
+    fatteningBugBite:"fatteningBugBite",
+    matureBugBite:"matureBugBite",
+    moleEaten:"eaten"
+  };
+  const GARDEN_CONDITION_NAMES={
+    leafDry:"小葉缺水",
+    matureDry:"成熟缺水",
+    leafOverwater:"小葉澆水過多",
+    lushLeavesOverwater:"葉子茂盛澆水過多",
+    fatteningOverwater:"長胖澆水過多",
+    smallLeavesBugBite:"小葉蟲咬",
+    lushLeavesBugBite:"葉子茂盛蟲咬",
+    fatteningBugBite:"胡蘿蔔長胖蟲咬",
+    matureBugBite:"成熟蟲咬",
+    moleEaten:"被地鼠啃咬"
+  };
+  const GARDEN_FORGE_ATTACK={
+    common:58,
+    rare:180,
+    uncommon:320,
+    epic:620,
+    legendary:1050,
+    mythic:1650,
+    immortal:2600,
+    eternal:4200
+  };
+  const GARDEN_EQUIPMENT_PREFIX="garden:";
   // 裝備品質階級：稀有 -> 罕見 -> 史詩 -> 傳說 -> 神話 -> 不朽 -> 永恆。
-  // 一般=無框；活動關卡統一為強化試煉，產出活動硬幣後由活動商店兌換原石。
+  // 一般=無框；活動關卡為胡鬧的胡蘿蔔，2 萬戰力開放，擊敗活動 Boss 後掉落菜園種子。
   // 鍛造屋預備：藍框以上可鍛造，單件最多 +10；每日鍛造最多 7 次。
   const FORGE_DAILY_LIMIT=7;
   const FORGE_RULES={
@@ -199,6 +301,53 @@
     if(!def||def.cap===undefined)return undefined;
     return def.cap;
   }
+  function breakStoneQualityKey(quality){
+    const key=String(quality||"normal");
+    return BREAK_STONE_QUALITIES.includes(key)?key:"normal";
+  }
+  function normalizeBreakStoneState(source={},rareFallback=0){
+    const raw=source&&typeof source==="object"&&!Array.isArray(source)?source:{};
+    const stones={};
+    BREAK_STONE_QUALITIES.forEach(quality=>{
+      stones[quality]=Math.max(0,Math.floor(Number(raw[quality])||0));
+    });
+    stones.rare=Math.max(stones.rare,Math.max(0,Math.floor(Number(rareFallback)||0)));
+    return stones;
+  }
+  function syncBreakStoneState(target=meta){
+    target.breakStones=normalizeBreakStoneState(target.breakStones,target.rareBreakStones);
+    target.rareBreakStones=target.breakStones.rare;
+    return target.breakStones;
+  }
+  function breakStoneName(quality){
+    const key=breakStoneQualityKey(quality);
+    return BREAK_STONE_NAMES[key]||`${EQUIPMENT_QUALITY[key]?.name||"一般"}突破原石`;
+  }
+  function breakStoneCount(quality){
+    const stones=syncBreakStoneState(meta);
+    return stones[breakStoneQualityKey(quality)]||0;
+  }
+  function addBreakStone(quality,amount=1){
+    const key=breakStoneQualityKey(quality);
+    const stones=syncBreakStoneState(meta);
+    stones[key]=Math.max(0,Math.floor(Number(stones[key])||0))+Math.max(1,Math.floor(Number(amount)||1));
+    meta.rareBreakStones=stones.rare;
+    return stones[key];
+  }
+  function spendBreakStone(quality,amount=1){
+    const key=breakStoneQualityKey(quality);
+    const cost=Math.max(1,Math.floor(Number(amount)||1));
+    const stones=syncBreakStoneState(meta);
+    if((stones[key]||0)<cost)return false;
+    stones[key]-=cost;
+    meta.rareBreakStones=stones.rare;
+    return true;
+  }
+  function breakStoneInventoryText(){
+    const stones=syncBreakStoneState(meta);
+    const parts=BREAK_STONE_QUALITIES.filter(quality=>(stones[quality]||0)>0).map(quality=>`${breakStoneName(quality)} ${formatCommaNumber(stones[quality])}`);
+    return parts.length?parts.join("｜"):"尚無突破原石";
+  }
 
   const metaDefs=[
     {id:"damage",name:"攻擊力",cost:5,cap:200,desc:`每級 +${META_DAMAGE_STEP} 攻擊力；每10級成長 +${(META_DAMAGE_TIER_GROWTH*100).toFixed(1)}%，最高 LV200`,value:m=>`+${scaledMetaGain(m.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
@@ -216,22 +365,407 @@
   let devModeActive=false;
   let shopMode="shop";
   let forgeMessage="";
+  let forgeSourceMode="";
   muted=!!meta.muted;
 
   function defaultMeta(){
     return{
       points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,
       totalDeathKills:0,totalDeaths:0,bestInfiniteSeconds:0,
-      infiniteTotalKills:0,coins:0,activityCoins:0,rareBreakStones:0,activityRunDate:"",activityRunsToday:0,
+      infiniteTotalKills:0,coins:0,activityCoins:0,rareBreakStones:0,breakStones:{},activityRunDate:"",activityRunsToday:0,
       claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,
       equipmentUnlockSeen:false,equipmentInventory:["bittenCarrot"],equippedWeaponId:"bittenCarrot",equippedRingId:"",shopBoughtWholeCarrot:false,equipmentEnhance:{},equipmentBreakthrough:{},forgeDailyDate:"",forgeDailyUsed:0,
       desertUnlocked:false,snowUnlocked:false,forestPathUnlocked:false,forestSeaUnlocked:false,cookieUnlocked:false,toyUnlocked:false,
       stage1Cleared:false,stage2Cleared:false,stage3Cleared:false,stage4Cleared:false,stage5Cleared:false,stage6Cleared:false,stage7Cleared:false,stage8Cleared:false,stage9Cleared:false,stage10Cleared:false,stage11Cleared:false,
-      muted:false,cheat8888Used:false,
+      muted:false,cheat8888Used:false,cheat00020000Used:false,
       autoTrainingCharm:false,autoTrainingCharmUsedMinutes:0,autoTrainingTickets:0,autoTrainingTicketDate:"",autoTrainingTicketBoughtToday:0,
       abilityResetTickets:0,abilityResetTicketDate:"",abilityResetTicketBoughtToday:0,
+      garden:defaultGardenState(),
       masterVolume:.8,synthVolume:.6,critVolume:.7,giantExplosionVolume:.75,
       graphicsMode:1,computeMode:1
+    };
+  }
+
+  function defaultGardenState(){
+    return{
+      seeds:3,
+      fertilizer:0,
+      drainShovels:0,
+      plantingCount:0,
+      harvestCount:0,
+      totalPlantDays:0,
+      storageCap:GARDEN_STORAGE_BASE_CAP,
+      storage:[],
+      depositBox:[],
+      records:[],
+      current:null
+    };
+  }
+
+  function gardenQualityDef(quality){
+    return GARDEN_CARROT_QUALITIES.find(item=>item.id===quality)||GARDEN_CARROT_QUALITIES[0];
+  }
+
+  function gardenQualityIndex(quality){
+    return Math.max(0,GARDEN_CARROT_QUALITIES.findIndex(item=>item.id===gardenQualityDef(quality).id));
+  }
+
+  function gardenEnhanceNeed(quality){
+    const def=gardenQualityDef(quality);
+    return GARDEN_ENHANCE_NEED[def.id]||GARDEN_ENHANCE_NEED.common;
+  }
+
+  function gardenEnhanceRank(level){
+    const index=Math.max(0,Math.min(GARDEN_ENHANCE_MAX_LEVEL,Math.floor(Number(level)||0)));
+    return GARDEN_ENHANCE_RANKS[index]||GARDEN_ENHANCE_RANKS[0];
+  }
+
+  function gardenEnhanceRankText(level){
+    return `階級 ${gardenEnhanceRank(level)}`;
+  }
+
+  function gardenCarrotStoredEnergy(item){
+    const carrot=normalizeGardenCarrot(item);
+    const baseEnergy=gardenEnhanceNeed(carrot.quality)+Math.max(0,Math.floor(Number(carrot.exp)||0));
+    return baseEnergy*Math.max(1,Math.floor(Number(carrot.level)||0));
+  }
+
+  function gardenCompostValue(item){
+    return gardenQualityIndex(item?.quality)+1;
+  }
+
+  function gardenCarrotLevelFromExp(quality,exp){
+    const need=gardenEnhanceNeed(quality);
+    return Math.max(0,Math.min(GARDEN_ENHANCE_MAX_LEVEL,Math.floor(Math.max(0,Math.floor(Number(exp)||0))/need)));
+  }
+
+  function normalizeGardenCarrot(item){
+    if(!item||typeof item!=="object")item={};
+    const quality=gardenQualityDef(item.quality).id;
+    const maxExp=gardenEnhanceNeed(quality)*GARDEN_ENHANCE_MAX_LEVEL;
+    return{
+      id:String(item.id||`gc${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`),
+      quality,
+      level:Math.max(0,Math.min(GARDEN_ENHANCE_MAX_LEVEL,Math.floor(Number(item.level)||0))),
+      exp:Math.max(0,Math.min(maxExp,Math.floor(Number(item.exp)||0))),
+      forged:!!item.forged,
+      createdAt:Math.max(0,Math.floor(Number(item.createdAt)||Date.now()))
+    };
+  }
+
+  function normalizeGardenChoiceEvent(event){
+    const source=event&&typeof event==="object"&&!Array.isArray(event)?event:null;
+    if(!source)return null;
+    const choices=Array.isArray(source.choices)?source.choices.map((choice,index)=>({
+      id:String(choice?.id||`choice${index}`),
+      label:String(choice?.label||"選擇"),
+      result:String(choice?.result||"結果已記錄。"),
+      growth:Math.max(-3,Math.min(3,Math.floor(Number(choice?.growth)||0))),
+      quality:Math.max(-5,Math.min(5,Number(choice?.quality)||0)),
+      moisture:Math.max(-3,Math.min(3,Math.floor(Number(choice?.moisture)||0))),
+      fertility:Math.max(-3,Math.min(3,Math.floor(Number(choice?.fertility)||0))),
+      nutrients:Math.max(-3,Math.min(3,Math.floor(Number(choice?.nutrients)||0))),
+      fertilizer:Math.max(0,Math.min(3,Math.floor(Number(choice?.fertilizer)||0))),
+      stall:Math.max(0,Math.min(3,Math.floor(Number(choice?.stall)||0))),
+      coins:Math.max(0,Math.min(99,Math.floor(Number(choice?.coins)||0))),
+      sellPlant:!!choice?.sellPlant
+    })).filter(choice=>choice.label):[];
+    if(!choices.length)return null;
+    return{
+      id:String(source.id||`gce${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`),
+      title:String(source.title||"菜園事件"),
+      text:String(source.text||"菜園裡發生了一件小事。"),
+      source:String(source.source||"event"),
+      eventKey:String(source.eventKey||""),
+      choices
+    };
+  }
+
+  function normalizeGardenRecord(record){
+    const source=record&&typeof record==="object"&&!Array.isArray(record)?record:{};
+    const choices=Array.isArray(source.choices)?source.choices.map((choice,index)=>({
+      id:String(choice?.id||`choice${index}`),
+      label:String(choice?.label||"選擇"),
+      result:String(choice?.result||"結果已記錄。")
+    })):[];
+    return{
+      id:String(source.id||`gr${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`),
+      date:isDateKey(source.date)?source.date:todayKey(),
+      createdAt:Math.max(0,Math.floor(Number(source.createdAt)||Date.now())),
+      plantingNo:Math.max(0,Math.floor(Number(source.plantingNo)||0)),
+      plantDay:Math.max(0,Math.floor(Number(source.plantDay)||0)),
+      slot:GARDEN_WATER_SLOTS.includes(source.slot)?source.slot:"",
+      weatherName:String(source.weatherName||""),
+      kind:String(source.kind||""),
+      title:String(source.title||"菜園紀錄"),
+      text:String(source.text||"今天還沒有新的紀錄。"),
+      choices
+    };
+  }
+
+  function normalizeGardenState(garden){
+    const base=defaultGardenState();
+    const source=garden&&typeof garden==="object"&&!Array.isArray(garden)?garden:{};
+    const storage=Array.isArray(source.storage)?source.storage.map(normalizeGardenCarrot):[];
+    const depositBox=Array.isArray(source.depositBox)?source.depositBox.map(normalizeGardenCarrot):[];
+    const records=Array.isArray(source.records)?source.records.map(normalizeGardenRecord).slice(-40):[];
+    return{
+      seeds:Math.max(0,Math.floor(Number(Object.prototype.hasOwnProperty.call(source,"seeds")?source.seeds:base.seeds)||0)),
+      fertilizer:Math.max(0,Math.floor(Number(Object.prototype.hasOwnProperty.call(source,"fertilizer")?source.fertilizer:base.fertilizer)||0)),
+      drainShovels:Math.max(0,Math.floor(Number(Object.prototype.hasOwnProperty.call(source,"drainShovels")?source.drainShovels:base.drainShovels)||0)),
+      plantingCount:Math.max(0,Math.floor(Number(source.plantingCount)||0)),
+      harvestCount:Math.max(0,Math.floor(Number(source.harvestCount)||0)),
+      totalPlantDays:Math.max(0,Math.floor(Number(source.totalPlantDays)||0)),
+      storageCap:Math.max(GARDEN_STORAGE_BASE_CAP,Math.floor(Number(source.storageCap)||base.storageCap)),
+      storage,
+      depositBox,
+      records,
+      current:normalizeGardenPlant(source.current)
+    };
+  }
+
+  function gardenValidWaterSlot(slot){
+    return GARDEN_WATER_SLOTS.includes(slot)?slot:gardenTimeSlot();
+  }
+  function gardenWaterSlotName(slot){
+    return GARDEN_WATER_SLOT_NAMES[slot]||"早上";
+  }
+  function normalizeGardenWateredSlots(slots,legacyDate=""){
+    const source=Array.isArray(slots)?slots:(legacyDate?["morning"]:[]);
+    return [...new Set(source.map(slot=>String(slot||"")).filter(slot=>GARDEN_WATER_SLOTS.includes(slot)))];
+  }
+  function clampGardenSoilValue(value,defaultValue,maxValue=5){
+    const raw=Number.isFinite(Number(value))?Number(value):defaultValue;
+    return Math.max(0,Math.min(maxValue,Math.floor(raw)));
+  }
+  function clampGardenMoisture(value,defaultValue=GARDEN_MOISTURE_INITIAL){
+    return clampGardenSoilValue(value,defaultValue,GARDEN_MOISTURE_MAX);
+  }
+  function gardenMoistureValue(value){
+    return Number.isFinite(Number(value))?Number(value):GARDEN_MOISTURE_INITIAL;
+  }
+  function gardenWateredSlotsForToday(plant,today=todayKey()){
+    if(!plant)return[];
+    if(plant.wateredSlotsDate!==today){
+      plant.wateredSlotsDate=today;
+      plant.wateredSlots=[];
+    }
+    plant.wateredSlots=normalizeGardenWateredSlots(plant.wateredSlots);
+    return plant.wateredSlots;
+  }
+  function gardenRainObservedSlotsForToday(plant,today=todayKey()){
+    if(!plant)return[];
+    if(plant.rainObservedSlotsDate!==today){
+      plant.rainObservedSlotsDate=today;
+      plant.rainObservedSlots=[];
+    }
+    plant.rainObservedSlots=normalizeGardenWateredSlots(plant.rainObservedSlots);
+    return plant.rainObservedSlots;
+  }
+  function gardenObservedSlotsForToday(plant,today=todayKey()){
+    if(!plant)return[];
+    if(plant.observeSlotsDate!==today){
+      plant.observeSlotsDate=today;
+      plant.observeSlots=[];
+    }
+    plant.observeSlots=normalizeGardenWateredSlots(plant.observeSlots);
+    return plant.observeSlots;
+  }
+  function gardenDrainedSlotsForToday(plant,today=todayKey()){
+    if(!plant)return[];
+    if(plant.drainSlotsDate!==today){
+      plant.drainSlotsDate=today;
+      plant.drainSlots=[];
+    }
+    plant.drainSlots=normalizeGardenWateredSlots(plant.drainSlots);
+    return plant.drainSlots;
+  }
+  function gardenIsRainObservation(weather,slot){
+    return !!weather?.isRainy&&gardenValidWaterSlot(slot)!=="night";
+  }
+  function gardenHasWaterToday(plant,today=todayKey()){
+    if(!plant)return false;
+    return gardenWeatherForDate(today).isRainy||gardenWateredSlotsForToday(plant,today).length>0;
+  }
+  function gardenWeatherForDate(dateKey=todayKey()){
+    const raw=String(dateKey||realTodayKey());
+    let hash=0;
+    for(let i=0;i<raw.length;i++)hash=(hash*31+raw.charCodeAt(i))>>>0;
+    const roll=hash%100;
+    if(roll<18)return{key:"rain",name:"下雨",isRainy:true,airHumidity:4+(hash%2),airTemperature:2};
+    if(roll<30)return{key:"cloudy",name:"陰天",isRainy:false,airHumidity:3,airTemperature:2};
+    if(roll<42)return{key:"hot",name:"炎熱",isRainy:false,airHumidity:1,airTemperature:4+(hash%2)};
+    return{key:"clear",name:"晴朗",isRainy:false,airHumidity:2,airTemperature:2+(hash%2)};
+  }
+  function gardenEnvironmentForSlot(weather,slot){
+    const validSlot=gardenValidWaterSlot(slot);
+    const baseHumidity=clampGardenSoilValue(weather?.airHumidity,weather?.isRainy?4:2,5);
+    const baseTemperature=clampGardenSoilValue(weather?.airTemperature,2,5);
+    const slotTemp={morning:-1,noon:1,afternoon:0,night:-1}[validSlot]||0;
+    const slotHumidity={morning:1,noon:-1,afternoon:0,night:1}[validSlot]||0;
+    return{
+      airHumidity:clampGardenSoilValue(baseHumidity+slotHumidity,2,5),
+      airTemperature:clampGardenSoilValue(baseTemperature+slotTemp,2,5)
+    };
+  }
+
+  function normalizeGardenPlant(plant){
+    if(!plant||typeof plant!=="object"||Array.isArray(plant))return null;
+    const status=["growing","dry","dead","eaten"].includes(plant.status)?plant.status:"growing";
+    const condition=Object.prototype.hasOwnProperty.call(GARDEN_CONDITION_IMAGES,String(plant.condition||""))?String(plant.condition||""):"";
+    return{
+      id:String(plant.id||`gp${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`),
+      plantingNo:Math.max(0,Math.floor(Number(plant.plantingNo)||0)),
+      growth:Math.max(0,Math.min(15,Math.floor(Number(plant.growth)||0))),
+      pendingGrowth:Math.max(0,Math.min(3,Math.floor(Number(plant.pendingGrowth)||0))),
+      pendingGrowthDate:String(plant.pendingGrowthDate||""),
+      overFertilizedDate:String(plant.overFertilizedDate||""),
+      bonusGrowth:Math.max(0,Math.min(2,Math.floor(Number(plant.bonusGrowth)||0))),
+      fertilizerUsed:Math.max(0,Math.floor(Number(plant.fertilizerUsed)||0)),
+      missedStreak:Math.max(0,Math.floor(Number(plant.missedStreak)||0)),
+      qualityShift:Math.max(-20,Math.min(20,Number(plant.qualityShift)||0)),
+      airHumidity:clampGardenSoilValue(plant.airHumidity,2,5),
+      airTemperature:clampGardenSoilValue(plant.airTemperature,2,5),
+      moisture:clampGardenMoisture(plant.moisture),
+      fertility:clampGardenSoilValue(plant.fertility,2,5),
+      nutrients:clampGardenSoilValue(plant.nutrients,3,6),
+      condition,
+      conditionDate:String(plant.conditionDate||""),
+      status,
+      eatenReason:String(plant.eatenReason||""),
+      plantedDate:String(plant.plantedDate||todayKey()),
+      moistureDate:String(plant.moistureDate||todayKey()),
+      lastCareDate:String(plant.lastCareDate||plant.plantedDate||todayKey()),
+      wateredDate:String(plant.wateredDate||""),
+      wateredSlotsDate:String(plant.wateredSlotsDate||plant.wateredDate||""),
+      wateredSlots:normalizeGardenWateredSlots(plant.wateredSlots,plant.wateredDate),
+      rainObservedSlotsDate:String(plant.rainObservedSlotsDate||""),
+      rainObservedSlots:normalizeGardenWateredSlots(plant.rainObservedSlots),
+      observeSlotsDate:String(plant.observeSlotsDate||""),
+      observeSlots:normalizeGardenWateredSlots(plant.observeSlots),
+      drainSlotsDate:String(plant.drainSlotsDate||""),
+      drainSlots:normalizeGardenWateredSlots(plant.drainSlots),
+      harvestReadyDate:String(plant.harvestReadyDate||""),
+      eventDate:String(plant.eventDate||""),
+      ambientEventKey:String(plant.ambientEventKey||""),
+      choiceEventDate:String(plant.choiceEventDate||""),
+      choiceEventSlot:GARDEN_WATER_SLOTS.includes(plant.choiceEventSlot)?plant.choiceEventSlot:"",
+      lastEvent:plant.lastEvent&&typeof plant.lastEvent==="object"?plant.lastEvent:null,
+      pendingChoiceEvent:normalizeGardenChoiceEvent(plant.pendingChoiceEvent)
+    };
+  }
+
+  function createGardenCarrot(quality){
+    return normalizeGardenCarrot({
+      id:`gc${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`,
+      quality,
+      createdAt:Date.now()
+    });
+  }
+
+  function rollDevGardenQuality(){
+    const total=GARDEN_CARROT_QUALITIES.reduce((sum,item)=>sum+item.devWeight,0);
+    let roll=Math.random()*total;
+    for(const item of GARDEN_CARROT_QUALITIES){
+      roll-=item.devWeight;
+      if(roll<=0)return item.id;
+    }
+    return GARDEN_CARROT_QUALITIES[0].id;
+  }
+
+  function addGardenCarrot(quality){
+    meta.garden=normalizeGardenState(meta.garden);
+    const carrot=createGardenCarrot(quality);
+    if(meta.garden.storage.length<meta.garden.storageCap){
+      meta.garden.storage.push(carrot);
+      return{carrot,location:"storage"};
+    }
+    meta.garden.depositBox.push(carrot);
+    return{carrot,location:"depositBox"};
+  }
+
+  function addGardenCarrotToDeposit(quality){
+    meta.garden=normalizeGardenState(meta.garden);
+    const carrot=createGardenCarrot(quality);
+    meta.garden.depositBox.push(carrot);
+    return{carrot,location:"depositBox"};
+  }
+
+  function moveGardenDepositToStorage(){
+    meta.garden=normalizeGardenState(meta.garden);
+    let moved=0;
+    while(meta.garden.depositBox.length&&meta.garden.storage.length<meta.garden.storageCap){
+      meta.garden.storage.push(meta.garden.depositBox.shift());
+      moved++;
+    }
+    return moved;
+  }
+
+  function discardGardenCarrot(action){
+    meta.garden=normalizeGardenState(meta.garden);
+    const index=Math.floor(Number(String(action).split(":")[1]));
+    if(!Number.isFinite(index)||index<0||index>=meta.garden.storage.length){
+      return{ok:false,message:"找不到這支胡蘿蔔。"};
+    }
+    const removed=meta.garden.storage.splice(index,1)[0];
+    const def=gardenQualityDef(removed?.quality);
+    const compost=gardenCompostValue(removed);
+    meta.garden.fertilizer=Math.max(0,Math.floor(Number(meta.garden.fertilizer)||0))+compost;
+    return{ok:true,message:`已將 ${def.rank}・${def.name} 堆肥，肥料 +${compost}。`};
+  }
+
+  function enhanceGardenCarrot(action){
+    meta.garden=normalizeGardenState(meta.garden);
+    const raw=String(action||"");
+    const parts=raw.split(":");
+    const baseIndex=Math.floor(Number(parts[1]));
+    const materialIndexes=(parts[2]||"").split(",").map(value=>Math.floor(Number(value))).filter(Number.isFinite);
+    const uniqueMaterialIndexes=[...new Set(materialIndexes)].filter(index=>index!==baseIndex);
+    const storage=meta.garden.storage;
+    if(!Number.isFinite(baseIndex)||baseIndex<0||baseIndex>=storage.length){
+      return{ok:false,message:"請先選擇要強化的主體胡蘿蔔。"};
+    }
+    if(!uniqueMaterialIndexes.length){
+      return{ok:false,message:"請再選其他胡蘿蔔作為素材。"};
+    }
+    const base=storage[baseIndex];
+    if(!base){
+      return{ok:false,message:"找不到強化主體。"};
+    }
+    if((base.level||0)>=GARDEN_ENHANCE_MAX_LEVEL){
+      return{ok:false,message:`${gardenQualityDef(base.quality).name} 已經達到 ${gardenEnhanceRankText(base.level)}，可以前往鍛造屋。`};
+    }
+    const baseQualityIndex=gardenQualityIndex(base.quality);
+    const materials=[];
+    for(const index of uniqueMaterialIndexes){
+      const material=storage[index];
+      if(!material){
+        return{ok:false,message:"素材清單裡有不存在的胡蘿蔔。"};
+      }
+      if(gardenQualityIndex(material.quality)>baseQualityIndex){
+        return{ok:false,message:"不能吸收比主體品質更高的胡蘿蔔。"};
+      }
+      materials.push(material);
+    }
+    const oldLevel=Math.max(0,Math.floor(Number(base.level)||0));
+    const oldExp=Math.max(0,Math.floor(Number(base.exp)||0));
+    const gainedEnergy=materials.reduce((sum,item)=>sum+gardenCarrotStoredEnergy(item),0);
+    const need=gardenEnhanceNeed(base.quality);
+    const maxExp=need*GARDEN_ENHANCE_MAX_LEVEL;
+    const nextExp=Math.min(maxExp,oldExp+gainedEnergy);
+    base.exp=nextExp;
+    base.level=gardenCarrotLevelFromExp(base.quality,nextExp);
+    const removeSet=new Set(uniqueMaterialIndexes);
+    meta.garden.storage=storage.filter((_,index)=>!removeSet.has(index));
+    const def=gardenQualityDef(base.quality);
+    const levelGain=Math.max(0,(base.level||0)-oldLevel);
+    const rankText=gardenEnhanceRankText(base.level);
+    const forgeHint=(base.level||0)>=GARDEN_ENHANCE_MAX_LEVEL?" 已達 S+，可前往鍛造屋。":"";
+    return{
+      ok:true,
+      message:levelGain>0
+        ? `${def.rank}・${def.name} 吸收成功，提升到 ${rankText}，共獲得 ${gainedEnergy} 點能量。${forgeHint}`
+        : `${def.rank}・${def.name} 吸收完成，累積 ${gainedEnergy} 點能量，目前維持 ${rankText}。${forgeHint}`
     };
   }
 
@@ -479,8 +1013,11 @@
       data.abilityResetTicketBoughtToday=Math.max(0,Math.floor(Number(data.abilityResetTicketBoughtToday)||0));
       data.activityCoins=Math.max(0,Math.floor(Number(data.activityCoins)||0));
       data.rareBreakStones=Math.max(0,Math.floor(Number(data.rareBreakStones)||0));
+      data.breakStones=normalizeBreakStoneState(data.breakStones,data.rareBreakStones);
+      data.rareBreakStones=data.breakStones.rare;
       data.activityRunDate=String(data.activityRunDate||"");
       data.activityRunsToday=Math.max(0,Math.floor(Number(data.activityRunsToday)||0));
+      data.garden=normalizeGardenState(data.garden);
       if(!data.equipmentBreakthrough||typeof data.equipmentBreakthrough!=="object"||Array.isArray(data.equipmentBreakthrough))data.equipmentBreakthrough={};
       migrateLegacyStageClears(data);
       const recoveredCoins=readStoredCoins();
@@ -516,8 +1053,10 @@
     meta.abilityResetTicketBoughtToday=Math.max(0,Math.floor(Number(meta.abilityResetTicketBoughtToday)||0));
     meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0));
     meta.rareBreakStones=Math.max(0,Math.floor(Number(meta.rareBreakStones)||0));
+    syncBreakStoneState(meta);
     meta.activityRunDate=String(meta.activityRunDate||"");
     meta.activityRunsToday=Math.max(0,Math.floor(Number(meta.activityRunsToday)||0));
+    meta.garden=normalizeGardenState(meta.garden);
     if(!meta.equipmentBreakthrough||typeof meta.equipmentBreakthrough!=="object"||Array.isArray(meta.equipmentBreakthrough))meta.equipmentBreakthrough={};
     meta.masterVolume=volumeValue("masterVolume");
     meta.synthVolume=volumeValue("synthVolume");
@@ -564,7 +1103,7 @@
   }
   function currentStageLabel(){
     if(isBossChallengeMode())return "頭目挑戰";
-    if(currentStage===EVENT_STAGE)return "強化試煉";
+    if(currentStage===EVENT_STAGE)return isActivityTrialMode()?"強化試煉":"胡鬧的胡蘿蔔";
     if(isInfiniteMode())return infiniteZoneName();
     if(currentStage===11)return "虛空核心";
     if(currentStage===10)return "星夜鐘塔";
@@ -581,7 +1120,7 @@
   function homeStageBadgeLabel(stage=currentStage){
     if(stage===INFINITE_STAGE)return "輪迴";
     if(stage===BOSS_CHALLENGE_STAGE)return "頭目";
-    if(stage===EVENT_STAGE)return "試煉";
+    if(stage===EVENT_STAGE)return "活動";
     const labels={1:"菜園",2:"沙漠",3:"雪原",4:"林徑",5:"樹海",6:"餅乾屋",7:"夢工廠",8:"熔岩",9:"海底",10:"鐘塔",11:"虛空"};
     return labels[stage]||"菜園";
   }
@@ -1074,6 +1613,18 @@
     settingsOverlay.classList.add("visible");
     settingsOverlay.setAttribute("aria-hidden","false");
   }
+  let quickToastTimer=null;
+  function showQuickToast(message){
+    const toast=document.getElementById("quickToast");
+    if(!toast)return;
+    toast.textContent=message||"";
+    toast.classList.add("visible");
+    if(quickToastTimer)clearTimeout(quickToastTimer);
+    quickToastTimer=setTimeout(()=>{
+      toast.classList.remove("visible");
+      quickToastTimer=null;
+    },1600);
+  }
   function closeSettingsOverlay(){
     settingsOverlay.classList.remove("visible","dialogOnly");
     settingsOverlay.setAttribute("aria-hidden","true");
@@ -1186,7 +1737,10 @@
         meta.stage10Cleared?1:0,
         meta.stage11Cleared?1:0,
         computeMode(),
-        meta.equippedRingId||""
+        meta.equippedRingId||"",
+        normalizeGardenState(meta.garden),
+        meta.cheat00020000Used?1:0,
+        normalizeBreakStoneState(meta.breakStones,meta.rareBreakStones)
       ]
     };
   }
@@ -1256,7 +1810,10 @@
           stage10Cleared:data.length>=54?!!data[52]:false,
           stage11Cleared:data.length>=54?!!data[53]:false,
           computeMode:data.length>=55?Math.max(0,Math.min(2,Math.floor(Number(data[54])||0))):1,
-          equippedRingId:data.length>=56?(data[55]||""):""
+          equippedRingId:data.length>=56?(data[55]||""):"",
+          garden:data.length>=57?normalizeGardenState(data[56]):defaultGardenState(),
+          cheat00020000Used:data.length>=58?!!data[57]:false,
+          breakStones:data.length>=59?normalizeBreakStoneState(data[58],data.length>=59?0:0):{}
         }
       };
     }
@@ -1289,6 +1846,7 @@
           stage3Cleared:!!data.s3,
           muted:!!data.mt,
           cheat8888Used:!!data.c8,
+          cheat00020000Used:!!data.c20,
           coins:data.cn||0,
           autoTrainingCharm:!!data.atc,
           autoTrainingCharmUsedMinutes:data.atm||0,
@@ -1394,7 +1952,7 @@
           beep(760,.1,.03,"triangle");
           return;
         }
-        if(safePassword==="8888"){
+        if(safePassword===POINT_8888_CODE){
           if(meta.cheat8888Used){
             openSettingsOverlay("8888 已使用過，除非刪除紀錄才會重置。");
             closeSettingsDialog();
@@ -1402,11 +1960,48 @@
             return;
           }
           meta.cheat8888Used=true;
-          meta.points+=20000;
+          meta.points+=POINT_8888_REWARD;
           saveMeta();
           renderMeta();
           closeSettingsDialog();
-          openSettingsOverlay("已獲得 20000 強化點數。");
+          openSettingsOverlay(`已獲得 ${formatCommaNumber(POINT_8888_REWARD)} 強化點數。`);
+          beep(980,.14,.04,"triangle");
+          return;
+        }
+        if(safePassword===POINT_DEV_CODE){
+          if(meta.cheat00020000Used){
+            openSettingsOverlay("00020000 已使用過，除非刪除紀錄才會重置。");
+            closeSettingsDialog();
+            beep(140,.08,.02,"sawtooth");
+            return;
+          }
+          meta.cheat00020000Used=true;
+          meta.points+=POINT_DEV_REWARD;
+          saveMeta();
+          renderMeta();
+          closeSettingsDialog();
+          openSettingsOverlay(`已獲得 ${formatCommaNumber(POINT_DEV_REWARD)} 強化點數。`);
+          beep(980,.14,.04,"triangle");
+          return;
+        }
+        if(safePassword===POINT_MAX_CODE){
+          meta.points=Math.max(Math.floor(Number(meta.points)||0),POINT_MAX_TARGET);
+          saveMeta();
+          renderMeta();
+          closeSettingsDialog();
+          openSettingsOverlay(`強化點數已達到 ${formatCommaNumber(POINT_MAX_TARGET)}。`);
+          beep(980,.14,.04,"triangle");
+          return;
+        }
+        if(safePassword===GARDEN_DEV_CARROT_CODE){
+          meta.garden=normalizeGardenState(meta.garden);
+          const result=addGardenCarrotToDeposit(rollDevGardenQuality());
+          meta.garden.seeds+=1;
+          const def=gardenQualityDef(result.carrot.quality);
+          saveMeta();
+          renderMeta();
+          closeSettingsDialog();
+          openSettingsOverlay(`已獲得 ${def.rank}・${def.name}，並獲得 1 顆神秘胡蘿蔔種子。胡蘿蔔已放入保管箱。`);
           beep(980,.14,.04,"triangle");
           return;
         }
@@ -1492,7 +2087,8 @@
     meta.equipmentInventory=[...new Set(meta.equipmentInventory.filter(id=>EQUIPMENT_DEFS[id]))];
     if(!meta.equipmentEnhance||typeof meta.equipmentEnhance!=="object"||Array.isArray(meta.equipmentEnhance))meta.equipmentEnhance={};
     if(!meta.equipmentBreakthrough||typeof meta.equipmentBreakthrough!=="object"||Array.isArray(meta.equipmentBreakthrough))meta.equipmentBreakthrough={};
-    for(const id of meta.equipmentInventory){
+    const equipmentIds=[...meta.equipmentInventory,...gardenEquipmentItems().map(item=>item.id)];
+    for(const id of equipmentIds){
       meta.equipmentEnhance[id]=Math.max(0,Math.min(10,Math.floor(Number(meta.equipmentEnhance[id])||0)));
       const raw=meta.equipmentBreakthrough[id]||{};
       meta.equipmentBreakthrough[id]={
@@ -1502,7 +2098,8 @@
     }
     meta.forgeDailyDate=String(meta.forgeDailyDate||"");
     meta.forgeDailyUsed=Math.max(0,Math.floor(Number(meta.forgeDailyUsed)||0));
-    if(!EQUIPMENT_DEFS[meta.equippedWeaponId]||!meta.equipmentInventory.includes(meta.equippedWeaponId)){
+    const weaponItem=equipmentItemById(meta.equippedWeaponId);
+    if(!weaponItem||weaponItem.type!=="weapon"||!equipmentInventoryHas(meta.equippedWeaponId)){
       meta.equippedWeaponId="bittenCarrot";
     }
     if(!EQUIPMENT_DEFS[meta.equippedRingId]||!meta.equipmentInventory.includes(meta.equippedRingId)||EQUIPMENT_DEFS[meta.equippedRingId].type!=="ring"){
@@ -1512,7 +2109,7 @@
   }
   function equippedWeapon(){
     ensureEquipmentState();
-    return EQUIPMENT_DEFS[meta.equippedWeaponId]||EQUIPMENT_DEFS.bittenCarrot;
+    return equipmentItemById(meta.equippedWeaponId)||EQUIPMENT_DEFS.bittenCarrot;
   }
   function equipmentBaseDamage(){
     return equipmentAttack(equippedWeapon());
@@ -1891,6 +2488,27 @@
     renderComputeSettings();
     playUiClick();
   }
+  function usesTimedMonsterBudget(){
+    return !isInfiniteMode()&&!isBossChallengeMode()&&!isEventMode()&&currentStage>=2&&currentStage<=10;
+  }
+  function calcKpsSpawnBonus(value=kps){
+    if(value<=0)return 0;
+    if(value<=50)return Math.min(10,Math.ceil(value/10)*2);
+    return Math.min(30,10+Math.ceil((Math.min(value,100)-50)/10)*4);
+  }
+  function timedMonsterBudget(){
+    const sec=Math.max(0,time);
+    let base=20+Math.round(Math.min(1,sec/30)*30);
+    let waveSeconds=0;
+    if(sec>=30){
+      const minutePhase=sec%60;
+      const isWave=sec>=60&&minutePhase<5;
+      waveSeconds=isWave?Math.max(0,5-minutePhase):0;
+      const growth=clamp((sec-30)/(DURATION-30),0,1);
+      base=isWave?Math.round(180+20*growth):Math.round(100+50*growth);
+    }
+    return {base,waveSeconds};
+  }
   function masterVolume(){
     return volumeValue("masterVolume");
   }
@@ -1983,23 +2601,42 @@
   }
   function renderEventShop(){
     syncCoinDisplay();
+    meta.garden=normalizeGardenState(meta.garden);
     const activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0));
-    const stones=Math.max(0,Math.floor(Number(meta.rareBreakStones)||0));
-    const canBuy=activityCoins>=RARE_BREAK_STONE_PRICE;
+    const stones=breakStoneCount("rare");
+    const fertilizer=Math.max(0,Math.floor(Number(meta.garden.fertilizer)||0));
+    const drainShovels=Math.max(0,Math.floor(Number(meta.garden.drainShovels)||0));
+    const canBuyStone=activityCoins>=RARE_BREAK_STONE_PRICE;
+    const canBuyDrainShovel=activityCoins>=GARDEN_DRAIN_SHOVEL_PRICE;
+    const canBuyFertilizer=activityCoins>=GARDEN_FERTILIZER_PRICE;
     const devTools=devModeActive?`
-      <div class="shopEventBalance">開發工具｜活動幣
+      <div class="shopEventBalance shopEventDevTools"><span>開發工具｜活動幣</span>
         <button type="button" class="shopBuyBtn" data-dev-shop-action="activityCoinSub">-100</button>
         <button type="button" class="shopBuyBtn" data-dev-shop-action="activityCoinAdd">+100</button>
       </div>
     `:"";
     shopGrid.innerHTML=`
       ${devTools}
-      <div class="shopEventBalance">活動兌換幣 ${formatCommaNumber(activityCoins)}｜稀有突破原石 ${formatCommaNumber(stones)}</div>
+      <div class="shopEventBalance">活動兌換幣 ${formatCommaNumber(activityCoins)}｜${breakStoneName("rare")} ${formatCommaNumber(stones)}｜肥料 ${formatCommaNumber(fertilizer)}｜挖溝鏟 ${formatCommaNumber(drainShovels)}</div>
+      <div class="shopEventSectionTitle">原石系列</div>
       <div class="shopCard">
         <div class="shopCardIcon">🔷</div>
         <div class="shopCardName">稀有突破原石</div>
         <div class="shopCardSub">稀有裝備鍛造 +10 後可突破｜持有 ${formatCommaNumber(stones)}</div>
-        <button type="button" class="shopBuyBtn" data-shop-action="rareBreakStone" ${canBuy?"":"disabled"}>BUY 活動幣 ${RARE_BREAK_STONE_PRICE}</button>
+        <button type="button" class="shopBuyBtn" data-shop-action="rareBreakStone" ${canBuyStone?"":"disabled"}>BUY 活動幣 ${RARE_BREAK_STONE_PRICE}</button>
+      </div>
+      <div class="shopEventSectionTitle">菜園系列</div>
+      <div class="shopCard">
+        <div class="shopCardIcon">🌿</div>
+        <div class="shopCardName">菜園肥料</div>
+        <div class="shopCardSub">施肥補養分專用｜持有 ${formatCommaNumber(fertilizer)}</div>
+        <button type="button" class="shopBuyBtn" data-shop-action="gardenFertilizer" ${canBuyFertilizer?"":"disabled"}>BUY 活動幣 ${GARDEN_FERTILIZER_PRICE}</button>
+      </div>
+      <div class="shopCard">
+        <div class="shopCardIcon">⛏️</div>
+        <div class="shopCardName">菜園挖溝鏟</div>
+        <div class="shopCardSub">雨天排水專用｜持有 ${formatCommaNumber(drainShovels)}</div>
+        <button type="button" class="shopBuyBtn" data-shop-action="gardenDrainShovel" ${canBuyDrainShovel?"":"disabled"}>BUY 活動幣 ${GARDEN_DRAIN_SHOVEL_PRICE}</button>
       </div>
     `;
   }
@@ -2047,11 +2684,129 @@
     beep(860,.12,.03,"triangle");
     countAudioSubtype("ui");
   }
+  function gardenForgeAttack(quality){
+    const def=gardenQualityDef(quality);
+    return GARDEN_FORGE_ATTACK[def.id]||0;
+  }
+  function gardenEquipmentId(carrot){
+    return `${GARDEN_EQUIPMENT_PREFIX}${String(carrot?.id||"")}`;
+  }
+  function gardenEquipmentQuality(quality){
+    const id=gardenQualityDef(quality).id;
+    return id==="common"?"normal":id;
+  }
+  function gardenEquipmentFromCarrot(item){
+    const carrot=normalizeGardenCarrot(item);
+    if(!carrot.forged)return null;
+    const def=gardenQualityDef(carrot.quality);
+    return{
+      id:gardenEquipmentId(carrot),
+      name:def.name,
+      type:"weapon",
+      quality:gardenEquipmentQuality(def.id),
+      attack:gardenForgeAttack(def.id),
+      source:"garden",
+      carrotId:carrot.id,
+      asset:def.asset
+    };
+  }
+  function gardenEquipmentItems(){
+    meta.garden=normalizeGardenState(meta.garden);
+    const seen=new Set();
+    return [...(meta.garden.storage||[]),...(meta.garden.depositBox||[])]
+      .map(gardenEquipmentFromCarrot)
+      .filter(item=>{
+        if(!item||seen.has(item.id))return false;
+        seen.add(item.id);
+        return true;
+      });
+  }
+  function equipmentItemById(id){
+    const key=String(id||"");
+    return EQUIPMENT_DEFS[key]||gardenEquipmentItems().find(item=>item.id===key)||null;
+  }
+  function equipmentInventoryItems(){
+    const seen=new Set();
+    return [...meta.equipmentInventory.map(id=>EQUIPMENT_DEFS[id]).filter(Boolean),...gardenEquipmentItems()]
+      .filter(item=>{
+        if(!item||seen.has(item.id))return false;
+        seen.add(item.id);
+        return true;
+      });
+  }
+  function equipmentInventoryHas(id){
+    const key=String(id||"");
+    if(EQUIPMENT_DEFS[key])return meta.equipmentInventory.includes(key);
+    return gardenEquipmentItems().some(item=>item.id===key);
+  }
+  function canDismantleEquipment(item){
+    if(!item||item.id==="bittenCarrot")return false;
+    if(item.type==="weapon"&&meta.equippedWeaponId===item.id)return false;
+    if(item.type==="ring"&&meta.equippedRingId===item.id)return false;
+    return item.type==="weapon"||item.type==="ring";
+  }
+  function removeGardenCarrotById(carrotId){
+    const target=String(carrotId||"");
+    if(!target)return false;
+    meta.garden=normalizeGardenState(meta.garden);
+    let removed=false;
+    meta.garden.storage=(meta.garden.storage||[]).filter(item=>{
+      if(!removed&&String(item.id)===target){removed=true;return false;}
+      return true;
+    });
+    if(!removed){
+      meta.garden.depositBox=(meta.garden.depositBox||[]).filter(item=>{
+        if(!removed&&String(item.id)===target){removed=true;return false;}
+        return true;
+      });
+    }
+    return removed;
+  }
+  function dismantleEquipment(id){
+    ensureEquipmentState();
+    const item=equipmentItemById(id);
+    if(!item||!equipmentInventoryHas(id)){
+      forgeMessage="找不到這件裝備";
+      beep(180,.08,.025,"square");
+      renderShop();
+      return;
+    }
+    if(!canDismantleEquipment(item)){
+      forgeMessage=item.id==="bittenCarrot"?"初始武器不能分解":"正在穿戴的裝備不能分解";
+      beep(180,.08,.025,"square");
+      renderShop();
+      return;
+    }
+    const stoneQuality=breakStoneQualityKey(item.quality);
+    addBreakStone(stoneQuality,1);
+    if(item.source==="garden"){
+      removeGardenCarrotById(item.carrotId);
+    }else{
+      meta.equipmentInventory=meta.equipmentInventory.filter(equipId=>equipId!==item.id);
+      if(item.id==="wholeCarrot")meta.shopBoughtWholeCarrot=false;
+    }
+    delete meta.equipmentEnhance[item.id];
+    delete meta.equipmentBreakthrough[item.id];
+    if(meta.equippedWeaponId===item.id)meta.equippedWeaponId="bittenCarrot";
+    if(meta.equippedRingId===item.id)meta.equippedRingId="";
+    forgeMessage=`${item.name} 已分解，獲得 ${breakStoneName(stoneQuality)} x1。`;
+    saveMeta();
+    renderShop();
+    renderMeta();
+    beep(620,.14,.035,"triangle");
+  }
+  function gardenReadyForgeItems(){
+    meta.garden=normalizeGardenState(meta.garden);
+    return (meta.garden.storage||[])
+      .map((item,index)=>({item,index,def:gardenQualityDef(item.quality)}))
+      .filter(({item})=>Math.max(0,Math.floor(Number(item.level)||0))>=GARDEN_ENHANCE_MAX_LEVEL);
+  }
   function renderForgeShop(){
     ensureEquipmentState();
     syncCoinDisplay();
     const used=Math.max(0,Math.floor(Number(meta.forgeDailyUsed)||0));
-    const forgeable=meta.equipmentInventory.map(id=>EQUIPMENT_DEFS[id]).filter(item=>item&&forgeRuleFor(item));
+    const forgeable=equipmentInventoryItems().filter(item=>item&&(forgeRuleFor(item)||canDismantleEquipment(item)));
+    const gardenForgeItems=gardenReadyForgeItems();
     const devTools=devModeActive?`
       <div class="forgeHeader">
         <b>開發工具</b>
@@ -2059,69 +2814,2099 @@
         <button type="button" class="shopBuyBtn" data-dev-shop-action="dailyReset">重置今日次數</button>
       </div>
     `:"";
-    if(!forgeable.length){
+    if(!["normal","garden"].includes(forgeSourceMode)){
       shopGrid.innerHTML=`
         <div class="forgePanel">
-          <div class="forgeScene">
-            <div class="forgeFire"></div>
-            <div class="forgeAnvil"></div>
-            <div class="forgeHammer"></div>
-            <div class="forgeSmith"></div>
-          </div>
           ${devTools}
-          <div class="forgeEmpty">尚未持有可鍛造裝備。<br>先到精靈商店購買藍框以上武器。</div>
+          <div class="forgeHeader">
+            <b>選擇鍛造來源</b>
+            <span>先選裝備來源，再進入對應列表。</span>
+          </div>
+          <div class="forgeSourceList">
+            <div class="forgeSourceItem">
+              <div class="forgeSourceInfo">
+                <b>一般關卡</b>
+                <small>一般關卡與精靈商店取得的裝備。</small>
+              </div>
+              <button type="button" class="shopBuyBtn" data-forge-source="normal">選擇裝備</button>
+            </div>
+            <div class="forgeSourceItem garden">
+              <div class="forgeSourceInfo">
+                <b>菜園</b>
+                <small>菜園胡蘿蔔吸收到 S+ 後可鍛造。</small>
+              </div>
+              <button type="button" class="shopBuyBtn" data-forge-source="garden">選擇裝備</button>
+            </div>
+          </div>
         </div>
       `;
       return;
     }
     shopGrid.innerHTML=`
       <div class="forgePanel">
-        <div class="forgeScene">
-          <div class="forgeFire"></div>
-          <div class="forgeAnvil"></div>
-          <div class="forgeHammer"></div>
-          <div class="forgeSmith"></div>
-        </div>
         ${devTools}
-        <div class="forgeHeader">
-          <b>今日鍛造 ${used}/${FORGE_DAILY_LIMIT}</b>
-          <span>${forgeMessage||"藍框以上裝備可鍛造，單件最高 +10。"}</span>
+        <div class="forgeHeader forgeSubHeader">
+          <b>${forgeSourceMode==="garden"?"菜園胡蘿蔔鍛造":`今日鍛造 ${used}/${FORGE_DAILY_LIMIT}`}</b>
+          <span>${forgeMessage||(forgeSourceMode==="garden"?"S+ 胡蘿蔔可直接鍛造":`藍框以上裝備可鍛造，單件最高 +10。｜${breakStoneInventoryText()}`)}</span>
+          <button type="button" class="forgeBackBtn" data-forge-source-back>返回分類</button>
         </div>
-        <div class="forgeList">
-          ${forgeable.map(item=>{
+        ${forgeSourceMode==="normal"?(forgeable.length?`
+          <div class="forgeList">
+            ${forgeable.map(item=>{
             const rule=forgeRuleFor(item);
+            const canForge=!!rule;
             const quality=equipmentQualityInfo(item);
             const level=equipmentEnhanceLevel(item.id);
             const breakState=equipmentBreakState(item.id);
             const advanced=breakState.unlocked;
             const advancedLevel=advanced?breakState.level:0;
             const totalLevel=level+advancedLevel;
-            const canBreak=item.type==="weapon"&&item.quality==="rare"&&level>=10&&!advanced;
+            const canBreak=canForge&&item.type==="weapon"&&item.quality==="rare"&&level>=10&&!advanced;
             const statText=equipmentMainStatText(item);
-            const gainText=equipmentForgeGainText(item,rule);
-            const forgeCost=advanced?equipmentAdvancedForgeCost(item,rule,advancedLevel):equipmentForgeCost(item,rule,level);
-            const maxed=advanced?advancedLevel>=10:(level>=10&&!canBreak);
-            const needsStone=canBreak&&(meta.rareBreakStones||0)<1;
-            const blocked=canBreak?needsStone:(used>=FORGE_DAILY_LIMIT||maxed||walletCoins<forgeCost);
+            const gainText=canForge?equipmentForgeGainText(item,rule):"不可鍛造，可分解";
+            const forgeCost=canForge?(advanced?equipmentAdvancedForgeCost(item,rule,advancedLevel):equipmentForgeCost(item,rule,level)):0;
+            const maxed=canForge?(advanced?advancedLevel>=10:(level>=10&&!canBreak)):true;
+            const needsStone=canBreak&&breakStoneCount(item.quality)<1;
+            const blocked=canForge?(canBreak?needsStone:(used>=FORGE_DAILY_LIMIT||maxed||walletCoins<forgeCost)):true;
+            const dismantleable=canDismantleEquipment(item);
             return `
               <div class="forgeItem ${quality.className}${canBreak?" breakReady":""}">
                 <div class="forgeItemInfo">
                   <b>${item.name} <span class="${quality.className}">${quality.name}</span>${totalLevel?` +${totalLevel}`:""}</b>
-                  <small>目前${statText}｜鍛造 +${level}/10${advanced?`｜進階 +${advancedLevel}/10`:""}｜成功率 ${Math.round(rule.success*100)}%｜${gainText}</small>
+                  <small>目前${statText}｜鍛造 +${level}/10${advanced?`｜進階 +${advancedLevel}/10`:""}｜${canForge?`成功率 ${Math.round(rule.success*100)}%`:"不可鍛造"}｜${gainText}</small>
                 </div>
-                <button type="button" class="shopBuyBtn" data-forge-id="${item.id}" ${blocked?"disabled":""}>
-                  ${canBreak?(needsStone?"需要原石":"突破"):maxed?"已滿級":used>=FORGE_DAILY_LIMIT?"今日已滿":walletCoins<forgeCost?"鑽石不足":`鍛造 💎 ${formatCommaNumber(forgeCost)}`}
-                </button>
+                <div class="forgeItemActions">
+                  <button type="button" class="shopBuyBtn" data-forge-id="${item.id}" ${blocked?"disabled":""}>
+                    ${!canForge?"不可鍛造":canBreak?(needsStone?`需要${breakStoneName(item.quality)}`:"突破"):maxed?"已滿級":used>=FORGE_DAILY_LIMIT?"今日已滿":walletCoins<forgeCost?"鑽石不足":`鍛造 💎 ${formatCommaNumber(forgeCost)}`}
+                  </button>
+                  <button type="button" class="shopBuyBtn dismantleBtn" data-dismantle-id="${item.id}" ${dismantleable?"":"disabled"}>
+                    ${dismantleable?`分解｜${breakStoneName(item.quality)} +1`:"不可分解"}
+                  </button>
+                </div>
               </div>
             `;
-          }).join("")}
-        </div>
+            }).join("")}
+          </div>
+        `:`<div class="forgeEmpty">尚未持有可鍛造裝備。<br>先到精靈商店購買藍框以上武器。</div>`):""}
+        ${forgeSourceMode==="garden"?`<div class="gardenForgeBox compact">
+          <div class="forgeHeader gardenForgeHeader">
+            <b>菜園胡蘿蔔鍛造</b>
+            <span>${gardenForgeItems.length?"S+ 胡蘿蔔可直接鍛造":"吸收到 S+ 後會出現在這裡"}</span>
+          </div>
+          <div class="forgeList gardenForgeList">
+            ${gardenForgeItems.length?gardenForgeItems.map(({item,index,def})=>{
+              const attack=gardenForgeAttack(item.quality);
+              return `
+                <div class="forgeItem gardenForgeItem ${item.forged?"forged":""}">
+                  <img class="gardenForgeIcon" src="${def.asset}" alt="${def.name}">
+                  <div class="forgeItemInfo">
+                    <b>${def.name} <span>${def.rank}</span> ${gardenEnhanceRankText(item.level)}</b>
+                    <small>${item.forged?"已鍛造，裝備鍛造 +0":"可鍛造"}｜鍛造後攻擊力 +${formatCommaNumber(attack)}</small>
+                  </div>
+                  <button type="button" class="shopBuyBtn" data-garden-forge-index="${index}" ${item.forged?"disabled":""}>
+                    ${item.forged?"已鍛造":"鍛造"}
+                  </button>
+                </div>
+              `;
+            }).join(""):`<div class="forgeEmpty gardenForgeEmpty">尚未有 S+ 的菜園胡蘿蔔。</div>`}
+          </div>
+          ${gardenForgeItems.some(({item})=>item.forged)?`<div class="gardenForgeNotice">提示：已鍛造的菜園胡蘿蔔會保留在這裡，也會在 2 萬戰力後出現在角色裝備欄。</div>`:""}
+        </div>`:""}
       </div>
     `;
   }
-  function todayKey(){
+  function realTodayKey(){
     const now=new Date();
     return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  }
+  function isDateKey(key){
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(key||""));
+  }
+  function todayKey(){
+    if(devModeActive&&isDateKey(gardenDevDateOverride))return gardenDevDateOverride;
+    return realTodayKey();
+  }
+  function addDaysToKey(key,days){
+    const parts=String(key||realTodayKey()).split("-").map(Number);
+    const date=new Date(parts[0]||2026,(parts[1]||1)-1,(parts[2]||1)+Math.floor(Number(days)||0));
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+  }
+  function dateKeyToDayNumber(key){
+    const parts=String(key||"").split("-").map(Number);
+    if(parts.length!==3||parts.some(n=>!Number.isFinite(n)))return Math.floor(Date.now()/86400000);
+    return Math.floor(new Date(parts[0],parts[1]-1,parts[2]).getTime()/86400000);
+  }
+  function daysBetweenKeys(a,b){
+    return Math.max(0,dateKeyToDayNumber(b)-dateKeyToDayNumber(a));
+  }
+  function gardenPlantAgeDays(plant,today=todayKey()){
+    if(!plant)return 0;
+    return Math.max(1,daysBetweenKeys(plant.plantedDate||today,today)+1);
+  }
+  function gardenShownTotalDays(garden=meta.garden,today=todayKey()){
+    const state=normalizeGardenState(garden);
+    return Math.max(0,Math.floor(Number(state.totalPlantDays)||0))+(state.current?gardenPlantAgeDays(state.current,today):0);
+  }
+  function gardenClosePlantDays(plant){
+    if(!plant)return;
+    meta.garden=normalizeGardenState(meta.garden);
+    meta.garden.totalPlantDays=Math.max(0,Math.floor(Number(meta.garden.totalPlantDays)||0))+gardenPlantAgeDays(plant);
+  }
+  function gardenTrimRecords(){
+    meta.garden=normalizeGardenState(meta.garden);
+    const plantingCount=Math.max(0,Math.floor(Number(meta.garden.plantingCount)||0));
+    const lostRecordId="garden-lost-notebook";
+    const normalRecords=meta.garden.records.filter(record=>record?.id!==lostRecordId);
+    if(plantingCount<8){
+      meta.garden.records=normalRecords.slice(-80);
+      return;
+    }
+    const minPlanting=Math.max(1,plantingCount-5);
+    const lostRecord=normalizeGardenRecord({
+      id:lostRecordId,
+      date:todayKey(),
+      createdAt:0,
+      plantingNo:1,
+      kind:"lostNotebook",
+      title:"<筆記本遺失了>",
+      text:"<筆記本遺失了>",
+      choices:[]
+    });
+    meta.garden.records=[
+      lostRecord,
+      ...normalRecords.filter(record=>{
+        const no=Math.max(0,Math.floor(Number(record.plantingNo)||0));
+        return no>=minPlanting;
+      })
+    ].slice(-80);
+  }
+  function gardenTitleInfo(harvestCount=0){
+    const count=Math.max(0,Math.floor(Number(harvestCount)||0));
+    const titles=[
+      {name:"菜園大神",at:200,mods:{immortal:1,eternal:.3}},
+      {name:"萬物園藝師",at:100,mods:{mythic:1}},
+      {name:"田園高手",at:50,mods:{legendary:1}},
+      {name:"種菜好手",at:25,mods:{epic:1}},
+      {name:"嫩芽小手",at:10,mods:{uncommon:1}},
+      {name:"會澆水了",at:3,mods:{uncommon:.5}},
+      {name:"超級菜鳥",at:0,mods:{}}
+    ];
+    const active=titles.find(item=>count>=item.at)||titles[titles.length-1];
+    return{...active,count};
+  }
+  function gardenTitleLevelUpInfo(beforeCount,afterCount){
+    const before=gardenTitleInfo(beforeCount);
+    const after=gardenTitleInfo(afterCount);
+    return before.name!==after.name?after:null;
+  }
+  function gardenStageIndex(growth=0){
+    const value=Math.max(0,Math.floor(Number(growth)||0));
+    if(value>=15)return 6;
+    if(value>=11)return 5;
+    if(value>=8)return 4;
+    if(value>=6)return 3;
+    if(value>=4)return 2;
+    if(value>=2)return 1;
+    return 0;
+  }
+  function gardenPlantImageKey(plant){
+    if(!plant)return"empty";
+    const normalized=normalizeGardenPlant(plant);
+    if(normalized.status==="eaten")return normalized.eatenReason==="bird"?"empty":"eaten";
+    if(normalized.status==="dead"){
+      return normalized.growth<4?"empty":"withered";
+    }
+    if(normalized.condition&&GARDEN_CONDITION_IMAGES[normalized.condition])return GARDEN_CONDITION_IMAGES[normalized.condition];
+    if(normalized.status==="dry"){
+      if(normalized.growth<4)return gardenStageImageKey(normalized.growth);
+      if(normalized.growth<8)return"leafDry";
+      return"matureDry";
+    }
+    return gardenStageImageKey(normalized.growth);
+  }
+  function gardenStageImageKey(growth){
+    const keys=["seed","sprout","smallLeaves","lushLeaves","fattening","mature","harvestReady"];
+    return keys[gardenStageIndex(growth)]||"seed";
+  }
+  function gardenStageName(growth=0,status="growing",condition="",eatenReason=""){
+    if(status==="eaten"){
+      if(eatenReason==="bird")return"被小鳥啄走";
+      if(eatenReason==="snail")return"被蝸牛吃掉";
+      if(eatenReason==="forgotHarvest")return"太久未採收";
+      return"被地鼠啃掉";
+    }
+    if(status==="dead")return growth<4?"無":"枯死";
+    if(condition&&GARDEN_CONDITION_NAMES[condition])return GARDEN_CONDITION_NAMES[condition];
+    if(status==="dry"){
+      if(growth<4)return gardenStageName(growth,"growing");
+      if(growth<8)return"小葉缺水";
+      return"成熟缺水";
+    }
+    return["種子","發芽","長出小葉","葉子茂盛","胡蘿蔔長胖","成熟","可採收"][gardenStageIndex(growth)]||"無";
+  }
+  function gardenMinimumGrowthForAge(age=1){
+    const day=Math.max(1,Math.floor(Number(age)||1));
+    if(day>=17)return 15;
+    if(day>=15)return 11;
+    if(day>=12)return 8;
+    if(day>=9)return 6;
+    if(day>=6)return 4;
+    if(day>=3)return 2;
+    return 0;
+  }
+  function gardenApplyMinimumGrowthForAge(plant){
+    if(!plant||plant.status==="dead"||plant.status==="eaten")return;
+    const age=gardenPlantAgeDays(plant,todayKey());
+    if(daysBetweenKeys(plant.lastCareDate||plant.plantedDate||todayKey(),todayKey())>0)return;
+    const minGrowth=gardenMinimumGrowthForAge(age);
+    const before=Math.max(0,Math.floor(Number(plant.growth)||0));
+    if(minGrowth<=before)return;
+    plant.growth=Math.min(15,minGrowth);
+    plant.pendingGrowth=Math.min(Math.max(0,Math.floor(Number(plant.pendingGrowth)||0)),Math.max(0,15-plant.growth));
+    if(plant.growth>=15&&!plant.harvestReadyDate)plant.harvestReadyDate=todayKey();
+    const stage=gardenStageName(plant.growth,plant.status||"growing",plant.condition||"");
+    gardenAddRecord("自然成長",`種植第 ${age} 天，胡蘿蔔慢慢長大，成長階段推進到「${stage}」。`);
+  }
+  function gardenApplyEarlyNeglectConsequences(plant){
+    if(!plant||plant.status==="dead"||plant.status==="eaten")return false;
+    const today=todayKey();
+    const growth=Math.max(0,Math.floor(Number(plant.growth)||0));
+    const daysNoCare=daysBetweenKeys(plant.lastCareDate||plant.plantedDate||today,today);
+    if(growth<2&&daysNoCare>=2){
+      plant.status="eaten";
+      plant.eatenReason="bird";
+      plant.pendingGrowth=0;
+      plant.pendingGrowthDate="";
+      plant.lastEvent={title:"種子被鳥啄走",text:"種子種下後太久沒有照顧，路過的小鳥把土面啄開，種子不見了。"};
+      gardenAddRecord("種子被鳥啄走","種子種下後太久沒有照顧，路過的小鳥把土面啄開，種子不見了。");
+      return true;
+    }
+    if(growth>=2&&growth<4&&daysNoCare>=2){
+      plant.status="eaten";
+      plant.eatenReason="snail";
+      plant.pendingGrowth=0;
+      plant.pendingGrowthDate="";
+      plant.lastEvent={title:"嫩芽被蝸牛吃掉",text:"發芽後太久沒有照顧，蝸牛慢慢爬進菜園，把嫩芽吃掉了。"};
+      gardenAddRecord("嫩芽被蝸牛吃掉","發芽後太久沒有照顧，蝸牛慢慢爬進菜園，把嫩芽吃掉了。");
+      return true;
+    }
+    return false;
+  }
+  function gardenQualityRecordText(plant){
+    const status=String(plant?.status||"");
+    const condition=String(plant?.condition||"");
+    const reason=String(plant?.eatenReason||"");
+    if(status==="dead")return"品質狀況：植株已經枯死，品質不再有改善空間。";
+    if(status==="eaten"){
+      if(reason==="bird")return"品質狀況：種子已被小鳥啄走，這次種植失敗了。";
+      if(reason==="snail")return"品質狀況：嫩芽已被蝸牛吃掉，這次種植失敗了。";
+      if(reason==="forgotHarvest")return"品質狀況：成熟後放太久被啃壞，已經無法採收。";
+      return"品質狀況：植株已被破壞，這次種植失敗了。";
+    }
+    if(status==="dry")return"品質狀況：缺水狀態尚未解除，品質正在承受壓力。";
+    if(/Overwater/.test(condition))return"品質狀況：水分過多，根邊氣息被悶住。";
+    if(/BugBite/.test(condition))return"品質狀況：葉片有蟲咬痕跡，品質氣息受到干擾。";
+    if(condition==="matureDry"||condition==="leafDry")return"品質狀況：植株偏乾，品質正在承受壓力。";
+    if(condition==="moleEaten")return"品質狀況：胡蘿蔔被啃壞，品質明顯受損。";
+    const shift=Number(plant?.qualityShift)||0;
+    if(shift>=6)return"品質狀況：運勢非常旺，高品質機率明顯提升。";
+    if(shift>=3)return"品質狀況：運勢不錯，高品質機率正在上升。";
+    if(shift>=1)return"品質狀況：略有起色，品質似乎往好的方向變化。";
+    if(shift===0)return"品質狀況：一切平穩，品質沒有明顯變化。";
+    if(shift<=-6)return"品質狀況：狀況很差，高品質機率明顯下滑。";
+    if(shift<=-3)return"品質狀況：狀況偏差，高品質機率正在下降。";
+    return"品質狀況：略微下滑，需要好好照顧。";
+  }
+  function gardenRecordBody(title,text,plant=meta.garden?.current,qualityText=""){
+    const head=title?`${title}：${text}`:String(text||"今天還沒有新的紀錄。");
+    return plant?`${head}\n${qualityText||gardenQualityRecordText(plant)}`:head;
+  }
+  function gardenReplaceQualityLine(text,qualityText){
+    const lines=String(text||"").split("\n");
+    const index=lines.findIndex(line=>String(line||"").trim().startsWith("品質狀況："));
+    if(index>=0)lines[index]=qualityText;
+    else lines.push(qualityText);
+    return lines.join("\n");
+  }
+  function gardenDisplayRecordText(record){
+    const title=String(record?.title||"");
+    const text=String(record?.text||"");
+    if(title.startsWith("施肥過量")){
+      if(/枯死/.test(text))return gardenReplaceQualityLine(text,"品質狀況：植株已經枯死，品質不再有改善空間。");
+      return gardenReplaceQualityLine(text,"品質狀況：肥料已經過量，根邊氣息混亂，高品質機率正在下滑。");
+    }
+    if(/枯死/.test(text))return gardenReplaceQualityLine(text,"品質狀況：植株已經枯死，品質不再有改善空間。");
+    if(/種子被鳥啄走|被小鳥啄走/.test(text))return gardenReplaceQualityLine(text,"品質狀況：種子已被小鳥啄走，這次種植失敗了。");
+    if(/嫩芽被蝸牛吃掉|被蝸牛吃掉/.test(text))return gardenReplaceQualityLine(text,"品質狀況：嫩芽已被蝸牛吃掉，這次種植失敗了。");
+    if(/被啃壞/.test(text))return gardenReplaceQualityLine(text,"品質狀況：植株已被破壞，這次種植失敗了。");
+    return text;
+  }
+  function gardenAddRecord(title,text,{choices=[],kind="",plant=meta.garden?.current,qualityText=""}={}){
+    meta.garden=normalizeGardenState(meta.garden);
+    const current=meta.garden.current;
+    const slot=typeof activeGardenTimeSlot==="function"?activeGardenTimeSlot():gardenTimeSlot();
+    const weather=gardenWeatherForDate(todayKey());
+    const record=normalizeGardenRecord({
+      date:todayKey(),
+      createdAt:Date.now(),
+      plantingNo:current?.plantingNo||meta.garden.plantingCount||0,
+      plantDay:current?gardenPlantAgeDays(current,todayKey()):0,
+      slot,
+      weatherName:weather.name,
+      kind,
+      title,
+      text:gardenRecordBody(title,text,plant,qualityText),
+      choices
+    });
+    meta.garden.records.push(record);
+    if(current)current.lastEvent={title,text,date:record.date};
+    gardenTrimRecords();
+    return record;
+  }
+  function gardenResolveRecordChoice(action){
+    const parts=String(action||"").split(":");
+    const recordId=parts[1]||"";
+    const choiceId=parts[2]||"";
+    meta.garden=normalizeGardenState(meta.garden);
+    const record=meta.garden.records.find(item=>item.id===recordId);
+    if(!record||!record.choices?.length)return{ok:false,message:"這個選項已經失效。"};
+    const choice=record.choices.find(item=>item.id===choiceId)||record.choices[0];
+    record.text=`${record.text}\n我按：${choice.label}。\n${choice.result}`;
+    record.choices=[];
+    return{ok:true,message:"成長紀錄已更新。"};
+  }
+  function gardenChoiceFertilizerGain(event,choice){
+    const raw=Math.max(0,Math.floor(Number(choice?.fertilizer)||0));
+    if(raw>0)return raw;
+    const text=`${event?.title||""}${event?.text||""}${choice?.id||""}${choice?.label||""}${choice?.result||""}`;
+    return /肥料/.test(text)&&/(keep|收|倉庫)/.test(text)?1:0;
+  }
+  function gardenChoiceCoinGain(event,choice){
+    const raw=Math.max(0,Math.floor(Number(choice?.coins)||0));
+    if(raw>0)return raw;
+    const text=`${event?.title||""}${event?.text||""}${choice?.id||""}${choice?.label||""}${choice?.result||""}`;
+    return /鑽石/.test(text)&&/(挖|撿|收|拿|帶走)/.test(text)?1:0;
+  }
+  function addGardenCoins(amount){
+    const gain=Math.max(0,Math.floor(Number(amount)||0));
+    if(!gain)return 0;
+    syncCoinState();
+    meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0)+gain);
+    walletCoins=meta.coins;
+    return gain;
+  }
+  function gardenEffectSummary(effect,{fertilizerGain=0,coinsGain=0}={}){
+    return[
+      effect?.growth?`成長 ${effect.growth>0?"+":""}${effect.growth}`:"",
+      effect?.stall?`成長停滯 +${effect.stall}`:"",
+      effect?.quality?`品質 ${effect.quality>0?"+":""}${effect.quality}%`:"",
+      effect?.moisture?`濕度 ${effect.moisture>0?"+":""}${effect.moisture}`:"",
+      effect?.fertility?`肥力 ${effect.fertility>0?"+":""}${effect.fertility}`:"",
+      effect?.nutrients?`養分 ${effect.nutrients>0?"+":""}${effect.nutrients}`:"",
+      effect?.condition&&GARDEN_CONDITION_NAMES[effect.condition]?`狀態：${GARDEN_CONDITION_NAMES[effect.condition]}`:"",
+      fertilizerGain?`肥料 +${fertilizerGain}`:"",
+      coinsGain?`鑽石 +${coinsGain}`:""
+    ].filter(Boolean).join("，");
+  }
+  function gardenApplySimpleEventEffect(plant,event){
+    if(!plant||!event)return"";
+    const stall=Math.max(0,Math.floor(Number(event.stall)||0));
+    const growth=Math.max(-3,Math.min(3,Math.floor(Number(event.growth)||0)));
+    const quality=Number(event.quality)||0;
+    const moisture=Math.max(-3,Math.min(3,Math.floor(Number(event.moisture)||0)));
+    const fertility=Math.max(-3,Math.min(3,Math.floor(Number(event.fertility)||0)));
+    const nutrients=Math.max(-3,Math.min(3,Math.floor(Number(event.nutrients)||0)));
+    const fertilizerGain=Math.max(0,Math.floor(Number(event.fertilizer)||0));
+    const coinsGain=Math.max(0,Math.floor(Number(event.coins)||0));
+    const condition=Object.prototype.hasOwnProperty.call(GARDEN_CONDITION_IMAGES,String(event.condition||""))?String(event.condition||""):"";
+    if(stall){
+      plant.pendingGrowth=Math.max(0,Math.floor(Number(plant.pendingGrowth)||0)-stall);
+      plant.bonusGrowth=Math.max(0,Math.floor(Number(plant.bonusGrowth)||0)-stall);
+    }
+    if(growth>0){
+      plant.growth=Math.min(15,Math.max(0,Math.floor(Number(plant.growth)||0)+growth));
+      if(plant.growth>=15&&!plant.harvestReadyDate)plant.harvestReadyDate=todayKey();
+    }else if(growth<0){
+      plant.pendingGrowth=Math.max(0,Math.floor(Number(plant.pendingGrowth)||0)+growth);
+      if(plant.pendingGrowth<=0)plant.pendingGrowthDate="";
+    }
+    if(quality)plant.qualityShift=Math.max(-20,Math.min(20,(Number(plant.qualityShift)||0)+quality));
+    if(moisture)plant.moisture=clampGardenMoisture((Number(plant.moisture)||0)+moisture);
+    if(fertility)plant.fertility=clampGardenSoilValue((Number(plant.fertility)||0)+fertility,2,5);
+    if(nutrients)plant.nutrients=clampGardenSoilValue((Number(plant.nutrients)||0)+nutrients,3,6);
+    if(condition){
+      plant.condition=condition;
+      plant.conditionDate=todayKey();
+      if(condition==="leafDry"||condition==="matureDry")plant.status="dry";
+      else if(plant.status==="dry")plant.status="growing";
+    }
+    if(fertilizerGain)meta.garden.fertilizer=Math.max(0,Math.floor(Number(meta.garden.fertilizer)||0)+fertilizerGain);
+    if(coinsGain)addGardenCoins(coinsGain);
+    return gardenEffectSummary({...event,growth,stall,quality,moisture,fertility,nutrients,condition},{fertilizerGain,coinsGain});
+  }
+  function gardenEventTextWithEffect(plant,event){
+    const effectText=gardenApplySimpleEventEffect(plant,event);
+    return`${event.text}${effectText?`\n效果：${effectText}。`:""}`;
+  }
+  function gardenResolvePendingChoice(action){
+    const parts=String(action||"").split(":");
+    const choiceId=parts.slice(1).join(":")||"";
+    meta.garden=normalizeGardenState(meta.garden);
+    const plant=meta.garden.current;
+    const event=normalizeGardenChoiceEvent(plant?.pendingChoiceEvent);
+    if(!plant||!event)return{ok:false,message:"目前沒有可選事件。"};
+    const choice=event.choices.find(item=>item.id===choiceId)||event.choices[0];
+    const fertilizerGain=gardenChoiceFertilizerGain(event,choice);
+    const coinsGain=gardenChoiceCoinGain(event,choice);
+    if(choice.growth){
+      plant.growth=Math.max(0,Math.min(15,Math.floor(Number(plant.growth)||0)+choice.growth));
+    }
+    if(choice.stall){
+      plant.pendingGrowth=Math.max(0,Math.floor(Number(plant.pendingGrowth)||0)-choice.stall);
+      plant.bonusGrowth=Math.max(0,Math.floor(Number(plant.bonusGrowth)||0)-choice.stall);
+    }
+    if(choice.quality){
+      plant.qualityShift=Math.max(-20,Math.min(20,(Number(plant.qualityShift)||0)+choice.quality));
+    }
+    if(choice.moisture)plant.moisture=clampGardenMoisture((Number(plant.moisture)||0)+choice.moisture);
+    if(choice.fertility)plant.fertility=clampGardenSoilValue((Number(plant.fertility)||0)+choice.fertility,2,5);
+    if(choice.nutrients)plant.nutrients=clampGardenSoilValue((Number(plant.nutrients)||0)+choice.nutrients,3,6);
+    if(fertilizerGain){
+      meta.garden.fertilizer=Math.max(0,Math.floor(Number(meta.garden.fertilizer)||0)+fertilizerGain);
+    }
+    if(coinsGain)addGardenCoins(coinsGain);
+    plant.pendingChoiceEvent=null;
+    if(!plant.choiceEventDate)plant.choiceEventDate=todayKey();
+    const effectText=gardenEffectSummary(choice,{fertilizerGain,coinsGain});
+    gardenAddRecord(`觀察事件・${event.title}`,`${event.text}\n選擇：${choice.label}。\n${choice.result}${effectText?`\n效果：${effectText}。`:""}`);
+    if(choice.sellPlant){
+      gardenClosePlantDays(plant);
+      meta.garden.current=null;
+    }
+    const afterFertilizer=Math.max(0,Math.floor(Number(meta.garden.fertilizer)||0));
+    const stockText=fertilizerGain?`目前肥料 x ${afterFertilizer}。`:coinsGain?`目前鑽石 ${formatCommaNumber(walletCoins||0)}。`:"";
+    return{ok:true,message:effectText?`${choice.result} 效果：${effectText}。${stockText?` ${stockText}`:""}`:choice.result};
+  }
+  function gardenClearRecords(){
+    meta.garden=normalizeGardenState(meta.garden);
+    gardenDevDateOverride="";
+    devTimeSlotIndex=null;
+    const keep={
+      seeds:meta.garden.seeds,
+      fertilizer:meta.garden.fertilizer,
+      storageCap:meta.garden.storageCap,
+      storage:meta.garden.storage,
+      depositBox:meta.garden.depositBox
+    };
+    meta.garden=normalizeGardenState({
+      ...keep,
+      plantingCount:0,
+      harvestCount:0,
+      totalPlantDays:0,
+      records:[],
+      current:null
+    });
+    selectedRecordPlantingNo=null;
+    return{ok:true,message:"成長紀錄、播種次數、收成次數與共種植天數已清空。",clearRecords:true,focusPlantingNo:0};
+  }
+  function gardenDailyMoistureDelta(weather){
+    let delta=-1;
+    if(weather?.isRainy)delta+=1;
+    if(weather?.key==="hot")delta-=1;
+    return delta;
+  }
+  function gardenApplyExtremeMoistureRisk(plant,dateKey=todayKey(),weather=gardenWeatherForDate(dateKey)){
+    if(!plant||plant.status==="dead"||plant.status==="eaten")return true;
+    const moisture=clampGardenMoisture(plant.moisture);
+    if(moisture>0&&moisture<GARDEN_MOISTURE_MAX)return false;
+    const isDry=moisture<=0;
+    const title=isDry?"乾旱枯死":"積水悶根";
+    const failText=isDry
+      ? `${weather.name}後土壤水分降到 0，根邊完全乾裂，這株胡蘿蔔枯死了。`
+      : `${weather.name}後土壤水分累積到 8，根系被濕氣悶住，這株胡蘿蔔枯死了。`;
+    if(Math.random()<GARDEN_EXTREME_MOISTURE_DEATH_RATE){
+      plant.status="dead";
+      plant.pendingGrowth=0;
+      plant.pendingGrowthDate="";
+      plant.condition="";
+      plant.conditionDate="";
+      plant.lastEvent={title,text:failText};
+      gardenAddRecord(title,failText,{qualityText:"品質狀況：植株已經枯死，品質不再有改善空間。"});
+      meta.garden.current=plant;
+      return true;
+    }
+    plant.qualityShift=Math.max(-20,Math.min(20,(Number(plant.qualityShift)||0)-2));
+    if(isDry){
+      plant.status="dry";
+      plant.condition=plant.growth>=8?"matureDry":plant.growth>=4?"leafDry":"";
+      plant.conditionDate=plant.condition?dateKey:"";
+      gardenAddRecord("乾旱危機",`${weather.name}後土壤水分降到 0，植株勉強撐過，但品質氣息明顯下滑。`,{qualityText:"品質狀況：嚴重缺水，品質正在承受壓力。"});
+      meta.garden.current=plant;
+      return false;
+    }
+    const overwaterCondition=gardenRainConditionForStage(gardenStageIndex(plant.growth||0));
+    plant.condition=overwaterCondition;
+    plant.conditionDate=overwaterCondition?dateKey:"";
+    gardenAddRecord("積水危機",`${weather.name}後土壤水分累積到 8，根部勉強撐過，但濕氣已經壓住氣息。`,{qualityText:"品質狀況：土壤積水，品質正在承受壓力。"});
+    meta.garden.current=plant;
+    return false;
+  }
+  function gardenApplyDailyMoisture(plant){
+    if(!plant||plant.status==="dead"||plant.status==="eaten")return;
+    const today=todayKey();
+    let last=isDateKey(plant.moistureDate)?plant.moistureDate:today;
+    let guard=0;
+    while(daysBetweenKeys(last,today)>0&&guard<60){
+      if(gardenApplyExtremeMoistureRisk(plant,last,gardenWeatherForDate(last)))return;
+      const next=addDaysToKey(last,1);
+      const weather=gardenWeatherForDate(next);
+      const current=gardenMoistureValue(plant.moisture);
+      plant.moisture=clampGardenMoisture(current+gardenDailyMoistureDelta(weather));
+      plant.moistureDate=next;
+      if(gardenApplyExtremeMoistureRisk(plant,next,weather))return;
+      last=next;
+      guard++;
+    }
+    plant.moistureDate=today;
+  }
+  function applyGardenPendingGrowth(){
+    meta.garden=normalizeGardenState(meta.garden);
+    const plant=meta.garden.current;
+    if(!plant||plant.status==="dead"||plant.status==="eaten")return;
+    if(plant.overFertilizedDate&&daysBetweenKeys(plant.overFertilizedDate,todayKey())>0){
+      plant.status="dead";
+      plant.pendingGrowth=0;
+      plant.pendingGrowthDate="";
+      plant.overFertilizedDate="";
+      plant.lastEvent={title:"施肥過量",text:"昨天施肥太多，土壤變得太鹹，這株胡蘿蔔枯死了。"};
+      gardenAddRecord("施肥過量","昨天施肥太多，土壤變得太鹹，這株胡蘿蔔枯死了。",{qualityText:"品質狀況：植株已經枯死，品質不再有改善空間。"});
+      return;
+    }
+    gardenApplyDailyMoisture(plant);
+    if(plant.status==="dead"||plant.status==="eaten")return;
+    if(gardenApplyEarlyNeglectConsequences(plant))return;
+    const pending=Math.max(0,Math.floor(Number(plant.pendingGrowth)||0));
+    if(pending&&plant.pendingGrowthDate&&daysBetweenKeys(plant.pendingGrowthDate,todayKey())>0){
+      plant.growth=Math.min(15,plant.growth+pending);
+      if(plant.growth>=15&&!plant.harvestReadyDate)plant.harvestReadyDate=todayKey();
+      plant.pendingGrowth=0;
+      plant.pendingGrowthDate="";
+    }
+    gardenApplyMinimumGrowthForAge(plant);
+    if(plant.status==="dry"&&clampGardenMoisture(plant.moisture)>1)plant.status="growing";
+  }
+  function applyGardenMissedDays(){
+    applyGardenPendingGrowth();
+    meta.garden=normalizeGardenState(meta.garden);
+    const plant=meta.garden.current;
+    if(!plant)return;
+    const today=todayKey();
+    if(plant.growth>=15){
+      if(!plant.harvestReadyDate)plant.harvestReadyDate=today;
+      if(daysBetweenKeys(plant.harvestReadyDate,today)>=2){
+        plant.status="eaten";
+        plant.eatenReason="forgotHarvest";
+        plant.lastEvent={title:"太久未採收",text:"成熟胡蘿蔔忘記採收，兩天後被路過的小傢伙偷啃了。"};
+        gardenAddRecord("太久未採收","成熟胡蘿蔔忘記採收，兩天後被路過的小傢伙偷啃了。");
+      }
+      return;
+    }
+    plant.missedStreak=0;
+    if(plant.status==="dry"&&clampGardenMoisture(plant.moisture)>1)plant.status="growing";
+  }
+  function gardenRates(){
+    meta.garden=normalizeGardenState(meta.garden);
+    const title=gardenTitleInfo(meta.garden.harvestCount);
+    const plant=meta.garden.current;
+    const rates={common:55,rare:25,uncommon:12,epic:5,legendary:2,mythic:.8,immortal:.19,eternal:.01};
+    for(const [id,bonus] of Object.entries(title.mods||{})){
+      rates[id]=(rates[id]||0)+bonus;
+      rates.common=Math.max(5,rates.common-bonus);
+    }
+    if(plant){
+      const shift=Math.max(-20,Math.min(20,Number(plant.qualityShift)||0));
+      if(shift>0){
+        rates.rare+=shift*.45;
+        rates.uncommon+=shift*.25;
+        rates.epic+=shift*.15;
+        rates.legendary+=shift*.1;
+        rates.mythic+=shift*.04;
+        rates.immortal+=shift*.009;
+        rates.eternal+=shift*.001;
+        rates.common=Math.max(5,rates.common-shift);
+      }else if(shift<0){
+        const penalty=Math.abs(shift);
+        rates.common+=penalty;
+        for(const id of ["rare","uncommon","epic","legendary","mythic","immortal","eternal"]){
+          rates[id]=Math.max(0,rates[id]-penalty*.14);
+        }
+      }
+    }
+    const sum=Object.values(rates).reduce((a,b)=>a+b,0)||1;
+    for(const id of Object.keys(rates))rates[id]=rates[id]/sum*100;
+    return rates;
+  }
+  function rollGardenHarvestQuality(){
+    const rates=gardenRates();
+    let roll=Math.random()*100;
+    for(const item of GARDEN_CARROT_QUALITIES){
+      roll-=rates[item.id]||0;
+      if(roll<=0)return item.id;
+    }
+    return "common";
+  }
+  function recentGardenEventTitles(plant,limit=2){
+    meta.garden=normalizeGardenState(meta.garden);
+    const plantingNo=Math.max(0,Math.floor(Number(plant?.plantingNo)||0));
+    return new Set((meta.garden.records||[])
+      .filter(record=>!plantingNo||Math.max(0,Math.floor(Number(record?.plantingNo)||0))===plantingNo)
+      .filter(record=>!["plantStart","lostNotebook","harvest"].includes(record?.kind))
+      .sort((a,b)=>(Number(b?.createdAt)||0)-(Number(a?.createdAt)||0))
+      .slice(0,limit)
+      .map(record=>String(record?.title||"").replace(/^觀察事件・/,""))
+      .filter(Boolean));
+  }
+  function pickGardenEvent(events,recentTitles){
+    const candidates=events.filter(event=>!recentTitles.has(event.title));
+    const pool=candidates.length?candidates:events;
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
+  function pickGardenWeightedEvent(events,recentTitles){
+    const candidates=events.filter(event=>!recentTitles.has(event.title));
+    const pool=candidates.length?candidates:events;
+    const total=pool.reduce((sum,event)=>sum+Math.max(1,Number(event.weight)||1),0)||1;
+    let roll=Math.random()*total;
+    for(const event of pool){
+      roll-=Math.max(1,Number(event.weight)||1);
+      if(roll<=0)return event;
+    }
+    return pool[0];
+  }
+  function gardenGeneratedEventPool(slot,stage,context={}){
+    const slotName=gardenWaterSlotName(slot);
+    const isSeedStage=stage<=0;
+    const subjects=stage<=0
+      ?["種子旁","淺土層","小土丘","播種處","土壤表面"]
+      :stage===1
+        ?["嫩芽邊","小葉尖","根鬚旁","幼苗周圍","葉柄下"]
+        :["葉片間","根部旁","菜園角落","泥土深處","胡蘿蔔旁"];
+    const slotMoods={
+      morning:["晨光剛落","露氣還沒散","空氣偏涼","小鳥剛飛過","土面帶著微光"],
+      noon:["日光正亮","熱氣浮在土上","雲影慢慢移動","菜園聲音變小","土面蒸起淡氣"],
+      afternoon:["斜光照進菜園","風從籬笆旁吹過","影子變得很長","土壤慢慢回溫","葉片開始放鬆"],
+      night:["星光落在土面","夜露慢慢聚起","菜園變得安靜","月光照著葉緣","草叢傳來細聲"]
+    }[slot]||["菜園氣息穩定","土壤微微變化","葉片輕輕晃動","周圍安靜下來","泥土散出淡香"];
+    const definitions=isSeedStage?[
+      {
+        titles:["自然調息","天光入土","清風巡田","露氣入土","土息流動"],
+        actions:["水分沿著縫隙慢慢沉下去","土壤把水留在剛好的地方","種子周圍的濕度變得平穩","淺土層慢慢吸住水氣","細小水珠停在安全的位置"],
+        endings:["種子安靜等待發芽","品質運勢有一點好兆頭","今天的狀態保持穩定","土面像是被輕輕整理過","播種處正在慢慢吸收水分"],
+        growth:[0,0,0,1,0],
+        quality:[0,1,0,0,1]
+      },
+      {
+        titles:["細心照料","順手整理","人工調土","照顧得宜","小心補水"],
+        actions:["你順手把水流引到旁邊","你把濕土輕輕撥鬆","你避開播種點直接沖水","你把周圍小碎石移開一點","你調整了水落下的位置"],
+        endings:["這次照顧讓土壤更舒服","種子附近看起來更穩","淺土層變得比較透氣","水分分布比剛才均勻","今天的照顧做得剛剛好"],
+        growth:[0,1,0,0,1],
+        quality:[1,0,1,0,0]
+      },
+      {
+        titles:["突發小事","不穩氣息","外來干擾","土面異動","菜園插曲"],
+        actions:["一陣亂風把水珠吹偏","小碎石卡在濕土旁邊","附近草葉滴下多餘水分","土面忽然結出一小塊硬泥","暗處有小東西踩過土面"],
+        endings:["品質運勢小幅晃動","今天需要多觀察一下","狀態沒有壞掉，但有點不穩","土壤需要時間自己調整","播種處看起來稍微受干擾"],
+        growth:[0,0,0,0,0],
+        quality:[-1,0,-1,0,-1]
+      }
+    ]:[
+      {
+        titles:["自然調息","天光照拂","清風巡田","露氣入土","土息流動"],
+        actions:["水分沿著縫隙慢慢沉下去","土壤把水留在剛好的地方","葉片順著風輕輕舒展","根鬚附近的氣息變得平穩","細小水珠停在安全的位置"],
+        endings:["看起來很適合繼續生長","品質運勢有一點好兆頭","今天的狀態保持穩定","菜園像是被輕輕整理過","胡蘿蔔安靜吸收著水分"],
+        growth:[0,0,0,1,0],
+        quality:[0,1,0,0,1]
+      },
+      {
+        titles:["細心照料","順手整理","人工調土","照顧得宜","小心補水"],
+        actions:["你順手把水流引到旁邊","你把濕土輕輕撥鬆","你避開葉心慢慢澆水","你把周圍雜物移開一點","你調整了水落下的位置"],
+        endings:["這次照顧讓土壤更舒服","胡蘿蔔的狀態看起來更穩","根部附近變得比較透氣","水分分布比剛才均勻","今天的照顧做得剛剛好"],
+        growth:[0,1,0,0,1],
+        quality:[1,0,1,0,0]
+      },
+      {
+        titles:["突發小事","不穩氣息","外來干擾","土面異動","菜園插曲"],
+        actions:["一陣亂風把水珠吹偏","小碎石卡在濕土旁邊","附近草葉滴下多餘水分","土面忽然結出一小塊硬泥","暗處有小東西踩過土面"],
+        endings:["品質運勢小幅晃動","今天需要多觀察一下","狀態沒有壞掉，但有點不穩","土壤需要時間自己調整","胡蘿蔔看起來稍微分心"],
+        growth:[0,0,0,0,0],
+        quality:[-1,0,-1,0,-1]
+      }
+    ];
+    const pool=[];
+    definitions.forEach((def,defIndex)=>{
+      def.titles.forEach((title,titleIndex)=>{
+        subjects.forEach((subject,subjectIndex)=>{
+          slotMoods.forEach((mood,moodIndex)=>{
+            const action=def.actions[(titleIndex+subjectIndex+moodIndex)%def.actions.length];
+            const ending=def.endings[(titleIndex*2+subjectIndex+moodIndex)%def.endings.length];
+            const effectIndex=(titleIndex+subjectIndex+moodIndex+defIndex)%def.growth.length;
+            const rainNote=context.isRainy&&!isSeedStage?"雨意讓土壤更濕，":"";
+            const waterNote=(context.waterCount||1)>1?"這是今天額外的一次補水，":"";
+            pool.push({
+              title:`${slotName}${title}・${subject}`,
+              text:`${mood}，${rainNote}${waterNote}${action}，${ending}。`,
+              growth:def.growth[effectIndex],
+              quality:def.quality[effectIndex]
+            });
+          });
+        });
+      });
+    });
+    return pool;
+  }
+  function gardenEventTemplateToChoice(event){
+    const good=(event.growth||event.quality>0||event.fertilizer||event.coins)&&!event.stall;
+    return normalizeGardenChoiceEvent({
+      id:event.id,
+      title:event.title,
+      text:event.text,
+      choices:[{
+        id:"resolve",
+        label:good?"順勢照顧":event.stall||event.quality<0?"處理一下":"觀察記錄",
+        result:event.result||"這次菜園變化已經記錄下來。",
+        growth:event.growth||0,
+        quality:event.quality||0,
+        fertilizer:event.fertilizer||0,
+        stall:event.stall||0,
+        coins:event.coins||0
+      }]
+    });
+  }
+  function gardenStructuredEventPool(stage,context={}){
+    const isRainy=!!context.isRainy;
+    const slot=gardenValidWaterSlot(context.slot);
+    if(stage<=0){
+      return[
+        {id:"seedWormSoil",title:"蚯蚓翻土",text:"土裡鑽出蚯蚓，泥土變得更鬆軟了。",growth:1,quality:1},
+        {id:"seedSparrowPeck",title:"麻雀啄土",text:"麻雀在土上啄來啄去，種子好像被打擾了。",stall:1,quality:-1},
+        {id:"seedWeedsSteal",title:"雜草搶養分",text:"小雜草先冒了出來，搶走一點土壤養分。",stall:1},
+        {id:"seedGlow",title:"種子發亮",text:"種子在土裡微微發光，似乎很有生命力。",quality:1},
+        {id:"seedHardSoil",title:"土壤太硬",text:"表層泥土有點結塊，種子暫時不好突破。",stall:1},
+        {id:"seedCalm",title:"種子安穩",text:"今天土壤很平靜，種子正在安靜吸收養分。"}
+      ];
+    }
+    const common=[
+      {id:"wormLooseSoil",title:"蚯蚓鬆土",text:"蚯蚓在土裡鑽動，根部呼吸更順暢了。",growth:1,minStage:1},
+      {id:"weedsSprout",title:"雜草冒出",text:"雜草從旁邊冒出來，搶走了一點養分。",stall:1,minStage:1},
+      {id:"birdRestSafe",title:"小鳥歇腳",text:"小鳥停在菜園邊，好像只是路過。",minStage:1},
+      {id:"birdRestBad",title:"小鳥歇腳",text:"小鳥停在菜園邊踩了一下土面，胡蘿蔔稍微被打擾了。",stall:1,minStage:1},
+      {id:"hardSoil",title:"土壤結塊",text:"泥土變硬了，胡蘿蔔伸展得不太順。",stall:1,minStage:1},
+      {id:"diamondFound",title:"挖到鑽石",text:"土裡閃了一下，竟然挖到一顆鑽石！",coins:1,quality:1,minStage:1},
+      {id:"sunlightGood",title:"陽光正好",text:"今天陽光剛剛好，葉子挺得很精神。",growth:1,minStage:1,dayOnly:true},
+      {id:"caterpillar",title:"毛毛蟲",text:"葉片邊緣被毛毛蟲咬了一點。",stall:1,quality:-1,minStage:2},
+      {id:"ladybugPatrol",title:"瓢蟲巡邏",text:"瓢蟲停在葉片上，好像幫忙趕走了害蟲。",quality:1,minStage:2},
+      {id:"beeVisit",title:"蜜蜂停留",text:"小蜜蜂繞著葉子飛，菜園充滿活力。",quality:1,minStage:2},
+      {id:"stoneFound",title:"挖到石頭",text:"整理土壤時挖到石頭，根部空間變小了。",stall:1,quality:-1,minStage:3},
+      {id:"cleanPebbles",title:"清理碎石",text:"清掉一些碎石後，胡蘿蔔有更多空間長大。",quality:1,minStage:3},
+      {id:"snailClose",title:"蝸牛靠近",text:"蝸牛慢慢爬來，葉子被啃了一小塊。",stall:1,minStage:3}
+    ].filter(event=>(event.minStage||1)<=stage&&(!event.dayOnly||slot!=="night"));
+    if(!isRainy)return common;
+    const rain=[
+      {id:"rainTooMuch",title:"水太多",text:"雨下太久，土壤變得太濕了。",stall:1,minStage:1},
+      {id:"rainSoilWashed",title:"土壤沖散",text:"雨水把表層泥土沖散，根部有點不穩。",stall:1,quality:-1,minStage:1,maxStage:4},
+      {id:"rainFertilityWashed",title:"土壤肥力被沖掉",text:"養分被雨水帶走，土壤變得比較貧瘠。",quality:-2,minStage:1},
+      {id:"rainFresh",title:"雨後清新",text:"雨後空氣清新，葉子吸飽水分。",growth:1,minStage:2},
+      {id:"rainWaterloggedRoot",title:"積水悶根",text:"泥土裡積了太多水，根部有點喘不過氣。",stall:1,quality:-1,minStage:4},
+      {id:"rainWorm",title:"雨中蚯蚓",text:"雨後蚯蚓變活躍，土壤被翻得更鬆。",quality:1,minStage:1},
+      {id:"rainMudSplash",title:"泥水濺葉",text:"泥水濺到葉片上，看起來有點狼狽。",quality:-1,minStage:3},
+      {id:"rainPuddleSafe",title:"小水窪",text:"菜園旁出現小水窪，幸好沒有泡到根部。",minStage:1},
+      {id:"rainPuddleBad",title:"小水窪",text:"菜園旁出現小水窪，根部附近暫時太濕了。",stall:1,minStage:1},
+      {id:"rainSunBreak",title:"雨停見光",text:"雨停後透出一點陽光，胡蘿蔔恢復精神。",growth:1,quality:1,minStage:1,dayOnly:true},
+      {id:"rainSoilCollapse",title:"泥土塌陷",text:"雨水讓泥土變鬆，胡蘿蔔周圍有點塌陷。",stall:1,minStage:4}
+    ].filter(event=>(event.minStage||1)<=stage&&(!event.maxStage||stage<=event.maxStage)&&(!event.dayOnly||slot!=="night"));
+    return[...common,...rain];
+  }
+  function gardenStructuredChoiceEvents(stage,context={}){
+    return gardenStructuredEventPool(stage,context).map(gardenEventTemplateToChoice).filter(Boolean);
+  }
+  function gardenAmbientChoiceEvents(stage,context={}){
+    const events=gardenStructuredChoiceEvents(stage,context);
+    if(stage>0){
+      events.push(normalizeGardenChoiceEvent({
+        id:"ambientOldCompost",
+        title:"路邊肥料袋",
+        text:"菜園邊出現一小袋看起來還能用的肥料。",
+        choices:[
+          {id:"keep",label:"收進倉庫",result:"你收下肥料，之後可以拿來施肥。",fertilizer:1},
+          {id:"mix",label:"混進土裡",result:"你把一點肥料混進土裡，土壤氣息變好了。",quality:1}
+        ]
+      }));
+    }
+    return events.filter(Boolean);
+  }
+  function gardenTimeObservationEvents(slot){
+    const pools={
+      morning:[
+        {title:"晨露滋養",text:"清晨露水附在葉片上，植株看起來很有精神。",growth:1},
+        {title:"朝陽溫和",text:"早上的陽光剛剛好，葉色看起來更穩定。",quality:1},
+        {title:"蚯蚓翻土",text:"土裡有蚯蚓活動，泥土變得鬆軟。",fertility:1},
+        {title:"露水過重",text:"土壤看起來偏深，水分似乎有點多。",moisture:1},
+        {title:"麻雀啄土",text:"麻雀在土面啄了幾下，植株受到一點干擾。",growth:-1},
+        {title:"平靜早晨",text:"菜園很安靜，沒有特別變化。"}
+      ],
+      noon:[
+        {title:"日照充足",text:"陽光充足，葉子挺得很直。",growth:1},
+        {title:"光合作用旺盛",text:"葉片顏色飽滿，狀態看起來很好。",quality:1},
+        {title:"土壤變乾",text:"土壤顏色變淺，水分正在下降。",moisture:-1},
+        {title:"午熱曬傷",text:"葉片邊緣有些乾黃，可能被曬得太久。",quality:-1},
+        {title:"養分吸收快",text:"植株吸收速度變快，但土壤養分也消耗了一些。",growth:1,nutrients:-1},
+        {title:"熱氣悶土",text:"泥土有點悶熱，根部狀態不太舒服。",growth:-1}
+      ],
+      afternoon:[
+        {title:"微風舒展",text:"微風吹過，葉子自然舒展開來。",growth:1},
+        {title:"土溫穩定",text:"土壤溫度穩定，根部吸收狀態良好。",quality:1},
+        {title:"雜草冒出",text:"旁邊冒出小雜草，開始搶走養分。",nutrients:-1},
+        {title:"毛毛蟲出沒",text:"葉片邊緣出現被啃咬的痕跡。",quality:-1,minStage:2},
+        {title:"瓢蟲巡邏",text:"瓢蟲停在葉片上，幫忙趕走了害蟲。",quality:1,minStage:2},
+        {title:"泥土結塊",text:"表層泥土變硬，根部伸展不太順。",growth:-1}
+      ],
+      night:[
+        {title:"夜露滋養",text:"夜露讓葉片恢復水分，看起來更有精神。",quality:1},
+        {title:"根部安定",text:"夜晚溫度穩定，根部慢慢吸收養分。",growth:1},
+        {title:"小動物腳印",text:"土面出現小腳印，植株附近被踩亂了。",growth:-1},
+        {title:"地鼠靠近",text:"土面有奇怪隆起，可能有地鼠靠近。",quality:-2,minStage:4},
+        {title:"靈光微現",text:"夜色中土壤微微發光，這株胡蘿蔔氣息不凡。",quality:2},
+        {title:"安靜夜晚",text:"夜晚很平靜，菜園沒有異常。"}
+      ]
+    };
+    return pools[gardenValidWaterSlot(slot)]||pools.morning;
+  }
+  function gardenStageObservationEvents(stage){
+    const pools=[
+      [
+        {title:"種子安穩",text:"土壤很平靜，種子正在慢慢吸收水分。"},
+        {title:"蚯蚓鬆土",text:"土裡有蚯蚓活動，泥土變得更鬆。",growth:1,fertility:1},
+        {title:"種子微光",text:"土壤深處微微發亮，種子似乎很有生命力。",quality:1},
+        {title:"麻雀啄土",text:"麻雀啄了幾下土面，種子受到打擾。",growth:-1},
+        {title:"雜草先長",text:"雜草比種子更早冒出，搶走了一點養分。",nutrients:-1},
+        {title:"土壤太硬",text:"土壤有些結塊，種子不容易突破。",growth:-1}
+      ],
+      [
+        {title:"嫩芽冒出",text:"小芽從土裡探出頭，看起來很健康。",growth:1},
+        {title:"微光新芽",text:"嫩芽帶著淡淡光澤，狀態不錯。",quality:1},
+        {title:"土壤偏乾",text:"土色變淺，小芽有點缺水。",moisture:-1,growth:-1},
+        {title:"嫩芽歪斜",text:"小芽有點歪，可能被風吹或土面擠壓。",growth:-1},
+        {title:"雜草干擾",text:"雜草靠近嫩芽，開始搶養分。",nutrients:-1},
+        {title:"平穩發芽",text:"小芽狀態穩定，沒有明顯變化。"}
+      ],
+      [
+        {title:"小葉舒展",text:"小葉慢慢張開，植株看起來更穩。",growth:1},
+        {title:"葉色鮮綠",text:"葉片顏色漂亮，養分吸收良好。",quality:1},
+        {title:"毛毛蟲咬葉",text:"小葉邊緣被咬了一點。",quality:-1},
+        {title:"葉尖泛黃",text:"葉片邊緣有些黃，可能水分或養分不平衡。",quality:-1},
+        {title:"養分不足",text:"葉片顏色偏淡，土壤養分可能不夠。",nutrients:-1,growth:-1},
+        {title:"瓢蟲停留",text:"瓢蟲停在葉片上，菜園狀態變安定。",quality:1}
+      ],
+      [
+        {title:"葉脈清楚",text:"葉脈變得清楚，植株正在穩定生長。",quality:1},
+        {title:"吸收順利",text:"根部吸收順暢，成長速度變快。",growth:1},
+        {title:"雜草搶養",text:"旁邊雜草變多，土壤養分被分走。",nutrients:-1},
+        {title:"葉片捲曲",text:"葉片微微捲曲，狀態不太穩。",growth:-1},
+        {title:"水分過多",text:"土壤偏濕，葉片邊緣有點焦黃。",moisture:1,quality:-1},
+        {title:"正常成形",text:"小葉穩定成形，沒有特別狀況。"},
+        {title:"葉片茂盛",text:"葉子長得很旺，整株看起來有活力。",growth:1},
+        {title:"毛毛蟲群",text:"多片葉子出現咬痕，需要清理蟲害。",quality:-2},
+        {title:"葉多耗養",text:"葉子變多後，土壤養分消耗變快。",nutrients:-1},
+        {title:"瓢蟲守護",text:"瓢蟲在葉間活動，蟲害壓力降低。",quality:1}
+      ],
+      [
+        {title:"根部膨大",text:"土面微微隆起，胡蘿蔔正在變胖。",growth:1},
+        {title:"養分充足",text:"土壤養分足夠，根部膨大很順利。",quality:1},
+        {title:"根部卡石",text:"土裡似乎有石頭，根部伸展受阻。",growth:-1},
+        {title:"挖到石頭",text:"整理土面時發現石頭，成長空間變小。",growth:-1,fertility:-1},
+        {title:"肥傷",text:"養分太濃，葉片邊緣有些焦黃。",quality:-1,growth:-1},
+        {title:"土壤鬆軟",text:"泥土保持鬆軟，胡蘿蔔有空間長大。",fertility:1}
+      ],
+      [
+        {title:"香氣飄出",text:"胡蘿蔔散出淡淡香氣，看起來快完成了。",quality:1},
+        {title:"色澤飽滿",text:"露出的部分顏色飽滿，品質不錯。",quality:1},
+        {title:"根部穩定",text:"根部狀態穩定，離採收更近了。",growth:1},
+        {title:"地鼠靠近",text:"土面有奇怪隆起，可能有地鼠靠近。",quality:-2},
+        {title:"成熟停滯",text:"胡蘿蔔成熟速度變慢，可能養分不足。",growth:-1}
+      ],
+      [
+        {title:"完美成熟",text:"胡蘿蔔狀態極佳，現在採收可能有好結果。",quality:2},
+        {title:"採收時機",text:"現在是很好的採收時機。",quality:1},
+        {title:"挖到鑽石",text:"土裡閃了一下，竟然發現鑽石。",coins:1},
+        {title:"放太久",text:"胡蘿蔔已經成熟太久，品質可能開始下降。",quality:-1},
+        {title:"地鼠啃咬",text:"胡蘿蔔被啃掉一角，損失明顯。",quality:-3}
+      ]
+    ];
+    return pools[Math.max(0,Math.min(6,stage))]||pools[0];
+  }
+  function gardenRainObservationEvents(stage){
+    if(stage<=0)return[];
+    return[
+      {title:"雨水滋潤",text:"雨水讓土壤濕潤，植株吸足了水分。",growth:1,moisture:1},
+      {title:"雨後清新",text:"雨後空氣清新，葉片顏色變得更亮。",quality:1},
+      {title:"雨中蚯蚓",text:"雨後蚯蚓活動頻繁，土壤被翻得更鬆。",fertility:1},
+      {title:"水太多",text:"雨下太久，土壤看起來過濕。",moisture:1,growth:-1},
+      {title:"土壤沖散",text:"雨水把表層泥土沖散，根部有些不穩。",fertility:-1},
+      {title:"養分被沖掉",text:"雨水帶走部分養分，土壤變得比較貧。",nutrients:-2},
+      {title:"積水悶根",text:"水分累積太多，根部有點喘不過氣。",growth:-2,moisture:1},
+      {title:"泥水濺葉",text:"泥水濺到葉片上，葉面看起來髒亂。",quality:-1}
+    ];
+  }
+  function gardenSoilObservationEvents(plant){
+    const moisture=clampGardenMoisture(plant?.moisture),fertility=Number(plant?.fertility)||2,nutrients=Number(plant?.nutrients)||3,events=[];
+    if(moisture<=0)events.push({title:"土面乾裂",text:"土壤乾裂，植株有缺水壓力。",growth:-2,quality:-1});
+    else if(moisture<=2)events.push({title:"土壤偏乾",text:"土壤偏乾，今天需要注意補水。",growth:-1});
+    else if(moisture>=8)events.push({title:"積水悶根",text:"土裡水分太多，根部很難呼吸。",growth:-2,quality:-2});
+    else if(moisture>=6)events.push({title:"土壤過濕",text:"土壤偏濕，葉緣狀態有點不穩。",growth:-1,quality:-1});
+    if(fertility<=0)events.push({title:"土壤貧瘠",text:"泥土缺乏活力，好事件變少了。",quality:-2});
+    else if(fertility<=1)events.push({title:"肥力偏差",text:"土壤肥力不足，成長容易停滯。",growth:-1});
+    else if(fertility>=5)events.push({title:"靈土氣息",text:"土壤散出淡淡靈氣，品質運勢上升。",quality:2});
+    else if(fertility>=4)events.push({title:"鬆軟好土",text:"泥土鬆軟，根部伸展得很舒服。",growth:1});
+    if(nutrients<=0)events.push({title:"養分耗盡",text:"土壤養分幾乎耗盡，必須盡快施肥。",growth:-2,quality:-2});
+    else if(nutrients<=2)events.push({title:"養分不足",text:"養分偏低，葉色看起來不夠飽滿。",nutrients:-1,quality:-1});
+    else if(nutrients>=6)events.push({title:"養分過剩",text:"養分太濃，葉片邊緣有肥傷徵兆。",growth:-1,quality:-1});
+    else if(nutrients>=5)events.push({title:"養分充足",text:"土壤養分很足，植株狀態穩定。",growth:1,quality:1});
+    return events.length?events:[{title:"土壤穩定",text:"濕度、肥力與養分都在穩定範圍。"}];
+  }
+  function gardenObservationText(result,quality,advice){
+    return`觀察結果：${result}\n品質氣息：${quality}\n建議行動：${advice}`;
+  }
+  function gardenRoutineCareAdvice({moisture=GARDEN_MOISTURE_INITIAL,isRainy=false}={}){
+    if(isRainy)return"不用清理，雨天先觀察狀態。";
+    if(moisture<=2)return"不用清理，土壤偏乾時可以澆水。";
+    if(moisture>=6)return"不用清理，先不要澆水。";
+    return"不用清理，照常照顧。";
+  }
+  function gardenObservationEvent(id,title,result,quality,advice,effect={},weight=1){
+    return{id,title,text:gardenObservationText(result,quality,advice),weight,...effect};
+  }
+  function gardenAddObservationEvent(pool,event,weight=1){
+    if(!event)return;
+    pool.push({...event,weight:Math.max(1,Number(weight)||1)});
+  }
+  function gardenRainConditionForStage(stage){
+    if(stage<=0)return"";
+    if(stage<=2)return"leafOverwater";
+    if(stage===3)return"lushLeavesOverwater";
+    if(stage===4)return"fatteningOverwater";
+    return"";
+  }
+  function gardenRainFinalObservationEvents(stage,context={}){
+    if(stage<=0)return[];
+    const slot=gardenValidWaterSlot(context.slot);
+    const moisture=clampGardenMoisture(context.moisture);
+    const nutrients=Number(context.nutrients)||3;
+    const overwaterCondition=gardenRainConditionForStage(stage);
+    const pool=[];
+    const add=(event,weight=1)=>gardenAddObservationEvent(pool,event,weight);
+    add(gardenObservationEvent("rainMoisture","雨水滋潤","雨水讓土壤濕潤，植株吸足了水分。","氣息被雨水穩穩托住。","今天不用再澆水，先觀察狀態。",{growth:1,moisture:1},4));
+    add(gardenObservationEvent("rainFreshAir","雨後清新","雨後空氣清新，葉片顏色變得更亮。","品質氣息變得比較清亮。","繼續觀察。",{quality:1},3));
+    add(gardenObservationEvent("rainWormActive","雨中蚯蚓","雨後蚯蚓活動頻繁，土壤被翻得更鬆。","根邊氣息變得順暢。",gardenRoutineCareAdvice({moisture,isRainy:true}),{fertility:1},3));
+    add(gardenObservationEvent("rainSoilWash","土壤沖散","雨水把表層泥土沖散，根部附近有些不穩。","氣息稍微晃動。","等雨勢緩和後再整理土面。",{fertility:-1,quality:-1},3));
+    add(gardenObservationEvent("rainNutrientsWashed","養分被沖掉","雨水帶走一部分養分，土壤變得比較貧。","品質氣息有點變淡。","雨停後可以考慮施肥。",{nutrients:-2},3));
+    if(stage>=2)add(gardenObservationEvent("rainMudSplash","泥水濺葉","雨水把泥點濺到葉片上，葉面看起來有些狼狽。","氣息被濕泥干擾。","雨停後再整理葉片。",{quality:-1},2));
+    if(slot!=="night")add(gardenObservationEvent("rainSunBreak","雨停見光","雨雲間透出一點光，胡蘿蔔在雨後恢復精神。","氣息重新亮了一些。","繼續觀察。",{growth:1,quality:1},2));
+    if(moisture>=5)add(gardenObservationEvent("rainTooMuch","水太多","雨下得有點久，土壤顏色明顯偏深。","濕氣壓住根邊氣息。","先不要澆水。",{growth:-1,moisture:1,condition:overwaterCondition},6));
+    if(moisture>=7)add(gardenObservationEvent("rainWaterlog","積水悶根","雨水累積太多，根部附近開始悶住。","氣息被濕氣壓住。","排掉積水，等土壤恢復。",{growth:-2,moisture:1,condition:overwaterCondition},5));
+    if(nutrients<=2)add(gardenObservationEvent("rainPoorSoil","雨後貧土","雨水沖淡了原本就偏少的養分，葉色看起來更淡。","品質氣息變弱。","雨停後優先施肥。",{nutrients:-1,quality:-1},4));
+    return pool;
+  }
+  function gardenCloudyFinalObservationEvents(stage,context={}){
+    const moisture=clampGardenMoisture(context.moisture);
+    const nutrients=Number(context.nutrients)||3;
+    const pool=[];
+    const add=(event,weight=1)=>gardenAddObservationEvent(pool,event,weight);
+    add(gardenObservationEvent("cloudySoftLight","陰天柔光","雲層擋住強光，葉片慢慢舒展。","氣息平穩，沒有被日光曬傷。","繼續觀察。",{quality:1},3));
+    add(gardenObservationEvent("cloudySlowGrowth","陰天慢長","今天日照偏弱，成長速度比較慢。","氣息沒有壞掉，只是推進較慢。","可以等待下一個時辰。",{},3));
+    add(gardenObservationEvent("cloudyStableSoil","雲影穩土","陰天讓土壤水分散失變慢，濕度維持得比較穩。","根邊氣息穩定。","暫時不用急著澆水。",{},3));
+    if(moisture>=5)add(gardenObservationEvent("cloudyDampAir","陰天潮氣","雲層壓低，土壤偏濕，水分散得比較慢。","濕氣稍微聚在根邊。","先不要澆水。",{moisture:1},4));
+    if(moisture<=2)add(gardenObservationEvent("cloudyDrySoil","陰天乾土","雖然是陰天，土壤表面仍然偏乾。","氣息偏乾，需要補一點水。","可以澆水。",{moisture:-1},3));
+    if(nutrients<=2)add(gardenObservationEvent("cloudyPaleLeaf","陰天葉淡","日照不足時，葉色偏淡的問題更明顯。","品質氣息有點弱。","可以考慮施肥。",{quality:-1},3));
+    if(stage>=2)add(gardenObservationEvent("cloudyBugTrace","陰影蟲痕","陰影下葉片邊緣有細小咬痕。","氣息被小蟲干擾。","處理蟲害。",{quality:-1,condition:stage>=4?"fatteningBugBite":stage>=3?"lushLeavesBugBite":"smallLeavesBugBite"},2));
+    return pool;
+  }
+  function gardenFinalObservationEvents(plant,context={}){
+    const stage=gardenStageIndex(plant?.growth||0);
+    const moisture=clampGardenMoisture(plant?.moisture);
+    const fertility=clampGardenSoilValue(plant?.fertility,2,5);
+    const nutrients=clampGardenSoilValue(plant?.nutrients,3,6);
+    const airHumidity=clampGardenSoilValue(plant?.airHumidity,2,5);
+    const airTemperature=clampGardenSoilValue(plant?.airTemperature,2,5);
+    const isRainy=!!context.isRainy&&stage>0;
+    const pool=[];
+    const add=(event,weight=1)=>gardenAddObservationEvent(pool,event,weight);
+    const stableText=moisture>=3&&moisture<=4?"土壤濕度適中":moisture<3?"土壤偏乾":"土壤偏濕";
+
+    if(stage<=0){
+      add(gardenObservationEvent("seedCalm","種子安穩","土壤很平靜，種子正在慢慢吸收水分。","目前還看不出特別氣息。","再看看。",{},4));
+      add(gardenObservationEvent("seedWorm","蚯蚓翻土","土裡有蚯蚓活動，泥土變得比較鬆。","種子的氣息平穩。",gardenRoutineCareAdvice({moisture}),{growth:1,nutrients:1},3));
+      add(gardenObservationEvent("seedGlow","種子微光","土壤深處微微發亮，種子似乎很有生命力。","有一點細微的好兆頭。","繼續觀察。",{quality:1},2));
+      add(gardenObservationEvent("seedSparrow","麻雀啄土","麻雀在土面啄了幾下，種子受到打擾。","氣息稍微散了一點。","可以先觀察，不需要急著處理。",{growth:-1},2));
+      if(moisture<=2)add(gardenObservationEvent("seedDrySoil","土壤偏乾","土壤顏色偏淺，種子周圍水分不足。","種子氣息偏弱。","可以澆水。",{moisture:-1},5));
+      if(moisture>=6)add(gardenObservationEvent("seedWetSoil","土壤太濕","土壤顏色偏深，播種處水分有點多。","種子氣息被濕氣悶住。","先不要澆水。",{moisture:1},5));
+      return pool;
+    }
+    if(isRainy)return gardenRainFinalObservationEvents(stage,{slot:context.slot,moisture,fertility,nutrients,airHumidity,airTemperature});
+    if(context.weather?.key==="cloudy")return gardenCloudyFinalObservationEvents(stage,{slot:context.slot,moisture,fertility,nutrients,airHumidity,airTemperature});
+
+    if(stage<=2){
+      add(gardenObservationEvent("sproutStable","嫩芽穩定","小芽狀態穩定，沒有明顯變化。","氣息平穩，正在慢慢長大。","繼續照顧。",{},3));
+      add(gardenObservationEvent("smallLeafStretch","小葉舒展","小葉慢慢舒展開來，看起來很有精神。","葉色乾淨，氣息平穩。","繼續照顧。",{growth:1},3));
+      add(gardenObservationEvent("leafGreen","葉色鮮綠","葉片顏色漂亮，養分吸收良好。","品質氣息變得清亮。","再看看。",{quality:1},2));
+      if(moisture<=2||airTemperature>=4)add(gardenObservationEvent("smallLeafDry","小葉缺水","土壤顏色偏淺，小葉有些下垂。","氣息偏弱，需要補水。","澆水。",{growth:-1,moisture:-1,condition:"leafDry"},6));
+      if(moisture>=6||airHumidity>=5)add(gardenObservationEvent("smallLeafWet","小葉水太多","葉片邊緣有些焦黃，土壤水分似乎太多。","根邊氣息有些悶住。","先不要澆水，可以整理土面或等待恢復。",{quality:-1,moisture:1,condition:"leafOverwater"},5));
+      if(stage>=2)add(gardenObservationEvent("smallLeafBug","小葉蟲咬","葉片邊緣有被咬過的痕跡。","氣息有些不穩。","處理蟲害。",{quality:-1,condition:"smallLeavesBugBite"},3));
+      if(nutrients<=2)add(gardenObservationEvent("leafNutrientLow","養分不足","葉片顏色偏淡，土壤養分可能不夠。","品質氣息偏弱。","可以考慮施肥。",{nutrients:-1},4));
+      return pool;
+    }
+
+    if(stage===3){
+      add(gardenObservationEvent("lushGood","葉片茂盛","葉子長得很旺，整株看起來有活力。","氣息穩定，值得繼續培養。","再看看。",{growth:1},3));
+      add(gardenObservationEvent("lushGreen","綠意濃厚","葉色濃綠，葉片狀態看起來很好。","品質氣息變得穩定。","繼續照顧。",{quality:1},2));
+      add(gardenObservationEvent("lushConsume","葉多耗養","葉片變多後，土壤養分消耗變快。","氣息仍穩，但需要注意養分。","可以考慮施肥。",{nutrients:-1},3));
+      if(nutrients<=2)add(gardenObservationEvent("lushNutrientLow","養分不足","葉色偏淡，茂盛的葉片正在消耗土壤養分。","成長氣息稍微放慢。","施肥。",{growth:-1,nutrients:-1},5));
+      if(moisture>=6||airHumidity>=5||isRainy)add(gardenObservationEvent("lushOverwater","水分過多","土壤顏色偏深，葉片邊緣開始泛黃。","濕氣太重，氣息有些悶。","先不要澆水，可以排掉積水。",{quality:-1,moisture:1,condition:"lushLeavesOverwater"},6));
+      add(gardenObservationEvent("lushBug","蟲害出現","葉片邊緣有被啃咬的痕跡。","品質氣息被干擾。","處理蟲害。",{quality:-1,condition:"lushLeavesBugBite"},3));
+      add(gardenObservationEvent("lushBugBad","蟲害嚴重","多片葉子出現咬痕，需要盡快處理。","氣息明顯不穩。","處理蟲害。",{quality:-2,condition:"lushLeavesBugBite"},1));
+      return pool;
+    }
+
+    if(stage===4){
+      add(gardenObservationEvent("rootFattening","根部膨大","土面微微隆起，胡蘿蔔正在變胖。","根部氣息穩定。","繼續照顧。",{growth:1},3));
+      add(gardenObservationEvent("rootNutrientGood","養分充足","土壤養分足夠，根部膨大很順利。","品質氣息飽滿。","再看看。",{quality:1},3));
+      if(moisture>=6||airHumidity>=5||isRainy)add(gardenObservationEvent("fatteningWet","長胖水太多","土壤顏色偏深，根部似乎有些悶住。","氣息沉悶，不太清亮。","先不要澆水。",{growth:-1,quality:-1,moisture:1,condition:"fatteningOverwater"},6));
+      if(moisture>=8)add(gardenObservationEvent("fatteningWaterlog","根部悶住","水分累積太多，根部有點喘不過氣。","根部氣息被壓住。","排掉積水。",{growth:-2,moisture:1,condition:"fatteningOverwater"},4));
+      add(gardenObservationEvent("fatteningBug","長胖蟲咬","葉片和根邊出現蟲害痕跡。","品質氣息被干擾。","處理蟲害。",{quality:-1,condition:"fatteningBugBite"},3));
+      add(gardenObservationEvent("undergroundMove","地底異動","土面突然小幅隆起，像是有東西在底下移動。","氣息變得有些不安。","整平土面、留意地底動靜。",{quality:-1},2));
+      add(gardenObservationEvent("moleBite","地鼠啃咬","地鼠靠近根部，胡蘿蔔被啃出明顯傷痕。","品質氣息大幅下滑。","趕走地鼠、整理土面。",{quality:-3,condition:"moleEaten"},1));
+      return pool;
+    }
+
+    if(stage===5){
+      add(gardenObservationEvent("matureFragrance","成熟香氣","胡蘿蔔散出淡淡香氣，看起來快完成了。","根部氣息飽滿，狀態不錯。","繼續培養。",{quality:1},4));
+      add(gardenObservationEvent("matureColor","色澤飽滿","露出的部分顏色飽滿，品質看起來不錯。","氣息清亮穩定。","再看看。",{quality:1},3));
+      add(gardenObservationEvent("matureStable","成熟穩定","成熟狀態很穩，沒有明顯異常。","品質氣息保持平順。","繼續觀察。",{},3));
+      if(moisture<=2||airTemperature>=4)add(gardenObservationEvent("matureDry","成熟缺水","成熟期葉片開始下垂，土壤顏色偏淺。","氣息偏乾，品質可能下降。","澆水。",{quality:-1,moisture:-1,condition:"matureDry"},5));
+      add(gardenObservationEvent("matureBug","成熟蟲咬","成熟葉片上出現蟲咬痕跡。","品質氣息被干擾。","處理蟲害。",{quality:-1,condition:"matureBugBite"},3));
+      add(gardenObservationEvent("matureMoleNear","地鼠靠近","土面有奇怪隆起，可能有地鼠靠近。","氣息變得不安。","整平土面、趕走地鼠。",{quality:-1},2));
+      add(gardenObservationEvent("matureMoleBite","地鼠啃咬","胡蘿蔔成熟後香氣太明顯，被地鼠啃掉一角。","品質氣息大幅下滑。","趕走地鼠、整理土面。",{quality:-3,condition:"moleEaten"},1));
+      return pool;
+    }
+
+    add(gardenObservationEvent("harvestTiming","採收時機","現在是很好的採收時機。","氣息飽滿，胡蘿蔔狀態很好。","採收。",{quality:1},4));
+    add(gardenObservationEvent("perfectMature","完美成熟","胡蘿蔔狀態極佳，現在採收可能有好結果。","品質氣息非常飽滿。","採收。",{quality:2},2));
+    add(gardenObservationEvent("leftTooLong","放太久","胡蘿蔔已經成熟太久，品質可能開始下降。","氣息有些鬆散。","採收。",{quality:-1},2));
+    add(gardenObservationEvent("harvestBug","可採收蟲咬","可採收的葉片出現蟲咬痕跡。","品質氣息被干擾。","處理蟲害後採收。",{quality:-1,condition:"matureBugBite"},2));
+    add(gardenObservationEvent("harvestMoleBite","地鼠啃咬","胡蘿蔔放在土裡太顯眼，被地鼠啃出傷痕。","品質氣息大幅下滑。","趕走地鼠、整理土面。",{quality:-3,condition:"moleEaten"},1));
+    add(gardenObservationEvent("diamondFound","挖到鑽石","土裡閃了一下，竟然發現鑽石。","這株胡蘿蔔氣息不凡。","收下。",{coins:1},1));
+    if(isRainy&&moisture>=7)add(gardenObservationEvent("rainWaterlog","積水悶根","雨水讓土壤過濕，根部附近積了太多水。","氣息被濕氣壓住。","排掉積水。",{growth:-2,moisture:1,condition:"fatteningOverwater"},3));
+    return pool;
+  }
+  function gardenSpecialObservationEvent(plant,stage){
+    const qualityHint=Number(plant?.qualityShift)||0;
+    if(stage>=6&&qualityHint>=6&&Math.random()<.8){
+      return normalizeGardenChoiceEvent({
+        id:"highPriceBuyer",
+        title:"高價收購",
+        text:"神秘商人看中這根胡蘿蔔，願意用鑽石收購。",
+        choices:[
+          {id:"sell",label:"鑽石出售",result:"你把成熟胡蘿蔔賣給神秘商人。",coins:12,sellPlant:true},
+          {id:"keep",label:"自己採收",result:"你決定保留胡蘿蔔，等待正式採收。",quality:1}
+        ]
+      });
+    }
+    if(stage>=5&&qualityHint>=2&&Math.random()<.5){
+      return normalizeGardenChoiceEvent({
+        id:"earlyBuyer",
+        title:"路人採購",
+        text:"有路人看上這根胡蘿蔔，想提前收購。",
+        choices:[
+          {id:"sell",label:"提前賣出",result:"你把胡蘿蔔提前賣出，換到一些鑽石。",coins:4,sellPlant:true},
+          {id:"keep",label:"繼續培育",result:"你決定繼續培育，讓品質再提升一點。",quality:1}
+        ]
+      });
+    }
+    return null;
+  }
+  function pickWeightedObservationGroup(groups){
+    const usable=groups.filter(group=>group.events?.length&&group.weight>0);
+    const total=usable.reduce((sum,group)=>sum+group.weight,0);
+    let roll=Math.random()*(total||1);
+    for(const group of usable){
+      roll-=group.weight;
+      if(roll<=0)return group.events;
+    }
+    return usable[0]?.events||[];
+  }
+  function gardenCanQueueChoiceEvent(plant,{today=todayKey()}={}){
+    if(!plant||plant.status==="dead"||plant.status==="eaten"||plant.pendingChoiceEvent)return false;
+    return String(plant.choiceEventDate||"")!==String(today||todayKey());
+  }
+  function gardenQueueChoiceEvent(plant,event,{today=todayKey(),slot=gardenTimeSlot(),source="event"}={}){
+    const validSlot=gardenValidWaterSlot(slot);
+    if(!gardenCanQueueChoiceEvent(plant,{today}))return null;
+    const choiceEvent=normalizeGardenChoiceEvent({
+      ...event,
+      source,
+      eventKey:`${source}:${today}:${validSlot}`
+    });
+    if(!choiceEvent)return null;
+    plant.choiceEventDate=String(today||todayKey());
+    plant.choiceEventSlot=validSlot;
+    plant.pendingChoiceEvent=choiceEvent;
+    return choiceEvent;
+  }
+  function gardenQueueAmbientEvent(plant,{today=todayKey(),slot=gardenTimeSlot()}={}){
+    return;
+  }
+  function rollGardenEvent(plant,context={}){
+    const stage=gardenStageIndex(plant?.growth||0);
+    const slot=gardenValidWaterSlot(context.slot);
+    const isRainy=!!context.isRainy;
+    const weather=context.weather||gardenWeatherForDate(todayKey());
+    const env=gardenEnvironmentForSlot(weather,slot);
+    plant.airHumidity=env.airHumidity;
+    plant.airTemperature=env.airTemperature;
+    const specialEvent=context.allowChoice!==false?gardenSpecialObservationEvent(plant,stage):null;
+    if(specialEvent)return specialEvent;
+    const recentTitles=recentGardenEventTitles(plant);
+    const events=gardenFinalObservationEvents(plant,{slot,isRainy,weather});
+    const event=pickGardenWeightedEvent(events,recentTitles);
+    return{title:event.title,text:gardenEventTextWithEffect(plant,event)};
+  }
+  function gardenPlantNew(){
+    meta.garden=normalizeGardenState(meta.garden);
+    if(meta.garden.current)return{ok:false,message:"目前已經有一株胡蘿蔔。"};
+    if(meta.garden.seeds<=0)return{ok:false,message:"沒有神秘胡蘿蔔種子。"};
+    const today=todayKey();
+    const plantingNo=Math.max(1,Math.floor(Number(meta.garden.plantingCount)||0)+1);
+    meta.garden.plantingCount=plantingNo;
+    meta.garden.seeds--;
+    meta.garden.current=normalizeGardenPlant({
+      plantingNo,
+      growth:0,
+      pendingGrowth:0,
+      pendingGrowthDate:"",
+      airHumidity:2,
+      airTemperature:2,
+      moisture:GARDEN_MOISTURE_INITIAL,
+      moistureDate:today,
+      fertility:2,
+      nutrients:3,
+      condition:"",
+      plantedDate:today,
+      lastCareDate:today,
+      lastEvent:{title:`第 ${plantingNo} 次種植`,text:"神秘胡蘿蔔種子已播下，今天可以開始照顧。"}
+    });
+    gardenAddRecord(`第 ${plantingNo} 次種植`,"神秘胡蘿蔔種子已播下，今天可以開始照顧。",{kind:"plantStart"});
+    return{ok:true,message:"已播下神秘胡蘿蔔種子。",focusPlantingNo:plantingNo};
+  }
+  function gardenObserve(action="observe"){
+    applyGardenMissedDays();
+    meta.garden=normalizeGardenState(meta.garden);
+    const plant=meta.garden.current;
+    if(!plant)return{ok:false,message:"尚未種植胡蘿蔔。"};
+    if(plant.status==="dead"||plant.status==="eaten")return{ok:false,message:"這株已經無法觀察，請清理後重新種植。"};
+    if(plant.pendingChoiceEvent)return{ok:false,message:"先處理菜園事件。"};
+    const today=todayKey();
+    const slot=gardenValidWaterSlot(String(action||"").split(":")[1]||gardenTimeSlot());
+    const weather=gardenWeatherForDate(today);
+    const isRainObserve=gardenIsRainObservation(weather,slot);
+    const observedSlots=gardenObservedSlotsForToday(plant,today);
+    if(observedSlots.includes(slot))return{ok:false,message:""};
+    if(observedSlots.length>=GARDEN_MAX_OBSERVE_PER_DAY)return{ok:false,message:""};
+    observedSlots.push(slot);
+    plant.observeSlotsDate=today;
+    plant.observeSlots=observedSlots;
+    if(isRainObserve){
+      const rainSlots=gardenRainObservedSlotsForToday(plant,today);
+      if(!rainSlots.includes(slot))rainSlots.push(slot);
+      plant.rainObservedSlotsDate=today;
+      plant.rainObservedSlots=rainSlots;
+      plant.lastCareDate=today;
+      plant.missedStreak=0;
+      if(plant.status==="dry")plant.status="growing";
+      plant.moisture=clampGardenMoisture(gardenMoistureValue(plant.moisture)+1);
+      if(gardenApplyExtremeMoistureRisk(plant,today,weather)){
+        return{ok:true,message:plant.lastEvent?.text||"水分異常，植株狀態崩壞。"};
+      }
+    }
+    plant.lastEvent=rollGardenEvent(plant,{slot,weather,isRainy:isRainObserve,allowChoice:gardenCanQueueChoiceEvent(plant,{today})});
+    if(plant.lastEvent?.choices?.length){
+      const queued=gardenQueueChoiceEvent(plant,plant.lastEvent,{today,slot,source:isRainObserve?"rain":"observe"});
+      if(queued)return{ok:true,message:"觀察完成，菜園裡出現了需要選擇的小事件。",choiceEvent:queued};
+    }
+    plant.pendingChoiceEvent=null;
+    gardenAddRecord(`觀察事件・${plant.lastEvent.title}`,plant.lastEvent.text);
+    return{ok:true,message:`${gardenWaterSlotName(slot)}觀察完成。`};
+  }
+  function gardenWaterNarration(slot){
+    const title=gardenTitleInfo(meta.garden?.harvestCount||0).name;
+    const slotName=gardenWaterSlotName(slot);
+    const lines={
+      "超級菜鳥":{
+        text:`${slotName}有把水澆下去，泥土看起來比較濕了。`,
+        qualityText:"品質狀況：一切平穩，品質沒有明顯變化。"
+      },
+      "會澆水了":{
+        text:`${slotName}補水完成，土色從偏乾慢慢轉深，水分有吃進土裡。`,
+        qualityText:"品質狀況：水分補得剛好，氣息維持穩定。"
+      },
+      "嫩芽小手":{
+        text:`${slotName}沿著菜框邊緣補水，嫩根附近的土壤濕度回穩。`,
+        qualityText:"品質狀況：根邊沒有被水悶住，品質氣息平穩。"
+      },
+      "種菜好手":{
+        text:`${slotName}依照土色補了一輪水，表層濕度上升，底層仍保持透氣。`,
+        qualityText:"品質狀況：土壤濕度與根部呼吸維持平衡。"
+      },
+      "田園高手":{
+        text:`${slotName}控制水量滲進根邊，濕度補足但沒有壓住土壤空隙。`,
+        qualityText:"品質狀況：土息穩定，品質沒有被水分干擾。"
+      },
+      "萬物園藝師":{
+        text:`${slotName}順著土息補水，水分慢慢沉入根域，植株吸收節奏變穩。`,
+        qualityText:"品質狀況：根邊氣息被水分托住，品質維持穩定。"
+      },
+      "菜園大神":{
+        text:`${slotName}只補到土壤需要的位置，濕氣像被牽引一樣均勻散開。`,
+        qualityText:"品質狀況：土壤靈氣平順流動，品質狀態穩定。"
+      }
+    };
+    return lines[title]||lines["超級菜鳥"];
+  }
+  function gardenWater(action="water"){
+    applyGardenMissedDays();
+    meta.garden=normalizeGardenState(meta.garden);
+    const plant=meta.garden.current;
+    if(!plant)return gardenPlantNew();
+    if(plant.status==="dead"||plant.status==="eaten")return{ok:false,message:"這株已經無法繼續照顧，請清理後重新種植。"};
+    if((plant.growth||0)>=15)return{ok:false,message:"已經成熟，可以採收了。"};
+    if(plant.pendingChoiceEvent)return{ok:false,message:"先處理菜園事件。"};
+    const today=todayKey();
+    const slot=gardenValidWaterSlot(String(action||"").split(":")[1]||gardenTimeSlot());
+    const weather=gardenWeatherForDate(today);
+    const isRainObserve=gardenIsRainObservation(weather,slot);
+    if(isRainObserve){
+      return{ok:false,message:"下雨時不需要澆水，請改用觀察。"};
+    }
+    const wateredSlots=gardenWateredSlotsForToday(plant,today);
+    if(wateredSlots.includes(slot))return{ok:false,message:""};
+    if(wateredSlots.length>=GARDEN_MAX_WATER_PER_DAY)return{ok:false,message:""};
+    wateredSlots.push(slot);
+    plant.wateredDate=today;
+    plant.wateredSlotsDate=today;
+    plant.wateredSlots=wateredSlots;
+    plant.lastCareDate=today;
+    plant.missedStreak=0;
+    plant.status="growing";
+    if(plant.condition==="leafDry"||plant.condition==="matureDry"){
+      plant.condition="";
+      plant.conditionDate="";
+    }
+    plant.moisture=clampGardenMoisture(gardenMoistureValue(plant.moisture)+1);
+    plant.pendingGrowth=Math.min(3,(plant.pendingGrowth||0)+1);
+    plant.pendingGrowthDate=today;
+    const narration=gardenWaterNarration(slot);
+    plant.lastEvent={title:"澆水完成",text:narration.text};
+    gardenAddRecord("澆水完成",narration.text,{kind:"water",qualityText:narration.qualityText});
+    if(gardenApplyExtremeMoistureRisk(plant,today,weather)){
+      return{ok:true,message:plant.lastEvent?.text||"水分異常，植株狀態崩壞。"};
+    }
+    return{ok:true,message:`${gardenWaterSlotName(slot)}澆水完成。`};
+  }
+  function gardenDrainRainwater(action="drain"){
+    applyGardenMissedDays();
+    meta.garden=normalizeGardenState(meta.garden);
+    const plant=meta.garden.current;
+    if(!plant)return{ok:false,message:"尚未種植胡蘿蔔。"};
+    if(plant.status==="dead"||plant.status==="eaten")return{ok:false,message:"這株已經無法排水，請清理後重新種植。"};
+    if((plant.growth||0)>=15)return{ok:false,message:"已經成熟，可以採收了。"};
+    if(plant.pendingChoiceEvent)return{ok:false,message:"先處理菜園事件。"};
+    const today=todayKey();
+    const slot=gardenValidWaterSlot(String(action||"").split(":")[1]||gardenTimeSlot());
+    const weather=gardenWeatherForDate(today);
+    if(!gardenIsRainObservation(weather,slot)){
+      return{ok:false,message:"只有下雨的白天時辰需要排水。"};
+    }
+    if(Math.max(0,Math.floor(Number(meta.garden.drainShovels)||0))<GARDEN_DRAIN_SHOVEL_COST){
+      return{ok:false,message:"排水需要菜園挖溝鏟 x1，先到活動商店購買。"};
+    }
+    const drainedSlots=gardenDrainedSlotsForToday(plant,today);
+    if(drainedSlots.includes(slot))return{ok:false,message:""};
+    const before=clampGardenMoisture(plant.moisture);
+    if(before<=GARDEN_MOISTURE_INITIAL){
+      return{ok:false,message:"目前土壤還不需要排水。"};
+    }
+    drainedSlots.push(slot);
+    plant.drainSlotsDate=today;
+    plant.drainSlots=drainedSlots;
+    meta.garden.drainShovels=Math.max(0,Math.floor(Number(meta.garden.drainShovels)||0)-GARDEN_DRAIN_SHOVEL_COST);
+    plant.lastCareDate=today;
+    plant.missedStreak=0;
+    const after=Math.max(2,clampGardenMoisture(before-GARDEN_DRAIN_MOISTURE_REDUCE));
+    plant.moisture=after;
+    if(plant.condition&&/Overwater/.test(plant.condition)&&after<=5){
+      plant.condition="";
+      plant.conditionDate="";
+    }
+    const slotName=gardenWaterSlotName(slot);
+    const text=`${slotName}趁雨勢挖出排水溝，消耗菜園挖溝鏟 x1，土壤水分從 ${before} 降到 ${after}。`;
+    const qualityText="品質狀況：根邊積水被導走，暫時降低悶根風險。";
+    plant.lastEvent={title:"排水完成",text};
+    gardenAddRecord("排水完成",text,{kind:"drain",qualityText});
+    return{ok:true,message:`${slotName}排水完成。`};
+  }
+  function gardenFertilizeNarration(){
+    const title=gardenTitleInfo(meta.garden?.harvestCount||0).name;
+    const lines={
+      "超級菜鳥":{
+        text:"你把肥料撒進土裡，胡蘿蔔像是精神了一點，額外成長 1 點。",
+        qualityText:"品質狀況：土壤變得比較有力，品質運勢小幅上升。"
+      },
+      "會澆水了":{
+        text:"你順著濕土補了一點肥，土壤吸收得剛剛好，胡蘿蔔額外成長 1 點。",
+        qualityText:"品質狀況：肥料融進土裡，品質氣息小幅變穩。"
+      },
+      "嫩芽小手":{
+        text:"你避開嫩葉把肥料拌進土裡，根邊氣息穩定，胡蘿蔔額外成長 1 點。",
+        qualityText:"品質狀況：養分慢慢沉下去，品質運勢小幅上升。"
+      },
+      "種菜好手":{
+        text:"你看準土壤吸收狀態補肥，養分慢慢沉進根邊，胡蘿蔔額外成長 1 點。",
+        qualityText:"品質狀況：土壤氣息變得更飽滿，高品質機率小幅上升。"
+      },
+      "田園高手":{
+        text:"你依照土色與葉勢調整施肥，土壤肥力回穩，胡蘿蔔額外成長 1 點。",
+        qualityText:"品質狀況：肥力分布更均勻，高品質機率小幅上升。"
+      },
+      "萬物園藝師":{
+        text:"你讓肥力順著土息流動，根部吸收變得平順，胡蘿蔔額外成長 1 點。",
+        qualityText:"品質狀況：土壤氣息被梳理得很穩，品質運勢小幅上升。"
+      },
+      "菜園大神":{
+        text:"你幾乎只用一點肥就喚醒土壤靈氣，胡蘿蔔額外成長 1 點。",
+        qualityText:"品質狀況：土壤靈氣被穩穩帶起，高品質機率小幅上升。"
+      }
+    };
+    return lines[title]||lines["超級菜鳥"];
+  }
+  function gardenFertilize(){
+    applyGardenMissedDays();
+    meta.garden=normalizeGardenState(meta.garden);
+    const plant=meta.garden.current;
+    if(!plant)return{ok:false,message:"尚未種植胡蘿蔔。"};
+    if(plant.status==="dead"||plant.status==="eaten")return{ok:false,message:"這株已經無法施肥。"};
+    if((meta.garden.fertilizer||0)<=0)return{ok:false,message:"肥料不足。先把倉庫胡蘿蔔堆肥。"};
+    const today=todayKey();
+    meta.garden.fertilizer=Math.max(0,Math.floor(Number(meta.garden.fertilizer)||0)-1);
+    plant.fertilizerUsed++;
+    plant.lastCareDate=today;
+    if(plant.fertilizerUsed>2){
+      plant.overFertilizedDate=today;
+      plant.lastEvent={title:"施肥過量",text:"肥料已經太多，今天看起來還沒事，但明天土壤可能會變得太鹹。"};
+      gardenAddRecord("施肥過量","肥料已經太多，今天看起來還沒事，但明天土壤可能會變得太鹹。",{qualityText:"品質狀況：肥料已經過量，根邊氣息混亂，高品質機率正在下滑。"});
+      return{ok:true,message:"施肥過量，明天會枯死。"};
+    }
+    plant.growth=Math.min(15,plant.growth+1);
+    if(plant.growth>=15&&!plant.harvestReadyDate)plant.harvestReadyDate=today;
+    plant.bonusGrowth=Math.min(2,plant.bonusGrowth+1);
+    plant.fertility=clampGardenSoilValue((Number(plant.fertility)||2)+1,2,5);
+    plant.nutrients=clampGardenSoilValue((Number(plant.nutrients)||3)+1,3,6);
+    if(plant.condition&&/Overwater/.test(plant.condition)){
+      plant.condition="";
+      plant.conditionDate="";
+    }
+    plant.qualityShift+=.5;
+    const narration=gardenFertilizeNarration();
+    plant.lastEvent={title:"施肥完成",text:narration.text};
+    gardenAddRecord("施肥完成",narration.text,{kind:"fertilize",qualityText:narration.qualityText});
+    return{ok:true,message:"施肥完成。"};
+  }
+  function gardenHarvest(){
+    applyGardenMissedDays();
+    meta.garden=normalizeGardenState(meta.garden);
+    const plant=meta.garden.current;
+    if(!plant)return{ok:false,message:"尚未種植胡蘿蔔。"};
+    if(plant.status==="dead"||plant.status==="eaten")return{ok:false,message:"這株已經不能採收，請清理。"};
+    if(plant.growth<15)return{ok:false,message:"還沒成熟，不能採收。"};
+    const quality=rollGardenHarvestQuality();
+    const result=addGardenCarrot(quality);
+    const oldHarvestCount=Math.max(0,Math.floor(Number(meta.garden.harvestCount)||0));
+    meta.garden.harvestCount++;
+    const titleLevelUp=gardenTitleLevelUpInfo(oldHarvestCount,meta.garden.harvestCount);
+    const def=gardenQualityDef(quality);
+    const locationText=result.location==="depositBox"?"倉庫已滿，已放入保管箱。":"已放入倉庫。";
+    gardenAddRecord("採收完成",`採收到 ${def.rank}・${def.name}。${locationText}`,{kind:"harvest"});
+    if(titleLevelUp){
+      gardenAddRecord("稱號提升",`你累積收成 ${meta.garden.harvestCount} 次，獲得新稱號「${titleLevelUp.name}」。`,{plant:null});
+    }
+    gardenClosePlantDays(plant);
+    meta.garden.current=null;
+    return{ok:true,message:`採收到 ${def.rank}・${def.name}。${locationText}`,harvest:{id:`harvest-${Date.now()}`,quality:def.id,rank:def.rank,name:def.name,location:result.location,locationText},titleLevelUp};
+  }
+  function gardenClearPlant(){
+    meta.garden=normalizeGardenState(meta.garden);
+    const plant=meta.garden.current;
+    if(!plant)return{ok:false,message:"菜園目前是空地。"};
+    if(plant.condition){
+      const label=GARDEN_CONDITION_NAMES[plant.condition]||"異常狀態";
+      if(/Overwater/.test(plant.condition))plant.moisture=clampGardenMoisture(gardenMoistureValue(plant.moisture)-1);
+      if(/BugBite/.test(plant.condition))plant.qualityShift=Math.max(-20,Math.min(20,(Number(plant.qualityShift)||0)+.5));
+      plant.condition="";
+      plant.conditionDate="";
+      if(plant.status==="dry")plant.status="growing";
+      plant.lastEvent={title:"整理完成",text:`已處理${label}，菜園狀態恢復穩定。`};
+      gardenAddRecord("整理完成",`已處理${label}，菜園狀態恢復穩定。`);
+      return{ok:true,message:`已處理${label}。`};
+    }
+    if(plant.status!=="dead"&&plant.status!=="eaten"){
+      return{ok:false,message:"目前沒有需要清理的異常。"};
+    }
+    gardenAddRecord("清理菜園","舊的植株已清理，菜園恢復成空地。",{plant:null});
+    gardenClosePlantDays(plant);
+    meta.garden.current=null;
+    return{ok:true,message:"已清理菜園。"};
+  }
+  function gardenDevAdvanceDay(){
+    if(!devModeActive)return{ok:false,message:"只有開發模式可以推進菜園日期。"};
+    gardenDevDateOverride=addDaysToKey(todayKey(),1);
+    applyGardenMissedDays();
+    return{ok:true,message:`開發模式：菜園日期前進到 ${gardenDevDateOverride}。`};
+  }
+  function gardenPublicState(lastMessage=""){
+    applyGardenMissedDays();
+    meta.garden=normalizeGardenState(meta.garden);
+    const plant=meta.garden.current;
+    const rates=gardenRates();
+    const today=todayKey();
+    const weather=gardenWeatherForDate(today);
+    const wateredSlotsToday=plant?gardenWateredSlotsForToday(plant,today):[];
+    const currentSlot=typeof activeGardenTimeSlot==="function"?activeGardenTimeSlot():gardenTimeSlot();
+    const rainObservedSlotsToday=plant?gardenRainObservedSlotsForToday(plant,today):[];
+    const observedSlotsToday=plant?gardenObservedSlotsForToday(plant,today):[];
+    const drainedSlotsToday=plant?gardenDrainedSlotsForToday(plant,today):[];
+    const isRainObserve=gardenIsRainObservation(weather,currentSlot);
+    const fertilizerCount=Math.max(0,Math.floor(Number(meta.garden.fertilizer)||0));
+    const drainShovelCount=Math.max(0,Math.floor(Number(meta.garden.drainShovels)||0));
+    gardenQueueAmbientEvent(plant,{today,slot:currentSlot});
+    return{
+      version:APP_VERSION,
+      devMode:!!devModeActive,
+      today,
+      weather,
+      title:gardenTitleInfo(meta.garden.harvestCount),
+      garden:meta.garden,
+      choiceEvent:plant?.pendingChoiceEvent||null,
+      gardenStats:{
+        plantingCount:Math.max(0,Math.floor(Number(meta.garden.plantingCount)||0)),
+        harvestCount:Math.max(0,Math.floor(Number(meta.garden.harvestCount)||0)),
+        totalPlantDays:gardenShownTotalDays(meta.garden,today)
+      },
+      plantDay:gardenPlantAgeDays(plant,today),
+      qualities:GARDEN_CARROT_QUALITIES,
+      plantView:{
+        imageKey:gardenPlantImageKey(plant),
+        stageName:plant?gardenStageName(plant.growth||0,plant.status||"growing",plant.condition||"",plant.eatenReason||""):"無",
+        stageIndex:plant?gardenStageIndex(plant.growth):0,
+        wateredSlotsToday,
+        rainObservedSlotsToday,
+        observedSlotsToday,
+        drainedSlotsToday,
+        isRainObserve,
+        canWater:!!plant&&(plant.growth||0)<15&&plant.status!=="dead"&&plant.status!=="eaten"&&!isRainObserve&&!wateredSlotsToday.includes(currentSlot)&&wateredSlotsToday.length<GARDEN_MAX_WATER_PER_DAY,
+        canDrain:!!plant&&(plant.growth||0)<15&&plant.status!=="dead"&&plant.status!=="eaten"&&isRainObserve&&drainShovelCount>=GARDEN_DRAIN_SHOVEL_COST&&!drainedSlotsToday.includes(currentSlot)&&clampGardenMoisture(plant.moisture)>GARDEN_MOISTURE_INITIAL,
+        canObserve:!!plant&&plant.status!=="dead"&&plant.status!=="eaten"&&!observedSlotsToday.includes(currentSlot)&&observedSlotsToday.length<GARDEN_MAX_OBSERVE_PER_DAY,
+        canHarvest:!!plant&&plant.growth>=15&&plant.status!=="dead"&&plant.status!=="eaten"
+      },
+      rates,
+      message:lastMessage
+    };
+  }
+  function postGardenState(message="",extra=null){
+    if(typeof renderGardenUi==="function"){
+      renderGardenUi({...gardenPublicState(message),...(extra||{})});
+    }
+  }
+  function handleGardenAction(action){
+    let result={ok:false,message:"未知菜園操作。"};
+    if(action==="plant")result=gardenPlantNew();
+    else if(action==="water"||action.startsWith("water:"))result=gardenWater(action);
+    else if(action==="drain"||action.startsWith("drain:"))result=gardenDrainRainwater(action);
+    else if(action==="observe"||action.startsWith("observe:"))result=gardenObserve(action);
+    else if(action==="fertilize")result=gardenFertilize();
+    else if(action==="harvest")result=gardenHarvest();
+    else if(action==="clear")result=gardenClearPlant();
+    else if(action==="devNextDay")result=gardenDevAdvanceDay();
+    else if(action.startsWith("enhance:"))result=enhanceGardenCarrot(action);
+    else if(action.startsWith("eventChoice:"))result=gardenResolvePendingChoice(action);
+    else if(action.startsWith("choice:"))result=gardenResolveRecordChoice(action);
+    else if(action==="clearRecords")result=gardenClearRecords();
+    else if(action.startsWith("discardCarrot:"))result=discardGardenCarrot(action);
+    else if(action==="moveDeposit"){
+      const moved=moveGardenDepositToStorage();
+      result={ok:true,message:moved?`已移入 ${moved} 個保管箱素材。`:"倉庫沒有空位或保管箱是空的。"};
+    }
+    saveMeta();
+    renderMeta();
+    const extra={};
+    if(result.harvest)extra.harvestPopup={...result.harvest,titleLevelUp:result.titleLevelUp||null};
+    if(result.choiceEvent)extra.choiceEvent=result.choiceEvent;
+    if(result.clearRecords)extra.clearRecords=true;
+    if(Object.prototype.hasOwnProperty.call(result,"focusPlantingNo"))extra.focusPlantingNo=result.focusPlantingNo;
+    postGardenState(result.message,Object.keys(extra).length?extra:null);
+    if(result.message)showQuickToast(result.message);
+    beep(result.ok?760:180,.08,.025,result.ok?"triangle":"square");
+  }
+  const growthAssets={
+    seed:"assets/garden/user-carrot-growth-v5/carrot-growth-00-seed.png",
+    sprout:"assets/garden/user-carrot-growth-v5/carrot-growth-01-sprout.png",
+    smallLeaves:"assets/garden/user-carrot-growth-v5/carrot-growth-02-small-leaves.png",
+    formedLeaves:"assets/garden/user-carrot-growth-v5/carrot-growth-03-formed-leaves.png",
+    lushLeaves:"assets/garden/user-carrot-growth-v5/carrot-growth-04-lush-leaves.png",
+    fattening:"assets/garden/user-carrot-growth-v5/carrot-growth-05-fattening.png",
+    mature:"assets/garden/user-carrot-growth-v5/carrot-growth-06-mature.png",
+    harvestReady:"assets/garden/user-carrot-growth-v5/carrot-growth-07-harvest-ready.png",
+    matureDry:"assets/garden/user-carrot-growth-v5/carrot-growth-08-mature-dry.png",
+    withered:"assets/garden/user-carrot-growth-v5/carrot-growth-09-withered.png",
+    eaten:"assets/garden/user-carrot-growth-v5/carrot-growth-10-mole-eaten.png",
+    leafOverwater:"assets/garden/user-carrot-growth-v5/carrot-growth-11-leaf-overwater.png",
+    fatteningOverwater:"assets/garden/user-carrot-growth-v5/carrot-growth-12-fattening-overwater.png",
+    empty:"assets/garden/user-carrot-growth-v5/carrot-growth-13-empty.png",
+    leafDry:"assets/garden/user-carrot-growth-v5/carrot-growth-14-leaf-withered.png",
+    smallLeavesBugBite:"assets/garden/user-carrot-growth-v5/carrot-growth-15-small-leaves-bug-bite.png",
+    lushLeavesBugBite:"assets/garden/user-carrot-growth-v5/carrot-growth-16-lush-leaves-bug-bite.png",
+    fatteningBugBite:"assets/garden/user-carrot-growth-v5/carrot-growth-17-fattening-bug-bite.png",
+    matureBugBite:"assets/garden/user-carrot-growth-v5/carrot-growth-18-mature-bug-bite.png",
+    lushLeavesOverwater:"assets/garden/user-carrot-growth-v5/carrot-growth-19-lush-leaves-overwater.png"
+  };
+  const devGrowthPreviewStages=[
+    {key:"seed",name:"種子",stageIndex:0},
+    {key:"sprout",name:"發芽",stageIndex:1},
+    {key:"smallLeaves",name:"長出小葉",stageIndex:2},
+    {key:"formedLeaves",name:"小葉成形",stageIndex:3},
+    {key:"lushLeaves",name:"葉子茂盛",stageIndex:3},
+    {key:"fattening",name:"胡蘿蔔長胖",stageIndex:4},
+    {key:"mature",name:"成熟",stageIndex:5},
+    {key:"harvestReady",name:"可採收",stageIndex:6},
+    {key:"matureDry",name:"長胖或成熟缺水",stageIndex:5},
+    {key:"withered",name:"枯死",stageIndex:5},
+    {key:"eaten",name:"被地鼠啃掉",stageIndex:6},
+    {key:"leafOverwater",name:"小葉澆水過多",stageIndex:2},
+    {key:"fatteningOverwater",name:"長胖澆水過多",stageIndex:4},
+    {key:"empty",name:"空地",stageIndex:0},
+    {key:"leafDry",name:"小葉缺水",stageIndex:3},
+    {key:"smallLeavesBugBite",name:"小葉蟲咬",stageIndex:2},
+    {key:"lushLeavesBugBite",name:"葉子茂盛蟲咬",stageIndex:3},
+    {key:"fatteningBugBite",name:"胡蘿蔔長胖蟲咬",stageIndex:4},
+    {key:"matureBugBite",name:"成熟蟲咬",stageIndex:5},
+    {key:"lushLeavesOverwater",name:"葉子茂盛澆水過多",stageIndex:3}
+  ];
+  let gardenState=null,qualities=[],activeTab="garden",enhanceBaseIndex=null,enhanceMaterialIndexes=[],devPreviewIndex=null,devTimeSlotIndex=null,selectedRecordPlantingNo=null,gardenAssetsReady=false,gardenUiInitialized=false;
+  const enhanceNeeds={common:2,rare:4,uncommon:7,epic:11,legendary:16,mythic:22,immortal:30,eternal:40};
+  const enhanceMaxLevel=GARDEN_ENHANCE_MAX_LEVEL;
+  const gardenTimeSlots=["morning","noon","afternoon","night"];
+  const gardenTimeNames={morning:"早上",noon:"中午",afternoon:"下午",night:"晚上"};
+  const gardenPreloadAssets=[
+    "assets/garden/早上.png",
+    "assets/garden/中午.png",
+    "assets/garden/下午.png",
+    "assets/garden/晚上.png",
+    "assets/garden/plant-button-frame-clean.png?v=1",
+    "assets/garden/user-carrot-growth-v5/carrot-growth-13-empty.png",
+    "assets/garden/user-carrot-growth-v5/carrot-growth-00-seed.png"
+  ];
+  function action(name){handleGardenAction(name);}
+  function preloadImage(src){
+    return new Promise(resolve=>{
+      const img=new Image();
+      const done=()=>resolve(src);
+      img.onload=done;
+      img.onerror=done;
+      img.decoding="async";
+      img.src=src;
+      if(img.complete)resolve(src);
+    });
+  }
+  function markGardenAssetsReady(){
+    if(gardenAssetsReady)return;
+    gardenAssetsReady=true;
+    document.getElementById("gardenScene")?.classList.add("assetsReady");
+    document.getElementById("gardenSceneLoading")?.classList.add("hidden");
+  }
+  function preloadGardenSceneAssets(){
+    return Promise.all(gardenPreloadAssets.map(preloadImage)).catch(()=>[]).finally(()=>markGardenAssetsReady());
+  }
+  function closeGardenScreen(){
+    gardenScreen?.classList.add("hidden");
+    syncCoinState(true);
+    renderMeta();
+  }
+  function openGardenForge(){
+    gardenScreen?.classList.add("hidden");
+    shopMode="forge";
+    forgeMessage="";
+    forgeSourceMode="";
+    renderShop();
+    shopScreen.classList.remove("hidden");
+    syncCoinState(true);
+    renderMeta();
+  }
+  function qualityDef(id){return qualities.find(q=>q.id===id)||qualities[0]||{id:"common",name:"凡品胡蘿蔔",rank:"一般",asset:""};}
+  function qualityIndexOf(id){return Math.max(0,qualities.findIndex(q=>q.id===id));}
+  function enhanceNeedForQuality(id){return enhanceNeeds[qualityDef(id).id]||enhanceNeeds.common;}
+  function carrotStoredEnergy(item){
+    const baseEnergy=enhanceNeedForQuality(item.quality)+Math.max(0,Number(item.exp)||0);
+    return baseEnergy*Math.max(1,Math.floor(Number(item.level)||0));
+  }
+  function setTab(tab){
+    activeTab=tab;
+    document.querySelectorAll("#gardenScreen .tabBtn").forEach(btn=>btn.classList.toggle("active",btn.dataset.tab===tab));
+    document.getElementById("tabGarden")?.classList.toggle("hidden",tab!=="garden");
+    document.getElementById("tabStorage")?.classList.toggle("hidden",tab!=="storage");
+    document.getElementById("tabEnhance")?.classList.toggle("hidden",tab!=="enhance");
+  }
+  function dayNumber(key){
+    if(!key)return null;
+    const parts=String(key).split("-").map(Number);
+    if(parts.length!==3||parts.some(n=>!Number.isFinite(n)))return null;
+    return Math.floor(Date.UTC(parts[0],parts[1]-1,parts[2])/86400000);
+  }
+  function gardenDayLabel(payload,plant,today){
+    if(!plant)return "第 0 天";
+    const fromMain=Number(payload?.plantDay);
+    if(Number.isFinite(fromMain)&&fromMain>0)return `第 ${Math.floor(fromMain)} 天`;
+    const start=dayNumber(plant.plantedDate),now=dayNumber(today);
+    if(start==null||now==null)return "第 1 天";
+    return `第 ${Math.max(1,now-start+1)} 天`;
+  }
+  function gardenStatsLabel(payload){
+    const stats=payload?.gardenStats||{},garden=payload?.garden||{};
+    const plantingCount=Math.max(0,Math.floor(Number(stats.plantingCount??garden.plantingCount)||0));
+    const harvestCount=Math.max(0,Math.floor(Number(stats.harvestCount??garden.harvestCount)||0));
+    const totalPlantDays=Math.max(0,Math.floor(Number(stats.totalPlantDays)||0));
+    return `播種 ${plantingCount} 次　收成 ${harvestCount} 次　共種植 ${totalPlantDays} 天`;
+  }
+  function qualityMoodText(shift=0){
+    const value=Number(shift)||0;
+    if(value>=6)return "品質狀況：靈氣很旺，高品質機會明顯上升。";
+    if(value>=3)return "品質狀況：狀態很好，高品質機會小幅上升。";
+    if(value>=1)return "品質狀況：土壤氣息穩定，略有好兆頭。";
+    if(value===0)return "品質狀況：一切平穩，品質沒有明顯變化。";
+    if(value<=-6)return "品質狀況：狀況很差，高品質機會明顯下降。";
+    if(value<=-3)return "品質狀況：狀態偏弱，高品質機會下降。";
+    return "品質狀況：稍微不穩，高品質機會小幅下降。";
+  }
+  function renderPips(plantView){
+    const wrap=document.getElementById("stagePips");
+    if(!wrap)return;
+    wrap.innerHTML="";
+    const idx=plantView?.stageIndex??0;
+    const plant=!!gardenState?.garden?.current;
+    for(let i=0;i<7;i++){
+      const div=document.createElement("div");
+      div.className="pip";
+      if(plant&&i<idx)div.classList.add("done");
+      if(plant&&i===idx)div.classList.add("now");
+      wrap.appendChild(div);
+    }
+  }
+  function renderCropImage(plantView,imageKey){
+    const preview=devPreviewIndex==null?null:devGrowthPreviewStages[devPreviewIndex];
+    const cropImg=document.getElementById("cropImg");
+    if(!cropImg)return false;
+    const applyCropClass=key=>{
+      cropImg.classList.toggle("seedTopBoost",key==="seed");
+      cropImg.classList.toggle("fatteningOverwaterShift",key==="fatteningOverwater");
+    };
+    if(preview){
+      cropImg.src=growthAssets[preview.key]||growthAssets.empty;
+      applyCropClass(preview.key);
+      document.getElementById("stageLabel").textContent=`成長階段：${preview.name}`;
+      document.getElementById("devStageText").textContent=`開發預覽 ${devPreviewIndex+1}/${devGrowthPreviewStages.length}`;
+      renderPips({stageIndex:preview.stageIndex});
+      return true;
+    }
+    cropImg.src=growthAssets[imageKey]||growthAssets.empty;
+    applyCropClass(imageKey);
+    document.getElementById("stageLabel").textContent=`成長階段：${plantView.stageName||"無"}`;
+    document.getElementById("devStageText").textContent="開發預覽";
+    renderPips(plantView);
+    return false;
+  }
+  function stepDevPreview(dir){
+    if(!gardenState?.devMode)return;
+    const total=devGrowthPreviewStages.length;
+    devPreviewIndex=devPreviewIndex==null?(dir>0?0:total-1):(devPreviewIndex+dir+total)%total;
+    const plantView=gardenState?.plantView||{};
+    renderCropImage(plantView,plantView.imageKey||"empty");
+  }
+  function carrotCard(item,index=null,mode="storage"){
+    const q=qualityDef(item.quality);
+    const items=[...(gardenState?.garden?.storage||[])];
+    const base=enhanceBaseIndex==null?null:items[enhanceBaseIndex];
+    const locked=mode==="enhance"&&base&&index!==enhanceBaseIndex&&qualityIndexOf(item.quality)>qualityIndexOf(base.quality);
+    const selectable=mode==="enhance"?" selectable":"";
+    const selectedBase=mode==="enhance"&&index===enhanceBaseIndex?" selectedBase":"";
+    const selectedMaterial=mode==="enhance"&&enhanceMaterialIndexes.includes(index)?" selectedMaterial":"";
+    const lockedMaterial=locked?" lockedMaterial":"";
+    const data=index==null?"":` data-index="${index}"`;
+    const discard=index==null||mode!=="storage"?"":`<button class="discardCarrotBtn" type="button" data-delete-index="${index}" aria-label="堆肥 ${q.name}">x</button>`;
+    return `<div class="matSlot${selectable}${selectedBase}${selectedMaterial}${lockedMaterial}"${data}><img class="harvestIcon" src="${q.asset}" alt="${q.name}"><b class="quality${q.id}">${q.name}</b><small>${q.rank}<br>${gardenEnhanceRankText(item.level)}</small>${discard}</div>`;
+  }
+  function renderStorage(){
+    const garden=gardenState?.garden||{},items=[...(garden.storage||[])],cap=Math.max(9,Number(garden.storageCap)||9);
+    const grid=document.getElementById("storageGrid");
+    if(!grid)return;
+    const cards=[];
+    for(let i=0;i<cap;i++)cards.push(items[i]?carrotCard(items[i],i,"storage"):`<div class="matSlot emptySlot"><div class="box"></div><b>空格</b><small>${i+1} / ${cap}</small></div>`);
+    const deposit=(garden.depositBox||[]).length;
+    if(deposit)cards.push(`<div class="matSlot"><b>保管箱</b><small>${deposit} 個待領</small><button class="actionBtn" type="button" data-storage-action="moveDeposit" style="font-size:13px;padding:8px">移入</button></div>`);
+    grid.innerHTML=cards.join("");
+    document.getElementById("storageText").textContent=`${items.length} / ${cap}`;
+  }
+  function enhanceMaterialPower(item){return carrotStoredEnergy(item);}
+  function gardenTimeSlot(date=new Date()){
+    const h=date.getHours();
+    if(h>=5&&h<11)return "morning";
+    if(h>=11&&h<15)return "noon";
+    if(h>=15&&h<19)return "afternoon";
+    return "night";
+  }
+  function activeGardenTimeSlot(){return gardenState?.devMode&&devTimeSlotIndex!=null?gardenTimeSlots[devTimeSlotIndex]:gardenTimeSlot();}
+  function updateTimeLabel(slot){
+    const label=document.getElementById("devTimeLabel");
+    if(label)label.textContent=`時辰：${gardenTimeNames[slot]||"早上"}`;
+    const btn=document.getElementById("devTimeNextBtn");
+    if(btn)btn.textContent=slot==="night"?"下一天":"下一時辰";
+  }
+  function renderGardenBackground(){
+    const scene=document.getElementById("gardenScene");
+    if(!scene)return;
+    const slot=activeGardenTimeSlot();
+    const rainy=!!gardenState?.weather?.isRainy;
+    const bgClass=rainy&&slot!=="night"?"rain":slot;
+    scene.className=`gardenScene ${bgClass}${rainy?" rainyWeather":""}${gardenAssetsReady?" assetsReady":""}`;
+    updateTimeLabel(slot);
+  }
+  function stepDevTime(){
+    if(!gardenState?.devMode)return;
+    const current=devTimeSlotIndex==null?gardenTimeSlots.indexOf(gardenTimeSlot()):devTimeSlotIndex;
+    if(current>=gardenTimeSlots.length-1){
+      devTimeSlotIndex=0;
+      action("devNextDay");
+      renderGardenBackground();
+      return;
+    }
+    devTimeSlotIndex=Math.max(0,current)+1;
+    renderGardenBackground();
+  }
+  function weekdayDateLabel(dateKey){
+    const parts=String(dateKey||"").split("-").map(Number);
+    if(parts.length!==3||parts.some(value=>!Number.isFinite(value)))return "未知";
+    const date=new Date(parts[0],parts[1]-1,parts[2]);
+    const week=["星期日","星期一","星期二","星期三","星期四","星期五","星期六"][date.getDay()]||"星期?";
+    return `${parts[1]}/${parts[2]} ${week}`;
+  }
+  function recordTimePeriod(createdAt){
+    const date=new Date(Number(createdAt)||Date.now()),hour=date.getHours();
+    if(hour<11)return "早上";
+    if(hour<15)return "中午";
+    if(hour<19)return "下午";
+    return "晚上";
+  }
+  function gardenRecordHeader(record){
+    const dateText=weekdayDateLabel(record?.date);
+    const slot=GARDEN_WATER_SLOTS.includes(record?.slot)?record.slot:"";
+    const slotText=slot?gardenWaterSlotName(slot):recordTimePeriod(record?.createdAt);
+    const weatherText=record?.weatherName||gardenWeatherForDate(record?.date).name;
+    return `${dateText} ${slotText} ${weatherText}`;
+  }
+  function dayNumberFromKey(dateKey){
+    const parts=String(dateKey||"").split("-").map(Number);
+    if(parts.length!==3||parts.some(value=>!Number.isFinite(value)))return null;
+    return Math.floor(Date.UTC(parts[0],parts[1]-1,parts[2])/86400000);
+  }
+  function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+  function syncRecordPlantingNav(records,payload){
+    const prevBtn=document.getElementById("recordPrevPlantBtn"),nextBtn=document.getElementById("recordNextPlantBtn"),label=document.getElementById("recordPlantLabel");
+    const plantingCount=Math.max(0,Math.floor(Number(payload?.garden?.plantingCount)||0));
+    const plantingNos=[...new Set(records.map(record=>Math.max(0,Math.floor(Number(record?.plantingNo)||0))).filter(no=>no>0))].sort((a,b)=>a-b);
+    const fallbackNo=plantingNos.length?plantingNos[plantingNos.length-1]:plantingCount;
+    if(!selectedRecordPlantingNo||!plantingNos.includes(selectedRecordPlantingNo))selectedRecordPlantingNo=fallbackNo||0;
+    const currentIndex=plantingNos.indexOf(selectedRecordPlantingNo);
+    if(label)label.textContent=`第 ${selectedRecordPlantingNo||0} 次種植`;
+    if(prevBtn)prevBtn.disabled=currentIndex<=0;
+    if(nextBtn)nextBtn.disabled=currentIndex<0||currentIndex>=plantingNos.length-1;
+    return selectedRecordPlantingNo;
+  }
+  function selectedRecordPlantDay(records,payload){
+    const activeNo=selectedRecordPlantingNo||0;
+    const currentNo=Math.max(0,Math.floor(Number(payload?.garden?.current?.plantingNo)||0));
+    if(activeNo&&activeNo===currentNo&&Number(payload?.plantDay)>0)return Math.max(1,Math.floor(Number(payload.plantDay)||1));
+    const plantRecords=records.filter(record=>Math.max(0,Math.floor(Number(record?.plantingNo)||0))===activeNo);
+    const recordedDays=plantRecords.map(record=>Math.max(0,Math.floor(Number(record?.plantDay)||0))).filter(Boolean);
+    const dates=[...new Set(plantRecords.map(record=>String(record?.date||"")).filter(Boolean))].sort();
+    let dateDays=0;
+    if(dates.length){
+      const first=dayNumberFromKey(dates[0]),last=dayNumberFromKey(dates[dates.length-1]);
+      dateDays=first==null||last==null?1:Math.max(1,last-first+1);
+    }
+    return Math.max(0,Math.floor(Number(payload?.plantDay)||0),recordedDays.length?Math.max(...recordedDays):0,dateDays);
+  }
+  function recordPlantDayValue(record,plantRecords,payload){
+    if(record?.kind==="plantStart")return 1;
+    const stored=Math.max(0,Math.floor(Number(record?.plantDay)||0));
+    const activeNo=selectedRecordPlantingNo||0,currentNo=Math.max(0,Math.floor(Number(payload?.garden?.current?.plantingNo)||0));
+    if(activeNo&&activeNo===currentNo&&String(record?.date||"")===String(payload?.today||"")&&Number(payload?.plantDay)>0)return Math.max(1,Math.floor(Number(payload.plantDay)||1));
+    const dateKeys=[...new Set(plantRecords.map(item=>String(item?.date||"")).filter(Boolean))].sort();
+    const firstDateNo=dayNumberFromKey(dateKeys[0]),currentDateNo=dayNumberFromKey(record?.date);
+    const dateValue=firstDateNo==null||currentDateNo==null?0:Math.max(1,currentDateNo-firstDateNo+1);
+    return Math.max(stored,dateValue);
+  }
+  function renderGrowthRecords(payload,plant){
+    const list=document.getElementById("growthRecordList");
+    if(!list)return;
+    let records=Array.isArray(payload?.garden?.records)?payload.garden.records:[];
+    const hasRealRecords=records.length>0;
+    if(!records.length){
+      const last=plant?.lastEvent;
+      const eventText=`${last?.title||"菜園狀態"}：${last?.text||"今天還沒有新的紀錄。"}`;
+      const qualityText=plant?gardenQualityRecordText(plant):"等待新的神秘種子。";
+      records=[{id:"fallback",date:payload?.today,slot:typeof activeGardenTimeSlot==="function"?activeGardenTimeSlot():gardenTimeSlot(),weatherName:payload?.weather?.name,title:last?.title||"菜園狀態",text:`${eventText}\n${qualityText}`,choices:[]}];
+    }
+    records=[...records];
+    const activePlantingNo=syncRecordPlantingNav(records,payload);
+    records=records.filter(record=>Math.max(0,Math.floor(Number(record?.plantingNo)||0))===activePlantingNo);
+    records.sort((a,b)=>{
+      const aStart=a?.kind==="plantStart"?1:0,bStart=b?.kind==="plantStart"?1:0;
+      if(aStart!==bStart)return aStart-bStart;
+      const dayCompare=recordPlantDayValue(b,records,payload)-recordPlantDayValue(a,records,payload);
+      if(dayCompare)return dayCompare;
+      const dateCompare=String(b?.date||"").localeCompare(String(a?.date||""));
+      if(dateCompare)return dateCompare;
+      return((Number(b?.createdAt)||0)-(Number(a?.createdAt)||0))||String(b?.id||"").localeCompare(String(a?.id||""));
+    });
+    const currentRecordDay=selectedRecordPlantDay(records,payload);
+    const todayNumber=dayNumberFromKey(payload?.today);
+    const dayText=document.getElementById("dayText");
+    if(dayText)dayText.textContent=!plant&&!hasRealRecords?"第 0 天":`第 ${currentRecordDay} 天`;
+    const pieces=[]; let lastDay=null;
+    records.slice(0,40).forEach((record,index)=>{
+      const dateKey=String(record?.date||"");
+      const plantDay=recordPlantDayValue(record,records,payload);
+      const recordDateNumber=dayNumberFromKey(dateKey);
+      const isOldDay=(plantDay>0&&currentRecordDay>0&&plantDay<currentRecordDay)||(recordDateNumber!=null&&todayNumber!=null&&recordDateNumber<todayNumber);
+      if(index>0&&plantDay&&plantDay!==lastDay)pieces.push(`<div class="recordDayDivider${isOldDay?" oldDay":""}"><span>第${plantDay}天</span></div>`);
+      const choices=Array.isArray(record.choices)&&record.choices.length?`<div class="recordChoices">${record.choices.map(choice=>`<button class="recordChoiceBtn" type="button" data-record-id="${escapeHtml(record.id)}" data-choice-id="${escapeHtml(choice.id)}">${escapeHtml(choice.label)}</button>`).join("")}</div>`:"";
+      const isSeparator=record.kind==="plantStart"||record.kind==="lostNotebook";
+      const title=String(record?.title||""),kind=String(record?.kind||"");
+      const isWaterRecord=kind==="water"||kind==="drain"||title.startsWith("澆水完成")||title.startsWith("排水完成");
+      const isFertilizeRecord=kind==="fertilize"||title.startsWith("施肥完成");
+      const recordClass=["recordBox",isSeparator?"separator":"",isWaterRecord?"waterRecord":"",isFertilizeRecord?"fertilizeRecord":"",isOldDay?"oldDay":""].filter(Boolean).join(" ");
+      pieces.push(`<div class="${recordClass}"><span class="recordDate">${escapeHtml(gardenRecordHeader(record))}：</span>${escapeHtml(gardenDisplayRecordText(record))}${choices}</div>`);
+      lastDay=plantDay;
+    });
+    list.innerHTML=pieces.join("");
+  }
+  function showHarvestResult(harvest){
+    const overlay=document.getElementById("gardenHarvestResult"),text=document.getElementById("gardenHarvestResultText");
+    if(!overlay||!text||!harvest)return;
+    const location=harvest.location==="depositBox"?"倉庫已滿，已放入保管箱。":"已放入倉庫。";
+    const titleText=harvest.titleLevelUp?.name?`\n稱號提升：${harvest.titleLevelUp.name}！`:"";
+    text.textContent=`你採收到 ${harvest.rank||""}・${harvest.name||"胡蘿蔔"}。${harvest.locationText||location}${titleText}`;
+    overlay.dataset.harvestId=harvest.id||String(Date.now());
+    overlay.classList.remove("hidden");
+  }
+  function showGardenChoiceEvent(choiceEvent){
+    const overlay=document.getElementById("gardenChoiceEvent"),title=document.getElementById("gardenChoiceEventTitle"),text=document.getElementById("gardenChoiceEventText"),actions=document.getElementById("gardenChoiceActions");
+    const event=choiceEvent&&Array.isArray(choiceEvent.choices)?choiceEvent:null;
+    if(!overlay||!title||!text||!actions||!event)return;
+    if(!overlay.classList.contains("hidden")&&overlay.dataset.eventId===String(event.id||""))return;
+    overlay.dataset.eventId=String(event.id||"");
+    title.textContent=event.title||"菜園事件";
+    text.textContent=event.text||"菜園裡發生了一件小事。";
+    const effectLabel=choice=>gardenEffectSummary(choice,{
+      fertilizerGain:gardenChoiceFertilizerGain(event,choice),
+      coinsGain:gardenChoiceCoinGain(event,choice)
+    }).replaceAll("，"," / ");
+    actions.innerHTML=event.choices.map(choice=>{
+      const effect=effectLabel(choice);
+      return `<button class="gardenConfirmBtn" type="button" data-garden-event-choice="${escapeHtml(choice.id)}">${escapeHtml(choice.label)}${effect?`<small>${escapeHtml(effect)}</small>`:""}</button>`;
+    }).join("");
+    overlay.classList.remove("hidden");
+  }
+  function renderEnhance(){
+    const garden=gardenState?.garden||{},items=[...(garden.storage||[])],enhanceItems=items.map((item,index)=>({item,index})).filter(entry=>entry.item&&!entry.item.forged);
+    if(enhanceBaseIndex!=null&&(!items[enhanceBaseIndex]||items[enhanceBaseIndex].forged)){enhanceBaseIndex=null;enhanceMaterialIndexes=[];}
+    enhanceMaterialIndexes=enhanceMaterialIndexes.filter(index=>items[index]&&!items[index].forged&&index!==enhanceBaseIndex);
+    const base=enhanceBaseIndex==null?null:items[enhanceBaseIndex],mats=enhanceMaterialIndexes.map(index=>items[index]).filter(Boolean);
+    const baseText=document.getElementById("enhanceBaseText"),matText=document.getElementById("enhanceMatText"),resultText=document.getElementById("enhanceResultText"),enhanceText=document.getElementById("enhanceText"),confirmBtn=document.getElementById("confirmEnhanceBtn"),clearBtn=document.getElementById("clearEnhanceBtn");
+    const statusMessage=String(gardenState?.message||"");
+    baseText.textContent=base?`${qualityDef(base.quality).name} ${qualityDef(base.quality).rank} ${gardenEnhanceRankText(base.level)}`:"尚未選擇";
+    matText.textContent=mats.length?`已選 ${mats.length} 個素材`:"尚未選擇";
+    const power=mats.reduce((sum,item)=>sum+enhanceMaterialPower(item),0);
+    if(!base){
+      resultText.textContent=statusMessage||"請先選擇主體。";
+      enhanceText.textContent="先選主體";
+    }else if(!mats.length){
+      resultText.textContent="再選其他胡蘿蔔作為素材。";
+      enhanceText.textContent="再選素材";
+    }else{
+      const need=enhanceNeedForQuality(base.quality),currentExp=Math.max(0,Number(base.exp)||0),nextExp=Math.min(need*enhanceMaxLevel,currentExp+power),nextLevel=Math.min(enhanceMaxLevel,Math.floor(nextExp/need)),remaining=Math.max(0,need*(nextLevel+1)-nextExp);
+      const nextRankText=gardenEnhanceRankText(nextLevel);
+      resultText.textContent=nextLevel>=enhanceMaxLevel?`素材能量 ${power}，吸收後會到 ${nextRankText}。達到 S+ 後就能前往鍛造屋。`:`素材能量 ${power}，吸收後會到 ${nextRankText}。距離下一階還差 ${remaining} 點能量。`;
+      enhanceText.textContent=`已選 ${mats.length} 個素材`;
+    }
+    confirmBtn.disabled=!base||!mats.length;
+    clearBtn.textContent="清除選取";
+    document.getElementById("enhanceGrid").innerHTML=enhanceItems.length?enhanceItems.map(({item,index})=>carrotCard(item,index,"enhance")).join(""):`<div class="matSlot emptySlot"><div class="box"></div><b>沒有可吸收素材</b><small>已鍛造胡蘿蔔不會顯示</small></div>`;
+  }
+  function renderGardenUi(payload){
+    gardenState=payload;
+    qualities=payload.qualities||qualities;
+    const garden=payload.garden||{},plant=garden.current,plantView=payload.plantView||{},imageKey=plantView.imageKey||"empty";
+    const scenePlantBtn=document.getElementById("scenePlantBtn"),scenePlantLabel=document.getElementById("scenePlantLabel"),scenePlantSeedText=document.getElementById("scenePlantSeedText"),waterBtn=document.getElementById("waterBtn"),observeBtn=document.getElementById("observeBtn"),fertBtn=document.getElementById("fertBtn"),gardenEventBtn=document.getElementById("gardenEventBtn");
+    if(!scenePlantBtn||!scenePlantLabel||!scenePlantSeedText||!waterBtn||!observeBtn||!fertBtn)return;
+    document.getElementById("versionText").textContent=`V.${payload.version||"-"}`;
+    document.getElementById("seedCount").textContent=payload.title?.name||"超級菜鳥";
+    const activeSlot=activeGardenTimeSlot();
+    const weatherName=payload.weather?.name||"晴朗";
+    const isRainObserve=!!payload.weather?.isRainy&&activeSlot!=="night";
+    const hasGardenEvent=!!normalizeGardenChoiceEvent(payload.choiceEvent);
+    document.getElementById("waterStatus").textContent=plant?weatherName:"未種植";
+    document.getElementById("devTimeControl").classList.toggle("hidden",!payload.devMode);
+    document.getElementById("devClearRecordsBtn")?.classList.toggle("hidden",!payload.devMode);
+    if(!payload.devMode)devTimeSlotIndex=null;
+    renderGardenBackground();
+    document.getElementById("devStageControls").classList.toggle("hidden",!payload.devMode);
+    if(!payload.devMode)devPreviewIndex=null;
+    const usingDevPreview=renderCropImage(plantView,imageKey);
+    document.getElementById("stageLabel").classList.toggle("hidden",!payload.devMode);
+    if(payload.clearRecords)selectedRecordPlantingNo=null;
+    if(Object.prototype.hasOwnProperty.call(payload,"focusPlantingNo"))selectedRecordPlantingNo=Math.max(0,Math.floor(Number(payload.focusPlantingNo)||0));
+    document.getElementById("titleSubtitle").textContent=payload.title?.name||"超級菜鳥";
+    document.getElementById("growthText").textContent=plant?`${plant.growth||0} / 15`:"0 / 15";
+    document.getElementById("dayText").textContent=gardenDayLabel(payload,plant,payload.today);
+    document.getElementById("gardenStatsText").textContent=gardenStatsLabel(payload);
+    document.getElementById("titleText").textContent=payload.title?.name||"超級菜鳥";
+    document.getElementById("qualityText").textContent=plant?`${(plant.qualityShift||0)>=0?"+":""}${plant.qualityShift||0}`:"+0";
+    const fertilizerCount=Math.max(0,Math.floor(Number(garden.fertilizer)||0));
+    const drainShovelCount=Math.max(0,Math.floor(Number(garden.drainShovels)||0));
+    document.getElementById("fertText").textContent=`x ${fertilizerCount}`;
+    const canSceneHarvest=!!plantView.canHarvest;
+    scenePlantLabel.textContent=canSceneHarvest?"採收":"播種";
+    scenePlantSeedText.textContent=canSceneHarvest?"點擊採收":`神秘種子 X ${garden.seeds||0}`;
+    waterBtn.textContent=isRainObserve?`排水 x ${drainShovelCount}`:"澆水";
+    waterBtn.disabled=plant?hasGardenEvent||(isRainObserve?!plantView.canDrain:!plantView.canWater):true;
+    observeBtn.textContent="觀察";
+    observeBtn.disabled=plant?hasGardenEvent||!plantView.canObserve:true;
+    fertBtn.textContent=`施肥 x ${fertilizerCount}`;
+    scenePlantBtn.classList.toggle("hidden",!!plant&&!canSceneHarvest);
+    gardenEventBtn?.classList.toggle("hidden",!hasGardenEvent);
+    if(gardenEventBtn)gardenEventBtn.disabled=!hasGardenEvent;
+    fertBtn.disabled=!plant||plant.status==="dead"||plant.status==="eaten"||fertilizerCount<=0;
+    document.getElementById("clearBtn").disabled=!plant;
+    renderGrowthRecords(payload,plant);
+    if(!usingDevPreview)renderPips(plantView);
+    renderStorage();
+    renderEnhance();
+    if(payload.harvestPopup)showHarvestResult(payload.harvestPopup);
+    setTab(activeTab);
+  }
+  function toggleEnhanceIndex(index){
+    const items=[...(gardenState?.garden?.storage||[])];
+    if(!items[index])return;
+    if(enhanceBaseIndex==null||enhanceBaseIndex===index){
+      enhanceBaseIndex=enhanceBaseIndex===index?null:index;
+      enhanceMaterialIndexes=[];
+    }else{
+      const base=items[enhanceBaseIndex];
+      if(base&&qualityIndexOf(items[index].quality)>qualityIndexOf(base.quality)){
+        const resultText=document.getElementById("enhanceResultText");
+        if(resultText)resultText.textContent="不能吸收比主體品質更高的胡蘿蔔。";
+        return;
+      }
+      const pos=enhanceMaterialIndexes.indexOf(index);
+      if(pos>=0)enhanceMaterialIndexes.splice(pos,1);
+      else enhanceMaterialIndexes.push(index);
+    }
+    renderEnhance();
+  }
+  function discardCarrot(index){
+    if(!Number.isFinite(index))return;
+    if(index===enhanceBaseIndex){enhanceBaseIndex=null;enhanceMaterialIndexes=[];}
+    else{
+      enhanceMaterialIndexes=enhanceMaterialIndexes.filter(itemIndex=>itemIndex!==index).map(itemIndex=>itemIndex>index?itemIndex-1:itemIndex);
+      if(enhanceBaseIndex!=null&&enhanceBaseIndex>index)enhanceBaseIndex--;
+    }
+    action(`discardCarrot:${index}`);
+  }
+  function initGardenUi(){
+    if(gardenUiInitialized)return;
+    gardenUiInitialized=true;
+    preloadGardenSceneAssets();
+    document.getElementById("backBtn")?.addEventListener("click",closeGardenScreen);
+    document.getElementById("bottomHomeBtn")?.addEventListener("click",closeGardenScreen);
+    document.getElementById("devTimeNextBtn")?.addEventListener("click",()=>stepDevTime());
+    document.getElementById("devStagePrevBtn")?.addEventListener("click",()=>stepDevPreview(-1));
+    document.getElementById("devStageNextBtn")?.addEventListener("click",()=>stepDevPreview(1));
+    document.getElementById("forgeBtn2")?.addEventListener("click",openGardenForge);
+    document.getElementById("waterBtn")?.addEventListener("click",()=>{
+      if(!gardenState?.garden?.current){action("plant");return;}
+      action(`${gardenState?.plantView?.isRainObserve?"drain":"water"}:${activeGardenTimeSlot()}`);
+    });
+    document.getElementById("observeBtn")?.addEventListener("click",()=>action(`observe:${activeGardenTimeSlot()}`));
+    document.getElementById("scenePlantBtn")?.addEventListener("click",()=>action(gardenState?.garden?.current&&gardenState?.plantView?.canHarvest?"harvest":"plant"));
+    document.getElementById("gardenEventBtn")?.addEventListener("click",()=>{
+      const event=normalizeGardenChoiceEvent(gardenState?.choiceEvent);
+      if(event)showGardenChoiceEvent(event);
+    });
+    document.getElementById("fertBtn")?.addEventListener("click",()=>action("fertilize"));
+    const clearConfirm=document.getElementById("gardenClearConfirm"),harvestResult=document.getElementById("gardenHarvestResult"),choiceEventOverlay=document.getElementById("gardenChoiceEvent");
+    document.getElementById("clearBtn")?.addEventListener("click",()=>clearConfirm?.classList.remove("hidden"));
+    document.getElementById("cancelClearGardenBtn")?.addEventListener("click",()=>clearConfirm?.classList.add("hidden"));
+    document.getElementById("confirmClearGardenBtn")?.addEventListener("click",()=>{clearConfirm?.classList.add("hidden");action("clear");});
+    clearConfirm?.addEventListener("click",event=>{if(event.target===clearConfirm)clearConfirm.classList.add("hidden");});
+    document.getElementById("closeHarvestResultBtn")?.addEventListener("click",()=>harvestResult?.classList.add("hidden"));
+    harvestResult?.addEventListener("click",event=>{if(event.target===harvestResult)harvestResult.classList.add("hidden");});
+    document.getElementById("gardenChoiceActions")?.addEventListener("click",event=>{
+      const btn=event.target.closest("[data-garden-event-choice]");
+      if(!btn)return;
+      choiceEventOverlay?.classList.add("hidden");
+      action(`eventChoice:${btn.dataset.gardenEventChoice}`);
+    });
+    document.getElementById("clearEnhanceBtn")?.addEventListener("click",()=>{enhanceBaseIndex=null;enhanceMaterialIndexes=[];renderEnhance();});
+    document.getElementById("devClearRecordsBtn")?.addEventListener("click",()=>{if(gardenState?.devMode)action("clearRecords");});
+    document.getElementById("confirmEnhanceBtn")?.addEventListener("click",()=>{if(enhanceBaseIndex==null||!enhanceMaterialIndexes.length)return;action(`enhance:${enhanceBaseIndex}:${enhanceMaterialIndexes.join(",")}`);enhanceBaseIndex=null;enhanceMaterialIndexes=[];});
+    document.getElementById("storageGrid")?.addEventListener("click",event=>{
+      const discardBtn=event.target.closest("[data-delete-index]"),moveBtn=event.target.closest("[data-storage-action='moveDeposit']");
+      if(discardBtn){event.stopPropagation();discardCarrot(Number(discardBtn.dataset.deleteIndex));return;}
+      if(moveBtn){event.stopPropagation();action("moveDeposit");}
+    });
+    document.getElementById("enhanceGrid")?.addEventListener("click",event=>{
+      const discardBtn=event.target.closest("[data-delete-index]");
+      if(discardBtn){event.stopPropagation();discardCarrot(Number(discardBtn.dataset.deleteIndex));return;}
+      const slot=event.target.closest(".matSlot[data-index]");
+      if(slot)toggleEnhanceIndex(Number(slot.dataset.index));
+    });
+    document.getElementById("growthRecordList")?.addEventListener("click",event=>{
+      const btn=event.target.closest(".recordChoiceBtn");
+      if(btn)action(`choice:${btn.dataset.recordId}:${btn.dataset.choiceId}`);
+    });
+    document.getElementById("recordPrevPlantBtn")?.addEventListener("click",()=>{
+      const records=Array.isArray(gardenState?.garden?.records)?gardenState.garden.records:[],plantingNos=[...new Set(records.map(record=>Math.max(0,Math.floor(Number(record?.plantingNo)||0))).filter(no=>no>0))].sort((a,b)=>a-b),currentIndex=plantingNos.indexOf(selectedRecordPlantingNo);
+      if(currentIndex>0){selectedRecordPlantingNo=plantingNos[currentIndex-1];renderGrowthRecords(gardenState,gardenState?.garden?.current);}
+    });
+    document.getElementById("recordNextPlantBtn")?.addEventListener("click",()=>{
+      const records=Array.isArray(gardenState?.garden?.records)?gardenState.garden.records:[],plantingNos=[...new Set(records.map(record=>Math.max(0,Math.floor(Number(record?.plantingNo)||0))).filter(no=>no>0))].sort((a,b)=>a-b),currentIndex=plantingNos.indexOf(selectedRecordPlantingNo);
+      if(currentIndex>=0&&currentIndex<plantingNos.length-1){selectedRecordPlantingNo=plantingNos[currentIndex+1];renderGrowthRecords(gardenState,gardenState?.garden?.current);}
+    });
+    document.querySelectorAll("#gardenScreen .tabBtn").forEach(btn=>btn.addEventListener("click",()=>setTab(btn.dataset.tab)));
   }
   function resetActivityDaily(){
     const key=todayKey();
@@ -2142,11 +4927,29 @@
     saveMeta();
     return true;
   }
-  function settleActivityReward(){
+  function settleActivityReward(success=false){
     if(activityRewarded)return 0;
     activityRewarded=true;
-    const earned=Math.floor(Math.max(0,kills)*.001);
-    meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))+earned;
+    lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0};
+    if(isActivityTrialMode()){
+      const coins=success?Math.max(1,Math.floor(Math.max(0,kills)*.001)):0;
+      if(coins>0)meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))+coins;
+      lastActivityReward={mode:ACTIVITY_TRIAL_MODE,seeds:0,coins,points:0};
+      saveMeta();
+      return coins;
+    }
+    const earned=success?Math.max(1,Math.min(10,1+Math.floor(Math.max(0,kills)/80))):0;
+    let points=0;
+    if(success){
+      const normalKills=Math.max(0,kills-eliteKills-bossKills);
+      points=applyPointRewardBonus(Math.floor(normalKills/25)+eliteKills*3+bossKills*10+25+Math.floor(time/60)*3);
+      meta.points+=points;
+    }
+    if(earned>0){
+      meta.garden=normalizeGardenState(meta.garden);
+      meta.garden.seeds=Math.max(0,Math.floor(Number(meta.garden.seeds)||0))+earned;
+    }
+    lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:earned,coins:0,points};
     saveMeta();
     return earned;
   }
@@ -2212,6 +5015,20 @@
         title:"兌換稀有突破原石？",
         message:`用活動兌換幣交換稀有突破原石。\n稀有裝備鍛造 +10 後，可用它開啟進階鍛造。\n\n價格：活動幣 ${RARE_BREAK_STONE_PRICE}`,
         confirmLabel:"兌換"
+      };
+    }
+    if(action==="gardenDrainShovel"){
+      return {
+        title:"購買菜園挖溝鏟？",
+        message:`菜園挖溝鏟是雨天排水專用道具。\n下雨的白天時辰，菜園按鈕會從澆水改成排水，使用 1 把鏟子可挖溝降濕。\n\n價格：活動幣 ${GARDEN_DRAIN_SHOVEL_PRICE}`,
+        confirmLabel:"購買"
+      };
+    }
+    if(action==="gardenFertilizer"){
+      return {
+        title:"購買菜園肥料？",
+        message:`菜園肥料可用在菜園施肥，補足土壤養分並推進胡蘿蔔成長。\n也可以從倉庫胡蘿蔔堆肥取得，活動商店只是快速補貨。\n\n價格：活動幣 ${GARDEN_FERTILIZER_PRICE}`,
+        confirmLabel:"購買"
       };
     }
     return null;
@@ -2301,29 +5118,82 @@
       const cost=RARE_BREAK_STONE_PRICE;
       if((meta.activityCoins||0)<cost){beep(180,.08,.025,"square");return;}
       meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))-cost;
-      meta.rareBreakStones=Math.max(0,Math.floor(Number(meta.rareBreakStones)||0))+1;
+      addBreakStone("rare",1);
       saveMeta();
       renderShop();
       beep(760,.12,.035,"triangle");
     }
+    if(action==="gardenDrainShovel"){
+      const cost=GARDEN_DRAIN_SHOVEL_PRICE;
+      if((meta.activityCoins||0)<cost){beep(180,.08,.025,"square");return;}
+      meta.garden=normalizeGardenState(meta.garden);
+      meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))-cost;
+      meta.garden.drainShovels=Math.max(0,Math.floor(Number(meta.garden.drainShovels)||0))+1;
+      saveMeta();
+      renderShop();
+      if(!gardenScreen?.classList.contains("hidden"))postGardenState("已購買菜園挖溝鏟。");
+      beep(760,.12,.035,"triangle");
+    }
+    if(action==="gardenFertilizer"){
+      const cost=GARDEN_FERTILIZER_PRICE;
+      if((meta.activityCoins||0)<cost){beep(180,.08,.025,"square");return;}
+      meta.garden=normalizeGardenState(meta.garden);
+      meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))-cost;
+      meta.garden.fertilizer=Math.max(0,Math.floor(Number(meta.garden.fertilizer)||0))+1;
+      saveMeta();
+      renderShop();
+      if(!gardenScreen?.classList.contains("hidden"))postGardenState("已購買菜園肥料。");
+      beep(760,.12,.035,"triangle");
+    }
+  }
+  function forgeGardenCarrot(index){
+    meta.garden=normalizeGardenState(meta.garden);
+    const safeIndex=Math.floor(Number(index));
+    const item=meta.garden.storage?.[safeIndex];
+    if(!item){
+      forgeMessage="找不到這支菜園胡蘿蔔";
+      beep(180,.08,.025,"square");
+      renderShop();
+      return;
+    }
+    const def=gardenQualityDef(item.quality);
+    if(Math.max(0,Math.floor(Number(item.level)||0))<GARDEN_ENHANCE_MAX_LEVEL){
+      forgeMessage=`${def.name} 還沒達到 S+`;
+      beep(180,.08,.025,"square");
+      renderShop();
+      return;
+    }
+    if(item.forged){
+      forgeMessage=`${def.name} 已經鍛造過了`;
+      beep(180,.08,.025,"square");
+      renderShop();
+      return;
+    }
+    item.forged=true;
+    const equipHint=equipmentUnlocked(combatPower())?"可到角色資訊裝備欄穿戴。":"達到 2 萬戰力後會出現在角色裝備欄。";
+    forgeMessage=`${def.rank}・${def.name} 鍛造完成！攻擊力 +${formatCommaNumber(gardenForgeAttack(item.quality))}，裝備鍛造 +0。${equipHint}`;
+    saveMeta();
+    renderShop();
+    renderMeta();
+    beep(940,.18,.045,"triangle");
   }
   function forgeEquipment(id){
     ensureEquipmentState();
     resetForgeDaily();
-    const item=EQUIPMENT_DEFS[id];
+    const item=equipmentItemById(id);
     const rule=forgeRuleFor(item);
-    if(!item||!rule||!meta.equipmentInventory.includes(id)){beep(180,.08,.025,"square");return;}
+    if(!item||!rule||!equipmentInventoryHas(id)){beep(180,.08,.025,"square");return;}
     const level=equipmentEnhanceLevel(id);
     const breakState=equipmentBreakState(id);
     const canBreak=item.type==="weapon"&&item.quality==="rare"&&level>=10&&!breakState.unlocked;
     if(canBreak){
-      if((meta.rareBreakStones||0)<1){
-        forgeMessage="需要稀有突破原石";
+      if(breakStoneCount(item.quality)<1){
+        forgeMessage=`需要${breakStoneName(item.quality)}`;
         beep(180,.08,.025,"square");
         renderShop();
         return;
       }
-      meta.rareBreakStones=Math.max(0,Math.floor(Number(meta.rareBreakStones)||0))-1;
+      spendBreakStone(item.quality,1);
       setEquipmentBreakState(id,{unlocked:true,level:0});
       forgeMessage=`${item.name} 突破成功，開啟進階鍛造！`;
       saveMeta();
@@ -2498,6 +5368,32 @@
     }
     requestAnimationFrame(draw);
   }
+  function preloadImageAsset(src){
+    return new Promise(resolve=>{
+      const img=new Image();
+      const done=()=>resolve(src);
+      img.onload=done;
+      img.onerror=done;
+      img.decoding="async";
+      img.src=src;
+      if(img.complete)resolve(src);
+    });
+  }
+  function preloadGardenAssets(){
+    if(preloadGardenAssets.started)return preloadGardenAssets.started;
+    preloadGardenAssets.started=Promise.all(GARDEN_PRELOAD_ASSETS.map(preloadImageAsset)).catch(()=>[]);
+    return preloadGardenAssets.started;
+  }
+  function unloadGardenFrame(){
+    gardenScreen?.classList.add("hidden");
+  }
+  function primeGardenFrame(){
+    preloadGardenAssets();
+  }
+  function prepareGardenFrame(){
+    preloadGardenAssets();
+    primeGardenFrame();
+  }
   function startBootOverlay(){
     if(!bootOverlay)return;
     const duration=5;
@@ -2663,7 +5559,7 @@
   function renderEquipmentPanel(){
     if(!equipmentPanel)return;
     ensureEquipmentState();
-    const inventory=meta.equipmentInventory.map(id=>EQUIPMENT_DEFS[id]).filter(Boolean);
+    const inventory=equipmentInventoryItems();
     const visibleSlots=Math.max(3,Math.ceil(inventory.length/3)*3);
     const slots=[];
     for(let i=0;i<visibleSlots;i++){
@@ -2677,13 +5573,13 @@
       const totalLevel=equipmentForgeTotalLevel(item.id);
       const breakUnlocked=equipmentBreakUnlocked(item.id);
       const statText=equipmentMainStatText(item);
-      const typeText=item.type==="weapon"?"武器":item.type==="ring"?"戒指":"裝備";
-      const iconText=item.type==="ring"?"💍":"🥕";
+      const typeText=item.source==="garden"?"菜園武器":item.type==="weapon"?"武器":item.type==="ring"?"戒指":"裝備";
+      const iconHtml=item.asset?`<img class="equipmentIconImg" src="${item.asset}" alt="" aria-hidden="true">`:`<span class="equipmentIcon">${item.type==="ring"?"💍":"🥕"}</span>`;
       const activeText=equipped?"｜已穿戴":(item.type==="ring"?"｜未穿戴":"");
-      const forgeText=totalLevel?`｜${breakUnlocked?"進階鍛造":"鍛造"} +${totalLevel}`:"";
+      const forgeText=item.source==="garden"||totalLevel?`｜${breakUnlocked?"進階鍛造":"鍛造"} +${totalLevel}`:"";
       slots.push(`
         <button type="button" class="equipmentSlot ${quality.className}${equipped?" equipped":""}" data-equip-id="${item.id}">
-          <span class="equipmentIcon">${iconText}</span>
+          ${iconHtml}
           <b>${item.name}</b>
           <small>${quality.name}｜${typeText}<br>${statText}${forgeText}${activeText}</small>
         </button>
@@ -2696,7 +5592,7 @@
     equipmentPanel.innerHTML=`
       <div class="equipmentSummary">
         <b>目前武器</b>
-        <span class="${quality.className}">${weapon.name}｜攻擊力 +${equipmentAttack(weapon)}${weaponLevel?`｜${weaponBreak?"進階鍛造":"鍛造"} +${weaponLevel}`:""}</span>
+        <span class="${quality.className}">${weapon.name}｜攻擊力 +${equipmentAttack(weapon)}${weapon.source==="garden"||weaponLevel?`｜${weaponBreak?"進階鍛造":"鍛造"} +${weaponLevel}`:""}</span>
       </div>
       <div class="equipmentGrid">${slots.join("")}</div>
       <p class="equipmentHint">同類型武器一次只能穿一把；戒指需穿戴後才會生效，按一下可穿脫。</p>
@@ -3892,8 +6788,10 @@
       stageArt.innerHTML='<canvas id="eventStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
       const canvas=document.getElementById("eventStageArtCanvas");
       if(canvas)drawEventTrialStagePreview(canvas.getContext("2d"),190,136);
-      stageName.textContent="強化試煉";
-      stagePower.innerHTML=`每日 ${activityRunsLeft()}/${EVENT_DAILY_LIMIT}｜10 分鐘挑戰<br>擊殺會轉換活動兌換幣`;
+      stageName.textContent=isActivityTrialMode()?"活動關卡・強化試煉":"活動關卡・胡鬧的胡蘿蔔";
+      stagePower.innerHTML=isActivityTrialMode()
+        ?`2 萬戰力開放｜每日 ${activityRunsLeft()}/${EVENT_DAILY_LIMIT}<br>寶石怪物試煉，擊敗後依擊殺數結算活動兌換幣`
+        :`2 萬戰力開放｜每日 ${activityRunsLeft()}/${EVENT_DAILY_LIMIT}<br>大小胡蘿蔔怪物，擊敗活動 Boss 掉落神秘胡蘿蔔種子`;
       return;
     }
     if(stage===INFINITE_STAGE){
@@ -4028,6 +6926,40 @@
     return [`目前 ${def.value(meta)}`,`費用階段 ${tier}`];
   }
 
+  function gardenDepositItemMarkup(item){
+    const def=gardenQualityDef(item.quality);
+    return `
+      <div class="gardenDepositItem ${def.className}">
+        <img src="${def.asset}" alt="${def.name}">
+        <b>${def.name}</b>
+        <small>${def.rank}｜${gardenEnhanceRankText(item.level)}</small>
+      </div>
+    `;
+  }
+
+  function renderGardenDepositBox(){
+    const panel=document.getElementById("gardenDepositBoxModal");
+    if(!panel)return;
+    meta.garden=normalizeGardenState(meta.garden);
+    const countEl=document.getElementById("gardenDepositCount");
+    const storageEl=document.getElementById("gardenStorageCount");
+    const list=document.getElementById("gardenDepositList");
+    const moveBtn=document.getElementById("gardenDepositMoveBtn");
+    const box=meta.garden.depositBox||[];
+    if(countEl)countEl.textContent=`${box.length} 件`;
+    if(storageEl)storageEl.textContent=`倉庫 ${meta.garden.storage.length}/${meta.garden.storageCap}`;
+    if(moveBtn)moveBtn.disabled=!box.length||meta.garden.storage.length>=meta.garden.storageCap;
+    if(!list)return;
+    if(!box.length){
+      list.innerHTML='<div class="gardenDepositEmpty">目前沒有暫存素材。</div>';
+      return;
+    }
+    list.innerHTML=box.slice(0,12).map(gardenDepositItemMarkup).join("");
+    if(box.length>12){
+      list.insertAdjacentHTML("beforeend",`<div class="gardenDepositMore">還有 ${box.length-12} 件</div>`);
+    }
+  }
+
   renderAccount=function(){
     const info=accountLevelInfo();
     rewardPlaytimeEl.textContent=formatPlaytimeSummary(meta.totalPlaySeconds||0);
@@ -4059,6 +6991,7 @@
       node.appendChild(btn);
       rewardTrack.appendChild(node);
     }
+    renderGardenDepositBox();
   };
 
   renderMeta=function(){
@@ -4169,6 +7102,7 @@
     stageModeEventBtn?.classList.toggle("locked",!eventUnlocked);
     if(stageModeEventBtn)stageModeEventBtn.innerHTML=eventUnlocked?"活動<br>關卡":"活動<br>關卡 🔒";
     if(stageModeSpecialBtn)stageModeSpecialBtn.innerHTML="特殊<br>關卡";
+    devUnlockStagesBtn?.classList.toggle("hidden",!devModeActive||bossMode||specialModeSelected||eventModeSelected);
     infiniteStage?.classList.toggle("active",specialModeSelected);
     gardenStage.classList.toggle("active",currentStage===1);
     desertStage.classList.toggle("active",currentStage===2);
@@ -4181,7 +7115,8 @@
     seaStage.classList.toggle("active",currentStage===9);
     clockStage.classList.toggle("active",currentStage===10);
     voidStage.classList.toggle("active",currentStage===11);
-    eventStage?.classList.toggle("active",eventModeSelected);
+    eventStage?.classList.toggle("active",eventModeSelected&&!isActivityTrialMode());
+    eventTrialStage?.classList.toggle("active",eventModeSelected&&isActivityTrialMode());
     infiniteStage.classList.toggle("active",currentStage===INFINITE_STAGE);
     bossChallengeStage?.classList.add("hidden");
     bossChallengePanel?.classList.toggle("hidden",!bossMode);
@@ -4242,6 +7177,15 @@
       eventStage.disabled=!eventOpen;
       eventStage.classList.toggle("locked",!eventOpen);
       eventStage.innerHTML=eventOpen?
+        stageButtonMarkup("胡鬧的胡蘿蔔",EVENT_STAGE):
+        stageButtonMarkup("胡鬧的胡蘿蔔（未解鎖）",EVENT_STAGE);
+    }
+    if(eventTrialStage){
+      eventTrialStage.classList.toggle("hidden",!eventUnlocked);
+      const eventOpen=stageAvailability(EVENT_STAGE)==="open";
+      eventTrialStage.disabled=!eventOpen;
+      eventTrialStage.classList.toggle("locked",!eventOpen);
+      eventTrialStage.innerHTML=eventOpen?
         stageButtonMarkup("強化試煉",EVENT_STAGE):
         stageButtonMarkup("強化試煉（未解鎖）",EVENT_STAGE);
     }
@@ -4329,6 +7273,9 @@
     goldcoin:{hp:100,speed:160,damage:18,xp:3,r:16,color:"#ffd95c",defense:18},
     billmonster:{hp:100,speed:160,damage:18,xp:3,r:18,color:"#7bdc91",defense:18},
     diamondcoin:{hp:100,speed:160,damage:18,xp:4,r:20,color:"#67d9ff",defense:18},
+    babycarrot:{hp:100,speed:172,damage:18,xp:2,r:14,color:"#f08b31",defense:16},
+    carrotbrute:{hp:100,speed:118,damage:22,xp:4,r:22,color:"#d96a22",defense:24},
+    carrotboss:{hp:1400,speed:86,damage:42,xp:50,r:54,color:"#f08b31",defense:42},
     chestmimic:{hp:1200,speed:80,damage:40,xp:40,r:50,color:"#9b6b36",defense:40},
     turtle:{hp:34,speed:48,damage:10,xp:4,r:18,color:"#55a94d"},
     mushroom:{hp:22,speed:68,damage:8,xp:3,r:15,color:"#9b5a3d"},
@@ -4510,14 +7457,21 @@
     {type:"clockwitch",name:"時鐘魔女",stage:10,unlock:()=>!!meta.stage10Cleared,skill:"時間齒輪・倒轉領域・鐘擺斬擊",stats:{hp:4650000,damage:500,defense:470,speed:26}},
     {type:"voiddevourer",name:"虛空吞星者",stage:11,unlock:()=>!!meta.stage11Cleared,skill:"黑洞牽引・暗幕・虛空射線",stats:{hp:6100000,damage:640,defense:620,speed:20}}
   ];
-  const EVENT_ENEMY_TYPES=new Set(["coppercoin","silvercoin","goldcoin","billmonster","diamondcoin","chestmimic"]);
+  const EVENT_BOSS_TYPE="carrotboss";
+  const EVENT_ENEMY_TYPES=new Set(["babycarrot","carrotbrute","coppercoin","silvercoin","goldcoin","billmonster","diamondcoin",EVENT_BOSS_TYPE,"chestmimic"]);
+  function isActivityBossType(type){
+    return type===EVENT_BOSS_TYPE||type==="chestmimic";
+  }
   function activityBaseStats(){
     const baseHp=BASE_META_LIFE+scaledMetaGain(meta.life,META_LIFE_STEP,META_LIFE_TIER_GROWTH);
     const baseAttack=Math.max(1,Math.floor(baseMetaDamageValue(meta.damage)));
     return {hp:Math.max(1,Math.floor(baseHp)),damage:baseAttack,defense:baseAttack};
   }
+  function isActivityTrialMode(){
+    return activityStageMode===ACTIVITY_TRIAL_MODE;
+  }
   function activityEnemyPool(){
-    return ["coppercoin","silvercoin","goldcoin","billmonster","diamondcoin"];
+    return isActivityTrialMode()?["coppercoin","silvercoin","goldcoin","billmonster","diamondcoin"]:["babycarrot","babycarrot","carrotbrute"];
   }
   function activityMonsterStats(type){
     const base=activityBaseStats();
@@ -4527,6 +7481,9 @@
       goldcoin:{hp:1.15,damage:1.1,defense:1.1,r:16,xp:3},
       billmonster:{hp:1.25,damage:1.15,defense:.9,r:18,xp:3},
       diamondcoin:{hp:1.45,damage:1.25,defense:1.25,r:20,xp:4},
+      babycarrot:{hp:.82,damage:.85,defense:.75,r:14,xp:2},
+      carrotbrute:{hp:1.55,damage:1.25,defense:1.35,r:22,xp:4},
+      carrotboss:{hp:14,damage:2.9,defense:2.35,r:56,xp:50},
       chestmimic:{hp:12,damage:2.8,defense:2.2,r:52,xp:40}
     }[type]||{hp:1,damage:1,defense:1,r:16,xp:2};
     return {
@@ -4554,6 +7511,20 @@
     if(stage===10)return meta.stage9Cleared?"open":"locked";
     if(stage===11)return meta.stage10Cleared?"open":"locked";
     return "locked";
+  }
+  function unlockNormalStagesForDev(){
+    if(!devModeActive)return;
+    meta.desertUnlocked=true;
+    meta.snowUnlocked=true;
+    meta.forestPathUnlocked=true;
+    meta.forestSeaUnlocked=true;
+    meta.cookieUnlocked=true;
+    meta.toyUnlocked=true;
+    for(let stage=1;stage<=11;stage++)meta[`stage${stage}Cleared`]=true;
+    saveMeta();
+    renderMeta();
+    beep(880,.1,.025,"square");
+    countAudioSubtype("ui");
   }
   function stageBookUnlocked(stage){
     return stageAvailability(stage)==="open";
@@ -5394,10 +8365,11 @@
     enemies=[];shots=[];enemyShots=[];gems=[];effects=[];texts=[];areas=[];petShots=[];bananas=[];chests=[];pickups=[];bossObstacles=[];
     announcements=[];activeAnnouncement=null;
     kills=score=eliteKills=bossKills=eligibleKills=instantKills=0;instantKillTimer=0;time=spawnClock=shotClock=0;battleStartDelay=0;nextId=1;levelQueue=0;
-    kps=kpsWindowKills=kpsWindowTime=kpsPressure=0;
+    kps=kpsWindowKills=kpsWindowTime=kpsPressure=kpsBonusTimer=kpsSpawnBonus=0;
+    hudKpsBonus=hudWaveSeconds=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0};
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
     infiniteClearCount=0;
@@ -5416,6 +8388,7 @@
       renderMeta();
       return;
     }
+    unloadGardenFrame();
     reset();
     if(autoTrainingActive){
       player.xpGain+=.2;
@@ -5602,10 +8575,10 @@
       damage=eventStats.damage;
       defense=eventStats.defense;
       size=eventStats.r;
-      speed=type==="chestmimic"?80:160;
+      speed=isActivityBossType(type)?80:160;
       xp=eventStats.xp;
       if(kind==="elite"){hp*=1.8;damage*=1.3;defense=Math.round(defense*1.25);size*=1.2;xp*=2;}
-      if(kind==="boss"||type==="chestmimic"){hp=eventStats.hp;damage=eventStats.damage;defense=eventStats.defense;size=eventStats.r;speed=80;xp=eventStats.xp;}
+      if(kind==="boss"||isActivityBossType(type)){hp=eventStats.hp;damage=eventStats.damage;defense=eventStats.defense;size=eventStats.r;speed=80;xp=eventStats.xp;}
     }
     const zone=effectiveZone();
     if(zone>=1&&defense===0)defense=5;
@@ -5787,6 +8760,23 @@
     );
     beep(kind==="normal"?180:120,.35,.045,"sawtooth");
   }
+  function spawnSilentWave(count,kind="normal"){
+    const types=enemyPoolForCurrentTime();
+    const finalCount=Math.ceil(count*(killSurgeActive&&kind==="normal"?KILL_SURGE_WAVE_MULTIPLIER:1));
+    for(let i=0;i<finalCount;i++)spawnEnemy(types[Math.floor(Math.random()*types.length)],kind);
+  }
+  function timedStageMinuteEvent(minute){
+    if(minute===1)return {title:"怪潮來襲！",body:"大量魔物開始湧入戰場",normal:12,elite:0,color:"#ffe45f"};
+    if(minute===2)return {title:"菁英怪出現！",body:"怪潮之中出現 2 隻菁英怪",normal:14,elite:2,color:"#ff826b"};
+    if(minute===3)return {title:"怪物暴走！",body:"魔物攻勢變得更加猛烈",normal:18,elite:0,color:"#ffb35c"};
+    if(minute===4)return {title:"危險氣息逼近！",body:"怪潮之中出現 3 隻菁英怪",normal:18,elite:3,color:"#ff826b"};
+    if(minute===5)return {title:"首領現身！",body:"小首領加入戰場，請小心應戰",normal:20,elite:0,boss:true,color:"#ff775e"};
+    if(minute===6)return {title:"魔物大軍壓境！",body:"怪潮之中出現 4 隻菁英怪",normal:22,elite:4,color:"#ffb35c"};
+    if(minute===7)return {title:"狂暴菁英降臨！",body:"5 隻狂暴菁英怪加入戰場",normal:24,elite:5,color:"#ff6978"};
+    if(minute===8)return {title:"戰場陷入混亂！",body:"怪潮與 5 隻菁英怪同時進攻",normal:26,elite:5,color:"#ffb35c"};
+    if(minute===9)return {title:"災厄即將降臨！",body:"決戰前的最後怪潮開始湧現",normal:28,elite:0,color:"#ff596f"};
+    return null;
+  }
 
   function timeline(){
     const sec=Math.floor(time);
@@ -5798,8 +8788,9 @@
       }
       if(sec>=EVENT_DURATION&&!timeline.seen.has("event-boss")){
         timeline.seen.add("event-boss");
-        spawnEnemy("chestmimic","boss");
-        announce("寶箱怪物出現！","錢幣攻擊正在靠近","#ffd45e",4);
+        spawnEnemy(isActivityTrialMode()?"chestmimic":EVENT_BOSS_TYPE,"boss");
+        if(isActivityTrialMode())announce("強化試煉寶箱怪出現！","擊敗後結算活動兌換幣","#67d9ff",4);
+        else announce("胡鬧的胡蘿蔔出現！","擊敗後會掉落神秘胡蘿蔔種子","#ffd45e",4);
       }
       return;
     }
@@ -5815,6 +8806,25 @@
         if(sec>0&&sec%60===0&&!timeline.seen.has("infinite-wave"+sec)){timeline.seen.add("infinite-wave"+sec);spawnWave(16+Math.floor(sec/45));}
         if(sec>0&&sec%150===0&&!timeline.seen.has("infinite-elite"+sec)){timeline.seen.add("infinite-elite"+sec);spawnWave(2+Math.floor(sec/900),"elite");}
         if(sec>0&&sec%300===0&&!timeline.seen.has("infinite-midboss"+sec)){timeline.seen.add("infinite-midboss"+sec);spawnEnemy(enemyPoolForCurrentTime()[0],"boss");announce("輪迴強敵出現！","下一個擂台正在逼近","#ff8a5c");}
+      }
+      return;
+    }
+    if(usesTimedMonsterBudget()){
+      const minute=Math.floor(sec/60);
+      if(minute>=1&&minute<=9&&sec===minute*60&&!timeline.seen.has("timed-minute-"+minute)){
+        timeline.seen.add("timed-minute-"+minute);
+        const event=timedStageMinuteEvent(minute);
+        if(event){
+          if(event.normal>0)spawnSilentWave(event.normal,"normal");
+          if(event.elite>0)spawnSilentWave(event.elite,"elite");
+          if(event.boss)spawnEnemy(normalMidBossType(Math.max(1,minute/5|0),sec),"boss");
+          announce(event.title,event.body,event.color,4);
+          beep(event.elite>0||event.boss?130:180,.35,.045,event.elite>0?"sawtooth":"triangle");
+        }
+      }
+      if(sec>=DURATION&&!timeline.seen.has("final")){
+        timeline.seen.add("final");
+        beginFinalBossEntrance();
       }
       return;
     }
@@ -6364,7 +9374,7 @@
       }
       if(mode>=1)effects.push({kind:"slash",x:e.x,y:e.y,life:.22,r:e.r*1.8});
     }
-    if(isEventMode()&&e.type==="chestmimic"){
+    if(isEventMode()&&isActivityBossType(e.type)){
       win();
       return;
     }
@@ -6815,12 +9825,12 @@
         enemyShots.push({kind:"normal",x:e.x,y:e.y,vx:Math.cos(a)*shotSpeed,vy:Math.sin(a)*shotSpeed,r:e.kind==="normal"?7:10,damage:e.damage*.55,life:4,poison:0});
         e.shoot=e.kind==="normal"?rand(2.1,3.2):e.kind==="elite"?rand(1.3,2):rand(.8,1.35);
       }
-      if(isEventMode()&&e.type==="chestmimic"&&e.shoot<=0&&dist(e,player)<720){
+      if(isEventMode()&&isActivityBossType(e.type)&&e.shoot<=0&&dist(e,player)<720){
         const spread=e.kind==="boss"?5:3;
         const center=Math.atan2(player.y-e.y,player.x-e.x);
         for(let i=0;i<spread;i++){
           const q=center+(i-(spread-1)/2)*.16;
-          enemyShots.push({kind:"coin",x:e.x,y:e.y,vx:Math.cos(q)*210,vy:Math.sin(q)*210,r:8,damage:e.damage*.45,life:4,poison:0});
+          enemyShots.push({kind:e.type===EVENT_BOSS_TYPE?"seed":"coin",x:e.x,y:e.y,vx:Math.cos(q)*210,vy:Math.sin(q)*210,r:8,damage:e.damage*.45,life:4,poison:0});
         }
         e.shoot=e.kind==="boss"?1.35:2.2;
       }
@@ -7527,6 +10537,8 @@
       hudEnemyCount=livingEnemyCount();
       hudKills=kills;
       hudKps=kps;
+      hudKpsBonus=usesTimedMonsterBudget()?kpsSpawnBonus:0;
+      hudWaveSeconds=usesTimedMonsterBudget()?timedMonsterBudget().waveSeconds:0;
     }
     kpsWindowTime+=dt;
     if(kpsWindowTime>=.5){
@@ -7535,6 +10547,11 @@
       kpsWindowKills=0;
       kpsWindowTime=0;
       kpsPressure=clamp((kps-10)/55,0,1);
+    }
+    kpsBonusTimer-=dt;
+    if(kpsBonusTimer<=0){
+      kpsBonusTimer=3;
+      kpsSpawnBonus=calcKpsSpawnBonus(kps);
     }
     if(!preBattleActive&&finalPhase==="warning"){
       finalTimer-=dt;
@@ -7548,7 +10565,11 @@
       const enemyCap=computeEnemyCap();
       let targetEnemyCount=0;
       let variance=.12;
-      if(isEventMode()){
+      if(usesTimedMonsterBudget()){
+        const budget=timedMonsterBudget();
+        targetEnemyCount=Math.min(enemyCap,budget.base+kpsSpawnBonus);
+        variance=budget.waveSeconds>0?.08:.12;
+      }else if(isEventMode()){
         targetEnemyCount=Math.min(enemyCap,Math.round(34+time/5));
         variance=.08;
       }else if(kps>=10){
@@ -8279,6 +11300,44 @@
   }
 
   function drawMoneyEnemySprite(type){
+    if(type==="babycarrot"||type==="carrotbrute"){
+      const big=type==="carrotbrute";
+      const body=big?["#a84819","#e07022","#ff9a35"]:["#c9571f","#f0832b","#ffb04a"];
+      rect(-8,-27,7,13,"#2f8f3c");
+      rect(-1,-33,7,18,"#55cf58");
+      rect(6,-26,9,11,"#2d8138");
+      rect(big?-17:-12,big?-16:-13,big?34:24,big?42:32,body[1]);
+      rect(big?-14:-10,big?-12:-10,big?28:20,6,body[2]);
+      rect(big?-12:-8,big?-2:-2,big?24:16,6,body[0]);
+      rect(big?-9:-6,big?9:7,big?18:12,6,body[2]);
+      rect(big?-8:-5,big?19:14,big?16:10,6,body[0]);
+      rect(big?-9:-6,big?-20:-16,5,4,"#1c1009");
+      rect(big?4:3,big?-20:-16,5,4,"#1c1009");
+      rect(big?-6:-5,big?-7:-6,big?12:10,3,"#4b2111");
+      if(big){
+        rect(-25,-5,8,18,body[1]);rect(17,-5,8,18,body[1]);
+        rect(-15,27,8,6,"#7e3518");rect(7,27,8,6,"#7e3518");
+      }
+      return;
+    }
+    if(type==="carrotboss"){
+      rect(-12,-30,10,14,"#36a844");
+      rect(-2,-36,9,20,"#5ed85f");
+      rect(6,-29,12,12,"#2f963f");
+      rect(-18,-18,36,45,"#e87825");
+      rect(-15,-14,30,8,"#ff9c3e");
+      rect(-13,-5,26,8,"#d9641f");
+      rect(-10,4,20,8,"#ff9c3e");
+      rect(-7,13,14,8,"#d85e1d");
+      rect(-10,-22,7,5,"#2b160e");
+      rect(5,-22,7,5,"#2b160e");
+      rect(-7,-10,14,4,"#4b2111");
+      rect(-24,-6,8,18,"#f08b31");
+      rect(16,-6,8,18,"#f08b31");
+      rect(-16,25,9,7,"#8b3d1c");
+      rect(7,25,9,7,"#8b3d1c");
+      return;
+    }
     if(type==="chestmimic"){
       rect(-28,-16,56,34,"#7a4d24");
       rect(-30,-20,60,12,"#b77a35");
@@ -8774,6 +11833,12 @@
 
   function drawEnemyShot(shot){
     const p=worldToScreen(shot.x,shot.y);
+    if(shot.kind==="seed"){
+      ctx.globalAlpha=.24;ctx.fillStyle="#8cff75";ctx.beginPath();ctx.arc(p.x,p.y,shot.r+6,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;ctx.fillStyle="#8b4a22";ctx.beginPath();ctx.ellipse(p.x,p.y,shot.r*.75,shot.r,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#d9954b";ctx.beginPath();ctx.ellipse(p.x-shot.r*.16,p.y-shot.r*.22,Math.max(2,shot.r*.28),Math.max(2,shot.r*.38),0,0,Math.PI*2);ctx.fill();
+      return;
+    }
     if(shot.kind==="coin"){
       ctx.globalAlpha=.22;ctx.fillStyle="#ffd65a";ctx.beginPath();ctx.arc(p.x,p.y,shot.r+6,0,Math.PI*2);ctx.fill();
       ctx.globalAlpha=1;ctx.fillStyle="#b67819";ctx.beginPath();ctx.arc(p.x,p.y,shot.r,0,Math.PI*2);ctx.fill();
@@ -9029,6 +12094,7 @@
     if(poisonTimer>0)rows.push([`中毒 ${poisonTimer.toFixed(1)}s`,"#9cff68"]);
     if(stunTimer>0)rows.push([`暈眩 ${stunTimer.toFixed(1)}s`,"#ffd15e"]);
     if(confuseTimer>0)rows.push([`迷失 ${confuseTimer.toFixed(1)}s`,"#d9a7ff"]);
+    if(hudWaveSeconds>0)rows.push([`怪潮 ${hudWaveSeconds.toFixed(1)}s`,"#ffb35c"]);
     if(killSurgeActive)rows.push(["狂暴怪潮 +75%","#ff6978"]);
     if(encirclementDebts.length&&encirclementReservedHp>0)rows.push([`包圍壓力 ${encirclementTierLabel(encirclementCharge)} ${encirclementDebtMaxTime().toFixed(1)}s ×${encirclementDebts.length} R${encirclementPressureRounds}`,"#a10f24"]);
     return rows;
@@ -9099,6 +12165,9 @@
   function formatHudPercent(value){
     return `${String(Math.max(0,Math.min(100,Math.round(value)))).padStart(3," ")}%`;
   }
+  function formatEnemyHudCount(count){
+    return hudKpsBonus>0?`${count}(+${hudKpsBonus})`:`${count}`;
+  }
 
   function drawMobileHUD(){
     const enemyCount=hudEnemyCount;
@@ -9126,7 +12195,7 @@
       ctx.fillStyle="#fff";
       ctx.fillText(`擊倒 ${hudKills}`,W-14,124);
       ctx.fillStyle=kpsPressure>0?"#ffe15b":"#d8f2ff";
-      ctx.fillText(`KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,W-14,148);
+      ctx.fillText(`KPS ${Math.round(hudKps)}  怪物 ${formatEnemyHudCount(enemyCount)}`,W-14,148);
       ctx.fillStyle="#fff";
       ctx.fillText(`🥕×${player.projectiles} 穿透${player.pierce} 爆擊${formatHudPercent(player.critStack*100)}`,W-14,172);
       ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut} PINKY${skills.pinky}`,W-14,196);
@@ -9154,7 +12223,7 @@
     const compactDiamondText=`💎 ${formatCommaNumber(runCoins)}`;
     ctx.fillText(compactDiamondText,14,88);
     drawAutoTrainingHudText(24+ctx.measureText(compactDiamondText).width,88,"left");
-    ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,14,108);
+    ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${formatEnemyHudCount(enemyCount)}`,14,108);
     const stageTimeLabel=stageTimerLabel();
     ctx.textAlign="center";ctx.font="bold 25px monospace";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":time>=480?"#ff6270":"#fff4b2";
     ctx.strokeText(stageTimeLabel,VW/2,22);
@@ -9195,7 +12264,7 @@
     const desktopDiamondText=`💎 ${formatCommaNumber(runCoins)}`;
     ctx.fillText(desktopDiamondText,18,92);
     drawAutoTrainingHudText(28+ctx.measureText(desktopDiamondText).width,92,"left");
-    ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${enemyCount}`,18,116);
+    ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${formatEnemyHudCount(enemyCount)}`,18,116);
     if(hudKills<200){ctx.font="bold 12px monospace";ctx.fillStyle="#bff58a";ctx.fillText(`前期經驗減免 ${Math.round((1-(.45+.55*hudKills/200))*100)}%`,18,138);}
     if(killSurgeActive){ctx.font="bold 13px monospace";ctx.fillStyle="#ff6978";ctx.fillText("狂暴怪潮：數量+75%・生命+60%",18,159);}
     const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
@@ -9481,7 +12550,7 @@
     runRewarded=true;
     if(isBossChallengeMode())return 0;
     if(isEventMode()){
-      const earned=settleActivityReward();
+      const earned=settleActivityReward(success);
       settleRunCoins();
       meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
       saveMeta();
@@ -9558,9 +12627,15 @@
     if(isEventMode()){
       renderMeta();
       endScreen.classList.remove("hidden");
-      document.getElementById("endTitle").textContent="強化試煉完成";
-      document.getElementById("endSub").textContent="兔兔帶回了活動兌換幣";
-      document.getElementById("endText").innerHTML=`擊倒 ${kills}・寶箱怪 ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(earned)}<br>目前共 ${formatCommaNumber(meta.activityCoins||0)} 活動兌換幣<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+      if(lastActivityReward.mode===ACTIVITY_TRIAL_MODE){
+        document.getElementById("endTitle").textContent="強化試煉完成！";
+        document.getElementById("endSub").textContent="兔兔帶回了活動兌換幣";
+        document.getElementById("endText").innerHTML=`擊倒 ${kills}・活動 Boss ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(lastActivityReward.coins)}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+      }else{
+        document.getElementById("endTitle").textContent="胡鬧的胡蘿蔔擊退！";
+        document.getElementById("endSub").textContent="兔兔撿回了神秘胡蘿蔔種子";
+        document.getElementById("endText").innerHTML=`擊倒 ${kills}・活動 Boss ${bossKills}<br>本局獲得強化點數 ${formatCommaNumber(lastActivityReward.points)}<br>本局獲得神秘胡蘿蔔種子 ${formatCommaNumber(lastActivityReward.seeds)} 顆<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+      }
       beep(660,.4,.05);
       return;
     }
@@ -9609,7 +12684,9 @@
     document.getElementById("endText").innerHTML=isBossChallengeMode()
       ?`此為測試模式用；要更新請詢問用戶。<br>本局不結算強化點數、鑽石與死亡紀錄`
       :isEventMode()
-      ?`擊倒 ${kills}・寶箱怪 ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(earned)}<br>目前共 ${formatCommaNumber(meta.activityCoins||0)} 活動兌換幣<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
+      ?(isActivityTrialMode()
+        ?`未完成強化試煉，不會獲得活動兌換幣。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
+        :`未擊敗活動 Boss，不會掉落種子。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`)
       :`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>${rewardTotalLines()}`;
     beep(180,.7,.05,"sawtooth");
   }
@@ -9624,7 +12701,7 @@
       runRewarded=true;
       if(!isBossChallengeMode()){
         if(isEventMode()){
-          earned=settleActivityReward();
+          earned=settleActivityReward(false);
           settleRunCoins();
           meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
           saveMeta();
@@ -9645,7 +12722,9 @@
     document.getElementById("endText").innerHTML=isBossChallengeMode()
       ?`此為測試模式用；要更新請詢問用戶。<br>中途離開不結算強化點數與通關解鎖`
       :isEventMode()
-      ?`中途離開仍會帶走活動收益<br>擊倒 ${kills}・寶箱怪 ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(earned)}<br>目前共 ${formatCommaNumber(meta.activityCoins||0)} 活動兌換幣<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
+      ?(isActivityTrialMode()
+        ?`中途離開不會獲得活動兌換幣。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
+        :`中途離開不會掉落種子。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`)
       :isInfiniteMode()
       ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
       :`中途離開不計完整擊殺點數<br>生存點數 ${earned}${soulPointBonusRate()>0?`（獵魂 +${formatPercentRate(soulPointBonusRate())}）`:""}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
@@ -9661,8 +12740,8 @@
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
   const characterBtn=document.getElementById("characterBtn"),adventureBookBtn=document.getElementById("adventureBookBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter"),closeAdventureBook=document.getElementById("closeAdventureBook"),closeShop=document.getElementById("closeShop");
   const chooseStageBtn=document.getElementById("chooseStageBtn"),closeStage=document.getElementById("closeStage"),closeRewards=document.getElementById("closeRewards");
-  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),cookieStage=document.getElementById("cookieStageModal"),toyStage=document.getElementById("toyStageModal"),lavaStage=document.getElementById("lavaStageModal"),seaStage=document.getElementById("seaStageModal"),clockStage=document.getElementById("clockStageModal"),voidStage=document.getElementById("voidStageModal"),eventStage=document.getElementById("eventStageModal"),infiniteStage=document.getElementById("infiniteStageModal"),bossChallengeStage=document.getElementById("bossChallengeStageModal"),bossChallengePanel=document.getElementById("bossChallengePanel");
-  const stageSelectModal=document.getElementById("stageSelectModal"),stageModeNormalBtn=document.getElementById("stageModeNormalBtn"),stageModeBossBtn=document.getElementById("stageModeBossBtn"),stageModeEventBtn=document.getElementById("stageModeEventBtn"),stageModeSpecialBtn=document.getElementById("stageModeSpecialBtn");
+  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),cookieStage=document.getElementById("cookieStageModal"),toyStage=document.getElementById("toyStageModal"),lavaStage=document.getElementById("lavaStageModal"),seaStage=document.getElementById("seaStageModal"),clockStage=document.getElementById("clockStageModal"),voidStage=document.getElementById("voidStageModal"),eventStage=document.getElementById("eventStageModal"),eventTrialStage=document.getElementById("eventTrialStageModal"),infiniteStage=document.getElementById("infiniteStageModal"),bossChallengeStage=document.getElementById("bossChallengeStageModal"),bossChallengePanel=document.getElementById("bossChallengePanel");
+  const stageSelectModal=document.getElementById("stageSelectModal"),stageModeNormalBtn=document.getElementById("stageModeNormalBtn"),stageModeBossBtn=document.getElementById("stageModeBossBtn"),stageModeEventBtn=document.getElementById("stageModeEventBtn"),stageModeSpecialBtn=document.getElementById("stageModeSpecialBtn"),devUnlockStagesBtn=document.getElementById("devUnlockStagesBtn");
   const homeGardenStage=document.getElementById("gardenStage"),homeDesertStage=document.getElementById("desertStage"),homeSnowStage=document.getElementById("snowStage"),homeForestPathStage=document.getElementById("forestPathStage"),homeForestSeaStage=document.getElementById("forestSeaStage"),homeCookieStage=document.getElementById("cookieStage"),homeToyStage=document.getElementById("toyStage"),homeInfiniteStage=document.getElementById("infiniteStage");
   function updateMuteButton(){
     muteBtn.classList.toggle("muted",muted);
@@ -10001,6 +13080,18 @@
     if(stageAvailability(EVENT_STAGE)==="open"){
       playUiClick();
       bossChallengeMenuOpen=false;
+      activityStageMode=ACTIVITY_CARROT_MODE;
+      currentStage=EVENT_STAGE;
+      renderMeta();
+    }else{
+      beep(180,.08,.025,"square");
+    }
+  });
+  eventTrialStage?.addEventListener("click",()=>{
+    if(stageAvailability(EVENT_STAGE)==="open"){
+      playUiClick();
+      bossChallengeMenuOpen=false;
+      activityStageMode=ACTIVITY_TRIAL_MODE;
       currentStage=EVENT_STAGE;
       renderMeta();
     }else{
@@ -10024,6 +13115,7 @@
     if(combatPower()<EVENT_UNLOCK_POWER){beep(180,.08,.025,"square");return;}
     playUiClick();
     bossChallengeMenuOpen=false;
+    activityStageMode=ACTIVITY_CARROT_MODE;
     currentStage=EVENT_STAGE;
     renderMeta();
   });
@@ -10050,6 +13142,10 @@
     bossChallengeMenuOpen=true;
     renderMeta();
   });
+  devUnlockStagesBtn?.addEventListener("click",()=>{
+    playUiClick();
+    unlockNormalStagesForDev();
+  });
   homeGardenStage?.addEventListener("click",()=>{playUiClick();currentStage=1;renderMeta();});
   homeDesertStage?.addEventListener("click",()=>{if(meta.desertUnlocked){playUiClick();currentStage=2;renderMeta();}});
   homeSnowStage?.addEventListener("click",()=>{if(meta.snowUnlocked){playUiClick();currentStage=3;renderMeta();}});
@@ -10059,13 +13155,15 @@
   homeToyStage?.addEventListener("click",()=>{if(meta.toyUnlocked){playUiClick();currentStage=7;renderMeta();}});
   homeInfiniteStage?.addEventListener("click",()=>{playUiClick();currentStage=INFINITE_STAGE;renderMeta();});
   homeStageBadge?.addEventListener("click",()=>{
-    if(!devModeActive){
-      beep(180,.08,.025,"square");
-      return;
-    }
     playUiClick();
-    try{sessionStorage.setItem("bunnyGardenPreviewDevUntil",String(Date.now()+30000));}catch(_error){}
-    location.href="my-garden-preview.html";
+    if(devModeActive){
+      try{
+        sessionStorage.setItem("bunnyGardenPreviewDevUntil",String(Date.now()+1000*60*30));
+      }catch(_error){}
+    }
+    preloadGardenSceneAssets();
+    gardenScreen?.classList.remove("hidden");
+    setTimeout(()=>postGardenState(),80);
   });
   characterBtn.addEventListener("click",()=>{
     playUiClick();
@@ -10086,10 +13184,10 @@
     const button=e.target.closest("button[data-equip-id]");
     if(!button)return;
     const id=button.dataset.equipId;
-    if(!EQUIPMENT_DEFS[id])return;
     ensureEquipmentState();
-    if(!meta.equipmentInventory.includes(id))return;
-    const item=EQUIPMENT_DEFS[id];
+    if(!equipmentInventoryHas(id))return;
+    const item=equipmentItemById(id);
+    if(!item)return;
     if(item.type==="ring"){
       meta.equippedRingId=meta.equippedRingId===id?"":id;
       saveMeta();
@@ -10121,24 +13219,42 @@
   shopBtn.addEventListener("click",()=>{
     shopMode="shop";
     forgeMessage="";
+    forgeSourceMode="";
     renderShop();
     shopScreen.classList.remove("hidden");
     playUiClick();
   });
+  function openForgeFromGardenIfRequested(){
+    let requested=false;
+    try{
+      requested=sessionStorage.getItem("bunnyOpenForgeFromGarden")==="1";
+      if(requested)sessionStorage.removeItem("bunnyOpenForgeFromGarden");
+    }catch(_error){}
+    if(!requested)return;
+    shopMode="forge";
+    forgeMessage="";
+    forgeSourceMode="";
+    renderShop();
+    shopScreen.classList.remove("hidden");
+  }
   shopModeShopBtn?.addEventListener("click",()=>{
     shopMode="shop";
     forgeMessage="";
+    forgeSourceMode="";
     playUiClick();
     renderShop();
   });
   shopModeForgeBtn?.addEventListener("click",()=>{
     shopMode="forge";
+    forgeMessage="";
+    forgeSourceMode="";
     playUiClick();
     renderShop();
   });
   shopModeEventBtn?.addEventListener("click",()=>{
     shopMode="event";
     forgeMessage="";
+    forgeSourceMode="";
     playUiClick();
     renderShop();
   });
@@ -10154,11 +13270,41 @@
       else if(action==="dailyReset")resetDailyLimitsForDev();
       return;
     }
+    const forgeSourceButton=e.target.closest("button[data-forge-source]");
+    if(forgeSourceButton){
+      playUiClick();
+      forgeSourceMode=forgeSourceButton.dataset.forgeSource||"";
+      forgeMessage="";
+      renderShop();
+      return;
+    }
+    const forgeBackButton=e.target.closest("button[data-forge-source-back]");
+    if(forgeBackButton){
+      playUiClick();
+      forgeSourceMode="";
+      forgeMessage="";
+      renderShop();
+      return;
+    }
     const forgeButton=e.target.closest("button[data-forge-id]");
     if(forgeButton){
       if(forgeButton.disabled)return;
       playUiClick();
       forgeEquipment(forgeButton.dataset.forgeId);
+      return;
+    }
+    const dismantleButton=e.target.closest("button[data-dismantle-id]");
+    if(dismantleButton){
+      if(dismantleButton.disabled)return;
+      playUiClick();
+      dismantleEquipment(dismantleButton.dataset.dismantleId);
+      return;
+    }
+    const gardenForgeButton=e.target.closest("button[data-garden-forge-index]");
+    if(gardenForgeButton){
+      if(gardenForgeButton.disabled)return;
+      playUiClick();
+      forgeGardenCarrot(gardenForgeButton.dataset.gardenForgeIndex);
       return;
     }
     const button=e.target.closest("button[data-shop-action]");
@@ -10231,6 +13377,13 @@
   accountExportBtn.addEventListener("click",()=>{playUiClick();exportAccountCode();});
   accountImportBtn.addEventListener("click",()=>{playUiClick();importAccountCode();});
   developerEntryBtn.addEventListener("click",()=>{playUiClick();handleDeveloperEntry();});
+  document.getElementById("gardenDepositMoveBtn")?.addEventListener("click",()=>{
+    playUiClick();
+    const moved=moveGardenDepositToStorage();
+    saveMeta();
+    renderMeta();
+    showQuickToast(moved?`已整理 ${moved} 件胡蘿蔔素材回倉庫。`:"倉庫沒有空位，保管箱暫時保留。");
+  });
   coinDevAddBtn?.addEventListener("click",e=>{
     e.stopPropagation();
     if(!devModeActive)return;
@@ -10352,6 +13505,7 @@
       rewardScreen.classList.add("hidden");
       stageScreen.classList.add("hidden");
       pauseScreen.classList.add("hidden");pauseBtn.classList.remove("visible");
+      prepareGardenFrame();
       renderMeta();
       updateMonitorButtons();
     },{shrinkDuration:1100,holdDuration:1100,expandDuration:800});
@@ -10362,6 +13516,8 @@
   });
   resizeTransitionCanvas();
   syncCoinState(true);
-  updateMuteButton();renderMeta();startBootOverlay();draw();requestAnimationFrame(loop);
+  initGardenUi();
+  prepareGardenFrame();
+  updateMuteButton();renderMeta();openForgeFromGardenIfRequested();startBootOverlay();draw();requestAnimationFrame(loop);
 })();
 
