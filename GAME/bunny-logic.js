@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=588;
+  const APP_VERSION=589;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -2617,7 +2617,7 @@
     `:"";
     shopGrid.innerHTML=`
       ${devTools}
-      <div class="shopEventBalance">活動兌換幣 ${formatCommaNumber(activityCoins)}｜${breakStoneName("rare")} ${formatCommaNumber(stones)}｜肥料 ${formatCommaNumber(fertilizer)}｜挖溝鏟 ${formatCommaNumber(drainShovels)}</div>
+      <div class="shopEventBalance">活動兌換幣 ${formatCommaNumber(activityCoins)}</div>
       <div class="shopEventSectionTitle">原石系列</div>
       <div class="shopCard">
         <div class="shopCardIcon">🔷</div>
