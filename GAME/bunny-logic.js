@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=627;
+  const APP_VERSION=629;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -128,8 +128,8 @@
     externalFail:0
   };
   let audioDebugLast={...audioDebugCurrent};
-  let perfDebugTimer=0,perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0};
-  let perfDebugLast={frameMs:16.7,fps:60,peak:16.7};
+  let perfDebugTimer=0,perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0,catchUpMax:0};
+  let perfDebugLast={frameMs:16.7,fps:60,peak:16.7,catchUpMax:0};
   let perfWorkCurrent={
     targetSearch:0,gridRebuild:0,nearQuery:0,
     collisionShot:0,collisionArea:0,collisionOrbit:0,collisionEnemyShot:0,collisionCrater:0,collisionChest:0,collisionBanana:0,
@@ -5666,6 +5666,10 @@
     resetActivityDaily();
     return Math.max(0,EVENT_DAILY_LIMIT-Math.max(0,Math.floor(Number(meta.activityRunsToday)||0)));
   }
+  function activityRunsUsed(){
+    resetActivityDaily();
+    return Math.max(0,Math.min(EVENT_DAILY_LIMIT,Math.floor(Number(meta.activityRunsToday)||0)));
+  }
   function consumeActivityRun(){
     resetActivityDaily();
     if(activityRunsLeft()<=0)return false;
@@ -6581,7 +6585,7 @@
     const descHtml=desc?`<small class="stageDesc">${desc}</small>`:"";
     const labelHtml=`<span class="stageLabel"><span>${label}</span>${descHtml}</span>`;
     if(stage===BOSS_CHALLENGE_STAGE)return `${labelHtml}<span class="stageBadge challenge">測試</span>`;
-    if(stage===EVENT_STAGE)return `${labelHtml}<span class="stageBadge easy">今日 ${activityRunsLeft()}/${EVENT_DAILY_LIMIT}</span>`;
+    if(stage===EVENT_STAGE)return `${labelHtml}<span class="stageBadge easy">今日 ${activityRunsUsed()}/${EVENT_DAILY_LIMIT}</span>`;
     const info=stageDifficultyInfo(stage);
     return `${labelHtml}<span class="stageBadge ${info.className}">${info.label}</span>`;
   }
@@ -7771,8 +7775,8 @@
       }
       stageName.textContent=isActivityTrialMode()?"活動關卡・強化試煉":"活動關卡・胡鬧的胡蘿蔔";
       stagePower.innerHTML=isActivityTrialMode()
-        ?`2 萬戰力開放｜每日 ${activityRunsLeft()}/${EVENT_DAILY_LIMIT}<br>寶石怪物試煉，擊敗後依擊殺數結算活動兌換幣`
-        :`2 萬戰力開放｜每日 ${activityRunsLeft()}/${EVENT_DAILY_LIMIT}<br>大小胡蘿蔔怪物，擊敗活動 Boss 掉落神秘胡蘿蔔種子`;
+        ?`2 萬戰力開放｜今日 ${activityRunsUsed()}/${EVENT_DAILY_LIMIT}<br>寶石怪物試煉，擊敗後依擊殺數結算活動兌換幣`
+        :`2 萬戰力開放｜今日 ${activityRunsUsed()}/${EVENT_DAILY_LIMIT}<br>大小胡蘿蔔怪物，擊敗活動 Boss 掉落神秘胡蘿蔔種子`;
       return;
     }
     if(stage===INFINITE_STAGE){
@@ -9319,6 +9323,11 @@
     for(const s of list)releasePooledShot(s);
     list.length=0;
     return list;
+  }
+  function shotPoolActiveCount(){
+    let count=0;
+    for(const s of shotPool)if(s.active)count++;
+    return count;
   }
   function outsideNineGrid(x,y,padding=0){
     return Math.abs(x-player.x)>W*1.5+padding||Math.abs(y-player.y)>H*1.5+padding;
@@ -11557,11 +11566,12 @@
       perfDebugLast={
         frameMs:perfDebugAccumulator.frameMs/sampleCount,
         fps:perfDebugAccumulator.fps/sampleCount,
-        peak:perfDebugAccumulator.peak
+        peak:perfDebugAccumulator.peak,
+        catchUpMax:perfDebugAccumulator.catchUpMax
       };
       perfWorkLast={...perfWorkCurrent};
       perfDebugTimer=0;
-      perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0};
+      perfDebugAccumulator={frameMs:0,fps:0,samples:0,peak:0,catchUpMax:0};
       perfWorkCurrent={
         targetSearch:0,gridRebuild:0,nearQuery:0,
         collisionShot:0,collisionArea:0,collisionOrbit:0,collisionEnemyShot:0,collisionCrater:0,collisionChest:0,collisionBanana:0,
@@ -13392,6 +13402,7 @@
     const perfRows=perfMonitorRows();
     const liveProjectileCount=shots.length+petShots.length+enemyShots.length+bananas.length;
     const liveEnemyCount=livingEnemyCount();
+    const activePooledShots=shotPoolActiveCount();
     const rows=debugPanelMode==="audio"
       ?[
         ["總開關",muted?"靜音":"開啟",muted?"#ff6d78":"#7eff8f"],
@@ -13405,6 +13416,8 @@
         ["2秒平均FPS",`${perfDebugLast.fps.toFixed(1)}`,debugColor(perfDebugLast.fps,55,40,true)],
         ["2秒平均Frame",`${perfDebugLast.frameMs.toFixed(1)} ms`,debugColor(perfDebugLast.frameMs,18,28)],
         ["2秒最高Frame",`${perfDebugLast.peak.toFixed(1)} ms`,debugColor(perfDebugLast.peak,24,40)],
+        ["追趕Update",`${perfDebugLast.catchUpMax} 次`,debugColor(perfDebugLast.catchUpMax,1,2)],
+        ["Shot池",`${activePooledShots}/${shotPool.length}`,debugColor(shotPool.length,SHOT_POOL_INITIAL_SIZE+1,SHOT_POOL_INITIAL_SIZE*2)],
         ...perfRows.map(row=>[row.label,`${row.value}`,row.color]),
         ["壓力",`${Math.round(encirclementPressure*100)}%`,debugColor(encirclementPressure*100,45,75)],
         ["深紫",`${Math.round(encirclementCharge)}%`,debugColor(encirclementCharge,45,75)],
@@ -13816,11 +13829,14 @@
     loopAccumulator+=rawDt;
     const targetInterval=1/LOOP_MAX_FPS;
     let didUpdate=false;
+    let updateSteps=0;
     while(loopAccumulator>=targetInterval){
       update(targetInterval);
       loopAccumulator-=targetInterval;
       didUpdate=true;
+      updateSteps++;
     }
+    if(updateSteps>perfDebugAccumulator.catchUpMax)perfDebugAccumulator.catchUpMax=updateSteps;
     if(didUpdate){
       draw();
     }
