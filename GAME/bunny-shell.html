@@ -15,7 +15,7 @@
   <link rel="preload" as="image" href="assets/garden/user-carrot-growth-v5/carrot-growth-13-empty.png">
   <link rel="preload" as="image" href="assets/garden/user-carrot-growth-v5/carrot-growth-00-seed.png">
   <link rel="preload" as="image" href="assets/garden/user-carrot-growth-v5/forge-house-hero.png?v=587">
-  <link rel="stylesheet" href="bunny-style.css?v=589">
+  <link rel="stylesheet" href="bunny-style.css?v=613">
 </head>
 <body class="layout-portrait">
 <div id="wrap">
@@ -43,7 +43,7 @@
         <b>等級獎勵（尚未開放）</b>
         <div id="rewardTrack"></div>
       </div>
-      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.589</span></h1>
+      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.613</span></h1>
       <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
@@ -102,7 +102,7 @@
           </div>
         </div>
       </div>
-      <button id="devModeBtn" type="button">設定</button>
+      <button id="devModeBtn" type="button"><span class="settingsGearIcon" aria-hidden="true">⚙</span><span>設定</span></button>
       <button id="closeRewards" type="button">返回首頁</button>
       <div id="settingsOverlay" aria-hidden="true">
         <div id="settingsPanel">
@@ -298,6 +298,8 @@
               <button class="devTimeBtn" id="devTimeNextBtn" type="button">下一時辰</button>
             </div>
             <div class="cropFrame"><img id="cropImg" class="cropImg" alt="胡蘿蔔成長圖"></div>
+            <img id="gardenMoistureMeter" class="gardenMeter gardenMoistureMeter hidden" alt="" aria-hidden="true">
+            <img id="gardenEcMeter" class="gardenMeter gardenEcMeter hidden" alt="" aria-hidden="true">
             <button class="gardenEventBtn hidden" id="gardenEventBtn" type="button" aria-label="處理菜園事件">!</button>
             <button class="scenePlantBtn hidden" id="scenePlantBtn" type="button"><span id="scenePlantLabel">播種</span><small id="scenePlantSeedText">神秘種子 X 0</small></button>
           </div>
@@ -318,7 +320,7 @@
         <section class="actions">
           <button class="actionBtn" id="waterBtn" type="button">澆水</button>
           <button class="actionBtn" id="observeBtn" type="button">觀察</button>
-          <button class="actionBtn" id="fertBtn" type="button">施肥</button>
+          <button class="actionBtn" id="fertBtn" type="button">行動</button>
           <button class="actionBtn" id="clearBtn" type="button">清理</button>
         </section>
         <div class="tabs">
@@ -378,6 +380,24 @@
           <h2 id="gardenChoiceEventTitle">菜園事件</h2>
           <p id="gardenChoiceEventText">菜園裡發生了一件小事。</p>
           <div class="gardenConfirmActions gardenChoiceActions" id="gardenChoiceActions"></div>
+        </div>
+      </div>
+      <div class="gardenConfirmOverlay hidden" id="gardenActionMenu" role="dialog" aria-modal="true" aria-labelledby="gardenActionMenuTitle">
+        <div class="gardenConfirmBox">
+          <h2 id="gardenActionMenuTitle">菜園行動</h2>
+          <p id="gardenActionMenuText">選擇要處理的菜園工作。</p>
+          <div class="gardenConfirmActions gardenChoiceActions gardenActionChoices" id="gardenActionChoices">
+            <button class="gardenConfirmBtn" id="gardenActionFertilizeBtn" type="button">施肥</button>
+            <button class="gardenConfirmBtn" id="gardenActionDrainBtn" type="button">挖溝排水</button>
+            <button class="gardenConfirmBtn" id="gardenActionPestBtn" type="button">除蟲</button>
+            <button class="gardenConfirmBtn" id="gardenActionCancelBtn" type="button">取消</button>
+          </div>
+          <div class="gardenConfirmActions gardenChoiceActions gardenActionChoices hidden" id="gardenFertilizerChoices">
+            <button class="gardenConfirmBtn fertilizerQuickBtn" id="gardenFertilizerQuickBtn" type="button">速效肥料</button>
+            <button class="gardenConfirmBtn fertilizerSlowBtn" id="gardenFertilizerSlowBtn" type="button">緩釋肥料</button>
+            <button class="gardenConfirmBtn fertilizerPremiumBtn" id="gardenFertilizerPremiumBtn" type="button">高級緩釋肥</button>
+            <button class="gardenConfirmBtn" id="gardenFertilizerBackBtn" type="button">返回</button>
+          </div>
         </div>
       </div>
     </div>
@@ -447,7 +467,7 @@
     </div>
   </div>
 </div>
-  <script src="bunny-logic.js?v=589"></script>
+  <script src="bunny-logic.js?v=613"></script>
 </body>
 </html>
 

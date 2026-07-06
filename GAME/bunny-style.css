@@ -339,7 +339,10 @@
       min-height: 100%;
     }
     #devModeBtn {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       margin: 12px auto 0;
       padding: 9px 20px;
       min-height: 0;
@@ -347,6 +350,12 @@
       background: #5e596b;
       box-shadow: inset -5px -5px #403c48,5px 5px #0b0920;
       font-size: 15px;
+    }
+    .settingsGearIcon {
+      display: inline-block;
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(-1px);
     }
     #devModeBtn:active { transform: translate(3px,3px); }
     #settingsOverlay {
@@ -823,7 +832,12 @@
       50% { opacity: 1; transform: scale(1.03); }
     }
     #stageScreen .panel { height: min(84%,720px); display: flex; flex-direction: column; overflow: hidden; }
-    #stageScreen .panelBody { flex: 1; min-height: 0; overflow-y: auto; }
+    #stageScreen .panelBody {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      scroll-padding-top: 78px;
+    }
     #closeRewards,#closeStage {
       align-self: center;
       width: auto;
@@ -838,13 +852,18 @@
     }
     #stageScreen #closeStage { margin-top: 18px; }
     .stageModeTabs {
+      position: sticky;
+      top: 0;
+      z-index: 30;
       display: grid;
       grid-template-columns: repeat(4, minmax(0,1fr));
       gap: 8px;
       width: min(520px,92%);
-      margin: 4px auto 12px;
+      margin: 0 auto 12px;
       overflow: visible;
-      padding: 0 4px 8px;
+      padding: 8px 4px 10px;
+      background: linear-gradient(#211943 0%,#211943 78%,rgba(33,25,67,0) 100%);
+      box-shadow: 0 8px 0 #211943,0 12px 16px #0b092088;
     }
     .stageModeTabs button {
       min-height: 44px;
@@ -1634,6 +1653,19 @@
     #gardenScreen .cropImg { display: block; width: 100%; height: auto; object-fit: contain; image-rendering: auto; filter: drop-shadow(0 8px 0 rgba(0,0,0,.22)); }
     #gardenScreen .cropImg.seedTopBoost { transform: scaleY(1.08); transform-origin: center bottom; }
     #gardenScreen .cropImg.fatteningOverwaterShift { transform: scaleY(.92); transform-origin: center bottom; }
+    #gardenScreen .gardenMeter {
+      position: absolute;
+      z-index: 4;
+      bottom: 10px;
+      height: 74px;
+      width: auto;
+      image-rendering: auto;
+      pointer-events: none;
+      filter: drop-shadow(4px 5px 0 rgba(0,0,0,.35));
+    }
+    #gardenScreen .gardenMeter.hidden { display: none !important; }
+    #gardenScreen .gardenMoistureMeter { left: 12px; }
+    #gardenScreen .gardenEcMeter { right: 12px; }
     #gardenScreen .gardenEventBtn {
       position: absolute; left: 50%; top: 48%; z-index: 5; transform: translate(-50%,-50%);
       width: 58px; height: 58px; min-height: 0; padding: 0; margin: 0;
@@ -1811,8 +1843,27 @@
     #gardenScreen .gardenChoiceActions .gardenConfirmBtn small {
       display: block; margin-top: 5px; color: #31521f; font-size: 13px; line-height: 1.15; font-weight: 500;
     }
+    #gardenScreen .gardenConfirmBtn.fertilizerQuickBtn {
+      background: #f08a2f;
+      color: #fff7cf;
+      box-shadow: inset -5px -5px #a84f18,5px 5px 0 #080610;
+    }
+    #gardenScreen .gardenConfirmBtn.fertilizerSlowBtn {
+      background: #42b95a;
+      color: #fff7cf;
+      box-shadow: inset -5px -5px #217b32,5px 5px 0 #080610;
+    }
+    #gardenScreen .gardenConfirmBtn.fertilizerPremiumBtn {
+      background: #38c7d5;
+      color: #102a32;
+      box-shadow: inset -5px -5px #158391,5px 5px 0 #080610;
+    }
     #gardenScreen .gardenConfirmBtn.danger { background: #b98278; color: #fff7cf; }
+    #gardenScreen .gardenConfirmBtn:disabled {
+      background: #6a6473; color: #d8d0e8; box-shadow: 5px 5px 0 #080610; cursor: default; filter: grayscale(.3);
+    }
     #gardenScreen .gardenConfirmBtn:active { transform: translate(2px,2px); }
+    #gardenScreen .gardenConfirmBtn:disabled:active { transform: none; }
     @media (max-width: 430px) {
       .gardenFramePanel { padding: 6px 0 18px; }
       #gardenScreen .page { padding-left: 8px; padding-right: 8px; }
@@ -1824,6 +1875,9 @@
       #gardenScreen .resourceStats { font-size: 16px; }
       #gardenScreen .gardenScene { height: 358px; }
       #gardenScreen .cropFrame { width: 82%; transform: translateY(-14px); }
+      #gardenScreen .gardenMeter { height: 58px; bottom: 8px; }
+      #gardenScreen .gardenMoistureMeter { left: 8px; }
+      #gardenScreen .gardenEcMeter { right: 8px; }
       #gardenScreen .backBtn { width: 72px; font-size: 15px; }
       #gardenScreen .scenePlantBtn { bottom: 18px; width: 164px; height: 78px; font-size: 22px; padding-bottom: 4px; }
       #gardenScreen .scenePlantBtn small { font-size: 14px; }
@@ -2381,6 +2435,13 @@
       font-size:24px;
       line-height:1;
       filter:drop-shadow(2px 2px 0 #151022);
+    }
+    .shopCardIcon img {
+      display:block;
+      width:auto;
+      height:38px;
+      object-fit:contain;
+      margin:0 auto;
     }
     .shopCardName {
       color:#fff0c4;
