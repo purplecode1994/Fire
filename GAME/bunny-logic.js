@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=632;
+  const APP_VERSION=633;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -3126,6 +3126,7 @@
             <b>選擇鍛造來源</b>
             <span>先選裝備來源，再進入對應列表。</span>
           </div>
+          ${renderBreakStoneMergePanel()}
           <div class="forgeSourceList">
             <div class="forgeSourceItem">
               <div class="forgeSourceInfo">
@@ -3154,7 +3155,6 @@
           <span>${forgeMessage||(forgeSourceMode==="garden"?"S+ 胡蘿蔔可直接鍛造":`藍框以上裝備可鍛造，單件最高 +10。｜${breakStoneInventoryText()}`)}</span>
           <button type="button" class="forgeBackBtn" data-forge-source-back>返回分類</button>
         </div>
-        ${renderBreakStoneMergePanel()}
         ${forgeSourceMode==="normal"?(forgeable.length?`
           <div class="forgeList">
             ${forgeable.map(item=>{
