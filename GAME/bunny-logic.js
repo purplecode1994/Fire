@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=623;
+  const APP_VERSION=624;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -5584,12 +5584,12 @@
     if(gardenUiInitialized)return;
     gardenUiInitialized=true;
     preloadGardenSceneAssets();
-    document.getElementById("backBtn")?.addEventListener("click",closeGardenScreen);
-    document.getElementById("bottomHomeBtn")?.addEventListener("click",closeGardenScreen);
-    document.getElementById("devTimeNextBtn")?.addEventListener("click",()=>stepDevTime());
-    document.getElementById("devStagePrevBtn")?.addEventListener("click",()=>stepDevPreview(-1));
-    document.getElementById("devStageNextBtn")?.addEventListener("click",()=>stepDevPreview(1));
-    document.getElementById("forgeBtn2")?.addEventListener("click",openGardenForge);
+    document.getElementById("backBtn")?.addEventListener("click",()=>{playUiClick();closeGardenScreen();});
+    document.getElementById("bottomHomeBtn")?.addEventListener("click",()=>{playUiClick();closeGardenScreen();});
+    document.getElementById("devTimeNextBtn")?.addEventListener("click",()=>{playUiClick();stepDevTime();});
+    document.getElementById("devStagePrevBtn")?.addEventListener("click",()=>{playUiClick();stepDevPreview(-1);});
+    document.getElementById("devStageNextBtn")?.addEventListener("click",()=>{playUiClick();stepDevPreview(1);});
+    document.getElementById("forgeBtn2")?.addEventListener("click",()=>{playUiClick();openGardenForge();});
     document.getElementById("waterBtn")?.addEventListener("click",()=>{
       if(!gardenState?.garden?.current){action("plant");return;}
       action(`${gardenState?.plantView?.isRainObserve?"drain":"water"}:${activeGardenTimeSlot()}`);
@@ -5598,23 +5598,23 @@
     document.getElementById("scenePlantBtn")?.addEventListener("click",()=>action(gardenState?.garden?.current&&gardenState?.plantView?.canHarvest?"harvest":"plant"));
     document.getElementById("gardenEventBtn")?.addEventListener("click",()=>{
       const event=normalizeGardenChoiceEvent(gardenState?.choiceEvent);
-      if(event)showGardenChoiceEvent(event);
+      if(event){playUiClick();showGardenChoiceEvent(event);}
     });
-    document.getElementById("fertBtn")?.addEventListener("click",openGardenActionMenu);
-    document.getElementById("gardenActionFertilizeBtn")?.addEventListener("click",openGardenFertilizerMenu);
+    document.getElementById("fertBtn")?.addEventListener("click",()=>{playUiClick();openGardenActionMenu();});
+    document.getElementById("gardenActionFertilizeBtn")?.addEventListener("click",()=>{playUiClick();openGardenFertilizerMenu();});
     document.getElementById("gardenActionDrainBtn")?.addEventListener("click",()=>{closeGardenActionMenu();action(`drain:${activeGardenTimeSlot()}`);});
     document.getElementById("gardenActionPestBtn")?.addEventListener("click",()=>{closeGardenActionMenu();action("pestControl");});
-    document.getElementById("gardenActionCancelBtn")?.addEventListener("click",closeGardenActionMenu);
+    document.getElementById("gardenActionCancelBtn")?.addEventListener("click",()=>{playUiClick();closeGardenActionMenu();});
     document.getElementById("gardenFertilizerQuickBtn")?.addEventListener("click",()=>{closeGardenActionMenu();action("fertilize:quick");});
     document.getElementById("gardenFertilizerSlowBtn")?.addEventListener("click",()=>{closeGardenActionMenu();action("fertilize:slow");});
     document.getElementById("gardenFertilizerPremiumBtn")?.addEventListener("click",()=>{closeGardenActionMenu();action("fertilize:premium");});
-    document.getElementById("gardenFertilizerBackBtn")?.addEventListener("click",openGardenActionMenu);
+    document.getElementById("gardenFertilizerBackBtn")?.addEventListener("click",()=>{playUiClick();openGardenActionMenu();});
     const clearConfirm=document.getElementById("gardenClearConfirm"),harvestResult=document.getElementById("gardenHarvestResult"),choiceEventOverlay=document.getElementById("gardenChoiceEvent"),actionMenu=document.getElementById("gardenActionMenu");
-    document.getElementById("clearBtn")?.addEventListener("click",()=>clearConfirm?.classList.remove("hidden"));
-    document.getElementById("cancelClearGardenBtn")?.addEventListener("click",()=>clearConfirm?.classList.add("hidden"));
+    document.getElementById("clearBtn")?.addEventListener("click",()=>{playUiClick();clearConfirm?.classList.remove("hidden");});
+    document.getElementById("cancelClearGardenBtn")?.addEventListener("click",()=>{playUiClick();clearConfirm?.classList.add("hidden");});
     document.getElementById("confirmClearGardenBtn")?.addEventListener("click",()=>{clearConfirm?.classList.add("hidden");action("clear");});
     clearConfirm?.addEventListener("click",event=>{if(event.target===clearConfirm)clearConfirm.classList.add("hidden");});
-    document.getElementById("closeHarvestResultBtn")?.addEventListener("click",()=>harvestResult?.classList.add("hidden"));
+    document.getElementById("closeHarvestResultBtn")?.addEventListener("click",()=>{playUiClick();harvestResult?.classList.add("hidden");});
     harvestResult?.addEventListener("click",event=>{if(event.target===harvestResult)harvestResult.classList.add("hidden");});
     actionMenu?.addEventListener("click",event=>{if(event.target===actionMenu)closeGardenActionMenu();});
     document.getElementById("gardenChoiceActions")?.addEventListener("click",event=>{
@@ -5623,7 +5623,7 @@
       choiceEventOverlay?.classList.add("hidden");
       action(`eventChoice:${btn.dataset.gardenEventChoice}`);
     });
-    document.getElementById("clearEnhanceBtn")?.addEventListener("click",()=>{enhanceBaseIndex=null;enhanceMaterialIndexes=[];renderEnhance();});
+    document.getElementById("clearEnhanceBtn")?.addEventListener("click",()=>{playUiClick();enhanceBaseIndex=null;enhanceMaterialIndexes=[];renderEnhance();});
     document.getElementById("devClearRecordsBtn")?.addEventListener("click",()=>{if(gardenState?.devMode)action("clearRecords");});
     document.getElementById("confirmEnhanceBtn")?.addEventListener("click",()=>{if(enhanceBaseIndex==null||!enhanceMaterialIndexes.length)return;action(`enhance:${enhanceBaseIndex}:${enhanceMaterialIndexes.join(",")}`);enhanceBaseIndex=null;enhanceMaterialIndexes=[];});
     document.getElementById("storageGrid")?.addEventListener("click",event=>{
@@ -5635,7 +5635,7 @@
       const discardBtn=event.target.closest("[data-delete-index]");
       if(discardBtn){event.stopPropagation();discardCarrot(Number(discardBtn.dataset.deleteIndex));return;}
       const slot=event.target.closest(".matSlot[data-index]");
-      if(slot)toggleEnhanceIndex(Number(slot.dataset.index));
+      if(slot){playUiClick();toggleEnhanceIndex(Number(slot.dataset.index));}
     });
     document.getElementById("growthRecordList")?.addEventListener("click",event=>{
       const btn=event.target.closest(".recordChoiceBtn");
@@ -5643,13 +5643,13 @@
     });
     document.getElementById("recordPrevPlantBtn")?.addEventListener("click",()=>{
       const records=Array.isArray(gardenState?.garden?.records)?gardenState.garden.records:[],plantingNos=[...new Set(records.map(record=>Math.max(0,Math.floor(Number(record?.plantingNo)||0))).filter(no=>no>0))].sort((a,b)=>a-b),currentIndex=plantingNos.indexOf(selectedRecordPlantingNo);
-      if(currentIndex>0){selectedRecordPlantingNo=plantingNos[currentIndex-1];renderGrowthRecords(gardenState,gardenState?.garden?.current);}
+      if(currentIndex>0){playUiClick();selectedRecordPlantingNo=plantingNos[currentIndex-1];renderGrowthRecords(gardenState,gardenState?.garden?.current);}
     });
     document.getElementById("recordNextPlantBtn")?.addEventListener("click",()=>{
       const records=Array.isArray(gardenState?.garden?.records)?gardenState.garden.records:[],plantingNos=[...new Set(records.map(record=>Math.max(0,Math.floor(Number(record?.plantingNo)||0))).filter(no=>no>0))].sort((a,b)=>a-b),currentIndex=plantingNos.indexOf(selectedRecordPlantingNo);
-      if(currentIndex>=0&&currentIndex<plantingNos.length-1){selectedRecordPlantingNo=plantingNos[currentIndex+1];renderGrowthRecords(gardenState,gardenState?.garden?.current);}
+      if(currentIndex>=0&&currentIndex<plantingNos.length-1){playUiClick();selectedRecordPlantingNo=plantingNos[currentIndex+1];renderGrowthRecords(gardenState,gardenState?.garden?.current);}
     });
-    document.querySelectorAll("#gardenScreen .tabBtn").forEach(btn=>btn.addEventListener("click",()=>setTab(btn.dataset.tab)));
+    document.querySelectorAll("#gardenScreen .tabBtn").forEach(btn=>btn.addEventListener("click",()=>{playUiClick();setTab(btn.dataset.tab);}));
   }
   function resetActivityDaily(){
     const key=todayKey();
