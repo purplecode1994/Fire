@@ -15,7 +15,7 @@
   <link rel="preload" as="image" href="assets/garden/user-carrot-growth-v5/carrot-growth-13-empty.png">
   <link rel="preload" as="image" href="assets/garden/user-carrot-growth-v5/carrot-growth-00-seed.png">
   <link rel="preload" as="image" href="assets/garden/user-carrot-growth-v5/forge-house-hero.png?v=587">
-  <link rel="stylesheet" href="bunny-style.css?v=613">
+  <link rel="stylesheet" href="bunny-style.css?v=623">
 </head>
 <body class="layout-portrait">
 <div id="wrap">
@@ -38,12 +38,12 @@
         <div class="expBar"><div id="accountExpFill"></div></div>
         <div id="accountExpText">EXP 0 / 0</div>
       </div>
-      <div id="coinBox" role="button" tabindex="0" aria-label="鑽石數量，點擊重新抓取"><span class="diamondIcon">💎</span> <span id="coinCount">0</span><button id="coinDevSubBtn" class="hidden" type="button" aria-label="開發模式減少鑽石">-</button><button id="coinDevAddBtn" class="hidden" type="button" aria-label="開發模式增加鑽石">+</button><div id="coinDebugBox" class="hidden"></div></div>
+      <div id="coinBox" role="button" tabindex="0" aria-label="鑽石數量，點擊重新抓取"><span class="diamondIcon">💎</span> <span id="coinCount">0</span><button id="coinDevSubBtn" class="hidden" type="button" aria-label="開發模式減少 1000 鑽石">-1000</button><button id="coinDevAddBtn" class="hidden" type="button" aria-label="開發模式增加 1000 鑽石">+1000</button><div id="coinDebugBox" class="hidden"></div></div>
       <div id="rewardPanel">
         <b>等級獎勵（尚未開放）</b>
         <div id="rewardTrack"></div>
       </div>
-      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.613</span></h1>
+      <h1 class="homeTitle">兔兔割草大冒險 <span class="homeVersion">V.623</span></h1>
       <h2>選擇關卡</h2>
       <div id="stageSelect">
         <button id="gardenStage" type="button">第一關・菜園</button>
@@ -330,7 +330,7 @@
         </div>
         <section class="storage" id="tabGarden">
           <div class="storageTitle recordStorageTitle"><span class="recordTitleBar"><span>成長紀錄</span><span class="recordPlantNav"><button id="recordPrevPlantBtn" type="button" aria-label="上一批種植"><</button><span class="recordPlantLabel" id="recordPlantLabel">第 0 次種植</span><button id="recordNextPlantBtn" type="button" aria-label="下一批種植">></button></span></span><span class="recordHead"><span id="dayText">第 0 天</span></span></div>
-          <button class="recordDevClear hidden" id="devClearRecordsBtn" type="button">開發：清空紀錄與統計</button>
+          <button class="recordDevClear hidden" id="devClearRecordsBtn" type="button">開發：清空紀錄與全部道具</button>
           <div class="recordList" id="growthRecordList">
             <div class="recordBox">等待菜園資料同步中。</div>
           </div>
@@ -467,7 +467,7 @@
     </div>
   </div>
 </div>
-  <script src="bunny-logic.js?v=613"></script>
+  <script src="bunny-logic.js?v=623"></script>
 </body>
 </html>
 

@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=613;
+  const APP_VERSION=623;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -25,10 +25,16 @@
   const ACTIVITY_CARROT_MODE="carrot";
   const ACTIVITY_TRIAL_MODE="trial";
   const RARE_BREAK_STONE_PRICE=30;
+  const BREAK_STONE_MERGE_COST=3;
+  const ACTIVITY_CARROT_COIN_MIN=5;
+  const ACTIVITY_CARROT_COIN_MAX=20;
   const GARDEN_DRAIN_SHOVEL_PRICE=20;
-  const GARDEN_MOISTURE_METER_PRICE=25;
-  const GARDEN_EC_METER_PRICE=25;
+  const GARDEN_MOISTURE_METER_PRICE=600;
+  const GARDEN_EC_METER_PRICE=600;
   const GARDEN_INSECTICIDE_PRICE=15;
+  const GARDEN_PRUNING_SCISSORS_PRICE=20;
+  const GARDEN_SUPPORT_FRAME_PRICE=20;
+  const GARDEN_SHADE_NET_PRICE=20;
   const GARDEN_FERTILIZER_PRICE=10;
   const GARDEN_SLOW_FERTILIZER_PRICE=25;
   const GARDEN_PREMIUM_SLOW_FERTILIZER_PRICE=45;
@@ -37,6 +43,7 @@
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
   const W=540,H=960;
+  const LOOP_MAX_FPS=60;
   const DURATION=600,wrap=document.getElementById("wrap");
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
@@ -67,7 +74,7 @@
   if(settingsOverlay&&settingsOverlay.parentElement!==wrap)wrap.appendChild(settingsOverlay);
   if(settingsDialog&&settingsDialog.parentElement!==wrap)wrap.appendChild(settingsDialog);
   const stick={active:false,pointerId:null,x:0,y:0,startX:0,startY:0};
-  let running=false,paused=false,ended=false,last=0,time=0,spawnClock=0,shotClock=0,battleStartDelay=0,computeFrameCount=0;
+  let running=false,paused=false,ended=false,last=0,loopAccumulator=0,time=0,spawnClock=0,shotClock=0,battleStartDelay=0,computeFrameCount=0;
   let giantCarrotCooldown=0;
   let enemies=[],shots=[],enemyShots=[],gems=[],effects=[],texts=[],areas=[],petShots=[],bananas=[],chests=[],pickups=[],bossObstacles=[];
   let groundCache={canvas:null,ctx:null,zone:null,firstX:null,firstY:null,cols:0,rows:0,grid:64};
@@ -85,7 +92,7 @@
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
   let gardenDevDateOverride="";
   let runRewarded=false,activityRewarded=false,transitioning=false;
-  let activityStageMode=ACTIVITY_CARROT_MODE,lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:0,coins:0,points:0};
+  let activityStageMode=ACTIVITY_CARROT_MODE,lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:0,coins:0,points:0,stones:[]};
   let settingsDialogState=null;
   let bookMainTab="skills",bookStageTab=1;
   const BATTLE_START_DELAY=1.6;
@@ -96,6 +103,7 @@
   let audio=null,muted=false;
   let runCoins=0,runCoinsSettled=false,walletCoins=0,autoSaveTimer=0,coinDebugExpanded=false,testModeSilentPaused=false;
   let autoTrainingActive=false,autoTrainingSource="",autoTrainingPromptOpen=false,shopPurchasePromptOpen=false,autoTrainingSettled=false;
+  let synthBeepWindowAt=0,synthBeepWindowCount=0;
   let dialogOnlyOverlayHostWasHidden=false;
   let coinSaveStatus={saveLocal:"-",saveSession:"-",metaLocal:"-",metaSession:"-",coinLocal:"-",coinSession:"-",coinCookie:"-"};
   let critSampleBuffer=null,critSampleLoading=false,critSoundLastTime=0;
@@ -160,6 +168,16 @@
     immortal:"不朽突破原石",
     eternal:"永恆突破原石"
   };
+  const ACTIVITY_TRIAL_STONE_WEIGHTS=[
+    ["normal",35],
+    ["rare",30],
+    ["uncommon",18],
+    ["epic",10],
+    ["legendary",5],
+    ["mythic",1.4],
+    ["immortal",.5],
+    ["eternal",.1]
+  ];
   const GARDEN_STORAGE_BASE_CAP=9;
   const GARDEN_DEV_CARROT_CODE="8811";
   const POINT_8888_CODE="8888";
@@ -399,6 +417,42 @@
     const parts=BREAK_STONE_QUALITIES.filter(quality=>(stones[quality]||0)>0).map(quality=>`${breakStoneName(quality)} ${formatCommaNumber(stones[quality])}`);
     return parts.length?parts.join("｜"):"尚無突破原石";
   }
+  function nextBreakStoneQuality(quality){
+    const index=BREAK_STONE_QUALITIES.indexOf(breakStoneQualityKey(quality));
+    if(index<0||index>=BREAK_STONE_QUALITIES.length-1)return "";
+    return BREAK_STONE_QUALITIES[index+1];
+  }
+  function rollActivityTrialBreakStoneQuality(){
+    const total=ACTIVITY_TRIAL_STONE_WEIGHTS.reduce((sum,item)=>sum+item[1],0);
+    let roll=Math.random()*total;
+    for(const [quality,weight] of ACTIVITY_TRIAL_STONE_WEIGHTS){
+      roll-=weight;
+      if(roll<=0)return breakStoneQualityKey(quality);
+    }
+    return "normal";
+  }
+  function activityTrialStoneCount(){
+    return Math.max(1,Math.min(5,1+Math.floor(Math.max(0,kills)/6000)));
+  }
+  function formatBreakStoneDrops(drops=[]){
+    const counts={};
+    (Array.isArray(drops)?drops:[]).forEach(quality=>{
+      const key=breakStoneQualityKey(quality);
+      counts[key]=(counts[key]||0)+1;
+    });
+    const parts=BREAK_STONE_QUALITIES.filter(quality=>counts[quality]).map(quality=>`${breakStoneName(quality)} x${counts[quality]}`);
+    return parts.length?parts.join("、"):"0";
+  }
+  function awardActivityTrialBreakStones(){
+    const drops=[];
+    const count=activityTrialStoneCount();
+    for(let i=0;i<count;i++){
+      const quality=rollActivityTrialBreakStoneQuality();
+      addBreakStone(quality,1);
+      drops.push(quality);
+    }
+    return drops;
+  }
 
   const metaDefs=[
     {id:"damage",name:"攻擊力",cost:5,cap:200,desc:`每級 +${META_DAMAGE_STEP} 攻擊力；每10級成長 +${(META_DAMAGE_TIER_GROWTH*100).toFixed(1)}%，最高 LV200`,value:m=>`+${scaledMetaGain(m.damage,META_DAMAGE_STEP,META_DAMAGE_TIER_GROWTH).toFixed(1).replace(/\\.0$/,"")}`},
@@ -445,6 +499,9 @@
       premiumSlowFertilizer:0,
       drainShovels:0,
       insecticide:0,
+      pruningScissors:0,
+      supportFrames:0,
+      shadeNets:0,
       moistureMeter:false,
       ecMeter:false,
       plantingCount:0,
@@ -572,6 +629,9 @@
       premiumSlowFertilizer:Math.max(0,Math.floor(Number(Object.prototype.hasOwnProperty.call(source,"premiumSlowFertilizer")?source.premiumSlowFertilizer:base.premiumSlowFertilizer)||0)),
       drainShovels:Math.max(0,Math.floor(Number(Object.prototype.hasOwnProperty.call(source,"drainShovels")?source.drainShovels:base.drainShovels)||0)),
       insecticide:Math.max(0,Math.floor(Number(Object.prototype.hasOwnProperty.call(source,"insecticide")?source.insecticide:base.insecticide)||0)),
+      pruningScissors:Math.max(0,Math.floor(Number(Object.prototype.hasOwnProperty.call(source,"pruningScissors")?source.pruningScissors:base.pruningScissors)||0)),
+      supportFrames:Math.max(0,Math.floor(Number(Object.prototype.hasOwnProperty.call(source,"supportFrames")?source.supportFrames:base.supportFrames)||0)),
+      shadeNets:Math.max(0,Math.floor(Number(Object.prototype.hasOwnProperty.call(source,"shadeNets")?source.shadeNets:base.shadeNets)||0)),
       moistureMeter:!!source.moistureMeter,
       ecMeter:!!source.ecMeter,
       plantingCount:Math.max(0,Math.floor(Number(source.plantingCount)||0)),
@@ -1569,7 +1629,7 @@
       paused=true;
       testModeSilentPaused=true;
       resetStick();
-      last=performance.now();
+      last=performance.now();loopAccumulator=0;
       pauseScreen.classList.add("hidden");
       pauseBtn.classList.add("visible");
     }
@@ -1586,7 +1646,7 @@
       testModeSilentPaused=false;
       if(running&&!ended){
         paused=false;
-        last=performance.now();
+        last=performance.now();loopAccumulator=0;
         pauseBtn.classList.add("visible");
       }
     }
@@ -2094,12 +2154,15 @@
           meta.garden.premiumSlowFertilizer=Math.max(99,Math.floor(Number(meta.garden.premiumSlowFertilizer)||0));
           meta.garden.drainShovels=Math.max(99,Math.floor(Number(meta.garden.drainShovels)||0));
           meta.garden.insecticide=Math.max(99,Math.floor(Number(meta.garden.insecticide)||0));
+          meta.garden.pruningScissors=Math.max(99,Math.floor(Number(meta.garden.pruningScissors)||0));
+          meta.garden.supportFrames=Math.max(99,Math.floor(Number(meta.garden.supportFrames)||0));
+          meta.garden.shadeNets=Math.max(99,Math.floor(Number(meta.garden.shadeNets)||0));
           meta.garden.moistureMeter=true;
           meta.garden.ecMeter=true;
           saveMeta();
           renderMeta();
           closeSettingsDialog();
-          openSettingsOverlay("菜園測試資源已補齊：神秘種子 99、三種肥料各 99、挖溝鏟 99、殺蟲劑 99，並開啟水分儀與 EC 儀。");
+          openSettingsOverlay("菜園測試資源已補齊：神秘種子 99、三種肥料各 99、挖溝鏟 99、殺蟲劑 99、剪刀 99、支撐架 99、遮陽網 99，並開啟水分儀與 EC 儀。");
           beep(980,.14,.04,"triangle");
           return;
         }
@@ -2553,7 +2616,7 @@
     }
   }
   function computeGridStride(){
-    if(computeMode()===0)return 4;
+    if(computeMode()===0)return 2;
     if(computeMode()===1)return 2;
     return 1;
   }
@@ -2563,8 +2626,8 @@
     return 200;
   }
   function computeTargetTTL(){
-    if(computeMode()===0)return .30;
-    if(computeMode()===1)return .20;
+    if(computeMode()===0)return .15;
+    if(computeMode()===1)return .15;
     return .12;
   }
   function computeOffScreenDiv(){
@@ -2707,6 +2770,9 @@
     const premiumSlowFertilizer=Math.max(0,Math.floor(Number(meta.garden.premiumSlowFertilizer)||0));
     const drainShovels=Math.max(0,Math.floor(Number(meta.garden.drainShovels)||0));
     const insecticide=Math.max(0,Math.floor(Number(meta.garden.insecticide)||0));
+    const pruningScissors=Math.max(0,Math.floor(Number(meta.garden.pruningScissors)||0));
+    const supportFrames=Math.max(0,Math.floor(Number(meta.garden.supportFrames)||0));
+    const shadeNets=Math.max(0,Math.floor(Number(meta.garden.shadeNets)||0));
     const hasMoistureMeter=!!meta.garden.moistureMeter;
     const hasEcMeter=!!meta.garden.ecMeter;
     const canBuyStone=activityCoins>=RARE_BREAK_STONE_PRICE;
@@ -2714,6 +2780,9 @@
     const canBuyMoistureMeter=!hasMoistureMeter&&activityCoins>=GARDEN_MOISTURE_METER_PRICE;
     const canBuyEcMeter=!hasEcMeter&&activityCoins>=GARDEN_EC_METER_PRICE;
     const canBuyInsecticide=activityCoins>=GARDEN_INSECTICIDE_PRICE;
+    const canBuyPruningScissors=activityCoins>=GARDEN_PRUNING_SCISSORS_PRICE;
+    const canBuySupportFrame=activityCoins>=GARDEN_SUPPORT_FRAME_PRICE;
+    const canBuyShadeNet=activityCoins>=GARDEN_SHADE_NET_PRICE;
     const canBuyFertilizer=activityCoins>=GARDEN_FERTILIZER_PRICE;
     const canBuySlowFertilizer=activityCoins>=GARDEN_SLOW_FERTILIZER_PRICE;
     const canBuyPremiumSlowFertilizer=activityCoins>=GARDEN_PREMIUM_SLOW_FERTILIZER_PRICE;
@@ -2735,13 +2804,13 @@
       </div>
       <div class="shopEventSectionTitle">菜園系列</div>
       <div class="shopCard">
-        <div class="shopCardIcon meterShopIcon"><img src="assets/garden/meters/garden-moisture-meter-2.png" alt=""></div>
+        <div class="shopCardIcon meterShopIcon"><img src="assets/garden/meters/shop-moisture-meter.png?v=${APP_VERSION}" alt=""></div>
         <div class="shopCardName">土壤水分儀</div>
         <div class="shopCardSub">菜園左下顯示水分｜${hasMoistureMeter?"已購買":"尚未購買"}</div>
         <button type="button" class="shopBuyBtn" data-shop-action="gardenMoistureMeter" ${canBuyMoistureMeter?"":"disabled"}>${hasMoistureMeter?"已擁有":`BUY 活動幣 ${GARDEN_MOISTURE_METER_PRICE}`}</button>
       </div>
       <div class="shopCard">
-        <div class="shopCardIcon meterShopIcon"><img src="assets/garden/meters/garden-ec-meter-2.png" alt=""></div>
+        <div class="shopCardIcon meterShopIcon"><img src="assets/garden/meters/shop-ec-meter.png?v=${APP_VERSION}" alt=""></div>
         <div class="shopCardName">土壤 EC 儀</div>
         <div class="shopCardSub">菜園右下顯示養分｜${hasEcMeter?"已購買":"尚未購買"}</div>
         <button type="button" class="shopBuyBtn" data-shop-action="gardenEcMeter" ${canBuyEcMeter?"":"disabled"}>${hasEcMeter?"已擁有":`BUY 活動幣 ${GARDEN_EC_METER_PRICE}`}</button>
@@ -2775,6 +2844,24 @@
         <div class="shopCardName">菜園殺蟲劑</div>
         <div class="shopCardSub">處理毛毛蟲與葉片蟲咬｜持有 ${formatCommaNumber(insecticide)}</div>
         <button type="button" class="shopBuyBtn" data-shop-action="gardenInsecticide" ${canBuyInsecticide?"":"disabled"}>BUY 活動幣 ${GARDEN_INSECTICIDE_PRICE}</button>
+      </div>
+      <div class="shopCard">
+        <div class="shopCardIcon">✂️</div>
+        <div class="shopCardName">園藝剪刀</div>
+        <div class="shopCardSub">處理菌害擴散與病葉｜持有 ${formatCommaNumber(pruningScissors)}</div>
+        <button type="button" class="shopBuyBtn" data-shop-action="gardenPruningScissors" ${canBuyPruningScissors?"":"disabled"}>BUY 活動幣 ${GARDEN_PRUNING_SCISSORS_PRICE}</button>
+      </div>
+      <div class="shopCard">
+        <div class="shopCardIcon">🪵</div>
+        <div class="shopCardName">菜園支撐架</div>
+        <div class="shopCardSub">處理颱風、倒伏與強風｜持有 ${formatCommaNumber(supportFrames)}</div>
+        <button type="button" class="shopBuyBtn" data-shop-action="gardenSupportFrame" ${canBuySupportFrame?"":"disabled"}>BUY 活動幣 ${GARDEN_SUPPORT_FRAME_PRICE}</button>
+      </div>
+      <div class="shopCard">
+        <div class="shopCardIcon">⛱️</div>
+        <div class="shopCardName">菜園遮陽網</div>
+        <div class="shopCardSub">處理炎熱、酷熱與烈日｜持有 ${formatCommaNumber(shadeNets)}</div>
+        <button type="button" class="shopBuyBtn" data-shop-action="gardenShadeNet" ${canBuyShadeNet?"":"disabled"}>BUY 活動幣 ${GARDEN_SHADE_NET_PRICE}</button>
       </div>
     `;
   }
@@ -2933,6 +3020,54 @@
     renderMeta();
     beep(620,.14,.035,"triangle");
   }
+  function mergeBreakStone(quality){
+    const key=breakStoneQualityKey(quality);
+    const next=nextBreakStoneQuality(key);
+    if(!next){
+      forgeMessage="這個品質已經是最高階，無法再合成。";
+      beep(180,.08,.025,"square");
+      renderShop();
+      return;
+    }
+    if(!spendBreakStone(key,BREAK_STONE_MERGE_COST)){
+      forgeMessage=`需要 ${breakStoneName(key)} x${BREAK_STONE_MERGE_COST} 才能合成。`;
+      beep(180,.08,.025,"square");
+      renderShop();
+      return;
+    }
+    addBreakStone(next,1);
+    forgeMessage=`已合成 ${breakStoneName(next)} x1。`;
+    saveMeta();
+    renderShop();
+    beep(760,.14,.035,"triangle");
+  }
+  function renderBreakStoneMergePanel(){
+    const stones=syncBreakStoneState(meta);
+    const rows=BREAK_STONE_QUALITIES.map(quality=>{
+      const next=nextBreakStoneQuality(quality);
+      if(!next)return "";
+      const count=Math.max(0,Math.floor(Number(stones[quality])||0));
+      const ready=count>=BREAK_STONE_MERGE_COST;
+      return `
+        <div class="breakStoneMergeItem ${ready?"ready":""}">
+          <div class="breakStoneMergeInfo">
+            <b>${breakStoneName(quality)}</b>
+            <small>持有 ${formatCommaNumber(count)}｜${BREAK_STONE_MERGE_COST} 合 1 → ${breakStoneName(next)}</small>
+          </div>
+          <button type="button" class="shopBuyBtn" data-break-stone-merge="${quality}" ${ready?"":"disabled"}>合成</button>
+        </div>
+      `;
+    }).filter(Boolean).join("");
+    return `
+      <div class="breakStoneMergeBox">
+        <div class="forgeHeader">
+          <b>突破原石合成</b>
+          <span>${BREAK_STONE_MERGE_COST} 顆同階原石可合成 1 顆下一階原石。</span>
+        </div>
+        <div class="breakStoneMergeGrid">${rows}</div>
+      </div>
+    `;
+  }
   function gardenReadyForgeItems(){
     meta.garden=normalizeGardenState(meta.garden);
     return (meta.garden.storage||[])
@@ -2988,6 +3123,7 @@
           <span>${forgeMessage||(forgeSourceMode==="garden"?"S+ 胡蘿蔔可直接鍛造":`藍框以上裝備可鍛造，單件最高 +10。｜${breakStoneInventoryText()}`)}</span>
           <button type="button" class="forgeBackBtn" data-forge-source-back>返回分類</button>
         </div>
+        ${renderBreakStoneMergePanel()}
         ${forgeSourceMode==="normal"?(forgeable.length?`
           <div class="forgeList">
             ${forgeable.map(item=>{
@@ -3498,11 +3634,6 @@
     gardenDevDateOverride="";
     devTimeSlotIndex=null;
     const keep={
-      seeds:meta.garden.seeds,
-      fertilizer:meta.garden.fertilizer,
-      slowFertilizer:meta.garden.slowFertilizer,
-      premiumSlowFertilizer:meta.garden.premiumSlowFertilizer,
-      drainShovels:meta.garden.drainShovels,
       storageCap:meta.garden.storageCap,
       storage:meta.garden.storage,
       depositBox:meta.garden.depositBox
@@ -3516,7 +3647,7 @@
       current:null
     });
     selectedRecordPlantingNo=null;
-    return{ok:true,message:"成長紀錄、播種次數、收成次數與共種植天數已清空。",clearRecords:true,focusPlantingNo:0};
+    return{ok:true,message:"成長紀錄、統計、神秘種子與所有菜園道具已清空。",clearRecords:true,focusPlantingNo:0};
   }
   function gardenDailyMoistureDelta(weather){
     let delta=-1;
@@ -4848,7 +4979,7 @@
     smallLeavesDisease:`assets/garden/user-carrot-growth-v5/carrot-growth-23-small-leaves-disease.png?v=${APP_VERSION}`,
     lushLeavesDisease:`assets/garden/user-carrot-growth-v5/carrot-growth-24-lush-leaves-disease.png?v=${APP_VERSION}`,
     fatteningDisease:`assets/garden/user-carrot-growth-v5/carrot-growth-25-fattening-disease.png?v=${APP_VERSION}`,
-    matureDisease:`assets/garden/user-carrot-growth-v5/carrot-growth-26-mature-disease.png?v=${APP_VERSION}`
+    matureDisease:`assets/garden/user-carrot-growth-v5/carrot-growth-25-fattening-disease.png?v=${APP_VERSION}`
   };
   const gardenMeterAssets={
     moisture:[
@@ -5542,26 +5673,29 @@
   function settleActivityReward(success=false){
     if(activityRewarded)return 0;
     activityRewarded=true;
-    lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0};
+    lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[]};
     if(isActivityTrialMode()){
       const coins=success?Math.max(1,Math.floor(Math.max(0,kills)*.001)):0;
       if(coins>0)meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))+coins;
-      lastActivityReward={mode:ACTIVITY_TRIAL_MODE,seeds:0,coins,points:0};
+      const stones=success?awardActivityTrialBreakStones():[];
+      lastActivityReward={mode:ACTIVITY_TRIAL_MODE,seeds:0,coins,points:0,stones};
       saveMeta();
       return coins;
     }
     const earned=success?Math.max(1,Math.min(10,1+Math.floor(Math.max(0,kills)/80))):0;
+    const coins=success?Math.max(ACTIVITY_CARROT_COIN_MIN,Math.min(ACTIVITY_CARROT_COIN_MAX,Math.floor(Math.max(0,kills)/1200))):0;
     let points=0;
     if(success){
       const normalKills=Math.max(0,kills-eliteKills-bossKills);
       points=applyPointRewardBonus(Math.floor(normalKills/25)+eliteKills*3+bossKills*10+25+Math.floor(time/60)*3);
       meta.points+=points;
+      meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))+coins;
     }
     if(earned>0){
       meta.garden=normalizeGardenState(meta.garden);
       meta.garden.seeds=Math.max(0,Math.floor(Number(meta.garden.seeds)||0))+earned;
     }
-    lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:earned,coins:0,points};
+    lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:earned,coins,points,stones:[]};
     saveMeta();
     return earned;
   }
@@ -5654,6 +5788,27 @@
       return {
         title:"購買菜園殺蟲劑？",
         message:`殺蟲劑可以在菜園行動中使用，用來處理毛毛蟲、蟲咬葉片等蟲害狀態。\n使用後會解除蟲害圖片，並寫入成長紀錄。\n\n價格：活動幣 ${GARDEN_INSECTICIDE_PRICE}`,
+        confirmLabel:"購買"
+      };
+    }
+    if(action==="gardenPruningScissors"){
+      return {
+        title:"購買園藝剪刀？",
+        message:`園藝剪刀用來處理菌害擴散、病葉與腐葉。\n之後遇到菌害事件時，可以用剪刀切除壞葉，避免品質繼續下滑。\n\n價格：活動幣 ${GARDEN_PRUNING_SCISSORS_PRICE}`,
+        confirmLabel:"購買"
+      };
+    }
+    if(action==="gardenSupportFrame"){
+      return {
+        title:"購買菜園支撐架？",
+        message:`菜園支撐架用來處理颱風、強風與植株倒伏。\n之後遇到風災事件時，可以架起支撐保護胡蘿蔔。\n\n價格：活動幣 ${GARDEN_SUPPORT_FRAME_PRICE}`,
+        confirmLabel:"購買"
+      };
+    }
+    if(action==="gardenShadeNet"){
+      return {
+        title:"購買菜園遮陽網？",
+        message:`菜園遮陽網用來處理炎熱、酷熱與烈日照射。\n之後遇到烈日事件時，可以降低曬傷與缺水風險。\n\n價格：活動幣 ${GARDEN_SHADE_NET_PRICE}`,
         confirmLabel:"購買"
       };
     }
@@ -5814,6 +5969,39 @@
       if(!gardenScreen?.classList.contains("hidden"))postGardenState("已購買菜園殺蟲劑。");
       beep(760,.12,.035,"triangle");
     }
+    if(action==="gardenPruningScissors"){
+      const cost=GARDEN_PRUNING_SCISSORS_PRICE;
+      if((meta.activityCoins||0)<cost){beep(180,.08,.025,"square");return;}
+      meta.garden=normalizeGardenState(meta.garden);
+      meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))-cost;
+      meta.garden.pruningScissors=Math.max(0,Math.floor(Number(meta.garden.pruningScissors)||0))+1;
+      saveMeta();
+      renderShop();
+      if(!gardenScreen?.classList.contains("hidden"))postGardenState("已購買園藝剪刀。");
+      beep(760,.12,.035,"triangle");
+    }
+    if(action==="gardenSupportFrame"){
+      const cost=GARDEN_SUPPORT_FRAME_PRICE;
+      if((meta.activityCoins||0)<cost){beep(180,.08,.025,"square");return;}
+      meta.garden=normalizeGardenState(meta.garden);
+      meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))-cost;
+      meta.garden.supportFrames=Math.max(0,Math.floor(Number(meta.garden.supportFrames)||0))+1;
+      saveMeta();
+      renderShop();
+      if(!gardenScreen?.classList.contains("hidden"))postGardenState("已購買菜園支撐架。");
+      beep(760,.12,.035,"triangle");
+    }
+    if(action==="gardenShadeNet"){
+      const cost=GARDEN_SHADE_NET_PRICE;
+      if((meta.activityCoins||0)<cost){beep(180,.08,.025,"square");return;}
+      meta.garden=normalizeGardenState(meta.garden);
+      meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))-cost;
+      meta.garden.shadeNets=Math.max(0,Math.floor(Number(meta.garden.shadeNets)||0))+1;
+      saveMeta();
+      renderShop();
+      if(!gardenScreen?.classList.contains("hidden"))postGardenState("已購買菜園遮陽網。");
+      beep(760,.12,.035,"triangle");
+    }
     if(action==="gardenFertilizer"){
       const cost=GARDEN_FERTILIZER_PRICE;
       if((meta.activityCoins||0)<cost){beep(180,.08,.025,"square");return;}
@@ -5963,7 +6151,27 @@
     "把備用胡蘿蔔排成一整列...",
     "檢查寶箱鑰匙有沒有放反...",
     "把雪原圍巾和沙漠水壺塞進背包...",
-    "兔兔正在偷偷多帶一根胡蘿蔔..."
+    "兔兔正在偷偷多帶一根胡蘿蔔...",
+    `確認目前版本 V.${APP_VERSION} 的活動關卡資料...`,
+    "胡鬧的胡蘿蔔正在練習不要亂跑...",
+    "強化試煉正在挑選今日突破原石...",
+    "鍛造屋正在預熱原石合成爐...",
+    "檢查 3 顆同階原石能不能合成下一階...",
+    "活動商店正在補貨：剪刀、支撐架、遮陽網...",
+    "菜園水分儀正在校正紅綠藍刻度...",
+    "土壤 EC 儀正在聞今天的養分味道...",
+    "速效肥料、緩釋肥料、高級緩釋肥料正在排隊...",
+    "兔兔正在把澆水、觀察、行動按鈕擦亮...",
+    "菜園正在預載早上、中午、下午、晚上背景...",
+    "下雨天排水鏟已放進工具箱...",
+    "殺蟲劑正在確認毛毛蟲不在瓶子裡...",
+    "園藝剪刀正在等菌害事件出現...",
+    "支撐架正在準備對抗強風和颱風...",
+    "遮陽網正在摺成兔兔看得懂的形狀...",
+    "成長紀錄正在整理今天的天氣與時辰...",
+    "活動硬幣袋正在清點掉落範圍...",
+    "菜園胡蘿蔔鍛造清單正在檢查 S+ 素材...",
+    "兔兔正在提醒自己：可採收後不要再澆水..."
   ];
   const bootFinalHint="準備出發...";
   function bootRect(x,y,w,h,c){
@@ -6100,7 +6308,7 @@
     if(!bootOverlay)return;
     const duration=5;
     const shuffled=[...bootHints].sort(()=>Math.random()-.5);
-    const selected=[shuffled[0]||bootHints[0],shuffled[1]||bootHints[1]||bootHints[0],bootFinalHint];
+    const selected=[...(shuffled.slice(0,4).length?shuffled.slice(0,4):bootHints.slice(0,4)),bootFinalHint];
     let hintIndex=0,startTime=0,finished=false;
     if(bootHint)bootHint.textContent=selected[0];
     if(bootProgressFill)bootProgressFill.style.width="0%";
@@ -6111,7 +6319,7 @@
     function bootStep(now){
       if(!startTime)startTime=now;
       const elapsed=(now-startTime)/1000;
-      const nextHintAt=hintIndex===0?2:4;
+      const nextHintAt=duration/selected.length*(hintIndex+1);
       if(elapsed>=nextHintAt&&hintIndex<selected.length-1){
         hintIndex++;
         if(bootHint)bootHint.textContent=selected[hintIndex];
@@ -6365,11 +6573,13 @@
     return 1;
   }
 
-  function stageButtonMarkup(label,stage){
-    if(stage===BOSS_CHALLENGE_STAGE)return `<span class="stageLabel">${label}</span><span class="stageBadge challenge">測試</span>`;
-    if(stage===EVENT_STAGE)return `<span class="stageLabel">${label}</span><span class="stageBadge easy">今日 ${activityRunsLeft()}/${EVENT_DAILY_LIMIT}</span>`;
+  function stageButtonMarkup(label,stage,desc=""){
+    const descHtml=desc?`<small class="stageDesc">${desc}</small>`:"";
+    const labelHtml=`<span class="stageLabel"><span>${label}</span>${descHtml}</span>`;
+    if(stage===BOSS_CHALLENGE_STAGE)return `${labelHtml}<span class="stageBadge challenge">測試</span>`;
+    if(stage===EVENT_STAGE)return `${labelHtml}<span class="stageBadge easy">今日 ${activityRunsLeft()}/${EVENT_DAILY_LIMIT}</span>`;
     const info=stageDifficultyInfo(stage);
-    return `<span class="stageLabel">${label}</span><span class="stageBadge ${info.className}">${info.label}</span>`;
+    return `${labelHtml}<span class="stageBadge ${info.className}">${info.label}</span>`;
   }
 
   function formatStageTime(seconds){
@@ -7944,8 +8154,8 @@
       eventStage.disabled=!eventOpen;
       eventStage.classList.toggle("locked",!eventOpen);
       eventStage.innerHTML=eventOpen?
-        stageButtonMarkup("胡鬧的胡蘿蔔",EVENT_STAGE):
-        stageButtonMarkup("胡鬧的胡蘿蔔（未解鎖）",EVENT_STAGE);
+        stageButtonMarkup("胡鬧的胡蘿蔔",EVENT_STAGE,`活動幣 ${ACTIVITY_CARROT_COIN_MIN}~${ACTIVITY_CARROT_COIN_MAX}｜強化點數｜最終種子 1~10 顆`):
+        stageButtonMarkup("胡鬧的胡蘿蔔（未解鎖）",EVENT_STAGE,"2 萬戰力開放");
     }
     if(eventTrialStage){
       eventTrialStage.classList.toggle("hidden",!eventUnlocked);
@@ -7953,8 +8163,8 @@
       eventTrialStage.disabled=!eventOpen;
       eventTrialStage.classList.toggle("locked",!eventOpen);
       eventTrialStage.innerHTML=eventOpen?
-        stageButtonMarkup("強化試煉",EVENT_STAGE):
-        stageButtonMarkup("強化試煉（未解鎖）",EVENT_STAGE);
+        stageButtonMarkup("強化試煉",EVENT_STAGE,"活動幣約 20~30｜最終原石 1~5 顆，品質依機率"):
+        stageButtonMarkup("強化試煉（未解鎖）",EVENT_STAGE,"2 萬戰力開放");
     }
     infiniteStage.textContent="無限輪迴";
     if(bossChallengeStage)bossChallengeStage.innerHTML=stageButtonMarkup("頭目挑戰模式",BOSS_CHALLENGE_STAGE);
@@ -8762,6 +8972,7 @@
     if(audioDebugCurrent[kind]!==undefined)audioDebugCurrent[kind]++;
   }
   function countPerfWork(kind,amount=1){
+    if(!(debugOverlayEnabled&&debugPanelMode==="perf")&&!devTestRecorder.active)return;
     if(perfWorkCurrent[kind]!==undefined)perfWorkCurrent[kind]+=amount;
   }
   function audioMonitorRows(){
@@ -8845,7 +9056,17 @@
           key==="gemUpdate"?240:180)
       }));
   }
-  function beep(f,d=.06,v=.025,type="square"){if(!ensureAudioReady())return;const finalVolume=Math.max(0,v*synthVolume());if(finalVolume<=0)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(finalVolume,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);countAudioDebug("beep");}
+  function allowSynthBeep(){
+    if(!running||paused||ended)return true;
+    const now=performance.now();
+    if(now-synthBeepWindowAt>100){
+      synthBeepWindowAt=now;
+      synthBeepWindowCount=0;
+    }
+    synthBeepWindowCount++;
+    return synthBeepWindowCount<=10;
+  }
+  function beep(f,d=.06,v=.025,type="square"){if(!ensureAudioReady())return;const finalVolume=Math.max(0,v*synthVolume());if(finalVolume<=0||!allowSynthBeep())return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(finalVolume,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(audio.destination);o.start();o.stop(t+d);countAudioDebug("beep");}
   function playUiClick(){
     beep(520,.055,.018,"triangle");
     countAudioSubtype("ui");
@@ -9028,6 +9249,18 @@
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const rand=(a,b)=>a+Math.random()*(b-a);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function compactArray(arr,keep){
+    let write=0;
+    for(let read=0;read<arr.length;read++){
+      const item=arr[read];
+      if(keep(item,read)){
+        arr[write]=item;
+        write++;
+      }
+    }
+    arr.length=write;
+    return arr;
+  }
   function outsideNineGrid(x,y,padding=0){
     return Math.abs(x-player.x)>W*1.5+padding||Math.abs(y-player.y)>H*1.5+padding;
   }
@@ -9036,6 +9269,20 @@
   function worldToScreen(x,y){
     const camera=cameraPosition();
     return{x:Math.round(x-camera.x+W/2),y:Math.round(y-camera.y+H/2)};
+  }
+  function screenPointVisible(p,margin=0){
+    return p.x>=-margin&&p.x<=W+margin&&p.y>=-margin&&p.y<=H+margin;
+  }
+  function effectDrawMargin(e){
+    const r=Math.max(0,Number(e.r)||0);
+    if(e.kind==="leafStorm")return r+120;
+    if(e.kind==="shockwave"||e.kind==="slash")return r+36;
+    if(e.kind==="bossRock")return r+48;
+    if(e.kind==="pinkyLine")return Math.max(56,r*4);
+    if(e.kind==="treantSeed"||e.kind==="poisonMushroom")return 112;
+    if(e.kind==="saplingBomb")return 88;
+    if(e.kind==="rockFragment")return r+90;
+    return Math.max(44,r+44);
   }
 
   function resizeTransitionCanvas(){
@@ -9140,7 +9387,7 @@
     hudKpsBonus=hudWaveSeconds=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0};
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[]};
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
     infiniteClearCount=0;
@@ -9177,7 +9424,7 @@
       beginFinalBossEntrance();
       announce("頭目挑戰（測試版）","此為測試模式用；要更新請詢問用戶。","#ffe45f",4);
     }
-    last=performance.now();
+    last=performance.now();loopAccumulator=0;
   }
   function startWithTransition(){
     playSceneTransition(()=>{
@@ -10050,7 +10297,7 @@
         });
       }
     }
-    bananas=bananas.filter(b=>!b.dead);
+    compactArray(bananas,b=>!b.dead);
   }
 
   function damageEnemy(e,amount,critical=false,source="normal"){
@@ -10348,12 +10595,12 @@
         chestClock=Math.max(chestClock,10);
       }
     }
-    pickups=pickups.filter(p=>!p.dead);
+    compactArray(pickups,p=>!p.dead);
   }
 
   function updateChests(dt,moved){
     let recycled=false;
-    chests=chests.filter(chest=>{
+    compactArray(chests,chest=>{
       if(outsideNineGrid(chest.x,chest.y,chest.r+28)){
         recycled=true;
         return false;
@@ -10361,7 +10608,8 @@
       return true;
     });
     if(recycled)chestClock=Math.max(chestClock,10);
-    const unopened=chests.filter(c=>!c.opened).length;
+    let unopened=0;
+    for(const chest of chests)if(!chest.opened)unopened++;
     const activeTreasures=unopened+pickups.length;
     if(activeTreasures===0&&finalPhase==="none")chestClock-=dt;
     if(chestClock<=0&&activeTreasures===0&&finalPhase==="none"){
@@ -10372,7 +10620,7 @@
       if(chest.opened)chest.rewardLife-=dt;
       else chest.hintLife=Math.max(0,chest.hintLife-dt);
     }
-    chests=chests.filter(c=>!c.opened||c.rewardLife>0);
+    compactArray(chests,c=>!c.opened||c.rewardLife>0);
   }
 
   function hurt(amount){
@@ -10831,7 +11079,7 @@
         sectorBits|=(1<<sector);
       }
     }
-    enemies=enemies.filter(e=>!e.dead);
+    compactArray(enemies,e=>!e.dead);
     if(computeFrameCount%computeGridStride()===0||enemyGrid.size===0)rebuildEnemyGrid();
     encirclementSectorBits=sectorBits;
     encirclementSectorCount=sectorBits.toString(2).replace(/0/g,"").length;
@@ -10939,7 +11187,7 @@
         }
       }
     }
-    enemyShots=enemyShots.filter(s=>s.life>0&&dist(s,player)<1100);
+    compactArray(enemyShots,s=>s.life>0&&dist(s,player)<1100);
   }
 
   function shatterRollingStone(shot,enemy){
@@ -11069,7 +11317,7 @@
         }
       }
     }
-    return list.filter(s=>s.life>0);
+    return compactArray(list,s=>s.life>0);
   }
 
   function updateSkills(dt){
@@ -11157,7 +11405,7 @@
         });
       }
     }
-    areas=areas.filter(a=>a.delay>0||a.life>0);
+    compactArray(areas,a=>a.delay>0||a.life>0);
   }
 
   function updateGems(dt){
@@ -11219,7 +11467,7 @@
         playXpPickupSound({waveform:"sine",baseFreq:2169,duration:.2,overtone:.05,rippleCount:1});
       }
     }
-    gems=gems.filter(g=>!g.dead);
+    compactArray(gems,g=>!g.dead);
   }
 
   function update(dt){
@@ -11505,7 +11753,7 @@
         }
       }
     }
-    effects=effects.filter(e=>e.life===undefined||e.life>0);
+    compactArray(effects,e=>e.life===undefined||e.life>0);
     for(const t of texts){
       if(t.kind==="critical"){
         t.x+=(t.vx||0)*dt;
@@ -11516,7 +11764,7 @@
       }
       t.life-=dt;
     }
-    texts=texts.filter(t=>t.life>0);
+    compactArray(texts,t=>t.life>0);
     if(instantKillTimer>0){
       instantKillTimer-=dt;
       if(instantKillTimer<=0)instantKills=0;
@@ -12019,7 +12267,9 @@
   }
 
   function drawCarrot(s){
-    const p=worldToScreen(s.x,s.y);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(s.angle||Math.atan2(s.vy,s.vx));
+    const p=worldToScreen(s.x,s.y),margin=s.kind==="giant"?130:54;
+    if(!screenPointVisible(p,margin))return;
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(s.angle||Math.atan2(s.vy,s.vx));
     if(s.kind==="giant"){
       ctx.scale(2.6,2.6);
       rect(-10,-5,16,10,"#ff8a32");rect(5,-4,8,8,"#d94b25");rect(-15,-8,7,5,"#55aa4f");rect(-15,3,7,5,"#78c55c");rect(-2,-3,5,3,"#ffd069");
@@ -12126,6 +12376,7 @@
 
   function drawEnemy(e){
     const p=worldToScreen(e.x,e.y),s=e.r/18;
+    if(!screenPointVisible(p,Math.max(96*s,e.r*4,88)))return;
     const challengeWhale=isBossChallengeMode()&&e.kind==="final"&&e.type==="whale";
     const snapshot=challengeWhale?null:getEnemySnapshot(e.type);
     if(snapshot){
@@ -12241,6 +12492,7 @@
 
   function drawGem(g){
     const p=worldToScreen(g.x,g.y),colors=["#f07a32","#7fc957","#d54743","#f5d253","#a8da73"];
+    if(!screenPointVisible(p,72))return;
     const x=p.x,y=p.y;
     rect(x-8,y-8,16,16,"#273c36");
     rect(x-6,y-6,12,12,colors[g.type]);
@@ -12274,6 +12526,7 @@
 
   function drawChest(chest){
     const p=worldToScreen(chest.x,chest.y),bob=Math.round(Math.sin(time*3+chest.phase)*3);
+    if(!screenPointVisible(p,92))return;
     if(chest.opened){
       rect(p.x-21,p.y+3,42,14,"#6f3d27");
       rect(p.x-18,p.y+5,36,9,"#a95d2e");
@@ -12450,6 +12703,7 @@
 
   function drawPickup(pickup){
     const p=worldToScreen(pickup.x,pickup.y),bob=Math.sin(time*5+pickup.phase)*5;
+    if(!screenPointVisible(p,96))return;
     ctx.globalAlpha=.22+.12*Math.sin(time*7+pickup.phase);
     ctx.fillStyle=pickup.type==="coin"?"#65dfff":pickup.type==="heal"?"#77ff89":pickup.type==="potion"?"#ff8fc3":"#ff8b55";
     ctx.beginPath();ctx.arc(p.x,p.y+bob,29,0,Math.PI*2);ctx.fill();
@@ -12589,6 +12843,7 @@
 
   function drawEnemyShot(shot){
     const p=worldToScreen(shot.x,shot.y);
+    if(!screenPointVisible(p,(shot.r||0)+42))return;
     if(shot.kind==="seed"){
       ctx.globalAlpha=.24;ctx.fillStyle="#8cff75";ctx.beginPath();ctx.arc(p.x,p.y,shot.r+6,0,Math.PI*2);ctx.fill();
       ctx.globalAlpha=1;ctx.fillStyle="#8b4a22";ctx.beginPath();ctx.ellipse(p.x,p.y,shot.r*.75,shot.r,0,0,Math.PI*2);ctx.fill();
@@ -12821,6 +13076,7 @@
 
   function drawBanana(b){
     const p=worldToScreen(b.x,b.y);
+    if(!screenPointVisible(p,(b.r||0)+48))return;
     ctx.save();ctx.translate(p.x,p.y);ctx.rotate(b.spin);
     ctx.strokeStyle="#ffe04f";ctx.lineWidth=Math.max(5,b.r*.72);ctx.lineCap="square";
     ctx.beginPath();ctx.arc(0,0,b.r*.85,.25,Math.PI*1.35);ctx.stroke();
@@ -13182,6 +13438,7 @@
     for(const s of shots)drawCarrot(s);
     for(const s of petShots){
       const p=worldToScreen(s.x,s.y);
+      if(!screenPointVisible(p,(s.r||0)+52))continue;
       if(s.kind==="rolling"){
         ctx.save();ctx.translate(p.x,p.y);ctx.rotate(time*8);
         rect(-s.r,-s.r,s.r*2,s.r*2,"#655a50");rect(-s.r+4,-s.r+3,s.r,6,"#a08c77");rect(1,1,8,7,"#3f3a36");
@@ -13195,6 +13452,7 @@
     for(const e of effects){
       if(e.kind==="flash"||e.kind==="crater")continue;
       const p=worldToScreen(e.x,e.y);
+      if(!screenPointVisible(p,effectDrawMargin(e)))continue;
       if(e.kind==="particle"||e.kind==="chip")rect(p.x,p.y,e.r,e.r,e.color);
       else if(e.kind==="pinkyLine"){ctx.globalAlpha=clamp(e.life*2,0,1);rect(p.x-1,p.y-e.r*3,3,e.r*6,e.color);ctx.globalAlpha=1;}
       else if(e.kind==="heart"){ctx.globalAlpha=clamp(e.life*2,0,1);rect(p.x-e.r,p.y-e.r,e.r,e.r,e.color);rect(p.x,p.y-e.r,e.r,e.r,e.color);rect(p.x-e.r*.5,p.y,e.r,e.r,e.color);ctx.globalAlpha=1;}
@@ -13280,6 +13538,7 @@
     drawBlizzardOverlay();
     for(const t of texts){
       const p=worldToScreen(t.x,t.y);
+      if(!screenPointVisible(p,Math.max(80,(t.size||18)*4)))continue;
       if(t.kind==="critical"){
         drawCriticalText(t,p);
       }else{
@@ -13385,12 +13644,12 @@
       endScreen.classList.remove("hidden");
       if(lastActivityReward.mode===ACTIVITY_TRIAL_MODE){
         document.getElementById("endTitle").textContent="強化試煉完成！";
-        document.getElementById("endSub").textContent="兔兔帶回了活動兌換幣";
-        document.getElementById("endText").innerHTML=`擊倒 ${kills}・活動 Boss ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(lastActivityReward.coins)}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+        document.getElementById("endSub").textContent="兔兔帶回了活動兌換幣與突破原石";
+        document.getElementById("endText").innerHTML=`擊倒 ${kills}・活動 Boss ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(lastActivityReward.coins)}<br>本局獲得突破原石 ${formatBreakStoneDrops(lastActivityReward.stones)}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
       }else{
         document.getElementById("endTitle").textContent="胡鬧的胡蘿蔔擊退！";
         document.getElementById("endSub").textContent="兔兔撿回了神秘胡蘿蔔種子";
-        document.getElementById("endText").innerHTML=`擊倒 ${kills}・活動 Boss ${bossKills}<br>本局獲得強化點數 ${formatCommaNumber(lastActivityReward.points)}<br>本局獲得神秘胡蘿蔔種子 ${formatCommaNumber(lastActivityReward.seeds)} 顆<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+        document.getElementById("endText").innerHTML=`擊倒 ${kills}・活動 Boss ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(lastActivityReward.coins)}<br>本局獲得強化點數 ${formatCommaNumber(lastActivityReward.points)}<br>本局獲得神秘胡蘿蔔種子 ${formatCommaNumber(lastActivityReward.seeds)} 顆<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
       }
       beep(660,.4,.05);
       return;
@@ -13487,7 +13746,18 @@
     beep(220,.22,.035,"square");
   }
 
-  function loop(now){const dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw();requestAnimationFrame(loop);}
+  function loop(now){
+    const rawDt=Math.min(.05,(now-last)/1000||0);
+    last=now;
+    loopAccumulator+=rawDt;
+    const targetInterval=1/LOOP_MAX_FPS;
+    if(loopAccumulator>=targetInterval){
+      update(targetInterval);
+      draw();
+      loopAccumulator=0;
+    }
+    requestAnimationFrame(loop);
+  }
   function setKey(k,v){keys[k]=v;}
   const touch=document.getElementById("touch"),touchKnob=document.getElementById("touchKnob"),touchHint=document.getElementById("touchHint");
   const pauseBtn=document.getElementById("pauseBtn"),resumeBtn=document.getElementById("resumeBtn"),leaveStageBtn=document.getElementById("leaveStageBtn"),muteBtn=document.getElementById("muteBtn"),reloadAudioBtn=document.getElementById("reloadAudioBtn");
@@ -13621,7 +13891,7 @@
     if(ended)return;
     leaveConfirm.classList.remove("visible");
     leaveStageBtn.classList.remove("hidden");
-    pauseScreen.classList.add("hidden");paused=false;last=performance.now();
+    pauseScreen.classList.add("hidden");paused=false;last=performance.now();loopAccumulator=0;
     pauseBtn.classList.add("visible");
     updateMonitorButtons();
   }
@@ -13772,7 +14042,7 @@
         paused=true;
       }else{
         paused=false;
-        last=performance.now();
+        last=performance.now();loopAccumulator=0;
         pauseScreen.classList.add("hidden");
         pauseBtn.classList.add("visible");
       }
@@ -14056,6 +14326,13 @@
       dismantleEquipment(dismantleButton.dataset.dismantleId);
       return;
     }
+    const mergeStoneButton=e.target.closest("button[data-break-stone-merge]");
+    if(mergeStoneButton){
+      if(mergeStoneButton.disabled)return;
+      playUiClick();
+      mergeBreakStone(mergeStoneButton.dataset.breakStoneMerge);
+      return;
+    }
     const gardenForgeButton=e.target.closest("button[data-garden-forge-index]");
     if(gardenForgeButton){
       if(gardenForgeButton.disabled)return;
@@ -14144,7 +14421,7 @@
     e.stopPropagation();
     if(!devModeActive)return;
     syncCoinState();
-    meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0)+100);
+    meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0)+1000);
     walletCoins=meta.coins;
     saveMeta();
     syncCoinDisplay();
@@ -14155,7 +14432,7 @@
     e.stopPropagation();
     if(!devModeActive)return;
     syncCoinState();
-    meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0)-100);
+    meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0)-1000);
     walletCoins=meta.coins;
     saveMeta();
     syncCoinDisplay();

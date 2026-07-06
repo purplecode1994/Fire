@@ -240,16 +240,17 @@
     #coinDevAddBtn,#coinDevSubBtn {
       display: inline-grid;
       place-items: center;
-      width: 22px;
+      width: auto;
+      min-width: 52px;
       height: 22px;
       min-height: 0;
       margin-left: 7px;
-      padding: 0;
+      padding: 0 5px;
       border: 2px solid #ffe89e;
       border-radius: 4px;
       background: #ffd84f;
       color: #2f2145;
-      font: bold 16px/1 monospace;
+      font: bold 12px/1 monospace;
       box-shadow: inset -2px -2px #d5932f,2px 2px #0006;
       vertical-align: middle;
     }
@@ -304,10 +305,11 @@
       }
       #coinDevAddBtn,
       #coinDevSubBtn {
-        width: 21px;
+        width: auto;
+        min-width: 48px;
         height: 21px;
         margin-left: 5px;
-        font-size: 15px;
+        font-size: 11px;
       }
     }
     #coinDebugBox {
@@ -907,7 +909,13 @@
       color: #2c2140; background: #ffda57;
       box-shadow: inset -5px -5px #d9962d,inset 3px 3px #fff0a0,5px 5px #0b0920;
     }
-    #stageSelect button .stageLabel,#stageSelectModal button .stageLabel { flex: 1; text-align: left; }
+    #stageSelect button .stageLabel,#stageSelectModal button .stageLabel { flex: 1; text-align: left; display:grid; gap:4px; }
+    #stageSelect button .stageDesc,#stageSelectModal button .stageDesc {
+      color:#4b365d;
+      font-size:12px;
+      line-height:1.35;
+      font-weight:500;
+    }
     #stageSelect button .stageBadge,#stageSelectModal button .stageBadge {
       flex: 0 0 auto; min-width: 54px; padding: 4px 8px; border: 2px solid #17142f;
       font-size: 13px; font-weight: bold; line-height: 1; text-align: center; box-shadow: 2px 2px #09071866;
@@ -930,6 +938,7 @@
     #stageSelect button.active:active,#stageSelectModal button.active:active { transform: translate(3px,3px); }
     #stageSelect button.locked,#stageSelectModal button.locked { color: #b9b2c7; background: #5a5667; box-shadow: inset -5px -5px #3d394b,5px 5px #0b0920; }
     #stageSelect button.locked:active,#stageSelectModal button.locked:active { transform: none; }
+    #stageSelect button.locked .stageDesc,#stageSelectModal button.locked .stageDesc { color:#d6d0e1; }
     #stageSelect button.locked .stageBadge,#stageSelectModal button.locked .stageBadge { background: #4c4657; color: #d6d0e1; }
     #stageSelectModal #bossChallengeStageModal {
       color: #fff2f2;
@@ -2443,6 +2452,15 @@
       object-fit:contain;
       margin:0 auto;
     }
+    .meterShopIcon {
+      min-height:30px;
+      display:grid;
+      place-items:center;
+      transform:translateY(1px);
+    }
+    .meterShopIcon img {
+      height:30px;
+    }
     .shopCardName {
       color:#fff0c4;
       font-size:12px;
@@ -2631,6 +2649,47 @@
     }
     .forgeSourceItem.garden .forgeSourceInfo b { color:#9cff83; }
     .forgeSourceInfo small { color:#e7ddff; line-height:1.45; }
+    .breakStoneMergeBox {
+      display:grid;
+      gap:10px;
+      padding:10px;
+      border:2px solid #8c6c4d;
+      background:#1b1330;
+      box-shadow:inset 0 0 0 2px #3b2b5b;
+    }
+    .breakStoneMergeGrid {
+      display:grid;
+      gap:8px;
+    }
+    .breakStoneMergeItem {
+      display:grid;
+      grid-template-columns:1fr auto;
+      align-items:center;
+      gap:10px;
+      padding:8px;
+      border:2px solid #6e5395;
+      background:#261b40;
+    }
+    .breakStoneMergeItem.ready {
+      border-color:#ffe66b;
+      box-shadow:inset 0 0 0 2px #755f21;
+    }
+    .breakStoneMergeInfo b {
+      display:block;
+      color:#fff2bb;
+      margin-bottom:3px;
+    }
+    .breakStoneMergeInfo small {
+      color:#e7ddff;
+      line-height:1.35;
+    }
+    .breakStoneMergeItem .shopBuyBtn {
+      width:86px;
+      min-height:34px;
+      margin:0;
+      padding:6px 8px;
+      font-size:14px;
+    }
     .forgeList { display:grid; gap:10px; }
     .forgeItem {
       display:grid;
