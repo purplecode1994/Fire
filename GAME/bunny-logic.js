@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=629;
+  const APP_VERSION=632;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -43,8 +43,45 @@
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
   const W=540,H=960;
-  const LOOP_MAX_FPS=60;
   const SHOT_POOL_INITIAL_SIZE=400;
+  const PERFORMANCE_PROFILES=[
+    {
+      id:0,name:"極省電",maxFps:30,enemyCap:100,gridStride:2,targetTtl:.15,offScreenDiv:8,hudInterval:.25,sectorCount:4,
+      textLimits:{normal:0,critical:10,boss:24,default:999},
+      critProfile:{life:.55,vxMin:0,vxMax:0,vyMin:-46,vyMax:-46,gravity:0,minScale:.9,noFade:true},
+      burst:{largeThreshold:12,largeCap:2,smallCap:0},
+      gemPressure:{low:12000,mid:22000,high:36000,slow:.1,medium:.07,fast:.04},
+      gemFar:{near:200,far:520,nearMod:5,farMod:10},
+      groundStride:3,perfSampleSeconds:3,critSoundThrottleMs:70,
+      disabledEffectKinds:["particle","chip","half","slash"],particleCap:0,
+      orbitHalfEffects:false,orbitSlashEffect:false,
+      projectileGlow:false,particleGlow:false,impactGlow:false
+    },
+    {
+      id:1,name:"一般模式",maxFps:60,enemyCap:150,gridStride:1,targetTtl:.12,offScreenDiv:5,hudInterval:.15,sectorCount:8,
+      textLimits:{normal:18,critical:18,boss:40,default:999},
+      critProfile:{life:.82,vxMin:-16,vxMax:16,vyMin:-76,vyMax:-58,gravity:80,minScale:.8,noFade:false},
+      burst:{largeThreshold:12,largeCap:8,smallCap:2},
+      gemPressure:{low:20000,mid:32000,high:45000,slow:.16,medium:.1,fast:.06},
+      gemFar:{near:260,far:600,nearMod:3,farMod:5},
+      groundStride:1,perfSampleSeconds:2,critSoundThrottleMs:70,
+      disabledEffectKinds:[],particleCap:24,
+      orbitHalfEffects:false,orbitSlashEffect:true,
+      projectileGlow:false,particleGlow:false,impactGlow:false
+    },
+    {
+      id:2,name:"高畫質",maxFps:60,enemyCap:220,gridStride:1,targetTtl:.08,offScreenDiv:3,hudInterval:.10,sectorCount:8,
+      textLimits:{normal:42,critical:999,boss:80,default:999},
+      critProfile:{life:1.08,vxMin:-34,vxMax:34,vyMin:-112,vyMax:-86,gravity:150,minScale:.72,noFade:false},
+      burst:{largeThreshold:12,largeCap:Infinity,smallCap:Infinity},
+      gemPressure:{low:30000,mid:40000,high:50000,slow:.2,medium:.12,fast:.07},
+      gemFar:{near:340,far:700,nearMod:2,farMod:3},
+      groundStride:1,perfSampleSeconds:2,critSoundThrottleMs:45,
+      disabledEffectKinds:[],particleCap:Infinity,
+      orbitHalfEffects:true,orbitSlashEffect:true,
+      projectileGlow:true,particleGlow:true,impactGlow:true
+    }
+  ];
   const DURATION=600,wrap=document.getElementById("wrap");
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
@@ -491,7 +528,7 @@
       abilityResetTickets:0,abilityResetTicketDate:"",abilityResetTicketBoughtToday:0,
       garden:defaultGardenState(),
       masterVolume:.8,synthVolume:.6,critVolume:.7,giantExplosionVolume:.75,
-      graphicsMode:1,computeMode:1
+      graphicsMode:1,computeMode:1,performanceProfile:1
     };
   }
 
@@ -1144,6 +1181,19 @@
     writeCookieValue(COIN_COOKIE_KEY,safe);
     return Number(safe);
   }
+  function clampProfileValue(value,fallback=1){
+    return Math.max(0,Math.min(2,Math.floor(Number(value??fallback)||0)));
+  }
+  function normalizePerformanceSettings(data){
+    const hasProfile=Number.isFinite(Number(data.performanceProfile));
+    const legacyGraphics=Number.isFinite(Number(data.graphicsMode))?clampProfileValue(data.graphicsMode):1;
+    const legacyCompute=Number.isFinite(Number(data.computeMode))?clampProfileValue(data.computeMode):1;
+    const profile=hasProfile?clampProfileValue(data.performanceProfile):Math.min(legacyGraphics,legacyCompute);
+    data.performanceProfile=profile;
+    data.graphicsMode=profile;
+    data.computeMode=profile;
+    return data;
+  }
 
   function loadMeta(){
     try{
@@ -1158,8 +1208,7 @@
       data.synthVolume=Math.max(0,Math.min(1,Number(data.synthVolume)));
       data.critVolume=Math.max(0,Math.min(1,Number(data.critVolume)));
       data.giantExplosionVolume=Math.max(0,Math.min(1,Number(data.giantExplosionVolume)));
-      data.graphicsMode=Math.max(0,Math.min(2,Math.floor(Number(data.graphicsMode??1))));
-      data.computeMode=Math.max(0,Math.min(2,Math.floor(Number(data.computeMode??1))));
+      normalizePerformanceSettings(data);
       data.autoTrainingCharm=!!data.autoTrainingCharm;
       data.autoTrainingCharmUsedMinutes=Math.max(0,Math.min(480,Math.floor(Number(data.autoTrainingCharmUsedMinutes)||0)));
       data.autoTrainingTickets=Math.max(0,Math.floor(Number(data.autoTrainingTickets)||0));
@@ -1219,8 +1268,9 @@
     meta.synthVolume=volumeValue("synthVolume");
     meta.critVolume=volumeValue("critVolume");
     meta.giantExplosionVolume=volumeValue("giantExplosionVolume");
-    meta.graphicsMode=graphicsMode();
-    meta.computeMode=computeMode();
+    meta.performanceProfile=performanceProfile();
+    meta.graphicsMode=meta.performanceProfile;
+    meta.computeMode=meta.performanceProfile;
     walletCoins=meta.coins;
     const raw=JSON.stringify(meta);
     coinSaveStatus.saveLocal=safeSetStorage(()=>localStorage,SAVE_KEY,raw)?"ok":"fail";
@@ -2067,6 +2117,7 @@
           const decoded=decodeAccountTransferCode(code);
           if(!decoded||!decoded.meta)throw new Error("invalid");
           const nextMeta=Object.assign(defaultMeta(),decoded.meta);
+          normalizePerformanceSettings(nextMeta);
           if(!Array.isArray(nextMeta.claimedRewards))nextMeta.claimedRewards=[];
           delete nextMeta.devMode;
             meta=migrateLegacyStageClears(nextMeta);
@@ -2521,64 +2572,52 @@
     }
   }
   function graphicsMode(){
-    return Math.max(0,Math.min(2,Math.floor(Number(meta.graphicsMode??1))));
+    return performanceProfile();
+  }
+  function computeMode(){
+    return performanceProfile();
+  }
+  function performanceProfile(){
+    return clampProfileValue(meta.performanceProfile);
+  }
+  function performanceConfig(){
+    return PERFORMANCE_PROFILES[performanceProfile()]||PERFORMANCE_PROFILES[1];
+  }
+  function currentMaxFps(){
+    return performanceConfig().maxFps||60;
   }
   function renderGraphicsSettings(){
     if(!graphicsSettings)return;
-    const mode=graphicsMode();
-    for(const button of graphicsSettings.querySelectorAll("button[data-graphics-mode]")){
-      button.classList.toggle("active",Number(button.dataset.graphicsMode)===mode);
+    const mode=performanceProfile();
+    for(const button of graphicsSettings.querySelectorAll("button[data-performance-profile]")){
+      button.classList.toggle("active",Number(button.dataset.performanceProfile)===mode);
     }
   }
   function graphicsTextLimit(kind){
-    const mode=graphicsMode();
-    if(mode===2){
-      if(kind==="normal")return MAX_NORMAL_TEXTS;
-      if(kind==="critical")return 999;
-      if(kind==="boss")return MAX_BOSS_TEXTS;
-    }
-    if(mode===1){
-      if(kind==="normal")return 18;
-      if(kind==="critical")return 18;
-      if(kind==="boss")return 40;
-    }
-    if(kind==="normal")return 0;
-    if(kind==="critical")return 10;
-    if(kind==="boss")return 24;
-    return 999;
+    const limits=performanceConfig().textLimits||{};
+    return limits[kind]??limits.default??999;
   }
   function graphicsCriticalProfile(){
-    const mode=graphicsMode();
-    if(mode===2)return{life:1.08,vxMin:-34,vxMax:34,vyMin:-112,vyMax:-86,gravity:150,minScale:.72,noFade:false};
-    if(mode===1)return{life:.82,vxMin:-16,vxMax:16,vyMin:-76,vyMax:-58,gravity:80,minScale:.8,noFade:false};
-    return{life:.55,vxMin:0,vxMax:0,vyMin:-46,vyMax:-46,gravity:0,minScale:.9,noFade:true};
+    return performanceConfig().critProfile;
   }
   function graphicsBurstCount(n){
-    const mode=graphicsMode();
-    if(mode===2)return n;
-    if(mode===1)return Math.min(n,n>=12?8:2);
-    return Math.min(n,n>=12?2:0);
+    const burst=performanceConfig().burst||{};
+    const cap=n>=(burst.largeThreshold??12)?burst.largeCap:burst.smallCap;
+    return Math.min(n,cap??n);
   }
   function graphicsGemPressureConfig(){
-    const mode=graphicsMode();
-    if(mode===2)return{low:30000,mid:40000,high:50000,slow:.2,medium:.12,fast:.07};
-    if(mode===1)return{low:20000,mid:32000,high:45000,slow:.16,medium:.1,fast:.06};
-    return{low:12000,mid:22000,high:36000,slow:.1,medium:.07,fast:.04};
+    return performanceConfig().gemPressure;
   }
   function graphicsGemFarConfig(){
-    const mode=graphicsMode();
-    if(mode===2)return{near:340,far:700,nearMod:2,farMod:3};
-    if(mode===1)return{near:260,far:600,nearMod:3,farMod:5};
-    return{near:200,far:520,nearMod:5,farMod:10};
+    return performanceConfig().gemFar;
   }
   function graphicsGroundStride(){
-    return graphicsMode()===0?3:1;
+    return performanceConfig().groundStride;
   }
   function graphicsPerfSampleSeconds(){
-    return graphicsMode()===0?3:2;
+    return performanceConfig().perfSampleSeconds;
   }
   function pruneGraphicsEffects(){
-    const mode=graphicsMode();
     for(const kind of ["normal","critical","boss"]){
       const limit=graphicsTextLimit(kind);
       if(limit<=0)texts=texts.filter(t=>t.kind!==kind);
@@ -2591,66 +2630,54 @@
         });
       }
     }
-    if(mode===0)effects=effects.filter(e=>!["particle","chip","half","slash"].includes(e.kind));
-    else if(mode===1){
+    const config=performanceConfig();
+    const disabledKinds=new Set(config.disabledEffectKinds||[]);
+    if(disabledKinds.size)effects=effects.filter(e=>!disabledKinds.has(e.kind));
+    if(Number.isFinite(config.particleCap)){
       let particles=0;
       effects=effects.filter(e=>{
         if(!["particle","chip"].includes(e.kind))return true;
         particles++;
-        return particles<=24;
+        return particles<=config.particleCap;
       });
     }
   }
   function setGraphicsMode(value){
-    meta.graphicsMode=Math.max(0,Math.min(2,Math.floor(Number(value)||0)));
+    setPerformanceProfile(value);
+  }
+  function renderComputeSettings(){
+    renderGraphicsSettings();
+  }
+  function computeGridStride(){
+    return performanceConfig().gridStride;
+  }
+  function computeEnemyCap(){
+    return performanceConfig().enemyCap;
+  }
+  function computeTargetTTL(){
+    return performanceConfig().targetTtl;
+  }
+  function computeOffScreenDiv(){
+    return performanceConfig().offScreenDiv;
+  }
+  function computeHudInterval(){
+    return performanceConfig().hudInterval;
+  }
+  function computeSectorCount(){
+    return performanceConfig().sectorCount;
+  }
+  function setComputeMode(value){
+    setPerformanceProfile(value);
+  }
+  function setPerformanceProfile(value){
+    meta.performanceProfile=clampProfileValue(value);
+    meta.graphicsMode=meta.performanceProfile;
+    meta.computeMode=meta.performanceProfile;
     groundCache.zone=null;
     pruneGraphicsEffects();
     saveMeta();
-    renderGraphicsSettings();
-    playUiClick();
-  }
-  function computeMode(){
-    return Math.max(0,Math.min(2,Math.floor(Number(meta.computeMode??1))));
-  }
-  function renderComputeSettings(){
-    if(!computeSettings)return;
-    const mode=computeMode();
-    for(const button of computeSettings.querySelectorAll("button[data-compute-mode]")){
-      button.classList.toggle("active",Number(button.dataset.computeMode)===mode);
-    }
-  }
-  function computeGridStride(){
-    if(computeMode()===0)return 2;
-    if(computeMode()===1)return 2;
-    return 1;
-  }
-  function computeEnemyCap(){
-    if(computeMode()===0)return 100;
-    if(computeMode()===1)return 140;
-    return 200;
-  }
-  function computeTargetTTL(){
-    if(computeMode()===0)return .15;
-    if(computeMode()===1)return .15;
-    return .12;
-  }
-  function computeOffScreenDiv(){
-    if(computeMode()===0)return 8;
-    if(computeMode()===1)return 5;
-    return 3;
-  }
-  function computeHudInterval(){
-    if(computeMode()===0)return .25;
-    if(computeMode()===1)return .15;
-    return .10;
-  }
-  function computeSectorCount(){
-    return computeMode()===0?4:8;
-  }
-  function setComputeMode(value){
-    meta.computeMode=Math.max(0,Math.min(2,Math.floor(Number(value)||0)));
-    saveMeta();
     renderComputeSettings();
+    renderGraphicsSettings();
     playUiClick();
   }
   function usesTimedMonsterBudget(){
@@ -9136,7 +9163,7 @@
   function playCritSample(volume=1,rate=1){
     if(!ensureAudioReady())return;
     const now=performance.now();
-    if(now-critSoundLastTime<(graphicsMode()===2?45:70))return;
+    if(now-critSoundLastTime<performanceConfig().critSoundThrottleMs)return;
     const critVolume=Math.max(.25,Math.min(.95,volume*.95));
     const keys=["crit","crit2","crit3"];
     const start=Math.floor(Math.random()*keys.length);
@@ -10427,14 +10454,14 @@
     }
     burst(e.x,e.y,e.kind==="normal"?"#ffe174":"#ff6b68",e.kind==="normal"?5:18);
     if(source==="orbit"&&skills.orbit>=5){
-      const mode=graphicsMode();
-      if(mode===2){
+      const config=performanceConfig();
+      if(config.orbitHalfEffects){
         effects.push(
           {kind:"half",x:e.x-e.r*.25,y:e.y,vx:-90,vy:-70,life:.55,r:e.r,color:enemyData[e.type].color,side:-1},
           {kind:"half",x:e.x+e.r*.25,y:e.y,vx:90,vy:-70,life:.55,r:e.r,color:enemyData[e.type].color,side:1}
         );
       }
-      if(mode>=1)effects.push({kind:"slash",x:e.x,y:e.y,life:.22,r:e.r*1.8});
+      if(config.orbitSlashEffect)effects.push({kind:"slash",x:e.x,y:e.y,life:.22,r:e.r*1.8});
     }
     if(isEventMode()&&isActivityBossType(e.type)){
       win();
@@ -12343,8 +12370,17 @@
   function drawCarrot(s){
     const p=worldToScreen(s.x,s.y),margin=s.kind==="giant"?130:54;
     if(!screenPointVisible(p,margin))return;
+    const config=performanceConfig(),giant=s.kind==="giant";
     ctx.save();ctx.translate(p.x,p.y);ctx.rotate(s.angle||Math.atan2(s.vy,s.vx));
-    if(s.kind==="giant"){
+    if(config.projectileGlow){
+      ctx.globalAlpha=giant?.22:.16;
+      ctx.fillStyle=giant?"#ffb55d":"#ff9f45";
+      ctx.beginPath();ctx.ellipse(giant?-7:-4,0,giant?24:14,giant?8:5,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=giant?.18:.13;
+      rect(giant?-36:-24,-2,giant?30:18,4,"#ffd36a");
+      ctx.globalAlpha=1;
+    }
+    if(giant){
       ctx.scale(2.6,2.6);
       rect(-10,-5,16,10,"#ff8a32");rect(5,-4,8,8,"#d94b25");rect(-15,-8,7,5,"#55aa4f");rect(-15,3,7,5,"#78c55c");rect(-2,-3,5,3,"#ffd069");
     }else{
@@ -13526,11 +13562,19 @@
     }
     for(const b of bananas)drawBanana(b);
     for(const shot of enemyShots)drawEnemyShot(shot);
+    const effectConfig=performanceConfig();
     for(const e of effects){
       if(e.kind==="flash"||e.kind==="crater")continue;
       const p=worldToScreen(e.x,e.y);
       if(!screenPointVisible(p,effectDrawMargin(e)))continue;
-      if(e.kind==="particle"||e.kind==="chip")rect(p.x,p.y,e.r,e.r,e.color);
+      if(e.kind==="particle"||e.kind==="chip"){
+        if(effectConfig.particleGlow&&e.kind==="particle"){
+          ctx.globalAlpha=clamp(e.life*1.8,0,.32);
+          rect(p.x-e.r,p.y-e.r,e.r*3,e.r*3,e.color);
+          ctx.globalAlpha=1;
+        }
+        rect(p.x,p.y,e.r,e.r,e.color);
+      }
       else if(e.kind==="pinkyLine"){ctx.globalAlpha=clamp(e.life*2,0,1);rect(p.x-1,p.y-e.r*3,3,e.r*6,e.color);ctx.globalAlpha=1;}
       else if(e.kind==="heart"){ctx.globalAlpha=clamp(e.life*2,0,1);rect(p.x-e.r,p.y-e.r,e.r,e.r,e.color);rect(p.x,p.y-e.r,e.r,e.r,e.color);rect(p.x-e.r*.5,p.y,e.r,e.r,e.color);ctx.globalAlpha=1;}
       else if(e.kind==="bossRock"){
@@ -13577,6 +13621,9 @@
         ctx.globalAlpha=.28;ctx.fillStyle="#2f2925";ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*shadowScale,e.r*.45*shadowScale,0,0,Math.PI*2);ctx.fill();
         ctx.globalAlpha=1;rect(p.x-e.r,p.y-e.z-e.r,e.r*2,e.r*2,"#756252");rect(p.x-e.r*.4,p.y-e.z-e.r*.6,e.r*.7,e.r*.55,"#b49a7c");
       }else if(e.kind==="shockwave"){
+        if(effectConfig.impactGlow){
+          ctx.globalAlpha=clamp(e.life*1.5,0,.28);ctx.strokeStyle="#fff2a0";ctx.lineWidth=16;ctx.beginPath();ctx.arc(p.x,p.y,e.r,0,Math.PI*2);ctx.stroke();
+        }
         ctx.globalAlpha=clamp(e.life*2,0,1);ctx.strokeStyle="#ffd36a";ctx.lineWidth=9;ctx.beginPath();ctx.arc(p.x,p.y,e.r,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
       }else if(e.kind==="leafStorm"){
         const ratio=clamp(e.life/e.maxLife,0,1);
@@ -13606,6 +13653,9 @@
         }
         ctx.restore();
       }else if(e.kind==="slash"){
+        if(effectConfig.impactGlow){
+          ctx.globalAlpha=clamp(e.life*3.2,0,.28);ctx.strokeStyle="#ffd36a";ctx.lineWidth=12;ctx.beginPath();ctx.moveTo(p.x-e.r,p.y+e.r);ctx.lineTo(p.x+e.r,p.y-e.r);ctx.stroke();
+        }
         ctx.globalAlpha=clamp(e.life*5,0,1);ctx.strokeStyle="#fffbe1";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(p.x-e.r,p.y+e.r);ctx.lineTo(p.x+e.r,p.y-e.r);ctx.stroke();ctx.globalAlpha=1;
       }else if(e.kind==="half"){
         ctx.globalAlpha=clamp(e.life*2,0,1);rect(p.x+(e.side<0?-e.r:0),p.y-e.r/2,e.r,e.r,e.color);ctx.globalAlpha=1;
@@ -13827,7 +13877,7 @@
     const rawDt=Math.min(.05,(now-last)/1000||0);
     last=now;
     loopAccumulator+=rawDt;
-    const targetInterval=1/LOOP_MAX_FPS;
+    const targetInterval=1/currentMaxFps();
     let didUpdate=false;
     let updateSteps=0;
     while(loopAccumulator>=targetInterval){
@@ -14467,14 +14517,9 @@
     adjustVolume(row.dataset.volumeKey,Number(button.dataset.volumeDelta)||0);
   });
   graphicsSettings?.addEventListener("click",e=>{
-    const button=e.target.closest("button[data-graphics-mode]");
+    const button=e.target.closest("button[data-performance-profile]");
     if(!button)return;
-    setGraphicsMode(button.dataset.graphicsMode);
-  });
-  computeSettings?.addEventListener("click",e=>{
-    const button=e.target.closest("button[data-compute-mode]");
-    if(!button)return;
-    setComputeMode(button.dataset.computeMode);
+    setPerformanceProfile(button.dataset.performanceProfile);
   });
   document.addEventListener("pointerdown",e=>{
     if(testModeOverlay.classList.contains("visible")&&!e.target.closest("#testModeOverlay")&&!e.target.closest("#devTestBtn")){
