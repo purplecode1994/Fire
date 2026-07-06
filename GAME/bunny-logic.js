@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=624;
+  const APP_VERSION=625;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -13751,10 +13751,14 @@
     last=now;
     loopAccumulator+=rawDt;
     const targetInterval=1/LOOP_MAX_FPS;
-    if(loopAccumulator>=targetInterval){
+    let didUpdate=false;
+    while(loopAccumulator>=targetInterval){
       update(targetInterval);
+      loopAccumulator-=targetInterval;
+      didUpdate=true;
+    }
+    if(didUpdate){
       draw();
-      loopAccumulator=0;
     }
     requestAnimationFrame(loop);
   }
