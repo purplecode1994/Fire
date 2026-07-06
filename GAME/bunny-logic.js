@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=626;
+  const APP_VERSION=627;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -44,6 +44,7 @@
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
   const W=540,H=960;
   const LOOP_MAX_FPS=60;
+  const SHOT_POOL_INITIAL_SIZE=400;
   const DURATION=600,wrap=document.getElementById("wrap");
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
@@ -77,6 +78,9 @@
   let running=false,paused=false,ended=false,last=0,loopAccumulator=0,time=0,spawnClock=0,shotClock=0,battleStartDelay=0,computeFrameCount=0;
   let giantCarrotCooldown=0;
   let enemies=[],shots=[],enemyShots=[],gems=[],effects=[],texts=[],areas=[],petShots=[],bananas=[],chests=[],pickups=[],bossObstacles=[];
+  const shotPool=[];
+  let shotScanCursor=0;
+  for(let i=0;i<SHOT_POOL_INITIAL_SIZE;i++)shotPool.push(makeEmptyShot());
   let groundCache={canvas:null,ctx:null,zone:null,firstX:null,firstY:null,cols:0,rows:0,grid:64};
   let enemyGrid=new Map();
   let announcements=[],activeAnnouncement=null;
@@ -9272,6 +9276,50 @@
     arr.length=write;
     return arr;
   }
+  function makeEmptyShot(){
+    return {
+      active:false,kind:"",x:0,y:0,vx:0,vy:0,r:0,life:0,
+      damage:0,pierce:0,angle:0,reservedTargetId:0,reservedDamage:0,
+      curveBoss:false,curveAge:0,curveDuration:0,sx:0,sy:0,cx:0,cy:0,tx:0,ty:0,
+      debris:0,spin:0,missedLife:0,hit:null
+    };
+  }
+  function resetShot(s){
+    s.active=true;
+    s.kind="";
+    s.x=0;s.y=0;s.vx=0;s.vy=0;s.r=0;s.life=0;
+    s.damage=0;s.pierce=0;s.angle=0;
+    s.reservedTargetId=0;s.reservedDamage=0;
+    s.curveBoss=false;s.curveAge=0;s.curveDuration=0;
+    s.sx=0;s.sy=0;s.cx=0;s.cy=0;s.tx=0;s.ty=0;
+    s.debris=0;s.spin=0;s.missedLife=0;
+    if(s.hit)s.hit.clear();
+    return s;
+  }
+  function acquireShot(){
+    for(let i=0;i<shotPool.length;i++){
+      const idx=(shotScanCursor+i)%shotPool.length;
+      if(!shotPool[idx].active){
+        shotScanCursor=(idx+1)%shotPool.length;
+        return shotPool[idx];
+      }
+    }
+    const extra=makeEmptyShot();
+    shotPool.push(extra);
+    shotScanCursor=shotPool.length%Math.max(1,shotPool.length);
+    return extra;
+  }
+  function releasePooledShot(s){
+    if(!s)return;
+    releaseShotReservation(s);
+    if(s.hit)s.hit.clear();
+    s.active=false;
+  }
+  function clearPooledShots(list){
+    for(const s of list)releasePooledShot(s);
+    list.length=0;
+    return list;
+  }
   function outsideNineGrid(x,y,padding=0){
     return Math.abs(x-player.x)>W*1.5+padding||Math.abs(y-player.y)>H*1.5+padding;
   }
@@ -9391,6 +9439,7 @@
     skills.orbit=skills.burst=skills.peanut=skills.pinky=skills.brain=0;
     updatePlayer.pet=updatePlayer.burst=updatePlayer.pinky=0;
     for(const id of Object.keys(upgradeLevels))upgradeLevels[id]=0;
+    clearPooledShots(shots);
     enemies=[];shots=[];enemyShots=[];gems=[];effects=[];texts=[];areas=[];petShots=[];bananas=[];chests=[];pickups=[];bossObstacles=[];
     announcements=[];activeAnnouncement=null;
     kills=score=eliteKills=bossKills=eligibleKills=instantKills=0;instantKillTimer=0;time=spawnClock=shotClock=0;battleStartDelay=0;nextId=1;levelQueue=0;
@@ -10055,6 +10104,7 @@
     bossArena.y=player.y;
     bossObstacles=[];
     setupBossObstacles();
+    clearPooledShots(shots);
     enemies=[];gems=[];shots=[];petShots=[];bananas=[];enemyShots=[];areas=[];
     effects=effects.filter(e=>e.kind==="flash");
     announcements=[];activeAnnouncement=null;
@@ -10168,10 +10218,10 @@
       const target=getSharedTarget();
       if(target){
         const a=Math.atan2(target.y-player.y,target.x-player.x);
-        shots.push({
-          kind:"giant",x:player.x,y:player.y,vx:Math.cos(a)*330,vy:Math.sin(a)*330,
-          r:18*player.area,life:2.2,damage:player.damage*12.8*player.areaDamage,pierce:0,angle:a
-        });
+        const shot=resetShot(acquireShot());
+        shot.kind="giant";shot.x=player.x;shot.y=player.y;shot.vx=Math.cos(a)*330;shot.vy=Math.sin(a)*330;
+        shot.r=18*player.area;shot.life=2.2;shot.damage=player.damage*12.8*player.areaDamage;shot.pierce=0;shot.angle=a;
+        shots.push(shot);
         giantCarrotCooldown=3;
       }
     }
@@ -10189,14 +10239,13 @@
     let angle;
     if(target)angle=Math.atan2(target.y-player.y,target.x-player.x)+spreadOffset+rand(-.01,.01);
     else angle=(player.facing<0?Math.PI:0)+spreadOffset+rand(-.01,.01);
-    const shot={
-      x:player.x,y:player.y,
-      vx:Math.cos(angle)*520,vy:Math.sin(angle)*520,
-      r:6,life:1.8,
-      damage:player.damage*player.areaDamage,pierce:bossFight?0:player.pierce,angle,
-      reservedTargetId:target&&!("opened" in target)?target.id:0,
-      reservedDamage:targetInfo.reservedAmount||0
-    };
+    const shot=resetShot(acquireShot());
+    shot.x=player.x;shot.y=player.y;
+    shot.vx=Math.cos(angle)*520;shot.vy=Math.sin(angle)*520;
+    shot.r=6;shot.life=1.8;
+    shot.damage=player.damage*player.areaDamage;shot.pierce=bossFight?0:player.pierce;shot.angle=angle;
+    shot.reservedTargetId=target&&!("opened" in target)?target.id:0;
+    shot.reservedDamage=targetInfo.reservedAmount||0;
     if(bossFight&&target&&!("opened" in target)){
       const baseAngle=Math.atan2(target.y-player.y,target.x-player.x);
       const fan=volleyCount<=1?0:1.22;
@@ -11328,7 +11377,11 @@
         }
       }
     }
-    return compactArray(list,s=>s.life>0);
+    return compactArray(list,s=>{
+      if(s.life>0)return true;
+      if(!isPet)releasePooledShot(s);
+      return false;
+    });
   }
 
   function updateSkills(dt){
