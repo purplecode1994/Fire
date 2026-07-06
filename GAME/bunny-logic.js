@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=625;
+  const APP_VERSION=626;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -8150,21 +8150,27 @@
       stageButtonMarkup("第十關・虛空核心（未解鎖）",11);
     if(eventStage){
       eventStage.classList.toggle("hidden",!eventUnlocked);
-      const eventOpen=stageAvailability(EVENT_STAGE)==="open";
+      const activityState=activityStageState();
+      const eventOpen=activityState==="open";
       eventStage.disabled=!eventOpen;
       eventStage.classList.toggle("locked",!eventOpen);
       eventStage.innerHTML=eventOpen?
         stageButtonMarkup("胡鬧的胡蘿蔔",EVENT_STAGE,`活動幣 ${ACTIVITY_CARROT_COIN_MIN}~${ACTIVITY_CARROT_COIN_MAX}｜強化點數｜最終種子 1~10 顆`):
-        stageButtonMarkup("胡鬧的胡蘿蔔（未解鎖）",EVENT_STAGE,"2 萬戰力開放");
+        activityState==="noRuns"?
+          stageButtonMarkup("胡鬧的胡蘿蔔（今日次數用完）",EVENT_STAGE,`每日 ${EVENT_DAILY_LIMIT} 次，明天重置`):
+          stageButtonMarkup("胡鬧的胡蘿蔔（未解鎖）",EVENT_STAGE,"2 萬戰力開放");
     }
     if(eventTrialStage){
       eventTrialStage.classList.toggle("hidden",!eventUnlocked);
-      const eventOpen=stageAvailability(EVENT_STAGE)==="open";
+      const activityState=activityStageState();
+      const eventOpen=activityState==="open";
       eventTrialStage.disabled=!eventOpen;
       eventTrialStage.classList.toggle("locked",!eventOpen);
       eventTrialStage.innerHTML=eventOpen?
         stageButtonMarkup("強化試煉",EVENT_STAGE,"活動幣約 20~30｜最終原石 1~5 顆，品質依機率"):
-        stageButtonMarkup("強化試煉（未解鎖）",EVENT_STAGE,"2 萬戰力開放");
+        activityState==="noRuns"?
+          stageButtonMarkup("強化試煉（今日次數用完）",EVENT_STAGE,`每日 ${EVENT_DAILY_LIMIT} 次，明天重置`):
+          stageButtonMarkup("強化試煉（未解鎖）",EVENT_STAGE,"2 萬戰力開放");
     }
     infiniteStage.textContent="無限輪迴";
     if(bossChallengeStage)bossChallengeStage.innerHTML=stageButtonMarkup("頭目挑戰模式",BOSS_CHALLENGE_STAGE);
@@ -8478,7 +8484,7 @@
   function stageAvailability(stage){
     if(stage===BOSS_CHALLENGE_STAGE)return devModeActive?"open":"locked";
     if(stage===INFINITE_STAGE)return "open";
-    if(stage===EVENT_STAGE)return combatPower()>=EVENT_UNLOCK_POWER&&activityRunsLeft()>0?"open":"locked";
+    if(stage===EVENT_STAGE)return activityStageState()==="open"?"open":"locked";
     if(stage>IMPLEMENTED_STAGE_COUNT)return "comingSoon";
     if(stage<=1)return "open";
     if(stage===2)return meta.desertUnlocked?"open":"locked";
@@ -8492,6 +8498,11 @@
     if(stage===10)return meta.stage9Cleared?"open":"locked";
     if(stage===11)return meta.stage10Cleared?"open":"locked";
     return "locked";
+  }
+  function activityStageState(){
+    if(combatPower()<EVENT_UNLOCK_POWER)return "lockedPower";
+    if(activityRunsLeft()<=0)return "noRuns";
+    return "open";
   }
   function unlockNormalStagesForDev(){
     if(!devModeActive)return;
