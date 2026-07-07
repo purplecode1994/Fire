@@ -2641,6 +2641,11 @@
       background:#17351f;
       box-shadow:inset 0 0 0 2px #2f7035;
     }
+    .forgeSourceItem.stone {
+      border-color:#8fd7ff;
+      background:#172b3d;
+      box-shadow:inset 0 0 0 2px #235f90;
+    }
     .forgeSourceInfo b {
       display:block;
       margin-bottom:5px;
@@ -2648,6 +2653,7 @@
       font-size:18px;
     }
     .forgeSourceItem.garden .forgeSourceInfo b { color:#9cff83; }
+    .forgeSourceItem.stone .forgeSourceInfo b { color:#8fd7ff; }
     .forgeSourceInfo small { color:#e7ddff; line-height:1.45; }
     .breakStoneMergeBox {
       display:grid;

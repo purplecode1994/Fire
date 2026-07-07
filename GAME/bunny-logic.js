@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=633;
+  const APP_VERSION=637;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -39,6 +39,19 @@
   const GARDEN_SLOW_FERTILIZER_PRICE=25;
   const GARDEN_PREMIUM_SLOW_FERTILIZER_PRICE=45;
   const EQUIPMENT_QUALITY_ORDER=["rare","uncommon","epic","legendary","mythic","immortal","eternal"];
+  const LUMINOUS_SLASH_DURATION=20;
+  const LUMINOUS_SLASH_COOLDOWN=60;
+  const LUMINOUS_SLASH_CHANCES=[0,.05,.10,.15,.25,.40];
+  const LUMINOUS_SLASH_ASSET=`assets/skills/combo-slash-up-right.png?v=${APP_VERSION}`;
+  const LUMINOUS_SLASH_CONFIG={
+    imageAnchorX:.37,imageAnchorY:.64,imageScale:.11,imageOpacity:.94,
+    rightAngleDeg:71,leftAngleDeg:103,baseRotationDeg:-45,
+    singleDuration:.459,drawSec:.329,secondDelay:.191,
+    rightFadeIn:.05,rightFadeOut:.13,leftFadeIn:.095,leftFadeOut:.193
+  };
+  const luminousSlashImg=new Image();
+  luminousSlashImg.decoding="async";
+  luminousSlashImg.src=LUMINOUS_SLASH_ASSET;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -54,7 +67,7 @@
       gemFar:{near:200,far:520,nearMod:5,farMod:10},
       groundStride:3,perfSampleSeconds:3,critSoundThrottleMs:70,
       disabledEffectKinds:["particle","chip","half","slash"],particleCap:0,
-      orbitHalfEffects:false,orbitSlashEffect:false,
+      orbitHalfEffects:false,
       projectileGlow:false,particleGlow:false,impactGlow:false
     },
     {
@@ -66,7 +79,7 @@
       gemFar:{near:260,far:600,nearMod:3,farMod:5},
       groundStride:1,perfSampleSeconds:2,critSoundThrottleMs:70,
       disabledEffectKinds:[],particleCap:24,
-      orbitHalfEffects:false,orbitSlashEffect:true,
+      orbitHalfEffects:false,
       projectileGlow:false,particleGlow:false,impactGlow:false
     },
     {
@@ -78,7 +91,7 @@
       gemFar:{near:340,far:700,nearMod:2,farMod:3},
       groundStride:1,perfSampleSeconds:2,critSoundThrottleMs:45,
       disabledEffectKinds:[],particleCap:Infinity,
-      orbitHalfEffects:true,orbitSlashEffect:true,
+      orbitHalfEffects:true,
       projectileGlow:true,particleGlow:true,impactGlow:true
     }
   ];
@@ -126,6 +139,7 @@
   let kps=0,kpsWindowKills=0,kpsWindowTime=0,kpsPressure=0,kpsBonusTimer=0,kpsSpawnBonus=0;
   let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0,gemPressureRecycleTimer=0;
   let carrotVolley=0,pinkyBoostTimer=0,pinkyDamageBoost=1,pendingCarrotShots=0;
+  let luminousSlashActiveTimer=0,luminousSlashCooldownTimer=0;
   let poisonTimer=0,poisonRate=0,stunTimer=0,confuseTimer=0,potionHealTimer=0,blizzardTimer=0,blizzardPushTimer=0,blizzardPushAngle=0,blizzardPushSpeed=0,currentStage=1,infiniteBossZone=0;
   let bossChallengeType="plant",bossChallengeSourceStage=1,bossChallengeMenuOpen=false,bossChallengeStartTime=0;
   let encirclementPressure=0,encirclementCharge=0,encirclementSampleClock=0,encirclementPressureRounds=0;
@@ -184,9 +198,9 @@
   const EQUIPMENT_UNLOCK_POWER=20000;
   const EVENT_UNLOCK_POWER=20000;
   const EQUIPMENT_DEFS={
-    bittenCarrot:{id:"bittenCarrot",name:"啃過的胡蘿蔔",type:"weapon",quality:"normal",attack:18},
-    wholeCarrot:{id:"wholeCarrot",name:"完整的胡蘿蔔",type:"weapon",quality:"rare",attack:100,price:5000},
-    soulRing:{id:"soulRing",name:"獵魂戒指",type:"ring",quality:"rare",price:3500,pointBonus:.05,pointBonusPerForge:.01,forge:{cost:100,success:.9,pointBonus:.01}}
+    bittenCarrot:{id:"bittenCarrot",name:"啃過的胡蘿蔔",type:"weapon",quality:"normal",attack:18,source:"starter"},
+    wholeCarrot:{id:"wholeCarrot",name:"完整的胡蘿蔔",type:"weapon",quality:"rare",attack:100,price:5000,source:"shop"},
+    soulRing:{id:"soulRing",name:"獵魂戒指",type:"ring",quality:"rare",price:3500,pointBonus:.05,pointBonusPerForge:.01,source:"shop",forge:{cost:100,success:.9,pointBonus:.01}}
   };
   const EQUIPMENT_QUALITY={
     normal:{name:"一般",className:"normal",color:"#d8d3c8"},
@@ -2327,6 +2341,9 @@
     ensureEquipmentState();
     return equipmentItemById(meta.equippedWeaponId)||EQUIPMENT_DEFS.bittenCarrot;
   }
+  function hasWholeCarrotEquipped(){
+    return equippedWeapon()?.id==="wholeCarrot";
+  }
   function equipmentBaseDamage(){
     return equipmentAttack(equippedWeapon());
   }
@@ -2995,10 +3012,16 @@
     if(EQUIPMENT_DEFS[key])return meta.equipmentInventory.includes(key);
     return gardenEquipmentItems().some(item=>item.id===key);
   }
+  function equipmentDismantleBlockReason(item){
+    if(!item)return "找不到這件裝備";
+    if(item.id==="bittenCarrot")return "初始武器不能分解";
+    if(item.source==="shop")return "商店購買的裝備不能分解成突破原石";
+    if(item.type==="weapon"&&meta.equippedWeaponId===item.id)return "正在穿戴的裝備不能分解";
+    if(item.type==="ring"&&meta.equippedRingId===item.id)return "正在穿戴的裝備不能分解";
+    return "";
+  }
   function canDismantleEquipment(item){
-    if(!item||item.id==="bittenCarrot")return false;
-    if(item.type==="weapon"&&meta.equippedWeaponId===item.id)return false;
-    if(item.type==="ring"&&meta.equippedRingId===item.id)return false;
+    if(equipmentDismantleBlockReason(item))return false;
     return item.type==="weapon"||item.type==="ring";
   }
   function removeGardenCarrotById(carrotId){
@@ -3028,7 +3051,7 @@
       return;
     }
     if(!canDismantleEquipment(item)){
-      forgeMessage=item.id==="bittenCarrot"?"初始武器不能分解":"正在穿戴的裝備不能分解";
+      forgeMessage=equipmentDismantleBlockReason(item)||"這件裝備不能分解";
       beep(180,.08,.025,"square");
       renderShop();
       return;
@@ -3072,7 +3095,7 @@
     renderShop();
     beep(760,.14,.035,"triangle");
   }
-  function renderBreakStoneMergePanel(){
+  function renderBreakStoneMergePanel({showHeader=true}={}){
     const stones=syncBreakStoneState(meta);
     const rows=BREAK_STONE_QUALITIES.map(quality=>{
       const next=nextBreakStoneQuality(quality);
@@ -3091,10 +3114,10 @@
     }).filter(Boolean).join("");
     return `
       <div class="breakStoneMergeBox">
-        <div class="forgeHeader">
+        ${showHeader?`<div class="forgeHeader">
           <b>突破原石合成</b>
           <span>${BREAK_STONE_MERGE_COST} 顆同階原石可合成 1 顆下一階原石。</span>
-        </div>
+        </div>`:""}
         <div class="breakStoneMergeGrid">${rows}</div>
       </div>
     `;
@@ -3118,7 +3141,7 @@
         <button type="button" class="shopBuyBtn" data-dev-shop-action="dailyReset">重置今日次數</button>
       </div>
     `:"";
-    if(!["normal","garden"].includes(forgeSourceMode)){
+    if(!["normal","garden","stone"].includes(forgeSourceMode)){
       shopGrid.innerHTML=`
         <div class="forgePanel">
           ${devTools}
@@ -3126,8 +3149,14 @@
             <b>選擇鍛造來源</b>
             <span>先選裝備來源，再進入對應列表。</span>
           </div>
-          ${renderBreakStoneMergePanel()}
           <div class="forgeSourceList">
+            <div class="forgeSourceItem stone">
+              <div class="forgeSourceInfo">
+                <b>合成突破原石</b>
+                <small>${BREAK_STONE_MERGE_COST} 顆同階原石可合成 1 顆下一階原石。</small>
+              </div>
+              <button type="button" class="shopBuyBtn" data-forge-source="stone">選擇</button>
+            </div>
             <div class="forgeSourceItem">
               <div class="forgeSourceInfo">
                 <b>一般關卡</b>
@@ -3151,10 +3180,11 @@
       <div class="forgePanel">
         ${devTools}
         <div class="forgeHeader forgeSubHeader">
-          <b>${forgeSourceMode==="garden"?"菜園胡蘿蔔鍛造":`今日鍛造 ${used}/${FORGE_DAILY_LIMIT}`}</b>
-          <span>${forgeMessage||(forgeSourceMode==="garden"?"S+ 胡蘿蔔可直接鍛造":`藍框以上裝備可鍛造，單件最高 +10。｜${breakStoneInventoryText()}`)}</span>
+          <b>${forgeSourceMode==="stone"?"突破原石合成":forgeSourceMode==="garden"?"菜園胡蘿蔔鍛造":`今日鍛造 ${used}/${FORGE_DAILY_LIMIT}`}</b>
+          <span>${forgeMessage||(forgeSourceMode==="stone"?`${BREAK_STONE_MERGE_COST} 顆同階原石可合成 1 顆下一階原石。｜${breakStoneInventoryText()}`:forgeSourceMode==="garden"?"S+ 胡蘿蔔可直接鍛造":`藍框以上裝備可鍛造，單件最高 +10。｜${breakStoneInventoryText()}`)}</span>
           <button type="button" class="forgeBackBtn" data-forge-source-back>返回分類</button>
         </div>
+        ${forgeSourceMode==="stone"?renderBreakStoneMergePanel({showHeader:false}):""}
         ${forgeSourceMode==="normal"?(forgeable.length?`
           <div class="forgeList">
             ${forgeable.map(item=>{
@@ -8236,7 +8266,7 @@
     crit:0.05,critStack:0.05,critDamage:1.6,pierce:0,magnet:FIXED_MAGNET_RANGE,area:1,areaDamage:1,xpGain:1,invuln:0,
     armorPen:0,facing:1
   };
-  const skills={orbit:0,burst:0,peanut:0,pinky:0,brain:0};
+  const skills={orbit:0,burst:0,peanut:0,pinky:0,brain:0,luminousSlash:0};
   const upgradeLevels={
     speed:0,heal:0,haste:0,damage:0,crit:0,critd:0,
     pierce:0,vital:0,area:0,multi:0,armorPen:0
@@ -8261,12 +8291,14 @@
     {id:"burst",icon:"🌱",name:"菜園爆發",desc:"定時造成範圍傷害；LV5進化巨大衝擊圈",valid(){return skills.burst<5;},apply(){skills.burst++;}},
     {id:"peanut",icon:"🥜",name:"花生跟班",desc:"花生自動丟石頭；LV5進化貫穿滾石",valid(){return skills.peanut<5;},apply(){skills.peanut++;}},
     {id:"pinky",icon:"🍌",name:"PINKY 跟班",desc:"香蕉直線穿透後原路返回；接回強化攻擊與移速",valid(){return skills.pinky<5;},apply(){skills.pinky++;}},
+    {id:"luminousSlash",icon:"✦",name:"流光二連斬",desc:"完整胡蘿蔔專屬主動技；啟動20秒，小胡蘿蔔命中時機率追加二連斬",valid(){return hasWholeCarrotEquipped()&&skills.luminousSlash<5;},apply(){skills.luminousSlash++;}},
     {id:"brain",icon:"🧠",name:"超級頭腦",desc:"經驗獲取量累計：LV1 +40%／LV2 +100%／LV3 +180%／LV4 +280%／LV5 +400%",valid(){return skills.brain<5;},apply(){const gain=[.4,.6,.8,1,1.2][skills.brain]||0;player.xpGain+=gain;skills.brain++;}},
     {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+6% 無視防禦（第二關 / 第三關 / 無限輪迴）",cap:5,valid(){return (currentStage===2||currentStage===3||isInfiniteMode())&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.06;}}
   ];
   function maxBossChallengeFieldSkills(){
     let applied=0;
     for(const upgrade of upgrades){
+      if(upgrade.id==="luminousSlash"&&!hasWholeCarrotEquipped())continue;
       const target=upgrade.id==="multi"?5:(upgrade.cap||5);
       for(let i=0;i<target;i++){
         upgrade.apply();
@@ -8372,7 +8404,7 @@
     {id:"critd",icon:"💥",name:"爆擊強化",type:"爆傷",effect:"+30% 場內爆擊傷害",detail:"只放大爆擊時的傷害上限。",levels:["+30% 爆擊傷害","+60% 爆擊傷害","+90% 爆擊傷害","+120% 爆擊傷害","+150% 爆擊傷害"]},
     {id:"multi",icon:"🥕",name:"同步發射",type:"主武器",effect:"+1 發同步蘿蔔",detail:"點滿後含本體共 6 支，並以散射發射。",levels:["同步 2 支蘿蔔","同步 3 支蘿蔔","同步 4 支蘿蔔","同步 5 支蘿蔔","同步 6 支蘿蔔"]},
     {id:"giantCarrot",icon:"🥕",name:"巨大胡蘿蔔",type:"進化型態",effect:"同步發射 LV5 解鎖",detail:"每 3 秒投出巨大胡蘿蔔；爆炸傷害 1280% 基礎傷害，燃燒每秒造成爆炸總傷害 18%。",evolution:true,levels:["未解鎖","未解鎖","未解鎖","未解鎖","同步發射 LV5：巨大胡蘿蔔"]},
-    {id:"unknownCarrotActive",icon:"?",name:"??? 的胡蘿蔔",type:"主動技能",effect:"穿戴完整胡蘿蔔後 ???",detail:"???",evolution:true,unknownActive:true,levels:["???","???","???","???","???"]},
+    {id:"unknownCarrotActive",icon:"✦",name:"完整胡蘿蔔・流光二連斬",type:"主動技能",effect:"完整胡蘿蔔專屬；啟動20秒，冷卻60秒",detail:"裝備完整的胡蘿蔔後，關卡升級池會出現此技能。啟動後小胡蘿蔔命中時，機率追加二連斬並顯示藍色勛章總傷害。",evolution:true,unknownActive:false,levels:["5% 發動二連斬","10% 發動二連斬","15% 發動二連斬","25% 發動二連斬","40% 發動二連斬"]},
     {id:"pierce",icon:"🏹",name:"穿透胡蘿蔔",type:"穿透",effect:"+1 穿透數",detail:"讓主武器連續打穿更多敵人。",levels:["+1 穿透","+2 穿透","+3 穿透","+4 穿透","+5 穿透"]},
     {id:"speed",icon:"👟",name:"兔兔快跑",type:"移動",effect:"+12% 移動速度",detail:"讓兔兔更容易拉扯與閃避。",levels:["+12% 移動速度","+24% 移動速度","+36% 移動速度","+48% 移動速度","+60% 移動速度"]},
     {id:"vital",icon:"❤️",name:"血多皮厚",type:"生存",effect:"+20% 最大生命",detail:"提升最大生命並立即回一段血。",levels:["+20% 最大生命","+40% 最大生命","+60% 最大生命","+80% 最大生命","+100% 最大生命"]},
@@ -9371,6 +9403,7 @@
   function effectDrawMargin(e){
     const r=Math.max(0,Number(e.r)||0);
     if(e.kind==="leafStorm")return r+120;
+    if(e.kind==="luminousSlash")return r+140;
     if(e.kind==="shockwave"||e.kind==="slash")return r+36;
     if(e.kind==="bossRock")return r+48;
     if(e.kind==="pinkyLine")return Math.max(56,r*4);
@@ -9472,7 +9505,7 @@
       pierce:0,magnet:FIXED_MAGNET_RANGE,area:1,areaDamage:1,invuln:0,
       armorPen:Math.min(MAX_META_ARMOR_PEN,meta.armorPen*.007),facing:1
     });
-    skills.orbit=skills.burst=skills.peanut=skills.pinky=skills.brain=0;
+    skills.orbit=skills.burst=skills.peanut=skills.pinky=skills.brain=skills.luminousSlash=0;
     updatePlayer.pet=updatePlayer.burst=updatePlayer.pinky=0;
     for(const id of Object.keys(upgradeLevels))upgradeLevels[id]=0;
     clearPooledShots(shots);
@@ -9483,7 +9516,7 @@
     hudKpsBonus=hudWaveSeconds=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[]};
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;luminousSlashActiveTimer=0;luminousSlashCooldownTimer=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[]};
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
     infiniteClearCount=0;
@@ -10396,7 +10429,7 @@
     compactArray(bananas,b=>!b.dead);
   }
 
-  function damageEnemy(e,amount,critical=false,source="normal"){
+  function rollEnemyDamage(e,amount,critical=false,source="normal"){
     if(source!=="chestBomb"){
       amount*=pinkyBoostTimer>0?pinkyDamageBoost:1;
       const variance=rand(.01,.05)*(Math.random()<.5?-1:1);
@@ -10408,14 +10441,12 @@
       const effectiveDefense=(e.defense||0)*(1-ignored);
       amount*=100/(100+effectiveDefense);
     }
+    return amount;
+  }
+
+  function finishEnemyDamage(e,amount,source="normal"){
     e.lastHitAt=time;
     e.hp-=amount;e.hit=.1;
-    const silentDamage=source==="giantBurn";
-    if(!silentDamage){
-      const textKind=critical?"critical":(e.kind==="boss"||e.kind==="final"?"boss":"normal");
-      text(e.x,e.y-e.r,critical?formatCriticalDamage(amount):Math.round(amount),critical?"#ffe45f":"#fff",critical?19:14,textKind);
-      if(critical)playCritSample(.5,1+rand(-.04,.04));
-    }
     if(e.kind==="final"&&e.hp<=0&&e.bars>1){
       e.bars--;
       applyFinalBossPhase(e,e.totalBars-e.bars);
@@ -10433,6 +10464,60 @@
       clearReservedDamage(e);
       killEnemy(e,source);
     }
+  }
+
+  function damageEnemy(e,amount,critical=false,source="normal"){
+    amount=rollEnemyDamage(e,amount,critical,source);
+    const silentDamage=source==="giantBurn";
+    if(!silentDamage){
+      const textKind=critical?"critical":(e.kind==="boss"||e.kind==="final"?"boss":"normal");
+      text(e.x,e.y-e.r,critical?formatCriticalDamage(amount):Math.round(amount),critical?"#ffe45f":"#fff",critical?19:14,textKind);
+      if(critical)playCritSample(.5,1+rand(-.04,.04));
+    }
+    finishEnemyDamage(e,amount,source);
+  }
+
+  function luminousSlashLevel(){
+    return Math.max(0,Math.min(5,Math.floor(Number(skills.luminousSlash)||0)));
+  }
+  function luminousSlashChance(){
+    return LUMINOUS_SLASH_CHANCES[luminousSlashLevel()]||0;
+  }
+  function luminousSlashAvailable(){
+    return hasWholeCarrotEquipped()&&luminousSlashLevel()>0;
+  }
+  function luminousSlashActive(){
+    return luminousSlashAvailable()&&luminousSlashActiveTimer>0;
+  }
+  function updateLuminousSlash(dt){
+    if(luminousSlashActiveTimer>0)luminousSlashActiveTimer=Math.max(0,luminousSlashActiveTimer-dt);
+    if(luminousSlashCooldownTimer>0)luminousSlashCooldownTimer=Math.max(0,luminousSlashCooldownTimer-dt);
+  }
+  function activateLuminousSlash(){
+    if(!luminousSlashAvailable()||luminousSlashCooldownTimer>0)return false;
+    luminousSlashActiveTimer=LUMINOUS_SLASH_DURATION;
+    luminousSlashCooldownTimer=LUMINOUS_SLASH_DURATION+LUMINOUS_SLASH_COOLDOWN;
+    announce("流光二連斬","小胡蘿蔔命中時有機率追加二連斬","#78dcff",2.2);
+    text(player.x,player.y-58,"流光二連斬啟動","#7fe8ff",20,"pickup");
+    beep(960,.12,.04,"triangle");
+    return true;
+  }
+  function triggerLuminousSlashOnHit(e,baseDamage,source="normal"){
+    if(!luminousSlashActive()||Math.random()>=luminousSlashChance())return false;
+    const first=rollEnemyDamage(e,baseDamage*player.critDamage,true,source);
+    const second=rollEnemyDamage(e,baseDamage*player.critDamage,true,source);
+    const total=first+second;
+    spawnLuminousSlashEffects(e);
+    text(e.x,e.y-e.r-10,`${Math.max(0,Math.round(total))}!`,"#ffe75f",19,"luminousCritical");
+    playCritSample(.65,1.08+rand(-.03,.03));
+    finishEnemyDamage(e,total,"luminousSlash");
+    return true;
+  }
+  function spawnLuminousSlashEffects(e){
+    const cfg=LUMINOUS_SLASH_CONFIG;
+    const base={kind:"luminousSlash",x:e.x,y:e.y,r:Math.max(120,e.r+110),maxLife:cfg.singleDuration,life:cfg.singleDuration,drawSec:cfg.drawSec,scale:cfg.imageScale,opacity:cfg.imageOpacity,anchorX:cfg.imageAnchorX,anchorY:cfg.imageAnchorY};
+    effects.push({...base,delay:0,angle:(cfg.rightAngleDeg+cfg.baseRotationDeg)*Math.PI/180,fadeIn:cfg.rightFadeIn,fadeOut:cfg.rightFadeOut});
+    effects.push({...base,delay:cfg.secondDelay,angle:(cfg.leftAngleDeg+cfg.baseRotationDeg)*Math.PI/180,fadeIn:cfg.leftFadeIn,fadeOut:cfg.leftFadeOut});
   }
 
   function killEnemy(e,source="normal"){
@@ -10461,7 +10546,6 @@
           {kind:"half",x:e.x+e.r*.25,y:e.y,vx:90,vy:-70,life:.55,r:e.r,color:enemyData[e.type].color,side:1}
         );
       }
-      if(config.orbitSlashEffect)effects.push({kind:"slash",x:e.x,y:e.y,life:.22,r:e.r*1.8});
     }
     if(isEventMode()&&isActivityBossType(e.type)){
       win();
@@ -10547,14 +10631,18 @@
       let current="";
       let nextLevelLabel=u.name;
       let descText=u.desc;
-      if(["orbit","burst","peanut","pinky","brain"].includes(u.id))current=`目前 LV${skills[u.id]}/5`;
-      if(["orbit","burst","peanut","pinky","brain"].includes(u.id))nextLevelLabel=`${u.name} LV${Math.min(5,skills[u.id]+1)}`;
+      if(["orbit","burst","peanut","pinky","brain","luminousSlash"].includes(u.id))current=`目前 LV${skills[u.id]}/5`;
+      if(["orbit","burst","peanut","pinky","brain","luminousSlash"].includes(u.id))nextLevelLabel=`${u.name} LV${Math.min(5,skills[u.id]+1)}`;
       else if(u.id==="multi"){current=`目前 ${player.projectiles}/6 支`;nextLevelLabel=`同步發射 LV${Math.min(5,upgradeLevels.multi+1)}`;}
       else if(u.cap){current=`目前 LV${upgradeLevels[u.id]}/${u.cap}`;nextLevelLabel=`${u.name} LV${Math.min(u.cap,upgradeLevels[u.id]+1)}`;}
       else if(u.basic){current=`目前 LV${upgradeLevels[u.id]}/${BASIC_UPGRADE_CAP}`;nextLevelLabel=`${u.name} LV${Math.min(BASIC_UPGRADE_CAP,upgradeLevels[u.id]+1)}`;}
       if(u.id==="brain"){
         const nextGain=Math.round(([40,60,80,100,120][skills.brain]||0));
         descText=`+${nextGain}% 經驗獲取`;
+      }
+      if(u.id==="luminousSlash"){
+        const nextLevel=Math.min(5,skills.luminousSlash+1);
+        descText=`主動20秒・冷卻60秒・小胡蘿蔔命中 ${Math.round((LUMINOUS_SLASH_CHANCES[nextLevel]||0)*100)}% 發動二連斬`;
       }
       card.innerHTML=`<span class="icon">${u.icon}</span><b>${nextLevelLabel}</b><small>${descText}<br>${current}</small>`;
       card.onclick=()=>{
@@ -11359,14 +11447,16 @@
         countPerfWork("collisionShot");
         if(!hitEnemy&&!boss.dead&&s.life>0&&circleHitXY(s.x,s.y,s.r,boss.x,boss.y,boss.r)){
           if(!(s.kind==="rolling"&&s.hit.has(boss.id))){
-            let crit=false;
-            if(!isPet){
-              crit=Math.random()<player.critStack;
-              player.critStack=crit?player.crit:Math.min(1,player.critStack+player.crit);
-            }
-            const damage=s.damage*(crit?player.critDamage:1);
             releaseShotReservation(s);
-            damageEnemy(boss,damage,crit,s.kind||"normal");
+            if(!(!isPet&&!s.kind&&triggerLuminousSlashOnHit(boss,s.damage,"normal"))){
+              let crit=false;
+              if(!isPet){
+                crit=Math.random()<player.critStack;
+                player.critStack=crit?player.crit:Math.min(1,player.critStack+player.crit);
+              }
+              const damage=s.damage*(crit?player.critDamage:1);
+              damageEnemy(boss,damage,crit,s.kind||"normal");
+            }
             if(s.kind==="rolling"){
               s.hit.add(boss.id);
               shatterRollingStone(s,boss);
@@ -11383,14 +11473,16 @@
           if(hitEnemy||e.dead||s.life<=0)return false;
           if(!circleHitXY(s.x,s.y,s.r,e.x,e.y,e.r))return;
           if(s.kind==="rolling"&&s.hit.has(e.id))return;
-          let crit=false;
-          if(!isPet){
-            crit=Math.random()<player.critStack;
-            player.critStack=crit?player.crit:Math.min(1,player.critStack+player.crit);
-          }
-          const damage=s.damage*(crit?player.critDamage:1);
           releaseShotReservation(s);
-          damageEnemy(e,damage,crit,s.kind||"normal");
+          if(!(!isPet&&!s.kind&&triggerLuminousSlashOnHit(e,s.damage,"normal"))){
+            let crit=false;
+            if(!isPet){
+              crit=Math.random()<player.critStack;
+              player.critStack=crit?player.crit:Math.min(1,player.critStack+player.crit);
+            }
+            const damage=s.damage*(crit?player.critDamage:1);
+            damageEnemy(e,damage,crit,s.kind||"normal");
+          }
           if(s.kind==="rolling"){
             s.hit.add(e.id);
             shatterRollingStone(s,e);
@@ -11699,11 +11791,15 @@
         }
       }
     }
-    updatePlayer(dt);updateEnemies(dt);shots=updateShots(dt,shots);petShots=updateShots(dt,petShots,true);updateBananas(dt);updateSkills(dt);updateEnemyShots(dt);updateGems(dt);if(!preBattleActive)updatePickups(dt);
+    updateLuminousSlash(dt);updatePlayer(dt);updateEnemies(dt);shots=updateShots(dt,shots);petShots=updateShots(dt,petShots,true);updateBananas(dt);updateSkills(dt);updateEnemyShots(dt);updateGems(dt);if(!preBattleActive)updatePickups(dt);
     for(const e of effects){
       if(e.kind==="particle"||e.kind==="chip"||e.kind==="half"||e.kind==="pinkyLine"||e.kind==="heart"){
         e.x+=e.vx*dt;e.y+=e.vy*dt;e.life-=dt;
         if(e.kind==="chip"||e.kind==="half")e.vy+=260*dt;
+      }
+      if(e.kind==="luminousSlash"){
+        if(e.delay>0)e.delay-=dt;
+        else e.life-=dt;
       }
       if(e.kind==="crater"||e.kind==="shockwave"||e.kind==="slash")e.life-=dt;
       if(e.kind==="beamWarning"){
@@ -11856,7 +11952,7 @@
     }
     compactArray(effects,e=>e.life===undefined||e.life>0);
     for(const t of texts){
-      if(t.kind==="critical"){
+      if(t.kind==="critical"||t.kind==="luminousCritical"){
         t.x+=(t.vx||0)*dt;
         t.y+=(t.vy||0)*dt;
         t.vy=(t.vy||0)+(t.gravity||0)*dt;
@@ -11892,6 +11988,13 @@
       item.gravity=profile.gravity;
       item.minScale=profile.minScale;
       item.noFade=profile.noFade;
+    }else if(kind==="luminousCritical"){
+      const profile=graphicsCriticalProfile();
+      item.life=profile.life;
+      item.maxLife=item.life;
+      item.vx=0;
+      item.vy=-46;
+      item.gravity=0;
     }
     texts.push(item);
   }
@@ -11949,6 +12052,38 @@
     ctx.lineWidth=4;
     ctx.lineJoin="round";
     ctx.strokeStyle="#5c1725";
+    ctx.fillStyle="#ffe75f";
+    ctx.strokeText(t.value,0,1);
+    ctx.fillText(t.value,0,1);
+    ctx.restore();
+  }
+  function drawLuminousCriticalText(t,p){
+    ctx.save();
+    ctx.translate(p.x,p.y-6);
+    ctx.globalAlpha=clamp(t.life/(t.maxLife||1),0,1);
+    ctx.font=`bold ${t.size}px sans-serif`;
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    const textWidth=ctx.measureText(t.value).width;
+    const spikes=12,outerX=Math.max(28,textWidth*.5+16),outerY=25,innerX=Math.max(19,outerX*.74),innerY=17;
+    const grad=ctx.createLinearGradient(0,-outerY,0,outerY);
+    grad.addColorStop(0,"#153f9a");
+    grad.addColorStop(.55,"#1f78d8");
+    grad.addColorStop(1,"#0b2a66");
+    ctx.fillStyle=grad;
+    ctx.strokeStyle="#79e7ff";
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let i=0;i<spikes*2;i++){
+      const a=-Math.PI/2+i*Math.PI/spikes;
+      const rx=i%2===0?outerX:innerX,ry=i%2===0?outerY:innerY;
+      const x=Math.cos(a)*rx,y=Math.sin(a)*ry;
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.lineWidth=4;
+    ctx.lineJoin="round";
+    ctx.strokeStyle="#071b4d";
     ctx.fillStyle="#ffe75f";
     ctx.strokeText(t.value,0,1);
     ctx.fillText(t.value,0,1);
@@ -13216,6 +13351,7 @@
     if(poisonTimer>0)rows.push([`中毒 ${poisonTimer.toFixed(1)}s`,"#9cff68"]);
     if(stunTimer>0)rows.push([`暈眩 ${stunTimer.toFixed(1)}s`,"#ffd15e"]);
     if(confuseTimer>0)rows.push([`迷失 ${confuseTimer.toFixed(1)}s`,"#d9a7ff"]);
+    if(luminousSlashActiveTimer>0)rows.push([`流光二連斬 ${luminousSlashActiveTimer.toFixed(1)}s`,"#7fe8ff"]);
     if(hudWaveSeconds>0)rows.push([`怪潮 ${hudWaveSeconds.toFixed(1)}s`,"#ffb35c"]);
     if(killSurgeActive)rows.push(["狂暴怪潮 +75%","#ff6978"]);
     if(encirclementDebts.length&&encirclementReservedHp>0)rows.push([`包圍壓力 ${encirclementTierLabel(encirclementCharge)} ${encirclementDebtMaxTime().toFixed(1)}s ×${encirclementDebts.length} R${encirclementPressureRounds}`,"#a10f24"]);
@@ -13230,6 +13366,70 @@
       ctx.fillText(label,x,y+i*lineHeight);
     }
     return y+rows.length*lineHeight;
+  }
+
+  function luminousSlashButtonLayout(){
+    const r=31;
+    return {x:W-r-18,y:Math.max(250,Math.min(H-210,H*.58)),r};
+  }
+  function drawLuminousSlashButton(){
+    if(!luminousSlashAvailable())return;
+    const {x,y,r}=luminousSlashButtonLayout();
+    const active=luminousSlashActiveTimer>0;
+    const cooling=!active&&luminousSlashCooldownTimer>0;
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.globalAlpha=.96;
+    ctx.fillStyle=active?"#103b66":"#1b1737";
+    ctx.strokeStyle=active?"#7ff4ff":cooling?"#8b8b98":"#5fe6ff";
+    ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.lineWidth=2;
+    ctx.strokeStyle=active?"#d7fbff":"#21375e";
+    ctx.beginPath();ctx.arc(0,0,r-8,0,Math.PI*2);ctx.stroke();
+    ctx.font="bold 17px 'Microsoft JhengHei',sans-serif";
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.lineWidth=4;ctx.strokeStyle="#081025";ctx.fillStyle="#ffe75f";
+    ctx.strokeText("二連",0,-5);ctx.fillText("二連",0,-5);
+    ctx.font="bold 11px monospace";
+    ctx.fillStyle=active?"#aef9ff":"#c9f7ff";
+    ctx.fillText(`${Math.round(luminousSlashChance()*100)}%`,0,15);
+    if(cooling){
+      const cooldownLeft=Math.min(LUMINOUS_SLASH_COOLDOWN,luminousSlashCooldownTimer);
+      const ratio=clamp(cooldownLeft/LUMINOUS_SLASH_COOLDOWN,0,1);
+      ctx.fillStyle="rgba(80,80,90,.72)";
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.arc(0,0,r+1,-Math.PI/2,-Math.PI/2+Math.PI*2*ratio,false);
+      ctx.closePath();ctx.fill();
+      ctx.font="bold 12px monospace";
+      ctx.fillStyle="#ffffff";
+      ctx.strokeStyle="#111";
+      ctx.lineWidth=3;
+      const label=`${cooldownLeft.toFixed(1)}s`;
+      ctx.strokeText(label,0,0);ctx.fillText(label,0,0);
+    }else if(active){
+      ctx.font="bold 12px monospace";
+      ctx.fillStyle="#ffffff";
+      ctx.strokeStyle="#063053";
+      ctx.lineWidth=3;
+      const label=`${luminousSlashActiveTimer.toFixed(1)}s`;
+      ctx.strokeText(label,0,30);ctx.fillText(label,0,30);
+    }
+    ctx.restore();
+  }
+
+  function handleLuminousSlashPointer(e){
+    if(!running||paused||ended||!luminousSlashAvailable())return false;
+    const rect=canvas.getBoundingClientRect();
+    const px=(e.clientX-rect.left)*W/Math.max(1,rect.width);
+    const py=(e.clientY-rect.top)*H/Math.max(1,rect.height);
+    const {x,y,r}=luminousSlashButtonLayout();
+    if(Math.hypot(px-x,py-y)>r+10)return false;
+    e.preventDefault();
+    if(activateLuminousSlash())playUiClick();
+    else beep(180,.08,.025,"square");
+    return true;
   }
 
   function drawSkills(){
@@ -13320,7 +13520,7 @@
       ctx.fillText(`KPS ${Math.round(hudKps)}  怪物 ${formatEnemyHudCount(enemyCount)}`,W-14,148);
       ctx.fillStyle="#fff";
       ctx.fillText(`🥕×${player.projectiles} 穿透${player.pierce} 爆擊${formatHudPercent(player.critStack*100)}`,W-14,172);
-      ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut} PINKY${skills.pinky}`,W-14,196);
+      ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut} PINKY${skills.pinky} 二連${skills.luminousSlash}`,W-14,196);
       drawStatusRows(W-14,220,24);
       if(time<4||battleStartDelay>0){ctx.textAlign="center";ctx.font="bold 18px sans-serif";ctx.fillStyle="#fff";ctx.fillText("按住畫面拖曳移動",W/2,H-42);}
       ctx.restore();
@@ -13352,7 +13552,7 @@
     ctx.fillText(stageTimeLabel,VW/2,22);
     ctx.textAlign="right";ctx.font="bold 13px monospace";ctx.fillStyle="#fff";
     ctx.fillText(`🥕×${player.projectiles} 穿透${player.pierce} 爆擊${formatHudPercent(player.critStack*100)}`,VW-14,21);
-    ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut}`,VW-14,43);
+    ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut} 二連${skills.luminousSlash}`,VW-14,43);
     const nextStatusY=drawStatusRows(VW-14,95,20);
     if(instantKills>0&&instantKillTimer>0){
       ctx.font="bold 20px sans-serif";ctx.fillStyle="#ffe45f";ctx.strokeStyle="#7b2035";ctx.lineWidth=5;
@@ -13400,7 +13600,7 @@
     if(skills.burst>=5)evolved.push("菜園進化");
     if(skills.peanut>=5)evolved.push("滾石進化");
     if(skills.pinky>=5)evolved.push("PINKY進化");
-    ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut} PINKY${skills.pinky}`,W-350,47);
+    ctx.fillText(`旋風${skills.orbit} 菜園${skills.burst} 花生${skills.peanut} PINKY${skills.pinky} 二連${skills.luminousSlash}`,W-350,47);
     if(evolved.length){ctx.fillStyle="#ffe15b";ctx.fillText(`進化：${evolved.join("・")}`,W-310,68);}
     ctx.textAlign="right";
     ctx.font="bold 14px monospace";
@@ -13565,6 +13765,7 @@
     const effectConfig=performanceConfig();
     for(const e of effects){
       if(e.kind==="flash"||e.kind==="crater")continue;
+      if(e.kind==="luminousSlash"&&e.delay>0)continue;
       const p=worldToScreen(e.x,e.y);
       if(!screenPointVisible(p,effectDrawMargin(e)))continue;
       if(e.kind==="particle"||e.kind==="chip"){
@@ -13620,6 +13821,36 @@
         const shadowScale=clamp(1-e.z/90,.25,1);
         ctx.globalAlpha=.28;ctx.fillStyle="#2f2925";ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*shadowScale,e.r*.45*shadowScale,0,0,Math.PI*2);ctx.fill();
         ctx.globalAlpha=1;rect(p.x-e.r,p.y-e.z-e.r,e.r*2,e.r*2,"#756252");rect(p.x-e.r*.4,p.y-e.z-e.r*.6,e.r*.7,e.r*.55,"#b49a7c");
+      }else if(e.kind==="luminousSlash"){
+        const age=(e.maxLife||0)-e.life;
+        const fadeIn=Math.max(.001,e.fadeIn||.05);
+        const fadeOut=Math.max(.001,e.fadeOut||.15);
+        const reveal=clamp(age/(e.drawSec||e.maxLife||1),0,1);
+        const fadeInAlpha=clamp(age/fadeIn,0,1);
+        const fadeOutAlpha=clamp(e.life/fadeOut,0,1);
+        const alpha=(e.opacity??.94)*Math.min(fadeInAlpha,fadeOutAlpha);
+        ctx.save();
+        ctx.translate(p.x,p.y);
+        ctx.rotate(e.angle||0);
+        ctx.globalAlpha=alpha;
+        const imgReady=luminousSlashImg.complete&&luminousSlashImg.naturalWidth>0;
+        if(imgReady){
+          const w=luminousSlashImg.naturalWidth*(e.scale||.11);
+          const h=luminousSlashImg.naturalHeight*(e.scale||.11);
+          const left=-(e.anchorX??.37)*w;
+          const top=-(e.anchorY??.64)*h;
+          ctx.beginPath();
+          ctx.rect(left,top,w*reveal,h);
+          ctx.clip();
+          ctx.drawImage(luminousSlashImg,left,top,w,h);
+        }else{
+          const len=160*reveal,thick=18;
+          ctx.strokeStyle="#bff6ff";ctx.lineWidth=thick;ctx.lineCap="round";
+          ctx.beginPath();ctx.moveTo(-len*.38,len*.38);ctx.lineTo(len*.62,-len*.62);ctx.stroke();
+          ctx.strokeStyle="#49b7ff";ctx.lineWidth=thick*.45;
+          ctx.beginPath();ctx.moveTo(-len*.38,len*.38);ctx.lineTo(len*.62,-len*.62);ctx.stroke();
+        }
+        ctx.restore();
       }else if(e.kind==="shockwave"){
         if(effectConfig.impactGlow){
           ctx.globalAlpha=clamp(e.life*1.5,0,.28);ctx.strokeStyle="#fff2a0";ctx.lineWidth=16;ctx.beginPath();ctx.arc(p.x,p.y,e.r,0,Math.PI*2);ctx.stroke();
@@ -13668,6 +13899,8 @@
       if(!screenPointVisible(p,Math.max(80,(t.size||18)*4)))continue;
       if(t.kind==="critical"){
         drawCriticalText(t,p);
+      }else if(t.kind==="luminousCritical"){
+        drawLuminousCriticalText(t,p);
       }else{
         ctx.globalAlpha=clamp(t.life*2,0,1);ctx.font=`bold ${t.size}px sans-serif`;ctx.textAlign="center";
         if(t.kind==="pickup"){ctx.lineWidth=Math.max(4,Math.round(t.size*.18));ctx.strokeStyle="#111";ctx.strokeText(t.value,p.x,p.y);}
@@ -13676,6 +13909,7 @@
     }
     ctx.globalAlpha=1;ctx.textAlign="left";ctx.textBaseline="alphabetic";
     drawHUD();
+    drawLuminousSlashButton();
     drawDebugOverlay();
     drawFinalBossBar();
     drawChestHints();
@@ -14004,6 +14238,7 @@
       ["胡蘿蔔菜園",`LV ${skills.burst}`],
       ["花生幫手",`LV ${skills.peanut}`],
       ["PINKY",`LV ${skills.pinky}`],
+      ["流光二連斬",skills.luminousSlash?`LV ${skills.luminousSlash}・${Math.round(luminousSlashChance()*100)}%`:"未習得"],
       ["超級頭腦",`LV ${skills.brain}・${Math.round((Math.max(1,player.xpGain)-1)*100)}%`],
       ["香蕉增益",pinkyBoostTimer>0?`${pinkyBoostTimer.toFixed(1)} 秒`:"未啟動"]
       ,["中毒",poisonTimer>0?`${poisonTimer.toFixed(1)} 秒・${(poisonRate*100).toFixed(2)}%/秒`:"無"]
@@ -14093,6 +14328,7 @@
     touch.style.top=`${centerY-wrapRect.top}px`;
   }
   canvas.addEventListener("pointerdown",e=>{
+    if(handleLuminousSlashPointer(e))return;
     if(e.pointerType==="mouse"||!running||paused||ended)return;
     e.preventDefault();
     stick.active=true;stick.pointerId=e.pointerId;stick.startX=e.clientX;stick.startY=e.clientY;
