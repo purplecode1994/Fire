@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=638;
+  const APP_VERSION=640;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -44,9 +44,9 @@
   const LUMINOUS_SLASH_CHANCES=[0,.05,.10,.15,.25,.40];
   const LUMINOUS_SLASH_ASSET=`assets/skills/combo-slash-up-right.png?v=${APP_VERSION}`;
   const LUMINOUS_SLASH_CONFIG={
-    imageAnchorX:.37,imageAnchorY:.64,imageScale:.11,imageOpacity:.94,
-    rightAngleDeg:71,leftAngleDeg:103,baseRotationDeg:-45,
-    singleDuration:.459,drawSec:.329,secondDelay:.191,
+    imageAnchorX:.26,imageAnchorY:.72,imageScale:.11,imageOpacity:.94,
+    rightAngleDeg:74,leftAngleDeg:110,angleSpreadDeg:35,baseRotationDeg:-45,
+    singleDuration:.451,drawSec:.321,secondDelay:.191,
     rightFadeIn:.05,rightFadeOut:.13,leftFadeIn:.095,leftFadeOut:.193
   };
   const luminousSlashImg=new Image();
@@ -5497,6 +5497,7 @@
     document.getElementById("versionText").textContent=`V.${payload.version||"-"}`;
     document.getElementById("seedCount").textContent=payload.title?.name||"超級菜鳥";
     const activeSlot=activeGardenTimeSlot();
+    if(!payload.devMode)gardenAutoRefreshKey=`${payload.today}|${activeSlot}`;
     const weatherName=payload.weather?.name||"晴朗";
     const isRainObserve=!!payload.weather?.isRainy&&activeSlot!=="night";
     const hasGardenEvent=!!normalizeGardenChoiceEvent(payload.choiceEvent);
@@ -5654,6 +5655,8 @@
     if(gardenUiInitialized)return;
     gardenUiInitialized=true;
     preloadGardenSceneAssets();
+    setInterval(refreshGardenIfRealTimeChanged,30000);
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshGardenIfRealTimeChanged();});
     document.getElementById("backBtn")?.addEventListener("click",()=>{playUiClick();closeGardenScreen();});
     document.getElementById("bottomHomeBtn")?.addEventListener("click",()=>{playUiClick();closeGardenScreen();});
     document.getElementById("devTimeNextBtn")?.addEventListener("click",()=>{playUiClick();stepDevTime();});
@@ -10524,9 +10527,12 @@
   }
   function spawnLuminousSlashEffects(e){
     const cfg=LUMINOUS_SLASH_CONFIG;
+    const halfSpread=(Number(cfg.angleSpreadDeg)||0)*.5;
+    const rightAngle=cfg.rightAngleDeg+cfg.baseRotationDeg+rand(-halfSpread,halfSpread);
+    const leftAngle=cfg.leftAngleDeg+cfg.baseRotationDeg+rand(-halfSpread,halfSpread);
     const base={kind:"luminousSlash",x:e.x,y:e.y,r:Math.max(120,e.r+110),maxLife:cfg.singleDuration,life:cfg.singleDuration,drawSec:cfg.drawSec,scale:cfg.imageScale,opacity:cfg.imageOpacity,anchorX:cfg.imageAnchorX,anchorY:cfg.imageAnchorY};
-    effects.push({...base,delay:0,angle:(cfg.rightAngleDeg+cfg.baseRotationDeg)*Math.PI/180,fadeIn:cfg.rightFadeIn,fadeOut:cfg.rightFadeOut});
-    effects.push({...base,delay:cfg.secondDelay,angle:(cfg.leftAngleDeg+cfg.baseRotationDeg)*Math.PI/180,fadeIn:cfg.leftFadeIn,fadeOut:cfg.leftFadeOut});
+    effects.push({...base,delay:0,angle:rightAngle*Math.PI/180,fadeIn:cfg.rightFadeIn,fadeOut:cfg.rightFadeOut});
+    effects.push({...base,delay:cfg.secondDelay,angle:leftAngle*Math.PI/180,fadeIn:cfg.leftFadeIn,fadeOut:cfg.leftFadeOut});
   }
 
   function killEnemy(e,source="normal"){
@@ -14568,6 +14574,8 @@
     }
     preloadGardenSceneAssets();
     gardenScreen?.classList.remove("hidden");
+    gardenAutoRefreshKey="";
+    refreshGardenIfRealTimeChanged();
     setTimeout(()=>postGardenState(),80);
   });
   characterBtn.addEventListener("click",()=>{
