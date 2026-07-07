@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=637;
+  const APP_VERSION=638;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -5087,7 +5087,7 @@
     {key:"fatteningDisease",name:"胡蘿蔔長胖病害",stageIndex:4},
     {key:"matureDisease",name:"成熟病害",stageIndex:5}
   ];
-  let gardenState=null,qualities=[],activeTab="garden",enhanceBaseIndex=null,enhanceMaterialIndexes=[],devPreviewIndex=null,devTimeSlotIndex=null,selectedRecordPlantingNo=null,gardenAssetsReady=false,gardenUiInitialized=false;
+  let gardenState=null,qualities=[],activeTab="garden",enhanceBaseIndex=null,enhanceMaterialIndexes=[],devPreviewIndex=null,devTimeSlotIndex=null,selectedRecordPlantingNo=null,gardenAssetsReady=false,gardenUiInitialized=false,gardenAutoRefreshKey="";
   const enhanceNeeds={common:2,rare:4,uncommon:7,epic:11,legendary:16,mythic:22,immortal:30,eternal:40};
   const enhanceMaxLevel=GARDEN_ENHANCE_MAX_LEVEL;
   const gardenTimeSlots=["morning","noon","afternoon","night"];
@@ -5291,6 +5291,15 @@
     return "night";
   }
   function activeGardenTimeSlot(){return gardenState?.devMode&&devTimeSlotIndex!=null?gardenTimeSlots[devTimeSlotIndex]:gardenTimeSlot();}
+  function gardenRealTimeRefreshKey(){return `${todayKey()}|${gardenTimeSlot()}`;}
+  function refreshGardenIfRealTimeChanged(){
+    if(!gardenScreen||gardenScreen.classList.contains("hidden"))return;
+    if(gardenState?.devMode)return;
+    const key=gardenRealTimeRefreshKey();
+    if(gardenAutoRefreshKey===key)return;
+    gardenAutoRefreshKey=key;
+    postGardenState();
+  }
   function updateTimeLabel(slot){
     const label=document.getElementById("devTimeLabel");
     if(label)label.textContent=`時辰：${gardenTimeNames[slot]||"早上"}`;
