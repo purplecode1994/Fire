@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=640;
+  const APP_VERSION=649;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -42,16 +42,22 @@
   const LUMINOUS_SLASH_DURATION=20;
   const LUMINOUS_SLASH_COOLDOWN=60;
   const LUMINOUS_SLASH_CHANCES=[0,.05,.10,.15,.25,.40];
-  const LUMINOUS_SLASH_ASSET=`assets/skills/combo-slash-up-right.png?v=${APP_VERSION}`;
+  const LUMINOUS_SLASH_ASSETS={
+    upRight:`assets/skills/combo-slash-up-right.png?v=${APP_VERSION}`,
+    downRight:`assets/skills/combo-slash-down-right.png?v=${APP_VERSION}`
+  };
+  const LUMINOUS_SLASH_ICON_ASSET=`assets/skills/luminous-slash-skill-icon.png?v=${APP_VERSION}`;
   const LUMINOUS_SLASH_CONFIG={
-    imageAnchorX:.26,imageAnchorY:.72,imageScale:.11,imageOpacity:.94,
-    rightAngleDeg:74,leftAngleDeg:110,angleSpreadDeg:35,baseRotationDeg:-45,
-    singleDuration:.451,drawSec:.321,secondDelay:.191,
+    imageAnchorX:.37,imageAnchorY:.64,imageScale:.11,imageOpacity:.94,
+    rightAngleDeg:71,leftAngleDeg:103,angleSpreadDeg:27,baseRotationDeg:-45,
+    singleDuration:.421,drawSec:.321,secondDelay:.162,
     rightFadeIn:.05,rightFadeOut:.13,leftFadeIn:.095,leftFadeOut:.193
   };
-  const luminousSlashImg=new Image();
-  luminousSlashImg.decoding="async";
-  luminousSlashImg.src=LUMINOUS_SLASH_ASSET;
+  const luminousSlashImgs={upRight:new Image(),downRight:new Image()};
+  Object.entries(luminousSlashImgs).forEach(([key,img])=>{
+    img.decoding="async";
+    img.src=LUMINOUS_SLASH_ASSETS[key];
+  });
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -8303,7 +8309,7 @@
     {id:"burst",icon:"🌱",name:"菜園爆發",desc:"定時造成範圍傷害；LV5進化巨大衝擊圈",valid(){return skills.burst<5;},apply(){skills.burst++;}},
     {id:"peanut",icon:"🥜",name:"花生跟班",desc:"花生自動丟石頭；LV5進化貫穿滾石",valid(){return skills.peanut<5;},apply(){skills.peanut++;}},
     {id:"pinky",icon:"🍌",name:"PINKY 跟班",desc:"香蕉直線穿透後原路返回；接回強化攻擊與移速",valid(){return skills.pinky<5;},apply(){skills.pinky++;}},
-    {id:"luminousSlash",icon:"✦",name:"流光二連斬",desc:"完整胡蘿蔔專屬主動技；啟動20秒，小胡蘿蔔命中時機率追加二連斬",valid(){return hasWholeCarrotEquipped()&&skills.luminousSlash<5;},apply(){skills.luminousSlash++;}},
+    {id:"luminousSlash",icon:"✦",iconImage:LUMINOUS_SLASH_ICON_ASSET,name:"流光二連斬",desc:"完整胡蘿蔔專屬主動技；啟動20秒，小胡蘿蔔命中時機率追加二連斬",valid(){return hasWholeCarrotEquipped()&&skills.luminousSlash<5;},apply(){skills.luminousSlash++;}},
     {id:"brain",icon:"🧠",name:"超級頭腦",desc:"經驗獲取量累計：LV1 +40%／LV2 +100%／LV3 +180%／LV4 +280%／LV5 +400%",valid(){return skills.brain<5;},apply(){const gain=[.4,.6,.8,1,1.2][skills.brain]||0;player.xpGain+=gain;skills.brain++;}},
     {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+6% 無視防禦（第二關 / 第三關 / 無限輪迴）",cap:5,valid(){return (currentStage===2||currentStage===3||isInfiniteMode())&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.06;}}
   ];
@@ -8416,7 +8422,7 @@
     {id:"critd",icon:"💥",name:"爆擊強化",type:"爆傷",effect:"+30% 場內爆擊傷害",detail:"只放大爆擊時的傷害上限。",levels:["+30% 爆擊傷害","+60% 爆擊傷害","+90% 爆擊傷害","+120% 爆擊傷害","+150% 爆擊傷害"]},
     {id:"multi",icon:"🥕",name:"同步發射",type:"主武器",effect:"+1 發同步蘿蔔",detail:"點滿後含本體共 6 支，並以散射發射。",levels:["同步 2 支蘿蔔","同步 3 支蘿蔔","同步 4 支蘿蔔","同步 5 支蘿蔔","同步 6 支蘿蔔"]},
     {id:"giantCarrot",icon:"🥕",name:"巨大胡蘿蔔",type:"進化型態",effect:"同步發射 LV5 解鎖",detail:"每 3 秒投出巨大胡蘿蔔；爆炸傷害 1280% 基礎傷害，燃燒每秒造成爆炸總傷害 18%。",evolution:true,levels:["未解鎖","未解鎖","未解鎖","未解鎖","同步發射 LV5：巨大胡蘿蔔"]},
-    {id:"unknownCarrotActive",icon:"✦",name:"完整胡蘿蔔・流光二連斬",type:"主動技能",effect:"完整胡蘿蔔專屬；啟動20秒，冷卻60秒",detail:"裝備完整的胡蘿蔔後，關卡升級池會出現此技能。啟動後小胡蘿蔔命中時，機率追加二連斬並顯示藍色勛章總傷害。",evolution:true,unknownActive:false,levels:["5% 發動二連斬","10% 發動二連斬","15% 發動二連斬","25% 發動二連斬","40% 發動二連斬"]},
+    {id:"unknownCarrotActive",icon:"✦",iconImage:LUMINOUS_SLASH_ICON_ASSET,name:"完整胡蘿蔔・流光二連斬",type:"主動技能",effect:"完整胡蘿蔔專屬；啟動20秒，冷卻60秒",detail:"裝備完整的胡蘿蔔後，關卡升級池會出現此技能。啟動後小胡蘿蔔命中時，機率追加二連斬並顯示藍色勛章總傷害。",evolution:true,unknownActive:false,levels:["5% 發動二連斬","10% 發動二連斬","15% 發動二連斬","25% 發動二連斬","40% 發動二連斬"]},
     {id:"pierce",icon:"🏹",name:"穿透胡蘿蔔",type:"穿透",effect:"+1 穿透數",detail:"讓主武器連續打穿更多敵人。",levels:["+1 穿透","+2 穿透","+3 穿透","+4 穿透","+5 穿透"]},
     {id:"speed",icon:"👟",name:"兔兔快跑",type:"移動",effect:"+12% 移動速度",detail:"讓兔兔更容易拉扯與閃避。",levels:["+12% 移動速度","+24% 移動速度","+36% 移動速度","+48% 移動速度","+60% 移動速度"]},
     {id:"vital",icon:"❤️",name:"血多皮厚",type:"生存",effect:"+20% 最大生命",detail:"提升最大生命並立即回一段血。",levels:["+20% 最大生命","+40% 最大生命","+60% 最大生命","+80% 最大生命","+100% 最大生命"]},
@@ -8658,14 +8664,20 @@
     card.appendChild(info);
     return card;
   }
+  function skillIconHtml(icon,iconImage,alt=""){
+    if(iconImage)return `<img class="skillIconImage" src="${escapeHtml(iconImage)}" alt="${escapeHtml(alt)}">`;
+    return escapeHtml(icon||"");
+  }
   function renderSkillBookCard(entry){
     const card=document.createElement("div");
     card.className=`bookCard skillBookCard ${entry.evolution?"bookEvolutionCard":""} ${entry.unknownActive?"bookUnknownActiveCard":""}`.trim();
     const preview=document.createElement("div");
     preview.className=`bookPreview ${entry.evolution?"bookEvolutionPreview":""}`.trim();
+    if(entry.iconImage)preview.classList.add("bookImagePreview");
     const icon=document.createElement("div");
     icon.className=`bookSkillIcon ${entry.unknownActive?"bookUnknownSkillIcon":""}`.trim();
-    icon.textContent=entry.icon;
+    if(entry.iconImage)icon.innerHTML=skillIconHtml(entry.icon,entry.iconImage,entry.name);
+    else icon.textContent=entry.icon;
     preview.appendChild(icon);
     const info=document.createElement("div");
     info.className="bookInfo";
@@ -10527,12 +10539,14 @@
   }
   function spawnLuminousSlashEffects(e){
     const cfg=LUMINOUS_SLASH_CONFIG;
-    const halfSpread=(Number(cfg.angleSpreadDeg)||0)*.5;
-    const rightAngle=cfg.rightAngleDeg+cfg.baseRotationDeg+rand(-halfSpread,halfSpread);
-    const leftAngle=cfg.leftAngleDeg+cfg.baseRotationDeg+rand(-halfSpread,halfSpread);
+    const spread=Number(cfg.angleSpreadDeg)||0;
+    const rightTarget=cfg.rightAngleDeg+rand(-spread,spread);
+    const leftTarget=cfg.leftAngleDeg+rand(-spread,spread);
+    const rightAngle=45-rightTarget;
+    const leftAngle=leftTarget-45;
     const base={kind:"luminousSlash",x:e.x,y:e.y,r:Math.max(120,e.r+110),maxLife:cfg.singleDuration,life:cfg.singleDuration,drawSec:cfg.drawSec,scale:cfg.imageScale,opacity:cfg.imageOpacity,anchorX:cfg.imageAnchorX,anchorY:cfg.imageAnchorY};
-    effects.push({...base,delay:0,angle:rightAngle*Math.PI/180,fadeIn:cfg.rightFadeIn,fadeOut:cfg.rightFadeOut});
-    effects.push({...base,delay:cfg.secondDelay,angle:leftAngle*Math.PI/180,fadeIn:cfg.leftFadeIn,fadeOut:cfg.leftFadeOut});
+    effects.push({...base,imgKey:"upRight",revealFrom:"bottomLeft",delay:0,angle:rightAngle*Math.PI/180,fadeIn:cfg.rightFadeIn,fadeOut:cfg.rightFadeOut});
+    effects.push({...base,imgKey:"downRight",revealFrom:"bottomRight",delay:cfg.secondDelay,angle:leftAngle*Math.PI/180,fadeIn:cfg.leftFadeIn,fadeOut:cfg.leftFadeOut});
   }
 
   function killEnemy(e,source="normal"){
@@ -10659,7 +10673,7 @@
         const nextLevel=Math.min(5,skills.luminousSlash+1);
         descText=`主動20秒・冷卻60秒・小胡蘿蔔命中 ${Math.round((LUMINOUS_SLASH_CHANCES[nextLevel]||0)*100)}% 發動二連斬`;
       }
-      card.innerHTML=`<span class="icon">${u.icon}</span><b>${nextLevelLabel}</b><small>${descText}<br>${current}</small>`;
+      card.innerHTML=`<span class="icon">${skillIconHtml(u.icon,u.iconImage,u.name)}</span><b>${nextLevelLabel}</b><small>${descText}<br>${current}</small>`;
       card.onclick=()=>{
         if(levelScreen.classList.contains("autoTrainingLocked")&&!card.dataset.autoPick)return;
         u.apply();
@@ -13848,16 +13862,18 @@
         ctx.translate(p.x,p.y);
         ctx.rotate(e.angle||0);
         ctx.globalAlpha=alpha;
-        const imgReady=luminousSlashImg.complete&&luminousSlashImg.naturalWidth>0;
+        const slashImg=luminousSlashImgs[e.imgKey]||luminousSlashImgs.upRight;
+        const imgReady=slashImg.complete&&slashImg.naturalWidth>0;
         if(imgReady){
-          const w=luminousSlashImg.naturalWidth*(e.scale||.11);
-          const h=luminousSlashImg.naturalHeight*(e.scale||.11);
+          const w=slashImg.naturalWidth*(e.scale||.11);
+          const h=slashImg.naturalHeight*(e.scale||.11);
           const left=-(e.anchorX??.37)*w;
           const top=-(e.anchorY??.64)*h;
           ctx.beginPath();
-          ctx.rect(left,top,w*reveal,h);
+          if(e.revealFrom==="bottomRight")ctx.rect(left+w*(1-reveal),top+h*(1-reveal),w*reveal,h*reveal);
+          else ctx.rect(left,top+h*(1-reveal),w*reveal,h*reveal);
           ctx.clip();
-          ctx.drawImage(luminousSlashImg,left,top,w,h);
+          ctx.drawImage(slashImg,left,top,w,h);
         }else{
           const len=160*reveal,thick=18;
           ctx.strokeStyle="#bff6ff";ctx.lineWidth=thick;ctx.lineCap="round";
