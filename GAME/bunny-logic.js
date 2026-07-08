@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=668;
+  const APP_VERSION=670;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -152,7 +152,7 @@
   let eligibleKills=0,instantKills=0,instantKillTimer=0;
   let kps=0,kpsWindowKills=0,kpsWindowTime=0,kpsPressure=0,kpsBonusTimer=0,kpsSpawnBonus=0;
   let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0,gemPressureRecycleTimer=0;
-  let carrotVolley=0,pinkyBoostTimer=0,pinkyDamageBoost=1,pendingCarrotShots=0;
+  let carrotVolley=0,carrotShotsSinceBreak=0,pinkyBoostTimer=0,pinkyDamageBoost=1,pendingCarrotShots=0;
   let luminousSlashActiveTimer=0,luminousSlashCooldownTimer=0,luminousSlashCooldownDamage=0;
   let poisonTimer=0,poisonRate=0,stunTimer=0,confuseTimer=0,potionHealTimer=0,blizzardTimer=0,blizzardPushTimer=0,blizzardPushAngle=0,blizzardPushSpeed=0,currentStage=1,infiniteBossZone=0;
   let bossChallengeType="plant",bossChallengeSourceStage=1,bossChallengeMenuOpen=false,bossChallengeStartTime=0;
@@ -179,6 +179,8 @@
   let critSampleBuffer=null,critSampleLoading=false,critSoundLastTime=0;
   const CARROT_BASE_COOLDOWN=.72;
   const CARROT_MIN_CHAIN_INTERVAL=2/60;
+  const CARROT_BREAK_SHOT_COUNT=6;
+  const CARROT_BREAK_COOLDOWN=1;
   let xpSoundLastTime=0;
   let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0,hudKpsBonus=0,hudWaveSeconds=0;
@@ -6718,7 +6720,7 @@
     return stage<=1?1:1+(stage-1)*.1;
   }
   function trainingDummyRewardForNextClear(){
-    return (trainingDummyClearCount()+1)*100;
+    return 50;
   }
   function trainingDummyHp(){
     return Math.round(TRAINING_DUMMY_BASE_HP*trainingDummyHpMultiplier());
@@ -9744,7 +9746,7 @@
     hudKpsBonus=hudWaveSeconds=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;luminousSlashActiveTimer=0;luminousSlashCooldownTimer=0;luminousSlashCooldownDamage=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[]};
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;carrotShotsSinceBreak=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;luminousSlashActiveTimer=0;luminousSlashCooldownTimer=0;luminousSlashCooldownDamage=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[]};
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
     infiniteClearCount=0;
@@ -10564,7 +10566,8 @@
   function fireCarrotShot(){
     const targetInfo=pickReservedAwareTarget(player.damage*player.areaDamage);
     const target=targetInfo.target;
-    const bossFight=finalPhase==="fight";
+    const bossFight=finalPhase==="fight"||bossArena.active;
+    if(bossFight&&(!target||"opened" in target))return false;
     const volleyCount=Math.max(1,Math.min(6,player.projectiles));
     const volleyIndex=Math.max(0,Math.min(volleyCount-1,volleyCount-pendingCarrotShots));
     const spreadStep=bossFight?0:(volleyCount<=1?0:0.095);
@@ -10603,6 +10606,7 @@
       shot.life=duration+.45;
     }
     shots.push(shot);
+    return true;
   }
 
   function firePet(){
@@ -11259,14 +11263,29 @@
     giantCarrotCooldown=Math.max(0,giantCarrotCooldown-dt);
     shotClock-=dt;
     while(shotClock<=0){
+      if(carrotShotsSinceBreak>=CARROT_BREAK_SHOT_COUNT){
+        carrotShotsSinceBreak=0;
+        shotClock+=CARROT_BREAK_COOLDOWN;
+        break;
+      }
       if(pendingCarrotShots<=0){
         if(!beginCarrotVolley()){
           shotClock=Math.max(CARROT_MIN_CHAIN_INTERVAL,CARROT_BASE_COOLDOWN/player.attackSpeed);
           break;
         }
       }
-      fireCarrotShot();
+      if(!fireCarrotShot()){
+        pendingCarrotShots=0;
+        shotClock=Math.max(CARROT_MIN_CHAIN_INTERVAL,CARROT_BASE_COOLDOWN/player.attackSpeed);
+        break;
+      }
       pendingCarrotShots=Math.max(0,pendingCarrotShots-1);
+      carrotShotsSinceBreak++;
+      if(carrotShotsSinceBreak>=CARROT_BREAK_SHOT_COUNT){
+        carrotShotsSinceBreak=0;
+        shotClock+=CARROT_BREAK_COOLDOWN;
+        break;
+      }
       const volleyInterval=Math.max(CARROT_MIN_CHAIN_INTERVAL,CARROT_BASE_COOLDOWN/Math.max(1,player.attackSpeed*Math.max(1,player.projectiles)));
       shotClock+=volleyInterval;
     }
