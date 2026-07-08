@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=682;
+  const APP_VERSION=684;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -9629,6 +9629,13 @@
     list.length=0;
     return list;
   }
+  function clearBattleEntities(){
+    clearPooledShots(shots);
+    enemies=[];shots=[];enemyShots=[];gems=[];effects=[];texts=[];
+    areas=[];petShots=[];bananas=[];chests=[];pickups=[];bossObstacles=[];
+    enemyGrid.clear();
+    sharedTargetCache=null;sharedTargetTimer=0;
+  }
   function shotPoolActiveCount(){
     let count=0;
     for(const s of shotPool)if(s.active)count++;
@@ -14574,6 +14581,7 @@
       document.getElementById("endSub").textContent=`兔兔擊敗了 ${finalBossDisplayName(bossChallengeType)}`;
       const clearTime=Math.max(0,time-bossChallengeStartTime);
       document.getElementById("endText").innerHTML=`此為測試模式用；要更新請詢問用戶。<br>擊敗時間 ${formatStageTime(clearTime)}<br>等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>本局不結算強化點數與通關解鎖`;
+      clearBattleEntities();
       beep(660,.4,.05);
       return;
     }
@@ -14589,6 +14597,7 @@
         document.getElementById("endSub").textContent="兔兔撿回了神秘胡蘿蔔種子";
         document.getElementById("endText").innerHTML=activityCarrotEndSummaryHtml("尚未擊敗新的活動 Boss 階段，不會掉落種子。");
       }
+      clearBattleEntities();
       beep(660,.4,.05);
       return;
     }
@@ -14620,6 +14629,7 @@
     document.getElementById("endTitle").textContent=clearTitles[currentStage]||`${currentStageLabel()}征服成功！`;
     document.getElementById("endSub").textContent=`兔兔擊敗了${finalBossDisplayName(normalFinalBossType())}`;
     document.getElementById("endText").innerHTML=`等級 ${player.level}<br>擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+    clearBattleEntities();
     beep(660,.4,.05);
   }
 
@@ -14643,6 +14653,7 @@
         ?`未完成強化試煉，不會獲得活動兌換幣。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
         :activityCarrotEndSummaryHtml("尚未擊敗新的活動 Boss 階段，不會掉落種子。"))
       :`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>${rewardTotalLines()}`;
+    clearBattleEntities();
     beep(180,.7,.05,"sawtooth");
   }
 
@@ -14685,6 +14696,7 @@
       :isInfiniteMode()
       ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
       :`中途離開不計完整擊殺點數<br>生存點數 ${earned}${soulPointBonusRate()>0?`（獵魂 +${formatPercentRate(soulPointBonusRate())}）`:""}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+    clearBattleEntities();
     beep(220,.22,.035,"square");
   }
 
