@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=675;
+  const APP_VERSION=681;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -8517,7 +8517,7 @@
     {id:"burst",icon:"🌱",name:"菜園爆發",desc:"定時造成範圍傷害；LV5進化巨大衝擊圈",valid(){return skills.burst<5;},apply(){skills.burst++;}},
     {id:"peanut",icon:"🥜",name:"花生跟班",desc:"花生自動丟石頭；LV5進化貫穿滾石",valid(){return skills.peanut<5;},apply(){skills.peanut++;}},
     {id:"pinky",icon:"🍌",name:"PINKY 跟班",desc:"香蕉直線穿透後原路返回；接回強化攻擊與移速",valid(){return skills.pinky<5;},apply(){skills.pinky++;}},
-    {id:"luminousSlash",icon:"✦",iconImage:LUMINOUS_SLASH_ICON_ASSET,name:"流光二連斬",desc:"主動10秒；冷卻60→20秒。期間小胡蘿蔔命中必定二連斬，受傷可縮短冷卻。",valid(){return hasWholeCarrotEquipped()&&skills.luminousSlash<5;},apply(){skills.luminousSlash++;}},
+    {id:"luminousSlash",icon:"✦",iconImage:LUMINOUS_SLASH_ICON_ASSET,name:"流光二連斬",desc:"主動10秒；冷卻60→20秒。期間小胡蘿蔔命中必定二連斬，受傷可縮短冷卻。",valid(){return hasWholeCarrotEquipped()&&skills.luminousSlash<5;},apply(){skills.luminousSlash++;syncLuminousSlashCooldownToLevel();}},
     {id:"brain",icon:"🧠",name:"超級頭腦",desc:"經驗獲取量累計：LV1 +40%／LV2 +100%／LV3 +180%／LV4 +280%／LV5 +400%",valid(){return skills.brain<5;},apply(){const gain=[.4,.6,.8,1,1.2][skills.brain]||0;player.xpGain+=gain;skills.brain++;}},
     {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+6% 無視防禦（第二關 / 第三關 / 無限輪迴）",cap:5,valid(){return (currentStage===2||currentStage===3||isInfiniteMode())&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.06;}}
   ];
@@ -10780,6 +10780,9 @@
   function luminousSlashCooldownDuration(level=luminousSlashLevel()){
     return LUMINOUS_SLASH_COOLDOWNS[Math.max(0,Math.min(5,Math.floor(Number(level)||0)))]||0;
   }
+  function syncLuminousSlashCooldownToLevel(){
+    if(luminousSlashCooldownTimer>0)luminousSlashCooldownTimer=Math.min(luminousSlashCooldownTimer,luminousSlashCooldownDuration());
+  }
   function luminousSlashAvailable(){
     return (hasWholeCarrotEquipped()||isTrainingDummyMode())&&luminousSlashLevel()>0;
   }
@@ -10802,14 +10805,14 @@
   }
   function updateLuminousSlash(dt){
     if(luminousSlashActiveTimer>0)luminousSlashActiveTimer=Math.max(0,luminousSlashActiveTimer-dt);
-    if(luminousSlashCooldownTimer>0)luminousSlashCooldownTimer=Math.max(0,luminousSlashCooldownTimer-dt);
+    else if(luminousSlashCooldownTimer>0)luminousSlashCooldownTimer=Math.max(0,luminousSlashCooldownTimer-dt);
     if(luminousSlashCooldownTimer<=0)luminousSlashCooldownDamage=0;
     else luminousSlashCooldownDamage=Math.min(luminousSlashCooldownDamage,Math.max(1,player.maxHp));
   }
   function activateLuminousSlash(){
     if(!luminousSlashReady())return false;
     luminousSlashActiveTimer=LUMINOUS_SLASH_DURATION;
-    luminousSlashCooldownTimer=LUMINOUS_SLASH_DURATION+luminousSlashCooldownDuration();
+    luminousSlashCooldownTimer=luminousSlashCooldownDuration();
     luminousSlashCooldownDamage=0;
     announce("流光二連斬","10 秒內小胡蘿蔔命中必定追加二連斬","#78dcff",2.2);
     text(player.x,player.y-58,"流光二連斬啟動","#7fe8ff",20,"pickup");
@@ -10823,7 +10826,7 @@
     const second=rollEnemyDamage(e,slashDamage,true,source);
     const total=first+second;
     if(e.kind!=="elite")spawnLuminousSlashEffects(e);
-    text(e.x,e.y-e.r-10,`${Math.max(0,Math.round(total))}!`,"#ffe75f",19,"luminousCritical");
+    text(e.x,e.y-e.r-10,formatCriticalDamage(total),"#ffe75f",19,"luminousCritical");
     playCritSample(.65,1.08+rand(-.03,.03));
     finishEnemyDamage(e,total,"luminousSlash");
     return true;
@@ -10864,7 +10867,7 @@
       const count=e.kind==="normal"?1:e.kind==="elite"?5:e.kind==="boss"?12:25;
       for(let i=0;i<count;i++)gems.push({id:nextId++,x:e.x+rand(-e.r,e.r),y:e.y+rand(-e.r,e.r),value:e.xp/count,type:Math.floor(Math.random()*5),r:9,phase:Math.random()*6.28,spawnTime:time,stackCount:1});
     }
-    if(e.kind!=="elite")burst(e.x,e.y,e.kind==="normal"?"#ffe174":"#ff6b68",e.kind==="normal"?5:18);
+    burst(e.x,e.y,e.kind==="normal"?"#ffe174":e.kind==="elite"?"#ff826b":"#ff6b68",e.kind==="normal"?5:e.kind==="elite"?14:18);
     if(e.kind!=="elite"&&source==="orbit"&&skills.orbit>=5){
       const config=performanceConfig();
       if(config.orbitHalfEffects){
@@ -11051,6 +11054,14 @@
       levelScreen.classList.remove("autoTrainingLocked");
       if(autoTrainingGuard)autoTrainingGuard.classList.add("hidden");
     }
+  }
+  function pickLevelUpChoiceByHotkey(index){
+    if(performanceProfile()!==2||levelScreen.classList.contains("hidden")||levelScreen.classList.contains("autoTrainingLocked"))return false;
+    const cards=[...choicesEl.querySelectorAll(".choice")];
+    const card=cards[index];
+    if(!card)return false;
+    card.click();
+    return true;
   }
   function autoSkillPriorityLevel(id){
     if(id==="burst")return skills.burst;
@@ -13038,17 +13049,18 @@
     const p=worldToScreen(e.x,e.y),s=e.r/18;
     if(!screenPointVisible(p,Math.max(96*s,e.r*4,88)))return;
     const challengeWhale=isBossChallengeMode()&&e.kind==="final"&&e.type==="whale";
+    const showHitFlash=e.hit&&e.kind!=="boss"&&e.kind!=="final";
     const snapshot=challengeWhale?null:getEnemySnapshot(e.type);
     if(snapshot){
       ctx.save();
-      if(e.hit)ctx.globalAlpha=.55;
+      if(showHitFlash)ctx.globalAlpha=.55;
       ctx.imageSmoothingEnabled=false;
       const size=96*s;
       ctx.drawImage(snapshot,Math.round(p.x-size/2),Math.round(p.y-size/2),Math.round(size),Math.round(size));
       ctx.restore();
     }else{
       ctx.save();ctx.translate(p.x,p.y);ctx.scale(s,s);
-      if(e.hit)ctx.globalAlpha=.55;
+      if(showHitFlash)ctx.globalAlpha=.55;
       if(challengeWhale){
         drawBossChallengeWhaleSprite();
       }else if(EVENT_ENEMY_TYPES.has(e.type)){
@@ -13755,19 +13767,32 @@
     ctx.restore();
   }
 
-  function drawFlower(x,y,size,alpha){
-    ctx.globalAlpha=alpha;
-    ctx.fillStyle="#fffdf1";
+  const flowerSnapshotCache=new Map();
+  function getFlowerSnapshot(size){
+    const key=Math.round(size*2)/2;
+    if(flowerSnapshotCache.has(key))return flowerSnapshotCache.get(key);
+    const half=Math.ceil(key*1.2+3),canvasEl=document.createElement("canvas");
+    canvasEl.width=half*2;canvasEl.height=half*2;
+    const px=canvasEl.getContext("2d"),x=half,y=half;
+    px.fillStyle="#fffdf1";
     for(let i=0;i<6;i++){
       const a=i*Math.PI/3;
-      ctx.beginPath();
-      ctx.arc(x+Math.cos(a)*size*.62,y+Math.sin(a)*size*.62,size*.48,0,Math.PI*2);
-      ctx.fill();
+      px.beginPath();
+      px.arc(x+Math.cos(a)*key*.62,y+Math.sin(a)*key*.62,key*.48,0,Math.PI*2);
+      px.fill();
     }
-    ctx.fillStyle="#ffd83d";
-    ctx.beginPath();ctx.arc(x,y,size*.46,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#fff19a";
-    ctx.beginPath();ctx.arc(x-size*.12,y-size*.12,size*.15,0,Math.PI*2);ctx.fill();
+    px.fillStyle="#ffd83d";
+    px.beginPath();px.arc(x,y,key*.46,0,Math.PI*2);px.fill();
+    px.fillStyle="#fff19a";
+    px.beginPath();px.arc(x-key*.12,y-key*.12,key*.15,0,Math.PI*2);px.fill();
+    const entry={canvas:canvasEl,half};
+    flowerSnapshotCache.set(key,entry);
+    return entry;
+  }
+  function drawFlower(x,y,size,alpha){
+    const flower=getFlowerSnapshot(size);
+    ctx.globalAlpha=alpha;
+    ctx.drawImage(flower.canvas,x-flower.half,y-flower.half);
     ctx.globalAlpha=1;
   }
 
@@ -14917,6 +14942,10 @@
         e.preventDefault();
         askReloadPage();
       }
+      return;
+    }
+    if(/^Digit[1-4]$/.test(e.code)&&pickLevelUpChoiceByHotkey(Number(e.code.slice(-1))-1)){
+      e.preventDefault();
       return;
     }
     if(keyMap[e.code]){e.preventDefault();setKey(keyMap[e.code],true);}
