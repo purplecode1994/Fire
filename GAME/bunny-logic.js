@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=670;
+  const APP_VERSION=675;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -161,7 +161,7 @@
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
   let gardenDevDateOverride="";
   let runRewarded=false,activityRewarded=false,transitioning=false;
-  let activityStageMode=ACTIVITY_CARROT_MODE,lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:0,coins:0,points:0,stones:[]};
+  let activityStageMode=ACTIVITY_CARROT_MODE,activityCarrotRunStartStage=0,activityCarrotRunStage=0,lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:0,coins:0,points:0,stones:[],stages:0};
   let trainingDummyStats={active:false,total:0,firstDamageAt:0,lastDamageAt:0,bySource:{}};
   let settingsDialogState=null;
   let bookMainTab="skills",bookStageTab=1;
@@ -180,7 +180,8 @@
   const CARROT_BASE_COOLDOWN=.72;
   const CARROT_MIN_CHAIN_INTERVAL=2/60;
   const CARROT_BREAK_SHOT_COUNT=6;
-  const CARROT_BREAK_COOLDOWN=1;
+  const CARROT_BREAK_COOLDOWN=.5;
+  const CARROT_VOLLEY_RELOAD_COOLDOWN=.4;
   let xpSoundLastTime=0;
   let debugOverlayEnabled=false,debugFrameMs=16.7,debugFps=60,debugHeapMb=0,debugPeakFrameMs=16.7;
   let hudSampleTimer=0,hudEnemyCount=0,hudKills=0,hudKps=0,hudKpsBonus=0,hudWaveSeconds=0;
@@ -549,7 +550,7 @@
     return{
       points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,
       totalDeathKills:0,totalDeaths:0,bestInfiniteSeconds:0,
-      infiniteTotalKills:0,coins:0,activityCoins:0,rareBreakStones:0,breakStones:{},activityRunDate:"",activityRunsToday:0,trainingDummyClears:0,
+      infiniteTotalKills:0,coins:0,activityCoins:0,rareBreakStones:0,breakStones:{},activityRunDate:"",activityRunsToday:0,activityCarrotStage:0,trainingDummyClears:0,
       claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,
       equipmentUnlockSeen:false,equipmentInventory:["bittenCarrot"],equippedWeaponId:"bittenCarrot",equippedRingId:"",shopBoughtWholeCarrot:false,equipmentEnhance:{},equipmentBreakthrough:{},forgeDailyDate:"",forgeDailyUsed:0,
       desertUnlocked:false,snowUnlocked:false,forestPathUnlocked:false,forestSeaUnlocked:false,cookieUnlocked:false,toyUnlocked:false,
@@ -1254,6 +1255,7 @@
       data.rareBreakStones=data.breakStones.rare;
       data.activityRunDate=String(data.activityRunDate||"");
       data.activityRunsToday=Math.max(0,Math.floor(Number(data.activityRunsToday)||0));
+      data.activityCarrotStage=Math.max(0,Math.floor(Number(data.activityCarrotStage)||0));
       data.trainingDummyClears=Math.max(0,Math.floor(Number(data.trainingDummyClears)||0));
       data.garden=normalizeGardenState(data.garden);
       if(!data.equipmentBreakthrough||typeof data.equipmentBreakthrough!=="object"||Array.isArray(data.equipmentBreakthrough))data.equipmentBreakthrough={};
@@ -1294,6 +1296,7 @@
     syncBreakStoneState(meta);
     meta.activityRunDate=String(meta.activityRunDate||"");
     meta.activityRunsToday=Math.max(0,Math.floor(Number(meta.activityRunsToday)||0));
+    meta.activityCarrotStage=Math.max(0,Math.floor(Number(meta.activityCarrotStage)||0));
     meta.trainingDummyClears=Math.max(0,Math.floor(Number(meta.trainingDummyClears)||0));
     meta.garden=normalizeGardenState(meta.garden);
     if(!meta.equipmentBreakthrough||typeof meta.equipmentBreakthrough!=="object"||Array.isArray(meta.equipmentBreakthrough))meta.equipmentBreakthrough={};
@@ -5772,21 +5775,22 @@
   function settleActivityReward(success=false){
     if(activityRewarded)return 0;
     activityRewarded=true;
-    lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[]};
+    lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[],stages:0};
     if(isActivityTrialMode()){
       const coins=success?Math.max(1,Math.floor(Math.max(0,kills)*.001)):0;
       if(coins>0)meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))+coins;
       const stones=success?awardActivityTrialBreakStones():[];
-      lastActivityReward={mode:ACTIVITY_TRIAL_MODE,seeds:0,coins,points:0,stones};
+      lastActivityReward={mode:ACTIVITY_TRIAL_MODE,seeds:0,coins,points:0,stones,stages:0};
       saveMeta();
       return coins;
     }
-    const earned=success?Math.max(1,Math.min(10,1+Math.floor(Math.max(0,kills)/80))):0;
-    const coins=success?Math.max(ACTIVITY_CARROT_COIN_MIN,Math.min(ACTIVITY_CARROT_COIN_MAX,Math.floor(Math.max(0,kills)/1200))):0;
+    const cleared=activityCarrotClearedThisRun();
+    const earned=cleared>0?Math.max(1,Math.min(10,cleared+Math.floor(Math.max(0,kills)/900))):0;
+    const coins=cleared>0?Math.max(ACTIVITY_CARROT_COIN_MIN,Math.min(ACTIVITY_CARROT_COIN_MAX,ACTIVITY_CARROT_COIN_MIN+(cleared-1)*3+Math.floor(Math.max(0,kills)/1800))):0;
     let points=0;
-    if(success){
+    if(cleared>0){
       const normalKills=Math.max(0,kills-eliteKills-bossKills);
-      points=applyPointRewardBonus(Math.floor(normalKills/25)+eliteKills*3+bossKills*10+25+Math.floor(time/60)*3);
+      points=applyPointRewardBonus(cleared*30000+Math.floor(normalKills/25)+eliteKills*3+Math.floor(time/60)*3);
       meta.points+=points;
       meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))+coins;
     }
@@ -5794,7 +5798,7 @@
       meta.garden=normalizeGardenState(meta.garden);
       meta.garden.seeds=Math.max(0,Math.floor(Number(meta.garden.seeds)||0))+earned;
     }
-    lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:earned,coins,points,stones:[]};
+    lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:earned,coins,points,stones:[],stages:cleared};
     saveMeta();
     return earned;
   }
@@ -8747,6 +8751,18 @@
   function isActivityTrialMode(){
     return activityStageMode===ACTIVITY_TRIAL_MODE;
   }
+  function isActivityCarrotMode(){
+    return activityStageMode===ACTIVITY_CARROT_MODE;
+  }
+  function activityCarrotSavedStage(){
+    return Math.max(0,Math.floor(Number(meta.activityCarrotStage)||0));
+  }
+  function activityCarrotCurrentStageNo(){
+    return Math.max(0,Math.floor(Number(activityCarrotRunStage)||0))+1;
+  }
+  function activityCarrotClearedThisRun(){
+    return Math.max(0,Math.floor(Number(activityCarrotRunStage)||0)-Math.max(0,Math.floor(Number(activityCarrotRunStartStage)||0)));
+  }
   function activityEnemyPool(){
     return isActivityTrialMode()?["coppercoin","silvercoin","goldcoin","billmonster","diamondcoin"]:["babycarrot","babycarrot","carrotbrute"];
   }
@@ -9746,7 +9762,10 @@
     hudKpsBonus=hudWaveSeconds=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;carrotShotsSinceBreak=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;luminousSlashActiveTimer=0;luminousSlashCooldownTimer=0;luminousSlashCooldownDamage=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[]};
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;carrotShotsSinceBreak=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;luminousSlashActiveTimer=0;luminousSlashCooldownTimer=0;luminousSlashCooldownDamage=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;
+    activityCarrotRunStartStage=isEventMode()&&isActivityCarrotMode()?activityCarrotSavedStage():0;
+    activityCarrotRunStage=activityCarrotRunStartStage;
+    lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[],stages:0};
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
     infiniteClearCount=0;
@@ -9777,6 +9796,9 @@
       maxBossChallengeFieldSkills(true);
       setupTrainingDummyArena();
       spawnTrainingDummy();
+    }
+    if(isEventMode()&&isActivityCarrotMode()){
+      announce("胡鬧胡蘿蔔連戰",`第 ${activityCarrotCurrentStageNo()} 階段開始；10 分鐘後挑戰 Boss`,"#ffd45e",4);
     }
     intro.classList.add("hidden");endScreen.classList.add("hidden");levelScreen.classList.add("hidden");pauseScreen.classList.add("hidden");
     pauseBtn.classList.add("visible");
@@ -10178,7 +10200,7 @@
         timeline.seen.add("event-boss");
         spawnEnemy(isActivityTrialMode()?"chestmimic":EVENT_BOSS_TYPE,"boss");
         if(isActivityTrialMode())announce("強化試煉寶箱怪出現！","擊敗後結算活動兌換幣","#67d9ff",4);
-        else announce("胡鬧的胡蘿蔔出現！","擊敗後會掉落神秘胡蘿蔔種子","#ffd45e",4);
+        else announce(`胡鬧的胡蘿蔔・第 ${activityCarrotCurrentStageNo()} 階段`,"擊敗後 3 秒進入下一階段，放棄時結算已擊敗階段","#ffd45e",4);
       }
       return;
     }
@@ -10879,6 +10901,24 @@
     announce("擂台突破！",`進入 ${infiniteZoneName(nextZone)} 輪迴，敵人繼續變強`,"#ffe16a",4);
     beep(660,.35,.045,"triangle");
   }
+  function finishActivityCarrotStage(){
+    const clearedStage=activityCarrotCurrentStageNo();
+    activityCarrotRunStage=clearedStage;
+    meta.activityCarrotStage=Math.max(activityCarrotSavedStage(),activityCarrotRunStage);
+    saveMeta();
+    clearPooledShots(shots);
+    enemies=[];shots=[];enemyShots=[];gems=[];effects=[];texts=[];areas=[];petShots=[];bananas=[];chests=[];pickups=[];bossObstacles=[];
+    announcements=[];activeAnnouncement=null;
+    sharedTargetCache=null;sharedTargetTimer=0;
+    time=0;spawnClock=0;shotClock=0;battleStartDelay=BATTLE_START_DELAY;
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;
+    carrotVolley=0;carrotShotsSinceBreak=0;pendingCarrotShots=0;
+    finalPhase="none";finalTimer=0;bossArena.active=false;
+    timeline.seen.clear();
+    effects.push({kind:"flash",life:.2});
+    announce("胡鬧胡蘿蔔連戰",`第 ${clearedStage} 階段突破！現在進入第 ${activityCarrotCurrentStageNo()} 階段`,"#ffd45e",4);
+    beep(660,.35,.045,"triangle");
+  }
   function bossClearPointPreview(){
     if(isBossChallengeMode()||isTrainingDummyMode())return 0;
     if(isActivityTrialMode())return 0;
@@ -10888,16 +10928,17 @@
   }
   function scheduleBossClear(e){
     if(bossClearPending)return;
+    const carrotContinue=isEventMode()&&isActivityCarrotMode()&&e?.type===EVENT_BOSS_TYPE;
     const transfer=isInfiniteMode();
-    const duration=transfer?3:5;
-    const points=bossClearPointPreview();
+    const duration=transfer||carrotContinue?3:5;
+    const points=carrotContinue?0:bossClearPointPreview();
     finalPhase="clear";
     finalTimer=0;
-    bossClearPending={timer:duration,duration,action:transfer?"transfer":"return",actionLabel:transfer?"轉移":"返回",points};
+    bossClearPending={timer:duration,duration,action:carrotContinue?"activityCarrotNext":transfer?"transfer":"return",actionLabel:carrotContinue?"下一階段":transfer?"轉移":"返回",points};
     enemyShots=[];areas=[];
-    const dropText=points>0?`BOSS 掉落強化點數 +${formatCommaNumber(points)}`:"BOSS 掉落獎勵已確認";
+    const dropText=carrotContinue?`胡鬧胡蘿蔔第 ${activityCarrotCurrentStageNo()} 階段擊破`:points>0?`BOSS 掉落強化點數 +${formatCommaNumber(points)}`:"BOSS 掉落獎勵已確認";
     text(e.x,e.y-e.r-34,dropText,"#ffe45f",20,"pickup");
-    announce("BOSS 擊破！",`${dropText}｜${duration}秒後${bossClearPending.actionLabel}`,"#ffe45f",duration);
+    announce("通關！",`${dropText}｜${duration}秒後${bossClearPending.actionLabel}`,"#ffe45f",duration);
     beep(660,.35,.045,"triangle");
   }
   function updateBossClearPending(dt){
@@ -10907,6 +10948,7 @@
     const action=bossClearPending.action;
     bossClearPending=null;
     if(action==="transfer")finishInfiniteBoss();
+    else if(action==="activityCarrotNext")finishActivityCarrotStage();
     else win();
     return true;
   }
@@ -11263,30 +11305,26 @@
     giantCarrotCooldown=Math.max(0,giantCarrotCooldown-dt);
     shotClock-=dt;
     while(shotClock<=0){
-      if(carrotShotsSinceBreak>=CARROT_BREAK_SHOT_COUNT){
-        carrotShotsSinceBreak=0;
-        shotClock+=CARROT_BREAK_COOLDOWN;
-        break;
-      }
       if(pendingCarrotShots<=0){
         if(!beginCarrotVolley()){
           shotClock=Math.max(CARROT_MIN_CHAIN_INTERVAL,CARROT_BASE_COOLDOWN/player.attackSpeed);
           break;
         }
       }
+      const volleyCount=Math.max(1,Math.min(6,player.projectiles));
       if(!fireCarrotShot()){
         pendingCarrotShots=0;
         shotClock=Math.max(CARROT_MIN_CHAIN_INTERVAL,CARROT_BASE_COOLDOWN/player.attackSpeed);
         break;
       }
       pendingCarrotShots=Math.max(0,pendingCarrotShots-1);
-      carrotShotsSinceBreak++;
-      if(carrotShotsSinceBreak>=CARROT_BREAK_SHOT_COUNT){
-        carrotShotsSinceBreak=0;
-        shotClock+=CARROT_BREAK_COOLDOWN;
+      if(pendingCarrotShots<=0){
+        shotClock+=volleyCount<=1
+          ?Math.max(CARROT_MIN_CHAIN_INTERVAL,CARROT_BASE_COOLDOWN/player.attackSpeed)
+          :CARROT_VOLLEY_RELOAD_COOLDOWN;
         break;
       }
-      const volleyInterval=Math.max(CARROT_MIN_CHAIN_INTERVAL,CARROT_BASE_COOLDOWN/Math.max(1,player.attackSpeed*Math.max(1,player.projectiles)));
+      const volleyInterval=Math.max(CARROT_MIN_CHAIN_INTERVAL,CARROT_BASE_COOLDOWN/Math.max(1,player.attackSpeed*volleyCount));
       shotClock+=volleyInterval;
     }
     if(skills.peanut){updatePlayer.pet=(updatePlayer.pet||0)-dt;if(updatePlayer.pet<=0){updatePlayer.pet=Math.max(.35,1.3-skills.peanut*.16);firePet();}}
@@ -12096,7 +12134,7 @@
       if(!isTrainingDummyMode())timeline();
       updateAnnouncements(dt);
     }
-    if(updateBossClearPending(dt))return;
+    if(updateBossClearPending(dt)&&!bossClearPending)return;
     if(isTrainingDummyMode()&&time>=TRAINING_DUMMY_MAX_SECONDS){
       finishTrainingDummyTimeout();
       return;
@@ -13112,7 +13150,9 @@
       ctx.fillStyle="#fff";ctx.font="bold 12px monospace";ctx.textAlign="center";
       ctx.fillText(`關卡 BOSS ${e.bars}/3`,p.x,y-15);ctx.textAlign="left";
     }else if(e.kind!=="normal"){
-      const w=e.r*2.2;rect(p.x-w/2,p.y-e.r-12,w,5,"#391d2c");rect(p.x-w/2,p.y-e.r-12,w*(e.hp/e.maxHp),5,"#ffd45e");
+      const w=e.r*2.2,ratio=clamp(e.hp/e.maxHp,0,1);
+      rect(p.x-w/2,p.y-e.r-12,w,5,"#391d2c");
+      rect(p.x-w/2,p.y-e.r-12,w*ratio,5,"#ffd45e");
     }
     if(e.slow>0){
       ctx.globalAlpha=.65;
@@ -14192,7 +14232,7 @@
     ctx.textBaseline="middle";
     ctx.font="bold 20px 'Microsoft JhengHei',sans-serif";
     ctx.fillStyle="#ffe45f";
-    ctx.fillText("BOSS 掉落",x+w/2,y+24);
+    ctx.fillText("通關",x+w/2,y+24);
     ctx.font="bold 16px 'Microsoft JhengHei',sans-serif";
     ctx.fillStyle="#fff4c7";
     const reward=bossClearPending.points>0?`強化點數 +${formatCommaNumber(bossClearPending.points)}`:"獎勵已確認";
@@ -14469,6 +14509,13 @@
   function rewardTotalLines(){
     return `目前共 💎 ${formatCommaNumber(meta.coins||0)} 鑽石<br>目前共 ${formatCommaNumber(meta.points||0)} 點`;
   }
+  function activityCarrotEndSummaryHtml(emptyText="尚未擊敗新的活動 Boss 階段，不會掉落種子。"){
+    const stages=Math.max(0,Math.floor(Number(lastActivityReward.stages)||0));
+    if(stages<=0){
+      return `${emptyText}<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>下次從第 ${activityCarrotCurrentStageNo()} 階段開始<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+    }
+    return `本局已擊敗胡鬧胡蘿蔔 ${formatCommaNumber(stages)} 階段<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(lastActivityReward.coins)}<br>本局獲得強化點數 ${formatCommaNumber(lastActivityReward.points)}<br>本局獲得神秘胡蘿蔔種子 ${formatCommaNumber(lastActivityReward.seeds)} 顆<br>下次從第 ${activityCarrotCurrentStageNo()} 階段開始<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+  }
 
   function recordDeathRunStats(){
     settleRunCoins();
@@ -14510,7 +14557,7 @@
       }else{
         document.getElementById("endTitle").textContent="胡鬧的胡蘿蔔擊退！";
         document.getElementById("endSub").textContent="兔兔撿回了神秘胡蘿蔔種子";
-        document.getElementById("endText").innerHTML=`擊倒 ${kills}・活動 Boss ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(lastActivityReward.coins)}<br>本局獲得強化點數 ${formatCommaNumber(lastActivityReward.points)}<br>本局獲得神秘胡蘿蔔種子 ${formatCommaNumber(lastActivityReward.seeds)} 顆<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+        document.getElementById("endText").innerHTML=activityCarrotEndSummaryHtml("尚未擊敗新的活動 Boss 階段，不會掉落種子。");
       }
       beep(660,.4,.05);
       return;
@@ -14564,7 +14611,7 @@
       :isEventMode()
       ?(isActivityTrialMode()
         ?`未完成強化試煉，不會獲得活動兌換幣。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
-        :`未擊敗活動 Boss，不會掉落種子。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`)
+        :activityCarrotEndSummaryHtml("尚未擊敗新的活動 Boss 階段，不會掉落種子。"))
       :`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>${rewardTotalLines()}`;
     beep(180,.7,.05,"sawtooth");
   }
@@ -14600,11 +14647,11 @@
     document.getElementById("endText").innerHTML=isBossChallengeMode()
       ?`此為測試模式用；要更新請詢問用戶。<br>中途離開不結算強化點數與通關解鎖`
       :isTrainingDummyMode()
-      ?`中途離開稻草人訓練場，不發放擊破獎勵。<br>${trainingDummySummaryHtml()}`
+      ?`中途結束，已結算本次訓練數據。<br>未擊破稻草人，不發放鑽石。<br>${trainingDummySummaryHtml()}`
       :isEventMode()
       ?(isActivityTrialMode()
         ?`中途離開不會獲得活動兌換幣。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
-        :`中途離開不會掉落種子。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`)
+        :activityCarrotEndSummaryHtml("尚未擊敗新的活動 Boss 階段，不會掉落種子。"))
       :isInfiniteMode()
       ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
       :`中途離開不計完整擊殺點數<br>生存點數 ${earned}${soulPointBonusRate()>0?`（獵魂 +${formatPercentRate(soulPointBonusRate())}）`:""}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
