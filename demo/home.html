@@ -26,8 +26,7 @@
       gap: 20px;
       padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
     }
-    a.button,
-    button.button {
+    a.button {
       display: inline-block;
       padding: 16px 28px;
       min-width: 220px;
@@ -44,21 +43,18 @@
       transition: transform .05s ease, box-shadow .2s ease, background .2s ease;
       cursor: pointer;
     }
-    a.button:active,
-    button.button:active { transform: scale(.98); }
+    a.button:active { transform: scale(.98); }
     a.button:hover,
-    a.button:focus-visible,
-    button.button:hover,
-    button.button:focus-visible {
+    a.button:focus-visible {
       background: var(--btn-bg-hover);
       outline: none;
       box-shadow: 0 8px 20px rgba(0,0,0,.16);
     }
-    button.button.typhoon {
+    a.button.typhoon {
       background: var(--btn-alt);
     }
-    button.button.typhoon:hover,
-    button.button.typhoon:focus-visible {
+    a.button.typhoon:hover,
+    a.button.typhoon:focus-visible {
       background: var(--btn-alt-hover);
     }
   </style>
@@ -67,34 +63,12 @@
   <a class="button" href="shift-handover.html" aria-label="交接巡檢">交接巡檢</a>
   <a class="button" href="schedule.html" aria-label="班表">班表</a>
   <a class="button" href="equipment.html" aria-label="設備操作">設備操作</a>
-  <button
+  <a
     class="button typhoon"
-    type="button"
+    href="https://script.google.com/macros/s/PASTE_DEPLOYMENT_ID/exec?page=typhoon"
     aria-label="颱風巡檢"
-    data-target="巴威颱風巡檢.html"
-    onclick="openIfExists(this.dataset.target)"
   >
     颱風巡檢
-  </button>
-
-  <script>
-    async function openIfExists(targetUrl) {
-      try {
-        const response = await fetch(targetUrl, {
-          method: 'GET',
-          cache: 'no-store'
-        });
-
-        if (response.ok) {
-          window.location.href = targetUrl;
-          return;
-        }
-      } catch (error) {
-        console.warn('Page check failed:', error);
-      }
-
-      alert('尚未找到對應的巡檢頁面，暫時無法進入。');
-    }
-  </script>
+  </a>
 </body>
 </html>
