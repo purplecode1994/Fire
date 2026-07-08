@@ -12,6 +12,8 @@
       --bg: #f7f7f8;
       --btn-alt: #1f7a55;
       --btn-alt-hover: #166040;
+      --btn-brown: #8b5e3c;
+      --btn-brown-hover: #724a2d;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
@@ -57,6 +59,13 @@
     a.button.typhoon:focus-visible {
       background: var(--btn-alt-hover);
     }
+    a.button.floor {
+      background: var(--btn-brown);
+    }
+    a.button.floor:hover,
+    a.button.floor:focus-visible {
+      background: var(--btn-brown-hover);
+    }
   </style>
 </head>
 <body>
@@ -69,6 +78,13 @@
     aria-label="颱風巡檢"
   >
     颱風巡檢
+  </a>
+  <a
+    class="button floor"
+    href="indoor-floor-redirect.html"
+    aria-label="戶內落水頭地板"
+  >
+    戶內落水頭地板
   </a>
 </body>
 </html>
