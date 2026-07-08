@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=681;
+  const APP_VERSION=682;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -13890,6 +13890,11 @@
     const {x,y,r}=luminousSlashButtonLayout();
     if(Math.hypot(px-x,py-y)>r+10)return false;
     e.preventDefault();
+    triggerLuminousSlashAction();
+    return true;
+  }
+  function triggerLuminousSlashAction(){
+    if(!running||paused||ended||!luminousSlashAvailable())return false;
     if(activateLuminousSlash())playUiClick();
     else beep(180,.08,.025,"square");
     return true;
@@ -14942,6 +14947,10 @@
         e.preventDefault();
         askReloadPage();
       }
+      return;
+    }
+    if(e.code==="KeyR"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&triggerLuminousSlashAction()){
+      e.preventDefault();
       return;
     }
     if(/^Digit[1-4]$/.test(e.code)&&pickLevelUpChoiceByHotkey(Number(e.code.slice(-1))-1)){
