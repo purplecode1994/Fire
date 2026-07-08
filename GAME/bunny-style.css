@@ -894,11 +894,13 @@
     #stageSelect,#stageSelectModal { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 12px auto 0; width: min(300px,84%); }
     #stageSelectModal.bossMode > button { display: none; }
     #stageSelectModal.bossMode #bossChallengePanel { display: block; }
-    #stageSelectModal #infiniteStageModal { display: none; }
+    #stageSelectModal #infiniteStageModal,
+    #stageSelectModal #trainingDummyStageModal { display: none; }
     #stageSelectModal .eventCaveStage,
     #stageSelectModal .eventTrialStage { display: none; }
     #stageSelectModal.specialMode > button { display: none; }
-    #stageSelectModal.specialMode #infiniteStageModal { display: flex; }
+    #stageSelectModal.specialMode #infiniteStageModal,
+    #stageSelectModal.specialMode #trainingDummyStageModal { display: flex; }
     #stageSelectModal.eventMode > button { display: none; }
     #stageSelectModal.eventMode .eventCaveStage,
     #stageSelectModal.eventMode .eventTrialStage { display: flex; }
@@ -2133,7 +2135,7 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      image-rendering: pixelated;
+      image-rendering: auto;
     }
     .bookSkillIcon .skillIconImage {
       width: 64px;

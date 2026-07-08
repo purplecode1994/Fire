@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=649;
+  const APP_VERSION=668;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -20,7 +20,13 @@
   const INFINITE_STAGE=12;
   const BOSS_CHALLENGE_STAGE=13;
   const EVENT_STAGE=14;
+  const TRAINING_DUMMY_STAGE=15;
   const EVENT_DURATION=600;
+  const TRAINING_DUMMY_MAX_SECONDS=8*60*60;
+  const TRAINING_DUMMY_BASE_HP=10000000;
+  const TRAINING_DUMMY_BASE_DEFENSE=150;
+  const TRAINING_DUMMY_REGEN_RATE=.005;
+  const TRAINING_DUMMY_RESET_IDLE_SECONDS=10;
   const EVENT_DAILY_LIMIT=3;
   const ACTIVITY_CARROT_MODE="carrot";
   const ACTIVITY_TRIAL_MODE="trial";
@@ -39,17 +45,19 @@
   const GARDEN_SLOW_FERTILIZER_PRICE=25;
   const GARDEN_PREMIUM_SLOW_FERTILIZER_PRICE=45;
   const EQUIPMENT_QUALITY_ORDER=["rare","uncommon","epic","legendary","mythic","immortal","eternal"];
-  const LUMINOUS_SLASH_DURATION=20;
-  const LUMINOUS_SLASH_COOLDOWN=60;
-  const LUMINOUS_SLASH_CHANCES=[0,.05,.10,.15,.25,.40];
+  const LUMINOUS_SLASH_DURATION=10;
+  const LUMINOUS_SLASH_COOLDOWNS=[0,60,50,40,30,20];
+  const LUMINOUS_SLASH_COOLDOWN_REDUCTION=.4;
+  const LUMINOUS_SLASH_MIN_COOLDOWN_AFTER_HIT=2;
+  const LUMINOUS_SLASH_DAMAGE_RATIOS=[0,1,2.2,3.6,4.7,5.8];
   const LUMINOUS_SLASH_ASSETS={
     upRight:`assets/skills/combo-slash-up-right.png?v=${APP_VERSION}`,
     downRight:`assets/skills/combo-slash-down-right.png?v=${APP_VERSION}`
   };
   const LUMINOUS_SLASH_ICON_ASSET=`assets/skills/luminous-slash-skill-icon.png?v=${APP_VERSION}`;
   const LUMINOUS_SLASH_CONFIG={
-    imageAnchorX:.37,imageAnchorY:.64,imageScale:.11,imageOpacity:.94,
-    rightAngleDeg:71,leftAngleDeg:103,angleSpreadDeg:27,baseRotationDeg:-45,
+    imageAnchorX:.26,imageAnchorY:.72,imageScale:.11,imageOpacity:.94,
+    rightAngleDeg:74,leftAngleDeg:110,angleSpreadDeg:8,baseRotationDeg:-45,
     singleDuration:.421,drawSec:.321,secondDelay:.162,
     rightFadeIn:.05,rightFadeOut:.13,leftFadeIn:.095,leftFadeOut:.193
   };
@@ -145,7 +153,7 @@
   let kps=0,kpsWindowKills=0,kpsWindowTime=0,kpsPressure=0,kpsBonusTimer=0,kpsSpawnBonus=0;
   let chestClock=0,chestTravel=0,lastChestX=0,lastChestY=0,magnetAll=false,magnetTimer=0,gemPressureRecycleTimer=0;
   let carrotVolley=0,pinkyBoostTimer=0,pinkyDamageBoost=1,pendingCarrotShots=0;
-  let luminousSlashActiveTimer=0,luminousSlashCooldownTimer=0;
+  let luminousSlashActiveTimer=0,luminousSlashCooldownTimer=0,luminousSlashCooldownDamage=0;
   let poisonTimer=0,poisonRate=0,stunTimer=0,confuseTimer=0,potionHealTimer=0,blizzardTimer=0,blizzardPushTimer=0,blizzardPushAngle=0,blizzardPushSpeed=0,currentStage=1,infiniteBossZone=0;
   let bossChallengeType="plant",bossChallengeSourceStage=1,bossChallengeMenuOpen=false,bossChallengeStartTime=0;
   let encirclementPressure=0,encirclementCharge=0,encirclementSampleClock=0,encirclementPressureRounds=0;
@@ -154,12 +162,13 @@
   let gardenDevDateOverride="";
   let runRewarded=false,activityRewarded=false,transitioning=false;
   let activityStageMode=ACTIVITY_CARROT_MODE,lastActivityReward={mode:ACTIVITY_CARROT_MODE,seeds:0,coins:0,points:0,stones:[]};
+  let trainingDummyStats={active:false,total:0,firstDamageAt:0,lastDamageAt:0,bySource:{}};
   let settingsDialogState=null;
   let bookMainTab="skills",bookStageTab=1;
   const BATTLE_START_DELAY=1.6;
   let escalationStart=null;
   let killSurgeActive=false;
-  let finalPhase="none",finalTimer=0;
+  let finalPhase="none",finalTimer=0,bossClearPending=null;
   let bossArena={active:false,x:0,y:0,r:360};
   let audio=null,muted=false;
   let runCoins=0,runCoinsSettled=false,walletCoins=0,autoSaveTimer=0,coinDebugExpanded=false,testModeSilentPaused=false;
@@ -538,7 +547,7 @@
     return{
       points:0,totalKills:0,totalElites:0,totalBosses:0,totalPlaySeconds:0,
       totalDeathKills:0,totalDeaths:0,bestInfiniteSeconds:0,
-      infiniteTotalKills:0,coins:0,activityCoins:0,rareBreakStones:0,breakStones:{},activityRunDate:"",activityRunsToday:0,
+      infiniteTotalKills:0,coins:0,activityCoins:0,rareBreakStones:0,breakStones:{},activityRunDate:"",activityRunsToday:0,trainingDummyClears:0,
       claimedRewards:[],damage:0,crit:0,speed:0,critDamage:0,life:0,regen:0,armorPen:0,
       equipmentUnlockSeen:false,equipmentInventory:["bittenCarrot"],equippedWeaponId:"bittenCarrot",equippedRingId:"",shopBoughtWholeCarrot:false,equipmentEnhance:{},equipmentBreakthrough:{},forgeDailyDate:"",forgeDailyUsed:0,
       desertUnlocked:false,snowUnlocked:false,forestPathUnlocked:false,forestSeaUnlocked:false,cookieUnlocked:false,toyUnlocked:false,
@@ -1243,6 +1252,7 @@
       data.rareBreakStones=data.breakStones.rare;
       data.activityRunDate=String(data.activityRunDate||"");
       data.activityRunsToday=Math.max(0,Math.floor(Number(data.activityRunsToday)||0));
+      data.trainingDummyClears=Math.max(0,Math.floor(Number(data.trainingDummyClears)||0));
       data.garden=normalizeGardenState(data.garden);
       if(!data.equipmentBreakthrough||typeof data.equipmentBreakthrough!=="object"||Array.isArray(data.equipmentBreakthrough))data.equipmentBreakthrough={};
       migrateLegacyStageClears(data);
@@ -1282,6 +1292,7 @@
     syncBreakStoneState(meta);
     meta.activityRunDate=String(meta.activityRunDate||"");
     meta.activityRunsToday=Math.max(0,Math.floor(Number(meta.activityRunsToday)||0));
+    meta.trainingDummyClears=Math.max(0,Math.floor(Number(meta.trainingDummyClears)||0));
     meta.garden=normalizeGardenState(meta.garden);
     if(!meta.equipmentBreakthrough||typeof meta.equipmentBreakthrough!=="object"||Array.isArray(meta.equipmentBreakthrough))meta.equipmentBreakthrough={};
     meta.masterVolume=volumeValue("masterVolume");
@@ -1330,6 +1341,7 @@
   }
   function currentStageLabel(){
     if(isBossChallengeMode())return "頭目挑戰";
+    if(isTrainingDummyMode())return "稻草人訓練場";
     if(currentStage===EVENT_STAGE)return isActivityTrialMode()?"強化試煉":"胡鬧的胡蘿蔔";
     if(isInfiniteMode())return infiniteZoneName();
     if(currentStage===11)return "虛空核心";
@@ -1348,6 +1360,7 @@
     if(stage===INFINITE_STAGE)return "輪迴";
     if(stage===BOSS_CHALLENGE_STAGE)return "頭目";
     if(stage===EVENT_STAGE)return "活動";
+    if(stage===TRAINING_DUMMY_STAGE)return "稻草人";
     const labels={1:"菜園",2:"沙漠",3:"雪原",4:"林徑",5:"樹海",6:"餅乾屋",7:"夢工廠",8:"熔岩",9:"海底",10:"鐘塔",11:"虛空"};
     return labels[stage]||"菜園";
   }
@@ -1697,6 +1710,7 @@
     testModeExportBtn.disabled=!devTestRecorder.samples.length;
   }
   function openTestModeOverlay(message=""){
+    debugPanelMode="off";
     if(message)testModeHint.textContent=message;
     else testModeHint.textContent="可切換手機/電腦取樣，並在本局內開啟不死與自動選技。";
     if(running&&!ended&&!paused&&levelScreen.classList.contains("hidden")){
@@ -6626,6 +6640,7 @@
     if(stage===INFINITE_STAGE)return 2000;
     if(stage===BOSS_CHALLENGE_STAGE)return 0;
     if(stage===EVENT_STAGE)return Math.max(1,combatPower());
+    if(stage===TRAINING_DUMMY_STAGE)return 1;
     if(stage===11)return 48000;
     if(stage===10)return 39000;
     if(stage===9)return 32000;
@@ -6647,8 +6662,8 @@
     return {label:"容易",className:"easy"};
   }
   function stageDifficultyMonsterMultiplier(stage=currentStage){
-    if(isInfiniteMode()||isBossChallengeMode()||isEventMode())return 1;
-    if(stage===INFINITE_STAGE||stage===BOSS_CHALLENGE_STAGE||stage===EVENT_STAGE)return 1;
+    if(isInfiniteMode()||isBossChallengeMode()||isEventMode()||isTrainingDummyMode())return 1;
+    if(stage===INFINITE_STAGE||stage===BOSS_CHALLENGE_STAGE||stage===EVENT_STAGE||stage===TRAINING_DUMMY_STAGE)return 1;
     const info=stageDifficultyInfo(stage);
     if(info.className==="danger")return 1.5;
     if(info.className==="hard")return 1.25;
@@ -6661,6 +6676,7 @@
     const labelHtml=`<span class="stageLabel"><span>${label}</span>${descHtml}</span>`;
     if(stage===BOSS_CHALLENGE_STAGE)return `${labelHtml}<span class="stageBadge challenge">測試</span>`;
     if(stage===EVENT_STAGE)return `${labelHtml}<span class="stageBadge easy">今日 ${activityRunsUsed()}/${EVENT_DAILY_LIMIT}</span>`;
+    if(stage===TRAINING_DUMMY_STAGE)return `${labelHtml}<span class="stageBadge challenge">訓練</span>`;
     const info=stageDifficultyInfo(stage);
     return `${labelHtml}<span class="stageBadge ${info.className}">${info.label}</span>`;
   }
@@ -6683,6 +6699,118 @@
   }
   function isEventMode(){
     return currentStage===EVENT_STAGE;
+  }
+  function isTrainingDummyMode(){
+    return currentStage===TRAINING_DUMMY_STAGE;
+  }
+  function trainingDummyClearCount(){
+    return Math.max(0,Math.floor(Number(meta.trainingDummyClears)||0));
+  }
+  function trainingDummyStageIndex(){
+    return trainingDummyClearCount()+1;
+  }
+  function trainingDummyHpMultiplier(){
+    const stage=trainingDummyStageIndex();
+    return stage<=1?1:1+stage*.1;
+  }
+  function trainingDummyDefenseMultiplier(){
+    const stage=trainingDummyStageIndex();
+    return stage<=1?1:1+(stage-1)*.1;
+  }
+  function trainingDummyRewardForNextClear(){
+    return (trainingDummyClearCount()+1)*100;
+  }
+  function trainingDummyHp(){
+    return Math.round(TRAINING_DUMMY_BASE_HP*trainingDummyHpMultiplier());
+  }
+  function trainingDummyDefense(){
+    return Math.round(TRAINING_DUMMY_BASE_DEFENSE*trainingDummyDefenseMultiplier());
+  }
+  function resetTrainingDummyStats(){
+    trainingDummyStats={active:isTrainingDummyMode(),total:0,firstDamageAt:0,lastDamageAt:0,bySource:{}};
+  }
+  function setupTrainingDummyArena(){
+    bossArena.active=true;
+    bossArena.zone=effectiveZone();
+    bossArena.r=360;
+    bossArena.x=player.x;
+    bossArena.y=player.y;
+    bossObstacles=[];
+  }
+  function trainingDummyDps(){
+    if(!trainingDummyStats.total||!trainingDummyStats.firstDamageAt)return 0;
+    return trainingDummyStats.total/Math.max(.1,time-trainingDummyStats.firstDamageAt);
+  }
+  function trainingDummySourceLabel(source){
+    const labels={
+      normal:"小胡蘿蔔",
+      luminousSlash:"流光二連斬",
+      giant:"巨大胡蘿蔔",
+      giantBurn:"巨蘿蔔燃燒",
+      orbit:"蘿蔔旋風",
+      burst:"菜園爆發",
+      peanut:"花生跟班",
+      rolling:"花生滾石",
+      rockFragment:"滾石碎片",
+      pinky:"PINKY 香蕉",
+      banana:"PINKY 香蕉",
+      chestBomb:"寶箱炸彈"
+    };
+    return labels[source]||source||"其他";
+  }
+  function recordTrainingDummyDamage(e,amount,source="normal"){
+    if(!isTrainingDummyMode()||!e||e.type!=="trainingdummy"||!(amount>0))return;
+    const effective=Math.max(0,Math.min(amount,e.hp));
+    if(!(effective>0))return;
+    if(!trainingDummyStats.firstDamageAt)trainingDummyStats.firstDamageAt=time;
+    trainingDummyStats.lastDamageAt=time;
+    trainingDummyStats.total+=effective;
+    const key=trainingDummySourceLabel(source);
+    trainingDummyStats.bySource[key]=(trainingDummyStats.bySource[key]||0)+effective;
+  }
+  function trainingDummySummaryHtml(reward=0){
+    const rows=Object.entries(trainingDummyStats.bySource||{})
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,8)
+      .map(([name,value])=>`${name}：${formatCommaNumber(Math.round(value))}`)
+      .join("<br>")||"尚無傷害紀錄";
+    return `總傷害 ${formatCommaNumber(Math.round(trainingDummyStats.total||0))}<br>DPS ${formatCommaNumber(Math.round(trainingDummyDps()))}<br>${rows}${reward?`<br>獎勵 💎 ${formatCommaNumber(reward)}`:""}`;
+  }
+  function finishTrainingDummyWin(){
+    if(ended)return;
+    ended=true;
+    running=false;
+    runRewarded=true;
+    pauseBtn.classList.remove("visible");
+    pauseScreen.classList.add("hidden");
+    updateMonitorButtons();
+    const reward=trainingDummyRewardForNextClear();
+    meta.trainingDummyClears=trainingDummyClearCount()+1;
+    meta.coins=Math.max(0,Math.floor(Number(meta.coins)||0))+reward;
+    runCoins=reward;
+    saveMeta();
+    renderMeta();
+    endScreen.classList.remove("hidden");
+    document.getElementById("endTitle").textContent="稻草人擊破！";
+    document.getElementById("endSub").textContent=`第 ${formatCommaNumber(meta.trainingDummyClears)} 次擊破完成`;
+    document.getElementById("endText").innerHTML=`${trainingDummySummaryHtml(reward)}<br>下次第 ${formatCommaNumber(trainingDummyStageIndex())} 階段：HP ${formatCommaNumber(trainingDummyHp())}｜防禦 ${trainingDummyDefense()}。<br>${rewardTotalLines()}`;
+    beep(660,.4,.05);
+  }
+  function finishTrainingDummyTimeout(){
+    if(ended)return;
+    ended=true;
+    running=false;
+    runRewarded=true;
+    pauseBtn.classList.remove("visible");
+    pauseScreen.classList.add("hidden");
+    updateMonitorButtons();
+    saveMeta();
+    renderMeta();
+    endScreen.classList.remove("hidden");
+    document.getElementById("endTitle").textContent="稻草人訓練結束";
+    document.getElementById("endSub").textContent="已達 8 小時上限";
+    document.getElementById("endText").innerHTML=`${trainingDummySummaryHtml()}<br>未擊破，不發放鑽石。`;
+    beep(220,.22,.035,"square");
   }
   function bossChallengeZone(){
     return Math.max(0,bossChallengeSourceStage-1);
@@ -6776,6 +6904,8 @@
   }
   function stageTimerLabel(){
     if(isBossChallengeMode())return `頭目挑戰 ${finalBossDisplayName(bossChallengeType)}`;
+    if(isTrainingDummyMode())return `稻草人 ${formatStageTime(time)} / 8:00:00`;
+    if(bossClearPending)return `${Math.ceil(Math.max(0,bossClearPending.timer))} 秒後${bossClearPending.actionLabel}`;
     if(isInfiniteMode()){
       if(finalPhase!=="none"){
         const bossType=bossTypeForZone(infiniteBossZone);
@@ -6784,6 +6914,10 @@
       return `${infiniteZoneName()} ${formatStageTime(infiniteDisplayedTime())}`;
     }
     return time>=DURATION?"關卡 BOSS":formatStageTime(Math.max(1,time));
+  }
+  function stageTimerColor(){
+    if(isInfiniteMode()||isTrainingDummyMode())return "#d8f6ff";
+    return time>=480?"#ff6270":"#fff4b2";
   }
 
   const gardenStagePreviewConfig={
@@ -7708,6 +7842,57 @@
     }
   }
 
+  function drawTrainingDummyStagePreview(ctx,w,h){
+    ctx.clearRect(0,0,w,h);
+    ctx.imageSmoothingEnabled=false;
+    const px=(x,y,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(ww),Math.round(hh));};
+    const bg=ctx.createLinearGradient(0,0,0,h);
+    bg.addColorStop(0,"#18122f");
+    bg.addColorStop(.58,"#251a3f");
+    bg.addColorStop(.59,"#5d3b24");
+    bg.addColorStop(1,"#2b1a12");
+    ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+    for(let i=0;i<22;i++){
+      const x=(i*37+11)%w,y=(i*19+6)%62;
+      px(x,y,i%5?2:3,i%5?2:3,i%3?"#b8eeff":"#ffe88b");
+    }
+    px(0,80,w,12,"#7a5132");
+    px(0,89,w,47,"#50301f");
+    for(let x=0;x<w;x+=18){px(x,91+(x%3)*5,12,3,"#8a5a37");px(x+5,121-(x%2)*4,9,3,"#2a1913");}
+    px(14,18,162,20,"#251a3f");
+    px(18,22,154,12,"#3b244f");
+    px(20,24,56,8,"#ef405f");
+    px(76,24,52,8,"#ffb23d");
+    px(128,24,42,8,"#5ed982");
+    ctx.strokeStyle="#ffe98b";
+    ctx.lineWidth=2;
+    ctx.strokeRect(14.5,18.5,161,19);
+    px(38,64,114,8,"#17121f");
+    px(91,47,9,69,"#70451f");
+    px(55,57,81,14,"#d6a455");
+    px(61,52,69,9,"#7c4c25");
+    px(64,48,62,8,"#d7a64f");
+    px(74,62,43,47,"#b98134");
+    px(68,70,55,15,"#e4bb61");
+    px(81,77,8,8,"#22150e");
+    px(104,77,8,8,"#22150e");
+    px(83,93,26,6,"#5f351a");
+    px(69,111,54,8,"#4b2b18");
+    px(42,73,27,9,"#d6a455");
+    px(122,73,27,9,"#d6a455");
+    px(35,78,21,8,"#8a5b2a");
+    px(136,78,21,8,"#8a5b2a");
+    ctx.fillStyle="rgba(255,229,111,.18)";
+    ctx.beginPath();
+    ctx.ellipse(96,84,76,43,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="#ffe45f";
+    ctx.font="bold 12px sans-serif";
+    ctx.textAlign="center";
+    ctx.fillText("BOSS 測試",95,128);
+    ctx.textAlign="left";
+  }
+
   function drawCarrotEventStagePreview(ctx,w,h){
     ctx.clearRect(0,0,w,h);
     ctx.imageSmoothingEnabled=false;
@@ -7836,6 +8021,15 @@
       stageArt.appendChild(canvas);
       stageName.textContent=`頭目挑戰（測試版）・${finalBossDisplayName(type)}`;
       stagePower.innerHTML="此為測試模式用；要更新請詢問用戶。";
+      return;
+    }
+    if(stage===TRAINING_DUMMY_STAGE){
+      stageArt.className="stageTrainingDummy stageTrainingDummyCanvas";
+      stageArt.innerHTML='<canvas id="trainingDummyStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
+      const canvas=document.getElementById("trainingDummyStageArtCanvas");
+      if(canvas)drawTrainingDummyStagePreview(canvas.getContext("2d"),190,136);
+      stageName.textContent="特殊關卡・稻草人訓練場";
+      stagePower.innerHTML=`BOSS 血條測試｜第 ${formatCommaNumber(trainingDummyStageIndex())} 階段<br>HP ${formatCommaNumber(trainingDummyHp())}｜防禦 ${trainingDummyDefense()}｜擊破獎勵 ${formatCommaNumber(trainingDummyRewardForNextClear())} 鑽石`;
       return;
     }
     if(stage===EVENT_STAGE){
@@ -8146,7 +8340,7 @@
     renderEquipmentPanel();
     setupMetaMarquees();
     const bossMode=devModeActive&&bossChallengeMenuOpen;
-    const specialModeSelected=currentStage===INFINITE_STAGE&&!bossMode;
+    const specialModeSelected=(currentStage===INFINITE_STAGE||currentStage===TRAINING_DUMMY_STAGE)&&!bossMode;
     const eventModeSelected=currentStage===EVENT_STAGE&&!bossMode;
     stageSelectModal?.classList.toggle("bossMode",bossMode);
     stageSelectModal?.classList.toggle("specialMode",specialModeSelected);
@@ -8178,6 +8372,7 @@
     eventStage?.classList.toggle("active",eventModeSelected&&!isActivityTrialMode());
     eventTrialStage?.classList.toggle("active",eventModeSelected&&isActivityTrialMode());
     infiniteStage.classList.toggle("active",currentStage===INFINITE_STAGE);
+    trainingDummyStage?.classList.toggle("active",currentStage===TRAINING_DUMMY_STAGE);
     bossChallengeStage?.classList.add("hidden");
     bossChallengePanel?.classList.toggle("hidden",!bossMode);
     desertStage.disabled=stageAvailability(2)!=="open";
@@ -8255,7 +8450,14 @@
           stageButtonMarkup("強化試煉（今日次數用完）",EVENT_STAGE,`每日 ${EVENT_DAILY_LIMIT} 次，明天重置`):
           stageButtonMarkup("強化試煉（未解鎖）",EVENT_STAGE,"2 萬戰力開放");
     }
-    infiniteStage.textContent="無限輪迴";
+    infiniteStage.innerHTML=stageButtonMarkup("無限輪迴",INFINITE_STAGE,"每 10 分鐘進入下一輪擂台");
+    if(trainingDummyStage){
+      trainingDummyStage.innerHTML=stageButtonMarkup(
+        "稻草人訓練場",
+        TRAINING_DUMMY_STAGE,
+        `第 ${formatCommaNumber(trainingDummyStageIndex())} 階段｜HP ${formatCommaNumber(trainingDummyHp())}｜防禦 ${trainingDummyDefense()}｜獎勵 ${formatCommaNumber(trainingDummyRewardForNextClear())} 鑽石`
+      );
+    }
     if(bossChallengeStage)bossChallengeStage.innerHTML=stageButtonMarkup("頭目挑戰模式",BOSS_CHALLENGE_STAGE);
     const homeStages=[
       [homeGardenStage,1,"第一關・菜園"],
@@ -8309,14 +8511,14 @@
     {id:"burst",icon:"🌱",name:"菜園爆發",desc:"定時造成範圍傷害；LV5進化巨大衝擊圈",valid(){return skills.burst<5;},apply(){skills.burst++;}},
     {id:"peanut",icon:"🥜",name:"花生跟班",desc:"花生自動丟石頭；LV5進化貫穿滾石",valid(){return skills.peanut<5;},apply(){skills.peanut++;}},
     {id:"pinky",icon:"🍌",name:"PINKY 跟班",desc:"香蕉直線穿透後原路返回；接回強化攻擊與移速",valid(){return skills.pinky<5;},apply(){skills.pinky++;}},
-    {id:"luminousSlash",icon:"✦",iconImage:LUMINOUS_SLASH_ICON_ASSET,name:"流光二連斬",desc:"完整胡蘿蔔專屬主動技；啟動20秒，小胡蘿蔔命中時機率追加二連斬",valid(){return hasWholeCarrotEquipped()&&skills.luminousSlash<5;},apply(){skills.luminousSlash++;}},
+    {id:"luminousSlash",icon:"✦",iconImage:LUMINOUS_SLASH_ICON_ASSET,name:"流光二連斬",desc:"主動10秒；冷卻60→20秒。期間小胡蘿蔔命中必定二連斬，受傷可縮短冷卻。",valid(){return hasWholeCarrotEquipped()&&skills.luminousSlash<5;},apply(){skills.luminousSlash++;}},
     {id:"brain",icon:"🧠",name:"超級頭腦",desc:"經驗獲取量累計：LV1 +40%／LV2 +100%／LV3 +180%／LV4 +280%／LV5 +400%",valid(){return skills.brain<5;},apply(){const gain=[.4,.6,.8,1,1.2][skills.brain]||0;player.xpGain+=gain;skills.brain++;}},
     {id:"armorPen",icon:"🛡",name:"破甲胡蘿蔔",desc:"+6% 無視防禦（第二關 / 第三關 / 無限輪迴）",cap:5,valid(){return (currentStage===2||currentStage===3||isInfiniteMode())&&upgradeLevels.armorPen<5;},apply(){player.armorPen+=.06;}}
   ];
-  function maxBossChallengeFieldSkills(){
+  function maxBossChallengeFieldSkills(forceLuminous=false){
     let applied=0;
     for(const upgrade of upgrades){
-      if(upgrade.id==="luminousSlash"&&!hasWholeCarrotEquipped())continue;
+      if(upgrade.id==="luminousSlash"&&!forceLuminous&&!hasWholeCarrotEquipped())continue;
       const target=upgrade.id==="multi"?5:(upgrade.cap||5);
       for(let i=0;i<target;i++){
         upgrade.apply();
@@ -8413,7 +8615,8 @@
     bat:{hp:105,speed:128,damage:18,xp:12,r:15,color:"#4b304e",defense:8},
     eyeball:{hp:190,speed:58,damage:26,xp:16,r:20,color:"#e2d7c8",defense:16},
     imp:{hp:260,speed:78,damage:34,xp:20,r:21,color:"#aa3348",defense:24},
-    reaper:{hp:98000,speed:36,damage:42,xp:520,r:68,color:"#331421",defense:60}
+    reaper:{hp:98000,speed:36,damage:42,xp:520,r:68,color:"#331421",defense:60},
+    trainingdummy:{hp:TRAINING_DUMMY_BASE_HP,speed:0,damage:0,xp:0,r:70,color:"#d7b06a",defense:TRAINING_DUMMY_BASE_DEFENSE}
   };
   const adventureSkillEntries=[
     {id:"damage",icon:"🗡️",name:"胡蘿蔔威力",type:"攻擊",effect:"+18% 攻擊力",detail:"直接提升主武器基礎傷害。",levels:["+18% 攻擊力","+36% 攻擊力","+54% 攻擊力","+72% 攻擊力","+90% 攻擊力"]},
@@ -8422,7 +8625,7 @@
     {id:"critd",icon:"💥",name:"爆擊強化",type:"爆傷",effect:"+30% 場內爆擊傷害",detail:"只放大爆擊時的傷害上限。",levels:["+30% 爆擊傷害","+60% 爆擊傷害","+90% 爆擊傷害","+120% 爆擊傷害","+150% 爆擊傷害"]},
     {id:"multi",icon:"🥕",name:"同步發射",type:"主武器",effect:"+1 發同步蘿蔔",detail:"點滿後含本體共 6 支，並以散射發射。",levels:["同步 2 支蘿蔔","同步 3 支蘿蔔","同步 4 支蘿蔔","同步 5 支蘿蔔","同步 6 支蘿蔔"]},
     {id:"giantCarrot",icon:"🥕",name:"巨大胡蘿蔔",type:"進化型態",effect:"同步發射 LV5 解鎖",detail:"每 3 秒投出巨大胡蘿蔔；爆炸傷害 1280% 基礎傷害，燃燒每秒造成爆炸總傷害 18%。",evolution:true,levels:["未解鎖","未解鎖","未解鎖","未解鎖","同步發射 LV5：巨大胡蘿蔔"]},
-    {id:"unknownCarrotActive",icon:"✦",iconImage:LUMINOUS_SLASH_ICON_ASSET,name:"完整胡蘿蔔・流光二連斬",type:"主動技能",effect:"完整胡蘿蔔專屬；啟動20秒，冷卻60秒",detail:"裝備完整的胡蘿蔔後，關卡升級池會出現此技能。啟動後小胡蘿蔔命中時，機率追加二連斬並顯示藍色勛章總傷害。",evolution:true,unknownActive:false,levels:["5% 發動二連斬","10% 發動二連斬","15% 發動二連斬","25% 發動二連斬","40% 發動二連斬"]},
+    {id:"unknownCarrotActive",icon:"✦",iconImage:LUMINOUS_SLASH_ICON_ASSET,name:"完整胡蘿蔔・流光二連斬",type:"主動技能",effect:"啟動10秒｜冷卻60→20秒",detail:"冷卻完成時出現藍色呼吸光暈。冷卻中每承受最大生命100%的傷害，剩餘冷卻縮短40%，最低保留2秒。啟動期間小胡蘿蔔命中必定追加二連斬。",evolution:true,unknownActive:false,levels:["+100% × 2｜冷卻60秒","+220% × 2｜冷卻50秒","+360% × 2｜冷卻40秒","+470% × 2｜冷卻30秒","+580% × 2｜冷卻20秒"]},
     {id:"pierce",icon:"🏹",name:"穿透胡蘿蔔",type:"穿透",effect:"+1 穿透數",detail:"讓主武器連續打穿更多敵人。",levels:["+1 穿透","+2 穿透","+3 穿透","+4 穿透","+5 穿透"]},
     {id:"speed",icon:"👟",name:"兔兔快跑",type:"移動",effect:"+12% 移動速度",detail:"讓兔兔更容易拉扯與閃避。",levels:["+12% 移動速度","+24% 移動速度","+36% 移動速度","+48% 移動速度","+60% 移動速度"]},
     {id:"vital",icon:"❤️",name:"血多皮厚",type:"生存",effect:"+20% 最大生命",detail:"提升最大生命並立即回一段血。",levels:["+20% 最大生命","+40% 最大生命","+60% 最大生命","+80% 最大生命","+100% 最大生命"]},
@@ -8570,6 +8773,7 @@
     if(stage===BOSS_CHALLENGE_STAGE)return devModeActive?"open":"locked";
     if(stage===INFINITE_STAGE)return "open";
     if(stage===EVENT_STAGE)return activityStageState()==="open"?"open":"locked";
+    if(stage===TRAINING_DUMMY_STAGE)return "open";
     if(stage>IMPLEMENTED_STAGE_COUNT)return "comingSoon";
     if(stage<=1)return "open";
     if(stage===2)return meta.desertUnlocked?"open":"locked";
@@ -9540,14 +9744,14 @@
     hudKpsBonus=hudWaveSeconds=0;
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;luminousSlashActiveTimer=0;luminousSlashCooldownTimer=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[]};
+    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;luminousSlashActiveTimer=0;luminousSlashCooldownTimer=0;luminousSlashCooldownDamage=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[]};
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
     infiniteClearCount=0;
     poisonTimer=poisonRate=stunTimer=confuseTimer=0;
     potionHealTimer=0;blizzardTimer=0;blizzardPushTimer=0;blizzardPushAngle=0;blizzardPushSpeed=0;
     running=true;paused=false;ended=false;runRewarded=false;escalationStart=null;killSurgeActive=false;
-    finalPhase="none";finalTimer=0;bossArena.active=false;bossArena.zone=effectiveZone();bossArena.r=currentStage>=2||isInfiniteMode()?470:430;bossArena.x=player.x;bossArena.y=player.y;
+    finalPhase="none";finalTimer=0;bossClearPending=null;bossArena.active=false;bossArena.zone=effectiveZone();bossArena.r=currentStage>=2||isInfiniteMode()?470:430;bossArena.x=player.x;bossArena.y=player.y;
     keys.up=keys.down=keys.left=keys.right=false;
     resetStick();
   }
@@ -9561,11 +9765,17 @@
     }
     unloadGardenFrame();
     reset();
+    resetTrainingDummyStats();
     if(autoTrainingActive){
       player.xpGain+=.2;
       text(player.x,player.y-46,autoTrainingSource==="charm"?"自動研修・經驗+20%":"自動研修啟動","#8fffd0",18,"pickup");
     }
     if(isBossChallengeMode())maxBossChallengeFieldSkills();
+    if(isTrainingDummyMode()){
+      maxBossChallengeFieldSkills(true);
+      setupTrainingDummyArena();
+      spawnTrainingDummy();
+    }
     intro.classList.add("hidden");endScreen.classList.add("hidden");levelScreen.classList.add("hidden");pauseScreen.classList.add("hidden");
     pauseBtn.classList.add("visible");
     positionMonitorTabs();
@@ -9608,7 +9818,7 @@
   }
   function requestAutoTrainingThenStart(){
     if(autoTrainingPromptOpen)return;
-    if(isBossChallengeMode()){
+    if(isBossChallengeMode()||isTrainingDummyMode()){
       startWithoutAutoTraining();
       return;
     }
@@ -9751,6 +9961,14 @@
       if(kind==="elite"){hp*=1.8;damage*=1.3;defense=Math.round(defense*1.25);size*=1.2;xp*=2;}
       if(kind==="boss"||isActivityBossType(type)){hp=eventStats.hp;damage=eventStats.damage;defense=eventStats.defense;size=eventStats.r;speed=80;xp=eventStats.xp;}
     }
+    if(type==="trainingdummy"){
+      hp=trainingDummyHp();
+      size=70;
+      speed=0;
+      damage=0;
+      xp=0;
+      defense=trainingDummyDefense();
+    }
     const zone=effectiveZone();
     if(zone>=1&&defense===0)defense=5;
     if(kind==="elite")defense+=zone>=1?10:0;
@@ -9818,6 +10036,27 @@
       applyFinalBossPhase(enemy,0);
     }
     enemies.push(enemy);
+  }
+  function spawnTrainingDummy(){
+    resetTrainingDummyStats();
+    spawnEnemy("trainingdummy","boss");
+    const dummy=enemies[enemies.length-1];
+    if(!dummy)return;
+    dummy.x=(bossArena.active?bossArena.x:player.x)+Math.min(220,(bossArena.r||360)*.56);
+    dummy.y=bossArena.active?bossArena.y:player.y;
+    dummy.r=70;
+    dummy.kind="final";
+    dummy.bars=1;
+    dummy.totalBars=1;
+    dummy.maxHp=trainingDummyHp();
+    dummy.hp=dummy.maxHp;
+    dummy.defense=trainingDummyDefense();
+    dummy.damage=0;
+    dummy.speed=0;
+    dummy.xp=0;
+    dummy.trainingDummy=true;
+    dummy.shoot=999999;
+    announce("稻草人訓練場",`HP ${formatCommaNumber(dummy.maxHp)}｜防禦 ${dummy.defense}`,"#ffe45f",4);
   }
 
   function normalStageEnemyPool(stage,elapsed=time){
@@ -9925,6 +10164,7 @@
   }
 
   function timeline(){
+    if(isTrainingDummyMode())return;
     const sec=Math.floor(time);
     if(isBossChallengeMode())return;
     if(isEventMode()){
@@ -10470,6 +10710,7 @@
 
   function finishEnemyDamage(e,amount,source="normal"){
     e.lastHitAt=time;
+    recordTrainingDummyDamage(e,amount,source);
     e.hp-=amount;e.hit=.1;
     if(e.kind==="final"&&e.hp<=0&&e.bars>1){
       e.bars--;
@@ -10504,53 +10745,84 @@
   function luminousSlashLevel(){
     return Math.max(0,Math.min(5,Math.floor(Number(skills.luminousSlash)||0)));
   }
-  function luminousSlashChance(){
-    return LUMINOUS_SLASH_CHANCES[luminousSlashLevel()]||0;
+  function luminousSlashDamageRatio(level=luminousSlashLevel()){
+    return LUMINOUS_SLASH_DAMAGE_RATIOS[Math.max(0,Math.min(5,Math.floor(Number(level)||0)))]||0;
+  }
+  function luminousSlashDamageLabel(level=luminousSlashLevel()){
+    return `+${Math.round(luminousSlashDamageRatio(level)*100)}% × 2`;
+  }
+  function luminousSlashCooldownDuration(level=luminousSlashLevel()){
+    return LUMINOUS_SLASH_COOLDOWNS[Math.max(0,Math.min(5,Math.floor(Number(level)||0)))]||0;
   }
   function luminousSlashAvailable(){
-    return hasWholeCarrotEquipped()&&luminousSlashLevel()>0;
+    return (hasWholeCarrotEquipped()||isTrainingDummyMode())&&luminousSlashLevel()>0;
   }
   function luminousSlashActive(){
     return luminousSlashAvailable()&&luminousSlashActiveTimer>0;
   }
+  function luminousSlashReady(){
+    return luminousSlashAvailable()&&luminousSlashCooldownTimer<=0&&luminousSlashActiveTimer<=0;
+  }
+  function applyLuminousSlashCooldownDamage(damage){
+    if(!luminousSlashAvailable()||luminousSlashActiveTimer>0||luminousSlashCooldownTimer<=0||!(damage>0))return;
+    const chunk=Math.max(1,player.maxHp);
+    luminousSlashCooldownDamage+=damage;
+    while(luminousSlashCooldownDamage>=chunk&&luminousSlashCooldownTimer>0){
+      luminousSlashCooldownDamage-=chunk;
+      if(luminousSlashCooldownTimer>LUMINOUS_SLASH_MIN_COOLDOWN_AFTER_HIT){
+        luminousSlashCooldownTimer=Math.max(LUMINOUS_SLASH_MIN_COOLDOWN_AFTER_HIT,luminousSlashCooldownTimer*(1-LUMINOUS_SLASH_COOLDOWN_REDUCTION));
+      }
+    }
+  }
   function updateLuminousSlash(dt){
     if(luminousSlashActiveTimer>0)luminousSlashActiveTimer=Math.max(0,luminousSlashActiveTimer-dt);
     if(luminousSlashCooldownTimer>0)luminousSlashCooldownTimer=Math.max(0,luminousSlashCooldownTimer-dt);
+    if(luminousSlashCooldownTimer<=0)luminousSlashCooldownDamage=0;
+    else luminousSlashCooldownDamage=Math.min(luminousSlashCooldownDamage,Math.max(1,player.maxHp));
   }
   function activateLuminousSlash(){
-    if(!luminousSlashAvailable()||luminousSlashCooldownTimer>0)return false;
+    if(!luminousSlashReady())return false;
     luminousSlashActiveTimer=LUMINOUS_SLASH_DURATION;
-    luminousSlashCooldownTimer=LUMINOUS_SLASH_DURATION+LUMINOUS_SLASH_COOLDOWN;
-    announce("流光二連斬","小胡蘿蔔命中時有機率追加二連斬","#78dcff",2.2);
+    luminousSlashCooldownTimer=LUMINOUS_SLASH_DURATION+luminousSlashCooldownDuration();
+    luminousSlashCooldownDamage=0;
+    announce("流光二連斬","10 秒內小胡蘿蔔命中必定追加二連斬","#78dcff",2.2);
     text(player.x,player.y-58,"流光二連斬啟動","#7fe8ff",20,"pickup");
     beep(960,.12,.04,"triangle");
     return true;
   }
   function triggerLuminousSlashOnHit(e,baseDamage,source="normal"){
-    if(!luminousSlashActive()||Math.random()>=luminousSlashChance())return false;
-    const first=rollEnemyDamage(e,baseDamage*player.critDamage,true,source);
-    const second=rollEnemyDamage(e,baseDamage*player.critDamage,true,source);
+    if(!luminousSlashActive())return false;
+    const slashDamage=Math.max(0,baseDamage)*player.critDamage*luminousSlashDamageRatio();
+    const first=rollEnemyDamage(e,slashDamage,true,source);
+    const second=rollEnemyDamage(e,slashDamage,true,source);
     const total=first+second;
-    spawnLuminousSlashEffects(e);
+    if(e.kind!=="elite")spawnLuminousSlashEffects(e);
     text(e.x,e.y-e.r-10,`${Math.max(0,Math.round(total))}!`,"#ffe75f",19,"luminousCritical");
     playCritSample(.65,1.08+rand(-.03,.03));
     finishEnemyDamage(e,total,"luminousSlash");
     return true;
   }
   function spawnLuminousSlashEffects(e){
+    if(time-(e.lastLuminousSlashFxAt||-999)<.08)return;
+    e.lastLuminousSlashFxAt=time;
     const cfg=LUMINOUS_SLASH_CONFIG;
-    const spread=Number(cfg.angleSpreadDeg)||0;
-    const rightTarget=cfg.rightAngleDeg+rand(-spread,spread);
-    const leftTarget=cfg.leftAngleDeg+rand(-spread,spread);
-    const rightAngle=45-rightTarget;
-    const leftAngle=leftTarget-45;
+    const spread=Math.min(8,Math.max(0,Number(cfg.angleSpreadDeg)||0));
+    const tilt=rand(-spread,spread)*Math.PI/180;
     const base={kind:"luminousSlash",x:e.x,y:e.y,r:Math.max(120,e.r+110),maxLife:cfg.singleDuration,life:cfg.singleDuration,drawSec:cfg.drawSec,scale:cfg.imageScale,opacity:cfg.imageOpacity,anchorX:cfg.imageAnchorX,anchorY:cfg.imageAnchorY};
-    effects.push({...base,imgKey:"upRight",revealFrom:"bottomLeft",delay:0,angle:rightAngle*Math.PI/180,fadeIn:cfg.rightFadeIn,fadeOut:cfg.rightFadeOut});
-    effects.push({...base,imgKey:"downRight",revealFrom:"bottomRight",delay:cfg.secondDelay,angle:leftAngle*Math.PI/180,fadeIn:cfg.leftFadeIn,fadeOut:cfg.leftFadeOut});
+    effects.push({...base,imgKey:"upRight",flipX:false,revealFrom:"bottomLeft",delay:0,angle:tilt,fadeIn:cfg.rightFadeIn,fadeOut:cfg.rightFadeOut});
+    effects.push({...base,imgKey:"upRight",flipX:true,revealFrom:"bottomRight",delay:cfg.secondDelay,angle:-tilt,fadeIn:cfg.leftFadeIn,fadeOut:cfg.leftFadeOut});
   }
 
   function killEnemy(e,source="normal"){
-    if(e.dead)return;e.dead=true;kills++;score+=e.kind==="normal"?10:e.kind==="elite"?150:500;
+    if(e.dead)return;
+    if(isTrainingDummyMode()&&e.type==="trainingdummy"){
+      e.dead=true;
+      burst(e.x,e.y,"#ffe174",24);
+      effects.push({kind:"shockwave",x:e.x,y:e.y,r:20,max:220,life:.7});
+      finishTrainingDummyWin();
+      return;
+    }
+    e.dead=true;kills++;score+=e.kind==="normal"?10:e.kind==="elite"?150:500;
     if(source!=="chestBomb")kpsWindowKills++;
     if(source!=="chestBomb"){
       eligibleKills++;
@@ -10566,8 +10838,8 @@
       const count=e.kind==="normal"?1:e.kind==="elite"?5:e.kind==="boss"?12:25;
       for(let i=0;i<count;i++)gems.push({id:nextId++,x:e.x+rand(-e.r,e.r),y:e.y+rand(-e.r,e.r),value:e.xp/count,type:Math.floor(Math.random()*5),r:9,phase:Math.random()*6.28,spawnTime:time,stackCount:1});
     }
-    burst(e.x,e.y,e.kind==="normal"?"#ffe174":"#ff6b68",e.kind==="normal"?5:18);
-    if(source==="orbit"&&skills.orbit>=5){
+    if(e.kind!=="elite")burst(e.x,e.y,e.kind==="normal"?"#ffe174":"#ff6b68",e.kind==="normal"?5:18);
+    if(e.kind!=="elite"&&source==="orbit"&&skills.orbit>=5){
       const config=performanceConfig();
       if(config.orbitHalfEffects){
         effects.push(
@@ -10577,12 +10849,11 @@
       }
     }
     if(isEventMode()&&isActivityBossType(e.type)){
-      win();
+      scheduleBossClear(e);
       return;
     }
     if(e.kind==="final"){
-      if(isInfiniteMode())finishInfiniteBoss();
-      else win();
+      scheduleBossClear(e);
     }
   }
 
@@ -10603,6 +10874,37 @@
     const nextZone=infiniteZoneAt();
     announce("擂台突破！",`進入 ${infiniteZoneName(nextZone)} 輪迴，敵人繼續變強`,"#ffe16a",4);
     beep(660,.35,.045,"triangle");
+  }
+  function bossClearPointPreview(){
+    if(isBossChallengeMode()||isTrainingDummyMode())return 0;
+    if(isActivityTrialMode())return 0;
+    const normalKills=Math.max(0,kills-eliteKills-bossKills);
+    const base=Math.floor(normalKills/25)+eliteKills*3+bossKills*10+25+Math.floor(time/60)*3;
+    return applyPointRewardBonus(isInfiniteMode()?Math.floor(base*.3):base);
+  }
+  function scheduleBossClear(e){
+    if(bossClearPending)return;
+    const transfer=isInfiniteMode();
+    const duration=transfer?3:5;
+    const points=bossClearPointPreview();
+    finalPhase="clear";
+    finalTimer=0;
+    bossClearPending={timer:duration,duration,action:transfer?"transfer":"return",actionLabel:transfer?"轉移":"返回",points};
+    enemyShots=[];areas=[];
+    const dropText=points>0?`BOSS 掉落強化點數 +${formatCommaNumber(points)}`:"BOSS 掉落獎勵已確認";
+    text(e.x,e.y-e.r-34,dropText,"#ffe45f",20,"pickup");
+    announce("BOSS 擊破！",`${dropText}｜${duration}秒後${bossClearPending.actionLabel}`,"#ffe45f",duration);
+    beep(660,.35,.045,"triangle");
+  }
+  function updateBossClearPending(dt){
+    if(!bossClearPending)return false;
+    bossClearPending.timer=Math.max(0,bossClearPending.timer-dt);
+    if(bossClearPending.timer>0)return true;
+    const action=bossClearPending.action;
+    bossClearPending=null;
+    if(action==="transfer")finishInfiniteBoss();
+    else win();
+    return true;
   }
 
   function gainXp(v){
@@ -10671,7 +10973,7 @@
       }
       if(u.id==="luminousSlash"){
         const nextLevel=Math.min(5,skills.luminousSlash+1);
-        descText=`主動20秒・冷卻60秒・小胡蘿蔔命中 ${Math.round((LUMINOUS_SLASH_CHANCES[nextLevel]||0)*100)}% 發動二連斬`;
+        descText=`主動10秒・冷卻${Math.round(luminousSlashCooldownDuration(nextLevel))}秒・受傷可縮短冷卻・期間內命中必定二連斬・${luminousSlashDamageLabel(nextLevel)}`;
       }
       card.innerHTML=`<span class="icon">${skillIconHtml(u.icon,u.iconImage,u.name)}</span><b>${nextLevelLabel}</b><small>${descText}<br>${current}</small>`;
       card.onclick=()=>{
@@ -10838,7 +11140,9 @@
 
   function hurt(amount){
     if(player.invuln>0)return;
+    const beforeHp=player.hp;
     player.hp-=amount;
+    applyLuminousSlashCooldownDamage(Math.max(0,beforeHp-Math.max(0,player.hp)));
     player.invuln=.7;
     burst(player.x,player.y,"#ff776e",8);
     if(isDevProtectedRun())player.hp=Math.max(1,player.hp);
@@ -10850,7 +11154,9 @@
     const damage=Math.max(1,player.maxHp*percent);
     if(lethal)hurt(damage);
     else{
+      const beforeHp=player.hp;
       player.hp=Math.max(1,player.hp-damage);
+      applyLuminousSlashCooldownDamage(Math.max(0,beforeHp-player.hp));
       if(grantInvuln)player.invuln=.55;
       burst(player.x,player.y,"#cf2648",10);
       text(player.x,player.y-52,`-${Math.round(percent*100)}% HP`,"#ff6680",18);
@@ -10939,7 +11245,9 @@
     }
     if(poisonTimer>0){
       poisonTimer=Math.max(0,poisonTimer-dt);
+      const beforeHp=player.hp;
       player.hp-=player.maxHp*poisonRate*dt;
+      applyLuminousSlashCooldownDamage(Math.max(0,beforeHp-Math.max(0,player.hp)));
       if(isDevProtectedRun())player.hp=Math.max(1,player.hp);
       else if(player.hp<=0)lose();
     }
@@ -11004,6 +11312,13 @@
         e.burnTime=Math.max(0,e.burnTime-dt);
         damageEnemy(e,e.burnDps*burnTick,false,"giantBurn");
         if(e.dead)continue;
+      }
+      if(isTrainingDummyMode()&&e.type==="trainingdummy"){
+        e.hp=Math.min(e.maxHp,e.hp+e.maxHp*TRAINING_DUMMY_REGEN_RATE*dt);
+        if(trainingDummyStats.total>0&&trainingDummyStats.lastDamageAt&&time-trainingDummyStats.lastDamageAt>=TRAINING_DUMMY_RESET_IDLE_SECONDS){
+          resetTrainingDummyStats();
+        }
+        continue;
       }
       if(outsideNineGrid(e.x,e.y,e.r+48)){
         e.cullTimer=(e.cullTimer||0)+dt;
@@ -11334,7 +11649,11 @@
         totalTickDamage+=tickDamage;
         if(debt.left<=0||debt.time<=0)encirclementDebts.splice(i,1);
       }
-      if(totalTickDamage>0)player.hp-=totalTickDamage;
+      if(totalTickDamage>0){
+        const beforeHp=player.hp;
+        player.hp-=totalTickDamage;
+        applyLuminousSlashCooldownDamage(Math.max(0,beforeHp-Math.max(0,player.hp)));
+      }
       encirclementReservedHp=encirclementDebtTotal();
       if(encirclementCharge<=0&&!encirclementDebts.length){
         encirclementSampleClock=0;
@@ -11405,6 +11724,7 @@
 
   function shatterRollingStone(shot,enemy){
     shot.life=0;
+    if(enemy?.kind==="elite")return;
     burst(enemy.x,enemy.y,"#aa9278",12);
     effects.push({kind:"shockwave",x:enemy.x,y:enemy.y,r:8,max:48,life:.3});
     for(let i=0;i<7;i++){
@@ -11754,8 +12074,13 @@
       updateAnnouncements(dt);
     }else{
       time+=dt;
-      timeline();
+      if(!isTrainingDummyMode())timeline();
       updateAnnouncements(dt);
+    }
+    if(updateBossClearPending(dt))return;
+    if(isTrainingDummyMode()&&time>=TRAINING_DUMMY_MAX_SECONDS){
+      finishTrainingDummyTimeout();
+      return;
     }
     hudSampleTimer+=dt;
     if(hudSampleTimer>=computeHudInterval()){
@@ -11785,7 +12110,7 @@
     }
     if(!preBattleActive)spawnClock-=dt;
     const intensity=1+time/150;
-    if(!preBattleActive&&finalPhase==="none"&&(isInfiniteMode()||time<DURATION)&&spawnClock<=0){
+    if(!isTrainingDummyMode()&&!preBattleActive&&finalPhase==="none"&&(isInfiniteMode()||time<DURATION)&&spawnClock<=0){
       countPerfWork("spawn");
       const livingCount=nearbyLivingEnemyCount();
       const enemyCap=computeEnemyCap();
@@ -12537,11 +12862,15 @@
     const config=performanceConfig(),giant=s.kind==="giant";
     ctx.save();ctx.translate(p.x,p.y);ctx.rotate(s.angle||Math.atan2(s.vy,s.vx));
     if(config.projectileGlow){
-      ctx.globalAlpha=giant?.22:.16;
+      ctx.globalAlpha=giant?.22:.14;
       ctx.fillStyle=giant?"#ffb55d":"#ff9f45";
-      ctx.beginPath();ctx.ellipse(giant?-7:-4,0,giant?24:14,giant?8:5,0,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=giant?.18:.13;
-      rect(giant?-36:-24,-2,giant?30:18,4,"#ffd36a");
+      ctx.beginPath();ctx.ellipse(giant?-7:-4,0,giant?24:12,giant?8:5,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=giant?.18:.09;
+      if(giant)rect(-36,-2,30,4,"#ffd36a");
+      else{
+        ctx.fillStyle="#ffd36a";
+        ctx.beginPath();ctx.ellipse(-14,0,7,3,0,0,Math.PI*2);ctx.fill();
+      }
       ctx.globalAlpha=1;
     }
     if(giant){
@@ -12667,6 +12996,15 @@
         drawBossChallengeWhaleSprite();
       }else if(EVENT_ENEMY_TYPES.has(e.type)){
         drawMoneyEnemySprite(e.type);
+      }else if(e.type==="trainingdummy"){
+        rect(-32,-62,64,12,"#d8a352");
+        rect(-24,-50,48,82,"#b98239");
+        rect(-38,-34,76,14,"#e2bd64");
+        rect(-12,32,24,40,"#70451f");
+        rect(-17,-23,8,8,"#24160e");
+        rect(9,-23,8,8,"#24160e");
+        rect(-13,-3,26,6,"#633819");
+        rect(-30,49,60,9,"#6c3f1f");
       }else if(e.type==="turtle"){
       rect(-15,-10,27,23,"#397d3f");rect(-10,-14,22,22,"#67b551");rect(-5,-9,12,12,"#b0d867");rect(9,-10,11,9,"#ead17c");rect(14,-8,3,3,"#171624");
     }else if(e.type==="mushroom"){
@@ -12789,7 +13127,7 @@
         ctx.shadowColor="rgba(80,150,255,.9)";
       }
       ctx.fillStyle="#111";
-      ctx.font="bold 12px monospace";
+      ctx.font="bold 14px monospace";
       ctx.textAlign="center";
       ctx.fillText(label,x,y+22);
       ctx.shadowBlur=0;
@@ -13406,26 +13744,44 @@
     const {x,y,r}=luminousSlashButtonLayout();
     const active=luminousSlashActiveTimer>0;
     const cooling=!active&&luminousSlashCooldownTimer>0;
+    const ready=luminousSlashReady();
+    const ringColor=active||ready?"#55d7ff":(cooling?"#8b8b98":"#365a76");
     ctx.save();
     ctx.translate(x,y);
+    if(ready){
+      const pulse=.18+.12*Math.sin(time*7);
+      ctx.globalAlpha=pulse;
+      ctx.fillStyle="#55d7ff";
+      ctx.beginPath();ctx.arc(0,0,r+10,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.96;
+    }
     ctx.globalAlpha=.96;
-    ctx.fillStyle=active?"#103b66":"#1b1737";
-    ctx.strokeStyle=active?"#7ff4ff":cooling?"#8b8b98":"#5fe6ff";
+    ctx.fillStyle=active||ready?"#103b66":"#1b1737";
+    ctx.strokeStyle=cooling?"#8b8b98":ringColor;
     ctx.lineWidth=4;
     ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.strokeStyle="#2c2844";
+    ctx.lineWidth=5;
+    ctx.beginPath();ctx.arc(0,0,r+4,0,Math.PI*2);ctx.stroke();
     ctx.lineWidth=2;
-    ctx.strokeStyle=active?"#d7fbff":"#21375e";
+    ctx.strokeStyle=active||ready?"#d7fbff":"#21375e";
     ctx.beginPath();ctx.arc(0,0,r-8,0,Math.PI*2);ctx.stroke();
     ctx.font="bold 17px 'Microsoft JhengHei',sans-serif";
     ctx.textAlign="center";ctx.textBaseline="middle";
     ctx.lineWidth=4;ctx.strokeStyle="#081025";ctx.fillStyle="#ffe75f";
-    ctx.strokeText("二連",0,-5);ctx.fillText("二連",0,-5);
-    ctx.font="bold 11px monospace";
-    ctx.fillStyle=active?"#aef9ff":"#c9f7ff";
-    ctx.fillText(`${Math.round(luminousSlashChance()*100)}%`,0,15);
-    if(cooling){
-      const cooldownLeft=Math.min(LUMINOUS_SLASH_COOLDOWN,luminousSlashCooldownTimer);
-      const ratio=clamp(cooldownLeft/LUMINOUS_SLASH_COOLDOWN,0,1);
+    ctx.strokeText("二連",0,0);ctx.fillText("二連",0,0);
+    if(active){
+      ctx.fillStyle="rgba(80,80,90,.78)";
+      ctx.beginPath();ctx.arc(0,0,r+1,0,Math.PI*2);ctx.fill();
+      ctx.font="bold 12px 'Microsoft JhengHei',sans-serif";
+      ctx.fillStyle="#ffffff";
+      ctx.strokeStyle="#111";
+      ctx.lineWidth=3;
+      ctx.strokeText("進行中",0,0);ctx.fillText("進行中",0,0);
+    }else if(cooling){
+      const cooldownDuration=Math.max(1,luminousSlashCooldownDuration());
+      const cooldownLeft=Math.min(cooldownDuration,luminousSlashCooldownTimer);
+      const ratio=clamp(cooldownLeft/cooldownDuration,0,1);
       ctx.fillStyle="rgba(80,80,90,.72)";
       ctx.beginPath();
       ctx.moveTo(0,0);
@@ -13435,15 +13791,9 @@
       ctx.fillStyle="#ffffff";
       ctx.strokeStyle="#111";
       ctx.lineWidth=3;
-      const label=`${cooldownLeft.toFixed(1)}s`;
-      ctx.strokeText(label,0,0);ctx.fillText(label,0,0);
-    }else if(active){
-      ctx.font="bold 12px monospace";
-      ctx.fillStyle="#ffffff";
-      ctx.strokeStyle="#063053";
-      ctx.lineWidth=3;
-      const label=`${luminousSlashActiveTimer.toFixed(1)}s`;
-      ctx.strokeText(label,0,30);ctx.fillText(label,0,30);
+      const label=cooldownLeft>9.9?`${Math.ceil(cooldownLeft)}s`:`${cooldownLeft.toFixed(1)}s`;
+      const maxLabelWidth=r*2-4;
+      ctx.strokeText(label,0,0,maxLabelWidth);ctx.fillText(label,0,0,maxLabelWidth);
     }
     ctx.restore();
   }
@@ -13538,7 +13888,7 @@
       ctx.textBaseline="middle";ctx.font="bold 15px monospace";ctx.lineWidth=4;ctx.strokeStyle="#111";ctx.fillStyle="#fff";
       ctx.strokeText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,22,26);ctx.fillText(`HP ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`,22,26);
       ctx.strokeText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);ctx.fillText(`LV ${player.level}  EXP ${Math.floor(player.xp)} / ${player.nextXp}`,22,53);
-      ctx.font="bold 18px monospace";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":"#fff4b2";ctx.strokeText(stageTimeLabel,14,101);ctx.fillText(stageTimeLabel,14,101);
+      ctx.font="bold 18px monospace";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=stageTimerColor();ctx.strokeText(stageTimeLabel,14,101);ctx.fillText(stageTimeLabel,14,101);
       ctx.textAlign="right";ctx.font="bold 15px monospace";ctx.fillStyle="#ffe16c";
       const diamondText=`💎 ${formatCommaNumber(runCoins)}`;
       drawAutoTrainingHudText(W-24-ctx.measureText(diamondText).width,100,"right");
@@ -13576,7 +13926,7 @@
     drawAutoTrainingHudText(24+ctx.measureText(compactDiamondText).width,88,"left");
     ctx.fillStyle="#fff";ctx.fillText(`擊倒 ${hudKills}  KPS ${Math.round(hudKps)}  怪物 ${formatEnemyHudCount(enemyCount)}`,14,108);
     const stageTimeLabel=stageTimerLabel();
-    ctx.textAlign="center";ctx.font="bold 25px monospace";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":time>=480?"#ff6270":"#fff4b2";
+    ctx.textAlign="center";ctx.font="bold 25px monospace";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=stageTimerColor();
     ctx.strokeText(stageTimeLabel,VW/2,22);
     ctx.fillText(stageTimeLabel,VW/2,22);
     ctx.textAlign="right";ctx.font="bold 13px monospace";ctx.fillStyle="#fff";
@@ -13620,7 +13970,7 @@
     if(killSurgeActive){ctx.font="bold 13px monospace";ctx.fillStyle="#ff6978";ctx.fillText("狂暴怪潮：數量+75%・生命+60%",18,159);}
     const remain=isInfiniteMode()?Math.max(0,600-infiniteDisplayedTime()%600):Math.max(0,DURATION-time),m=Math.floor(remain/60),s=Math.floor(remain%60);
     const stageTimeLabel=stageTimerLabel();
-    ctx.font="bold 28px monospace";ctx.textAlign="center";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=isInfiniteMode()?"#d8f6ff":time>=480?"#ff6270":"#fff4b2";
+    ctx.font="bold 28px monospace";ctx.textAlign="center";ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=stageTimerColor();
     ctx.strokeText(stageTimeLabel,W/2,22);ctx.fillText(stageTimeLabel,W/2,22);ctx.textAlign="left";
     ctx.font="bold 14px monospace";ctx.fillStyle="#fff";ctx.fillText(`🥕×${player.projectiles}  穿透${player.pierce}  爆擊${Math.round(player.crit*100)}→${Math.round(player.critStack*100)}%`,W-315,24);
     const evolved=[];
@@ -13648,6 +13998,55 @@
     if(time<4){ctx.textAlign="center";ctx.font="bold 20px sans-serif";ctx.fillStyle="#fff";ctx.fillText("WASD / 方向鍵移動，武器自動攻擊",W/2,H-34);ctx.textAlign="left";}
   }
 
+  function drawTrainingDummyPanel(){
+    if(!isTrainingDummyMode()||!running)return;
+    const dummy=enemies.find(e=>e.type==="trainingdummy"&&!e.dead);
+    const w=H>W?Math.min(W-24,270):280;
+    const rows=[
+      ["總傷害",formatCommaNumber(Math.round(trainingDummyStats.total||0))],
+      ["DPS",formatCommaNumber(Math.round(trainingDummyDps()))],
+      ["HP",dummy?`${formatCommaNumber(Math.ceil(dummy.hp))}/${formatCommaNumber(Math.ceil(dummy.maxHp))}`:"-"],
+      ["防禦",dummy?`${dummy.defense}`:"-"],
+      ["獎勵",`💎 ${formatCommaNumber(trainingDummyRewardForNextClear())}`],
+      ["閒置歸零",trainingDummyStats.lastDamageAt?`${Math.max(0,TRAINING_DUMMY_RESET_IDLE_SECONDS-(time-trainingDummyStats.lastDamageAt)).toFixed(1)}s`:"等待攻擊"]
+    ];
+    const damageRows=Object.entries(trainingDummyStats.bySource||{})
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,5)
+      .map(([name,value])=>[name,formatCommaNumber(Math.round(value))]);
+    const allRows=rows.concat(damageRows.length?[["技能傷害",""]]:[],damageRows);
+    const h=36+allRows.length*18;
+    const x=H>W?14:22;
+    const minY=H>W?244:104;
+    const targetY=H>W?Math.round(H*.36):Math.round(H*.26);
+    const y=Math.max(minY,Math.min(targetY,H-h-96));
+    ctx.save();
+    ctx.globalAlpha=.88;
+    rect(x,y,w,h,"#151025");
+    ctx.globalAlpha=1;
+    ctx.strokeStyle="#ffe78a";
+    ctx.lineWidth=2;
+    ctx.strokeRect(x+2,y+2,w-4,h-4);
+    ctx.font="bold 14px monospace";
+    ctx.fillStyle="#ffe45f";
+    ctx.textAlign="left";
+    ctx.fillText("稻草人測試",x+12,y+22);
+    ctx.font="12px monospace";
+    let yy=y+42;
+    for(const [label,value] of allRows){
+      ctx.fillStyle=label==="技能傷害"?"#7fe8ff":"#d8f6ff";
+      ctx.fillText(label,x+12,yy);
+      if(value){
+        ctx.textAlign="right";
+        ctx.fillStyle="#fff4b2";
+        ctx.fillText(value,x+w-12,yy);
+        ctx.textAlign="left";
+      }
+      yy+=18;
+    }
+    ctx.restore();
+  }
+
   function debugColor(value,warn,danger,invert=false){
     if(invert){
       if(value<=warn)return "#7eff8f";
@@ -13661,6 +14060,7 @@
 
   function drawDebugOverlay(){
     if(!debugOverlayEnabled||!running)return;
+    if(debugPanelMode==="off")return;
     const heapSupported=!!(performance&&performance.memory&&performance.memory.usedJSHeapSize);
     const heapText=heapSupported?`${debugHeapMb.toFixed(1)} MB`:"N/A";
     const audioRows=audioMonitorRows();
@@ -13723,9 +14123,28 @@
   }
 
   function drawFinalBossBar(){
-    const boss=enemies.find(e=>e.kind==="final"&&!e.dead);
+    const trainingDummyBoss=isTrainingDummyMode()?enemies.find(e=>e.type==="trainingdummy"&&!e.dead):null;
+    const boss=trainingDummyBoss||enemies.find(e=>e.kind==="final"&&!e.dead);
     if(!boss)return;
-    const width=Math.min(620,W*(H>W?.88:.58)),x=(W-width)/2,y=H>W?178:48,gap=6,barW=(width-gap*2)/3;
+    const width=Math.min(620,W*(H>W?.88:.58)),x=(W-width)/2,y=H>W?178:48;
+    if(trainingDummyBoss){
+      const ratio=clamp(boss.hp/boss.maxHp,0,1);
+      ctx.textAlign="center";
+      ctx.font="bold 17px sans-serif";
+      ctx.fillStyle="#fff4c7";
+      ctx.fillText(`稻草人 BOSS　第 ${formatCommaNumber(trainingDummyStageIndex())} 階段`,W/2,y-7);
+      rect(x,y,width,18,"#321827");
+      rect(x+2,y+2,(width-4)*ratio,14,"#ffb23d");
+      ctx.strokeStyle="#ffe9ad";
+      ctx.lineWidth=2;
+      ctx.strokeRect(Math.round(x)+.5,y+.5,Math.round(width)-1,17);
+      ctx.font="bold 12px monospace";
+      ctx.fillStyle="#fff9d6";
+      ctx.fillText(`${formatCommaNumber(Math.ceil(boss.hp))} / ${formatCommaNumber(Math.ceil(boss.maxHp))}`,W/2,y+14);
+      ctx.textAlign="left";
+      return;
+    }
+    const gap=6,barW=(width-gap*2)/3;
     ctx.textAlign="center";ctx.font="bold 17px sans-serif";ctx.fillStyle="#fff4c7";
     ctx.fillText(`${isInfiniteMode()?"擂台 BOSS":"關卡 BOSS"}　剩餘 ${boss.bars} / 3 條血`,W/2,y-7);
     for(let i=0;i<3;i++){
@@ -13738,6 +14157,33 @@
       ctx.strokeStyle="#ffe9ad";ctx.lineWidth=2;ctx.strokeRect(Math.round(bx)+.5,y+.5,Math.round(barW)-1,17);
     }
     ctx.textAlign="left";
+  }
+  function drawBossClearPending(){
+    if(!bossClearPending)return;
+    const seconds=Math.ceil(Math.max(0,bossClearPending.timer));
+    const w=Math.min(420,W-36),h=92,x=(W-w)/2,y=H>W?150:82;
+    ctx.save();
+    ctx.globalAlpha=.92;
+    rect(x,y,w,h,"#211737");
+    ctx.globalAlpha=1;
+    ctx.strokeStyle="#ffe87c";
+    ctx.lineWidth=3;
+    ctx.strokeRect(Math.round(x)+.5,Math.round(y)+.5,Math.round(w)-1,Math.round(h)-1);
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.font="bold 20px 'Microsoft JhengHei',sans-serif";
+    ctx.fillStyle="#ffe45f";
+    ctx.fillText("BOSS 掉落",x+w/2,y+24);
+    ctx.font="bold 16px 'Microsoft JhengHei',sans-serif";
+    ctx.fillStyle="#fff4c7";
+    const reward=bossClearPending.points>0?`強化點數 +${formatCommaNumber(bossClearPending.points)}`:"獎勵已確認";
+    ctx.fillText(reward,x+w/2,y+52);
+    ctx.font="bold 17px 'Microsoft JhengHei',sans-serif";
+    ctx.fillStyle="#8fffd0";
+    ctx.fillText(`${seconds} 秒後${bossClearPending.actionLabel}`,x+w/2,y+76);
+    ctx.restore();
+    ctx.textAlign="left";
+    ctx.textBaseline="alphabetic";
   }
 
   function drawBlizzardOverlay(){
@@ -13861,6 +14307,7 @@
         ctx.save();
         ctx.translate(p.x,p.y);
         ctx.rotate(e.angle||0);
+        if(e.flipX)ctx.scale(-1,1);
         ctx.globalAlpha=alpha;
         const slashImg=luminousSlashImgs[e.imgKey]||luminousSlashImgs.upRight;
         const imgReady=slashImg.complete&&slashImg.naturalWidth>0;
@@ -13940,9 +14387,11 @@
     }
     ctx.globalAlpha=1;ctx.textAlign="left";ctx.textBaseline="alphabetic";
     drawHUD();
+    drawTrainingDummyPanel();
     drawLuminousSlashButton();
     drawDebugOverlay();
     drawFinalBossBar();
+    drawBossClearPending();
     drawChestHints();
     drawPickupHints();
     drawAnnouncement();
@@ -13955,6 +14404,7 @@
   function awardRun(success){
     if(runRewarded)return 0;
     runRewarded=true;
+    if(isTrainingDummyMode())return 0;
     if(isBossChallengeMode())return 0;
     if(isEventMode()){
       const earned=settleActivityReward(success);
@@ -14003,7 +14453,7 @@
 
   function recordDeathRunStats(){
     settleRunCoins();
-    if(isEventMode()){
+    if(isEventMode()||isTrainingDummyMode()){
       saveMeta();
       return;
     }
@@ -14083,13 +14533,15 @@
     pauseBtn.classList.remove("visible");pauseScreen.classList.add("hidden");
     updateMonitorButtons();
     const earned=awardRun(false);
-    if(!isBossChallengeMode())recordDeathRunStats();
+    if(!isBossChallengeMode()&&!isTrainingDummyMode())recordDeathRunStats();
     renderMeta();
     endScreen.classList.remove("hidden");
-    document.getElementById("endTitle").textContent=isBossChallengeMode()?"頭目挑戰失敗":"兔兔倒下了";
+    document.getElementById("endTitle").textContent=isBossChallengeMode()?"頭目挑戰失敗":isTrainingDummyMode()?"稻草人訓練結束":"兔兔倒下了";
     document.getElementById("endSub").textContent=isBossChallengeMode()?`挑戰 ${finalBossDisplayName(bossChallengeType)} 失敗`:`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
     document.getElementById("endText").innerHTML=isBossChallengeMode()
       ?`此為測試模式用；要更新請詢問用戶。<br>本局不結算強化點數、鑽石與死亡紀錄`
+      :isTrainingDummyMode()
+      ?`未擊破稻草人，不發放鑽石。<br>${trainingDummySummaryHtml()}`
       :isEventMode()
       ?(isActivityTrialMode()
         ?`未完成強化試煉，不會獲得活動兌換幣。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
@@ -14106,7 +14558,7 @@
     let earned=0;
     if(!runRewarded){
       runRewarded=true;
-      if(!isBossChallengeMode()){
+      if(!isBossChallengeMode()&&!isTrainingDummyMode()){
         if(isEventMode()){
           earned=settleActivityReward(false);
           settleRunCoins();
@@ -14128,6 +14580,8 @@
     document.getElementById("endSub").textContent=`生存 ${Math.floor(time/60)} 分 ${Math.floor(time%60)} 秒`;
     document.getElementById("endText").innerHTML=isBossChallengeMode()
       ?`此為測試模式用；要更新請詢問用戶。<br>中途離開不結算強化點數與通關解鎖`
+      :isTrainingDummyMode()
+      ?`中途離開稻草人訓練場，不發放擊破獎勵。<br>${trainingDummySummaryHtml()}`
       :isEventMode()
       ?(isActivityTrialMode()
         ?`中途離開不會獲得活動兌換幣。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
@@ -14165,7 +14619,7 @@
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
   const characterBtn=document.getElementById("characterBtn"),adventureBookBtn=document.getElementById("adventureBookBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter"),closeAdventureBook=document.getElementById("closeAdventureBook"),closeShop=document.getElementById("closeShop");
   const chooseStageBtn=document.getElementById("chooseStageBtn"),closeStage=document.getElementById("closeStage"),closeRewards=document.getElementById("closeRewards");
-  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),cookieStage=document.getElementById("cookieStageModal"),toyStage=document.getElementById("toyStageModal"),lavaStage=document.getElementById("lavaStageModal"),seaStage=document.getElementById("seaStageModal"),clockStage=document.getElementById("clockStageModal"),voidStage=document.getElementById("voidStageModal"),eventStage=document.getElementById("eventStageModal"),eventTrialStage=document.getElementById("eventTrialStageModal"),infiniteStage=document.getElementById("infiniteStageModal"),bossChallengeStage=document.getElementById("bossChallengeStageModal"),bossChallengePanel=document.getElementById("bossChallengePanel");
+  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),cookieStage=document.getElementById("cookieStageModal"),toyStage=document.getElementById("toyStageModal"),lavaStage=document.getElementById("lavaStageModal"),seaStage=document.getElementById("seaStageModal"),clockStage=document.getElementById("clockStageModal"),voidStage=document.getElementById("voidStageModal"),eventStage=document.getElementById("eventStageModal"),eventTrialStage=document.getElementById("eventTrialStageModal"),infiniteStage=document.getElementById("infiniteStageModal"),trainingDummyStage=document.getElementById("trainingDummyStageModal"),bossChallengeStage=document.getElementById("bossChallengeStageModal"),bossChallengePanel=document.getElementById("bossChallengePanel");
   const stageSelectModal=document.getElementById("stageSelectModal"),stageModeNormalBtn=document.getElementById("stageModeNormalBtn"),stageModeBossBtn=document.getElementById("stageModeBossBtn"),stageModeEventBtn=document.getElementById("stageModeEventBtn"),stageModeSpecialBtn=document.getElementById("stageModeSpecialBtn"),devUnlockStagesBtn=document.getElementById("devUnlockStagesBtn");
   const homeGardenStage=document.getElementById("gardenStage"),homeDesertStage=document.getElementById("desertStage"),homeSnowStage=document.getElementById("snowStage"),homeForestPathStage=document.getElementById("forestPathStage"),homeForestSeaStage=document.getElementById("forestSeaStage"),homeCookieStage=document.getElementById("cookieStage"),homeToyStage=document.getElementById("toyStage"),homeInfiniteStage=document.getElementById("infiniteStage");
   function updateMuteButton(){
@@ -14269,7 +14723,7 @@
       ["胡蘿蔔菜園",`LV ${skills.burst}`],
       ["花生幫手",`LV ${skills.peanut}`],
       ["PINKY",`LV ${skills.pinky}`],
-      ["流光二連斬",skills.luminousSlash?`LV ${skills.luminousSlash}・${Math.round(luminousSlashChance()*100)}%`:"未習得"],
+      ["流光二連斬",skills.luminousSlash?`LV ${skills.luminousSlash}・${luminousSlashDamageLabel()}`:"未習得"],
       ["超級頭腦",`LV ${skills.brain}・${Math.round((Math.max(1,player.xpGain)-1)*100)}%`],
       ["香蕉增益",pinkyBoostTimer>0?`${pinkyBoostTimer.toFixed(1)} 秒`:"未啟動"]
       ,["中毒",poisonTimer>0?`${poisonTimer.toFixed(1)} 秒・${(poisonRate*100).toFixed(2)}%/秒`:"無"]
@@ -14526,10 +14980,11 @@
     }
   });
   infiniteStage.addEventListener("click",()=>{playUiClick();currentStage=INFINITE_STAGE;renderMeta();});
+  trainingDummyStage?.addEventListener("click",()=>{playUiClick();currentStage=TRAINING_DUMMY_STAGE;renderMeta();});
   stageModeNormalBtn?.addEventListener("click",()=>{
     playUiClick();
     bossChallengeMenuOpen=false;
-    if(currentStage===INFINITE_STAGE||currentStage===BOSS_CHALLENGE_STAGE||currentStage===EVENT_STAGE)currentStage=1;
+    if(currentStage===INFINITE_STAGE||currentStage===BOSS_CHALLENGE_STAGE||currentStage===EVENT_STAGE||currentStage===TRAINING_DUMMY_STAGE)currentStage=1;
     renderMeta();
   });
   stageModeBossBtn?.addEventListener("click",()=>{
@@ -14756,11 +15211,13 @@
   });
   perfMonitorBtn.addEventListener("click",()=>{
     playUiClick();
+    if(testModeOverlay.classList.contains("visible"))closeTestModeOverlay();
     debugPanelMode=debugPanelMode==="perf"?"off":"perf";
     updateMonitorButtons();
   });
   audioMonitorBtn.addEventListener("click",()=>{
     playUiClick();
+    if(testModeOverlay.classList.contains("visible"))closeTestModeOverlay();
     debugPanelMode=debugPanelMode==="audio"?"off":"audio";
     updateMonitorButtons();
   });
