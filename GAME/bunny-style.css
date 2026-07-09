@@ -1635,6 +1635,7 @@
     #gardenScreen .gardenScene.afternoon { --garden-bg: url("assets/garden/下午.png"); }
     #gardenScreen .gardenScene.night { --garden-bg: url("assets/garden/晚上.png"); }
     #gardenScreen .gardenScene.rain { --garden-bg: url("assets/garden/白天下雨.png"); }
+    #gardenScreen .gardenScene.cloudy { --garden-bg: url("assets/garden/多雲陰天.png"); }
     #gardenScreen .gardenSceneLoading {
       position: absolute; inset: 0; z-index: 3; display: grid; place-items: center;
       background: linear-gradient(180deg,rgba(24,32,22,.92),rgba(20,28,18,.84));

@@ -6,13 +6,14 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=684;
+  const APP_VERSION=686;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
     `assets/garden/下午.png?v=${APP_VERSION}`,
     `assets/garden/晚上.png?v=${APP_VERSION}`,
     `assets/garden/白天下雨.png?v=${APP_VERSION}`,
+    `assets/garden/多雲陰天.png?v=${APP_VERSION}`,
     `assets/garden/plant-button-frame-clean.png?v=1`,
     `assets/garden/user-carrot-growth-v5/carrot-growth-13-empty.png?v=${APP_VERSION}`,
     `assets/garden/user-carrot-growth-v5/carrot-growth-00-seed.png?v=${APP_VERSION}`
@@ -139,14 +140,14 @@
   if(settingsOverlay&&settingsOverlay.parentElement!==wrap)wrap.appendChild(settingsOverlay);
   if(settingsDialog&&settingsDialog.parentElement!==wrap)wrap.appendChild(settingsDialog);
   const stick={active:false,pointerId:null,x:0,y:0,startX:0,startY:0};
-  let running=false,paused=false,ended=false,last=0,loopAccumulator=0,time=0,spawnClock=0,shotClock=0,battleStartDelay=0,computeFrameCount=0;
+  let running=false,paused=false,ended=false,last=0,loopAccumulator=0,idleDrawState="",time=0,spawnClock=0,shotClock=0,battleStartDelay=0,computeFrameCount=0;
   let giantCarrotCooldown=0;
   let enemies=[],shots=[],enemyShots=[],gems=[],effects=[],texts=[],areas=[],petShots=[],bananas=[],chests=[],pickups=[],bossObstacles=[];
   const shotPool=[];
   let shotScanCursor=0;
   for(let i=0;i<SHOT_POOL_INITIAL_SIZE;i++)shotPool.push(makeEmptyShot());
   let groundCache={canvas:null,ctx:null,zone:null,firstX:null,firstY:null,cols:0,rows:0,grid:64};
-  let enemyGrid=new Map();
+  let enemyGrid=new Map(),enemyGridBucketPool=[];
   let announcements=[],activeAnnouncement=null;
   let kills=0,score=0,eliteKills=0,bossKills=0,nextId=1,levelQueue=0;
   let eligibleKills=0,instantKills=0,instantKillTimer=0;
@@ -188,6 +189,7 @@
   let sharedTargetCache=null,sharedTargetTimer=0;
   let allowPageUnloadOnce=false,reloadConfirmActive=false,reloadConfirmWasPaused=false;
   let debugPanelMode="perf",audioDebugTimer=0;
+  let coarsePointerCached=false;
   let devTestProfile="mobile",devInvincible=false,devAutoUpgrade=false;
   let devTestRecorder={active:false,profile:"mobile",interval:2,elapsed:0,lastSampleAt:0,startReal:0,samples:[],perfPeaks:{},summary:null,battery:null};
   const IMPLEMENTED_STAGE_COUNT=11;
@@ -206,6 +208,17 @@
     gridCells:0,gridEntries:0,effectDraw:0,textDraw:0
   };
   let perfWorkLast={...perfWorkCurrent};
+
+  const coarsePointerQuery=typeof matchMedia==="function"?matchMedia("(pointer:coarse)"):null;
+  if(coarsePointerQuery){
+    coarsePointerCached=!!coarsePointerQuery.matches;
+    const syncCoarsePointer=()=>{
+      coarsePointerCached=!!coarsePointerQuery.matches;
+      idleDrawState="";
+    };
+    if(coarsePointerQuery.addEventListener)coarsePointerQuery.addEventListener("change",syncCoarsePointer);
+    else if(coarsePointerQuery.addListener)coarsePointerQuery.addListener(syncCoarsePointer);
+  }
 
   const META_KEY="bunnyCarrotSurvivorsMetaV1";
   const WALLET_KEY="bunnyCarrotSurvivorsWalletV1";
@@ -1001,10 +1014,18 @@
     return total;
   }
   function enemyGridKey(cx,cy){
-    return `${cx},${cy}`;
+    return (cx+32768)*65536+(cy+32768);
+  }
+  function clearEnemyGrid(keepBuckets=false){
+    for(const bucket of enemyGrid.values()){
+      bucket.length=0;
+      if(keepBuckets)enemyGridBucketPool.push(bucket);
+    }
+    enemyGrid.clear();
+    if(!keepBuckets)enemyGridBucketPool.length=0;
   }
   function rebuildEnemyGrid(){
-    enemyGrid.clear();
+    clearEnemyGrid(true);
     countPerfWork("gridRebuild");
     for(const e of enemies){
       if(e.dead||e.hp<=0)continue;
@@ -1012,7 +1033,7 @@
       const key=enemyGridKey(cx,cy);
       let bucket=enemyGrid.get(key);
       if(!bucket){
-        bucket=[];
+        bucket=enemyGridBucketPool.pop()||[];
         enemyGrid.set(key,bucket);
       }
       bucket.push(e);
@@ -5122,6 +5143,7 @@
     "assets/garden/中午.png",
     "assets/garden/下午.png",
     "assets/garden/晚上.png",
+    "assets/garden/多雲陰天.png",
     "assets/garden/plant-button-frame-clean.png?v=1",
     "assets/garden/user-carrot-growth-v5/carrot-growth-13-empty.png",
     "assets/garden/user-carrot-growth-v5/carrot-growth-00-seed.png",
@@ -5336,7 +5358,8 @@
     if(!scene)return;
     const slot=activeGardenTimeSlot();
     const rainy=!!gardenState?.weather?.isRainy;
-    const bgClass=rainy&&slot!=="night"?"rain":slot;
+    const cloudy=gardenState?.weather?.key==="cloudy";
+    const bgClass=rainy&&slot!=="night"?"rain":cloudy&&slot!=="night"?"cloudy":slot;
     scene.className=`gardenScene ${bgClass}${rainy?" rainyWeather":""}${gardenAssetsReady?" assetsReady":""}`;
     updateTimeLabel(slot);
   }
@@ -9633,7 +9656,7 @@
     clearPooledShots(shots);
     enemies=[];shots=[];enemyShots=[];gems=[];effects=[];texts=[];
     areas=[];petShots=[];bananas=[];chests=[];pickups=[];bossObstacles=[];
-    enemyGrid.clear();
+    clearEnemyGrid(false);
     sharedTargetCache=null;sharedTargetTimer=0;
   }
   function shotPoolActiveCount(){
@@ -9761,8 +9784,7 @@
     skills.orbit=skills.burst=skills.peanut=skills.pinky=skills.brain=skills.luminousSlash=0;
     updatePlayer.pet=updatePlayer.burst=updatePlayer.pinky=0;
     for(const id of Object.keys(upgradeLevels))upgradeLevels[id]=0;
-    clearPooledShots(shots);
-    enemies=[];shots=[];enemyShots=[];gems=[];effects=[];texts=[];areas=[];petShots=[];bananas=[];chests=[];pickups=[];bossObstacles=[];
+    clearBattleEntities();
     announcements=[];activeAnnouncement=null;
     kills=score=eliteKills=bossKills=eligibleKills=instantKills=0;instantKillTimer=0;time=spawnClock=shotClock=0;battleStartDelay=0;nextId=1;levelQueue=0;
     kps=kpsWindowKills=kpsWindowTime=kpsPressure=kpsBonusTimer=kpsSpawnBonus=0;
@@ -10470,6 +10492,8 @@
     setupBossObstacles();
     clearPooledShots(shots);
     enemies=[];gems=[];shots=[];petShots=[];bananas=[];enemyShots=[];areas=[];
+    clearEnemyGrid(false);
+    sharedTargetCache=null;sharedTargetTimer=0;
     effects=effects.filter(e=>e.kind==="flash");
     announcements=[];activeAnnouncement=null;
     effects.push({kind:"flash",life:.28});
@@ -10916,10 +10940,8 @@
     activityCarrotRunStage=clearedStage;
     meta.activityCarrotStage=Math.max(activityCarrotSavedStage(),activityCarrotRunStage);
     saveMeta();
-    clearPooledShots(shots);
-    enemies=[];shots=[];enemyShots=[];gems=[];effects=[];texts=[];areas=[];petShots=[];bananas=[];chests=[];pickups=[];bossObstacles=[];
+    clearBattleEntities();
     announcements=[];activeAnnouncement=null;
-    sharedTargetCache=null;sharedTargetTimer=0;
     time=0;spawnClock=0;shotClock=0;battleStartDelay=BATTLE_START_DELAY;
     chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;
     carrotVolley=0;carrotShotsSinceBreak=0;pendingCarrotShots=0;
@@ -14040,7 +14062,7 @@
 
   function drawHUD(){
     const enemyCount=hudEnemyCount;
-    if(H>W||matchMedia("(pointer:coarse)").matches||innerWidth<=620){drawMobileHUD();return;}
+    if(H>W||coarsePointerCached||innerWidth<=620){drawMobileHUD();return;}
     rect(18,18,260,20,"#3a2435");
     const reservedRatio=Math.min(1,encirclementReservedHp/player.maxHp);
     const hpRatio=player.hp/player.maxHp;
@@ -14700,6 +14722,23 @@
     beep(220,.22,.035,"square");
   }
 
+  function idleCanvasDrawKey(){
+    const levelVisible=levelScreen&&!levelScreen.classList.contains("hidden")?1:0;
+    const endVisible=endScreen&&!endScreen.classList.contains("hidden")?1:0;
+    const pauseVisible=pauseScreen&&!pauseScreen.classList.contains("hidden")?1:0;
+    return `${running?1:0}|${paused?1:0}|${ended?1:0}|${W}x${H}|${debugPanelMode}|${levelVisible}|${endVisible}|${pauseVisible}`;
+  }
+  function shouldDrawCanvasFrame(){
+    if(running&&!paused&&!ended){
+      idleDrawState="";
+      return true;
+    }
+    const key=idleCanvasDrawKey();
+    if(key===idleDrawState)return false;
+    idleDrawState=key;
+    return true;
+  }
+
   function loop(now){
     const rawDt=Math.min(.05,(now-last)/1000||0);
     last=now;
@@ -14714,7 +14753,7 @@
       updateSteps++;
     }
     if(updateSteps>perfDebugAccumulator.catchUpMax)perfDebugAccumulator.catchUpMax=updateSteps;
-    if(didUpdate){
+    if(didUpdate&&shouldDrawCanvasFrame()){
       draw();
     }
     requestAnimationFrame(loop);
