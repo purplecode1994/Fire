@@ -3,17 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>入口</title>
+  <title>首頁</title>
   <style>
     :root {
       --btn-bg: #1e90ff;
       --btn-bg-hover: #187bd6;
       --btn-text: #fff;
       --bg: #f7f7f8;
-      --btn-alt: #1f7a55;
-      --btn-alt-hover: #166040;
-      --btn-brown: #8b5e3c;
-      --btn-brown-hover: #724a2d;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
@@ -52,39 +48,11 @@
       outline: none;
       box-shadow: 0 8px 20px rgba(0,0,0,.16);
     }
-    a.button.typhoon {
-      background: var(--btn-alt);
-    }
-    a.button.typhoon:hover,
-    a.button.typhoon:focus-visible {
-      background: var(--btn-alt-hover);
-    }
-    a.button.floor {
-      background: var(--btn-brown);
-    }
-    a.button.floor:hover,
-    a.button.floor:focus-visible {
-      background: var(--btn-brown-hover);
-    }
   </style>
 </head>
 <body>
-  <a class="button" href="shift-handover.html" aria-label="交接巡檢">交接巡檢</a>
+  <a class="button" href="shift-handover.html" aria-label="交接">交接</a>
   <a class="button" href="schedule.html" aria-label="班表">班表</a>
   <a class="button" href="equipment.html" aria-label="設備操作">設備操作</a>
-  <a
-    class="button typhoon"
-    href="typhoon-redirect.html"
-    aria-label="颱風巡檢"
-  >
-    颱風巡檢
-  </a>
-  <a
-    class="button floor"
-    href="indoor-floor-redirect.html"
-    aria-label="戶內落水頭地板"
-  >
-    戶內落水頭地板
-  </a>
 </body>
 </html>
