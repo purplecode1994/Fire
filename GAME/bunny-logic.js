@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=686;
+  const APP_VERSION=687;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -5807,13 +5807,13 @@
       saveMeta();
       return coins;
     }
-    const cleared=activityCarrotClearedThisRun();
-    const earned=cleared>0?Math.max(1,Math.min(10,cleared+Math.floor(Math.max(0,kills)/900))):0;
-    const coins=cleared>0?Math.max(ACTIVITY_CARROT_COIN_MIN,Math.min(ACTIVITY_CARROT_COIN_MAX,ACTIVITY_CARROT_COIN_MIN+(cleared-1)*3+Math.floor(Math.max(0,kills)/1800))):0;
+    const cleared=success?1:0;
+    const earned=success?Math.max(1,Math.min(10,1+Math.floor(Math.max(0,kills)/900))):0;
+    const coins=success?Math.max(ACTIVITY_CARROT_COIN_MIN,Math.min(ACTIVITY_CARROT_COIN_MAX,ACTIVITY_CARROT_COIN_MIN+Math.floor(Math.max(0,kills)/1800))):0;
     let points=0;
-    if(cleared>0){
+    if(success){
       const normalKills=Math.max(0,kills-eliteKills-bossKills);
-      points=applyPointRewardBonus(cleared*30000+Math.floor(normalKills/25)+eliteKills*3+Math.floor(time/60)*3);
+      points=applyPointRewardBonus(30000+Math.floor(normalKills/25)+eliteKills*3+bossKills*10+Math.floor(time/60)*3);
       meta.points+=points;
       meta.activityCoins=Math.max(0,Math.floor(Number(meta.activityCoins)||0))+coins;
     }
@@ -9792,8 +9792,8 @@
     giantCarrotCooldown=0;
     sharedTargetCache=null;sharedTargetTimer=0;
     chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;magnetAll=false;magnetTimer=0;gemPressureRecycleTimer=0;carrotVolley=0;carrotShotsSinceBreak=0;pinkyBoostTimer=0;pinkyDamageBoost=1;pendingCarrotShots=0;luminousSlashActiveTimer=0;luminousSlashCooldownTimer=0;luminousSlashCooldownDamage=0;runCoins=0;runCoinsSettled=false;activityRewarded=false;
-    activityCarrotRunStartStage=isEventMode()&&isActivityCarrotMode()?activityCarrotSavedStage():0;
-    activityCarrotRunStage=activityCarrotRunStartStage;
+    activityCarrotRunStartStage=0;
+    activityCarrotRunStage=0;
     lastActivityReward={mode:activityStageMode,seeds:0,coins:0,points:0,stones:[],stages:0};
     encirclementPressure=0;encirclementCharge=0;encirclementSampleClock=0;encirclementPressureRounds=0;
     encirclementReservedHp=0;encirclementSectorBits=0;encirclementSectorCount=0;encirclementPrewarn=false;encirclementDebts=[];
@@ -9826,9 +9826,7 @@
       setupTrainingDummyArena();
       spawnTrainingDummy();
     }
-    if(isEventMode()&&isActivityCarrotMode()){
-      announce("胡鬧胡蘿蔔連戰",`第 ${activityCarrotCurrentStageNo()} 階段開始；10 分鐘後挑戰 Boss`,"#ffd45e",4);
-    }
+    if(isEventMode()&&isActivityCarrotMode())announce("胡鬧的胡蘿蔔","10 分鐘後挑戰 Boss，擊敗後直接結算種子與獎勵","#ffd45e",4);
     intro.classList.add("hidden");endScreen.classList.add("hidden");levelScreen.classList.add("hidden");pauseScreen.classList.add("hidden");
     pauseBtn.classList.add("visible");
     positionMonitorTabs();
@@ -10229,7 +10227,7 @@
         timeline.seen.add("event-boss");
         spawnEnemy(isActivityTrialMode()?"chestmimic":EVENT_BOSS_TYPE,"boss");
         if(isActivityTrialMode())announce("強化試煉寶箱怪出現！","擊敗後結算活動兌換幣","#67d9ff",4);
-        else announce(`胡鬧的胡蘿蔔・第 ${activityCarrotCurrentStageNo()} 階段`,"擊敗後 3 秒進入下一階段，放棄時結算已擊敗階段","#ffd45e",4);
+        else announce("胡鬧的胡蘿蔔 Boss 出現！","擊敗後直接結算神秘種子、活動幣與強化點數","#ffd45e",4);
       }
       return;
     }
@@ -10935,22 +10933,6 @@
     announce("擂台突破！",`進入 ${infiniteZoneName(nextZone)} 輪迴，敵人繼續變強`,"#ffe16a",4);
     beep(660,.35,.045,"triangle");
   }
-  function finishActivityCarrotStage(){
-    const clearedStage=activityCarrotCurrentStageNo();
-    activityCarrotRunStage=clearedStage;
-    meta.activityCarrotStage=Math.max(activityCarrotSavedStage(),activityCarrotRunStage);
-    saveMeta();
-    clearBattleEntities();
-    announcements=[];activeAnnouncement=null;
-    time=0;spawnClock=0;shotClock=0;battleStartDelay=BATTLE_START_DELAY;
-    chestClock=10;chestTravel=0;lastChestX=player.x;lastChestY=player.y;
-    carrotVolley=0;carrotShotsSinceBreak=0;pendingCarrotShots=0;
-    finalPhase="none";finalTimer=0;bossArena.active=false;
-    timeline.seen.clear();
-    effects.push({kind:"flash",life:.2});
-    announce("胡鬧胡蘿蔔連戰",`第 ${clearedStage} 階段突破！現在進入第 ${activityCarrotCurrentStageNo()} 階段`,"#ffd45e",4);
-    beep(660,.35,.045,"triangle");
-  }
   function bossClearPointPreview(){
     if(isBossChallengeMode()||isTrainingDummyMode())return 0;
     if(isActivityTrialMode())return 0;
@@ -10960,15 +10942,16 @@
   }
   function scheduleBossClear(e){
     if(bossClearPending)return;
-    const carrotContinue=isEventMode()&&isActivityCarrotMode()&&e?.type===EVENT_BOSS_TYPE;
     const transfer=isInfiniteMode();
-    const duration=transfer||carrotContinue?3:5;
-    const points=carrotContinue?0:bossClearPointPreview();
+    const duration=transfer?3:5;
+    const points=isEventMode()?0:bossClearPointPreview();
     finalPhase="clear";
     finalTimer=0;
-    bossClearPending={timer:duration,duration,action:carrotContinue?"activityCarrotNext":transfer?"transfer":"return",actionLabel:carrotContinue?"下一階段":transfer?"轉移":"返回",points};
+    bossClearPending={timer:duration,duration,action:transfer?"transfer":"return",actionLabel:transfer?"轉移":"返回",points};
     enemyShots=[];areas=[];
-    const dropText=carrotContinue?`胡鬧胡蘿蔔第 ${activityCarrotCurrentStageNo()} 階段擊破`:points>0?`BOSS 掉落強化點數 +${formatCommaNumber(points)}`:"BOSS 掉落獎勵已確認";
+    const dropText=isEventMode()
+      ?(isActivityTrialMode()?"強化試煉完成，準備結算獎勵":"胡鬧的胡蘿蔔擊破，準備結算獎勵")
+      :points>0?`BOSS 掉落強化點數 +${formatCommaNumber(points)}`:"BOSS 掉落獎勵已確認";
     text(e.x,e.y-e.r-34,dropText,"#ffe45f",20,"pickup");
     announce("通關！",`${dropText}｜${duration}秒後${bossClearPending.actionLabel}`,"#ffe45f",duration);
     beep(660,.35,.045,"triangle");
@@ -10980,7 +10963,6 @@
     const action=bossClearPending.action;
     bossClearPending=null;
     if(action==="transfer")finishInfiniteBoss();
-    else if(action==="activityCarrotNext")finishActivityCarrotStage();
     else win();
     return true;
   }
@@ -14568,12 +14550,12 @@
   function rewardTotalLines(){
     return `目前共 💎 ${formatCommaNumber(meta.coins||0)} 鑽石<br>目前共 ${formatCommaNumber(meta.points||0)} 點`;
   }
-  function activityCarrotEndSummaryHtml(emptyText="尚未擊敗新的活動 Boss 階段，不會掉落種子。"){
+  function activityCarrotEndSummaryHtml(emptyText="尚未擊敗活動 Boss，不會掉落種子。"){
     const stages=Math.max(0,Math.floor(Number(lastActivityReward.stages)||0));
     if(stages<=0){
-      return `${emptyText}<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>下次從第 ${activityCarrotCurrentStageNo()} 階段開始<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+      return `${emptyText}<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
     }
-    return `本局已擊敗胡鬧胡蘿蔔 ${formatCommaNumber(stages)} 階段<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(lastActivityReward.coins)}<br>本局獲得強化點數 ${formatCommaNumber(lastActivityReward.points)}<br>本局獲得神秘胡蘿蔔種子 ${formatCommaNumber(lastActivityReward.seeds)} 顆<br>下次從第 ${activityCarrotCurrentStageNo()} 階段開始<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
+    return `本局擊退胡鬧的胡蘿蔔 Boss<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>本局獲得活動兌換幣 ${formatCommaNumber(lastActivityReward.coins)}<br>本局獲得強化點數 ${formatCommaNumber(lastActivityReward.points)}<br>本局獲得神秘胡蘿蔔種子 ${formatCommaNumber(lastActivityReward.seeds)} 顆<br>目前共有神秘胡蘿蔔種子 ${formatCommaNumber(meta.garden?.seeds||0)} 顆<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
   }
 
   function recordDeathRunStats(){
@@ -14617,7 +14599,7 @@
       }else{
         document.getElementById("endTitle").textContent="胡鬧的胡蘿蔔擊退！";
         document.getElementById("endSub").textContent="兔兔撿回了神秘胡蘿蔔種子";
-        document.getElementById("endText").innerHTML=activityCarrotEndSummaryHtml("尚未擊敗新的活動 Boss 階段，不會掉落種子。");
+        document.getElementById("endText").innerHTML=activityCarrotEndSummaryHtml("尚未擊敗活動 Boss，不會掉落種子。");
       }
       clearBattleEntities();
       beep(660,.4,.05);
@@ -14673,7 +14655,7 @@
       :isEventMode()
       ?(isActivityTrialMode()
         ?`未完成強化試煉，不會獲得活動兌換幣。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
-        :activityCarrotEndSummaryHtml("尚未擊敗新的活動 Boss 階段，不會掉落種子。"))
+        :activityCarrotEndSummaryHtml("尚未擊敗活動 Boss，不會掉落種子。"))
       :`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>死亡總擊破 ${meta.totalDeathKills}・死亡次數 ${meta.totalDeaths}<br>${rewardTotalLines()}`;
     clearBattleEntities();
     beep(180,.7,.05,"sawtooth");
@@ -14714,7 +14696,7 @@
       :isEventMode()
       ?(isActivityTrialMode()
         ?`中途離開不會獲得活動兌換幣。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
-        :activityCarrotEndSummaryHtml("尚未擊敗新的活動 Boss 階段，不會掉落種子。"))
+        :activityCarrotEndSummaryHtml("尚未擊敗活動 Boss，不會掉落種子。"))
       :isInfiniteMode()
       ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
       :`中途離開不計完整擊殺點數<br>生存點數 ${earned}${soulPointBonusRate()>0?`（獵魂 +${formatPercentRate(soulPointBonusRate())}）`:""}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
