@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=687;
+  const APP_VERSION=688;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -55,6 +55,9 @@
     upRight:`assets/skills/combo-slash-up-right.png?v=${APP_VERSION}`,
     downRight:`assets/skills/combo-slash-down-right.png?v=${APP_VERSION}`
   };
+  const GIANT_CARROT_BURN_MARK_ASSET=`assets/skills/giant-carrot-burning-mark.png?v=${APP_VERSION}`;
+  const GIANT_CARROT_BURN_MARK_FRAMES=12;
+  const GIANT_CARROT_BURN_MARK_FRAME_SIZE=128;
   const LUMINOUS_SLASH_ICON_ASSET=`assets/skills/luminous-slash-skill-icon.png?v=${APP_VERSION}`;
   const LUMINOUS_SLASH_CONFIG={
     imageAnchorX:.26,imageAnchorY:.72,imageScale:.11,imageOpacity:.94,
@@ -67,6 +70,9 @@
     img.decoding="async";
     img.src=LUMINOUS_SLASH_ASSETS[key];
   });
+  const giantCarrotBurnMarkImg=new Image();
+  giantCarrotBurnMarkImg.decoding="async";
+  giantCarrotBurnMarkImg.src=GIANT_CARROT_BURN_MARK_ASSET;
   ctx.imageSmoothingEnabled=false;
   transitionCtx.imageSmoothingEnabled=false;
   if(bootMascotCtx)bootMascotCtx.imageSmoothingEnabled=false;
@@ -11248,7 +11254,7 @@
     const craterRadius=radius*.48;
     const burnDps=shot.damage*.18;
     effects.push(
-      {kind:"crater",id:nextId++,x:shot.x,y:shot.y,r:craterRadius,life:.8,burnDps},
+      {kind:"crater",id:nextId++,x:shot.x,y:shot.y,r:craterRadius,life:1.2,maxLife:1.2,burnDps},
       {kind:"shockwave",x:shot.x,y:shot.y,r:15,max:radius,life:.45}
     );
     burst(shot.x,shot.y,"#8a5b36",24);
@@ -13491,19 +13497,34 @@
       }
       if(e.kind!=="crater")continue;
       const p=worldToScreen(e.x,e.y);
-      ctx.globalAlpha=Math.min(1,e.life);
-      ctx.strokeStyle="#6d4328";ctx.lineWidth=5;
-      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r,e.r*.56,0,0,Math.PI*2);ctx.stroke();
-      ctx.fillStyle="#5f0f15";
-      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.98,e.r*.54,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle="#7d171d";
-      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.8,e.r*.44,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle="#912127";
-      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.62,e.r*.34,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle="#a93234";
-      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.44,e.r*.24,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle="#ff6b5f";
-      ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.23,e.r*.12,0,0,Math.PI*2);ctx.fill();
+      const maxLife=e.maxLife||1.2;
+      const age=clamp(maxLife-e.life,0,maxLife);
+      const fade=clamp(e.life/.42,0,1);
+      const burnReady=giantCarrotBurnMarkImg.complete&&giantCarrotBurnMarkImg.naturalWidth>0;
+      ctx.globalAlpha=fade;
+      if(burnReady){
+        const frame=Math.max(0,Math.min(GIANT_CARROT_BURN_MARK_FRAMES-1,Math.floor(age/maxLife*GIANT_CARROT_BURN_MARK_FRAMES)));
+        const sx=frame*GIANT_CARROT_BURN_MARK_FRAME_SIZE;
+        const size=Math.max(96,e.r*2.55);
+        ctx.drawImage(
+          giantCarrotBurnMarkImg,
+          sx,0,GIANT_CARROT_BURN_MARK_FRAME_SIZE,GIANT_CARROT_BURN_MARK_FRAME_SIZE,
+          p.x-size/2,p.y-size/2,size,size
+        );
+      }else{
+        ctx.strokeStyle="#6d4328";ctx.lineWidth=5;
+        ctx.beginPath();ctx.ellipse(p.x,p.y,e.r,e.r*.56,0,0,Math.PI*2);ctx.stroke();
+        ctx.fillStyle="#5f0f15";
+        ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.98,e.r*.54,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#7d171d";
+        ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.8,e.r*.44,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#912127";
+        ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.62,e.r*.34,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#a93234";
+        ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.44,e.r*.24,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#ff6b5f";
+        ctx.beginPath();ctx.ellipse(p.x,p.y,e.r*.23,e.r*.12,0,0,Math.PI*2);ctx.fill();
+      }
       ctx.globalAlpha=1;
     }
   }
