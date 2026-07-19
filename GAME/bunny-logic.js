@@ -6,7 +6,7 @@
   const bootOverlay=document.getElementById("bootOverlay"),bootHint=document.getElementById("bootHint");
   const bootProgressFill=document.getElementById("bootProgressFill"),bootPercent=document.getElementById("bootPercent");
   const bootMascotCanvas=document.getElementById("bootMascots"),bootMascotCtx=bootMascotCanvas?.getContext("2d");
-  const APP_VERSION=691;
+  const APP_VERSION=696;
   const GARDEN_PRELOAD_ASSETS=[
     `assets/garden/早上.png?v=${APP_VERSION}`,
     `assets/garden/中午.png?v=${APP_VERSION}`,
@@ -22,6 +22,7 @@
   const BOSS_CHALLENGE_STAGE=13;
   const EVENT_STAGE=14;
   const TRAINING_DUMMY_STAGE=15;
+  const ENDLESS_LADDER_STAGE=16;
   const EVENT_DURATION=600;
   const TRAINING_DUMMY_MAX_SECONDS=8*60*60;
   const TRAINING_DUMMY_BASE_HP=10000000;
@@ -117,6 +118,7 @@
     }
   ];
   const DURATION=600,wrap=document.getElementById("wrap");
+  const ENDLESS_LADDER_HALF_WIDTH=170;
   const intro=document.getElementById("intro"),levelScreen=document.getElementById("levelup");
   const endScreen=document.getElementById("end"),choicesEl=document.getElementById("choices");
   const autoTrainingGuard=document.getElementById("autoTrainingGuard");
@@ -163,7 +165,7 @@
   let carrotVolley=0,carrotShotsSinceBreak=0,pinkyBoostTimer=0,pinkyDamageBoost=1,pendingCarrotShots=0;
   let luminousSlashActiveTimer=0,luminousSlashCooldownTimer=0,luminousSlashCooldownDamage=0;
   let poisonTimer=0,poisonRate=0,stunTimer=0,confuseTimer=0,potionHealTimer=0,blizzardTimer=0,blizzardPushTimer=0,blizzardPushAngle=0,blizzardPushSpeed=0,currentStage=1,infiniteBossZone=0;
-  let bossChallengeType="plant",bossChallengeSourceStage=1,bossChallengeMenuOpen=false,bossChallengeStartTime=0;
+  let bossChallengeType="plant",bossChallengeSourceStage=1,bossChallengeMenuOpen=false,secondWorldMenuOpen=false,bossChallengeStartTime=0;
   let encirclementPressure=0,encirclementCharge=0,encirclementSampleClock=0,encirclementPressureRounds=0;
   let encirclementReservedHp=0,encirclementSectorBits=0,encirclementSectorCount=0,encirclementPrewarn=false,encirclementDebts=[];
   let infiniteDisplayOffset=0,infiniteDisplayFreezeStart=0,infiniteClearCount=0;
@@ -1382,6 +1384,7 @@
   function currentStageLabel(){
     if(isBossChallengeMode())return "頭目挑戰";
     if(isTrainingDummyMode())return "稻草人訓練場";
+    if(isEndlessLadderMode())return endlessLadderZoneName();
     if(currentStage===EVENT_STAGE)return isActivityTrialMode()?"強化試煉":"胡鬧的胡蘿蔔";
     if(isInfiniteMode())return infiniteZoneName();
     if(currentStage===11)return "虛空核心";
@@ -1401,6 +1404,7 @@
     if(stage===BOSS_CHALLENGE_STAGE)return "頭目";
     if(stage===EVENT_STAGE)return "活動";
     if(stage===TRAINING_DUMMY_STAGE)return "稻草人";
+    if(stage===ENDLESS_LADDER_STAGE)return "天梯";
     const labels={1:"菜園",2:"沙漠",3:"雪原",4:"林徑",5:"樹海",6:"餅乾屋",7:"夢工廠",8:"熔岩",9:"海底",10:"鐘塔",11:"虛空"};
     return labels[stage]||"菜園";
   }
@@ -1427,7 +1431,8 @@
       11:["#9d5cff","#12091f","#32104d","#ff8cff"],
       [INFINITE_STAGE]:["#9f57ff","#160821","#4d197a","#ff7dff"],
       [EVENT_STAGE]:["#68d7ff","#14384b","#1f7b9a","#ffe45f"],
-      [BOSS_CHALLENGE_STAGE]:["#a33a3a","#1d0d16","#651c2e","#ffdb6c"]
+      [BOSS_CHALLENGE_STAGE]:["#a33a3a","#1d0d16","#651c2e","#ffdb6c"],
+      [ENDLESS_LADDER_STAGE]:["#f7e27a","#352b56","#0e0920","#8ff4ff"]
     };
     const p=palettes[stage]||palettes[1];
     bctx.save();
@@ -6686,6 +6691,7 @@
     if(stage===BOSS_CHALLENGE_STAGE)return 0;
     if(stage===EVENT_STAGE)return Math.max(1,combatPower());
     if(stage===TRAINING_DUMMY_STAGE)return 1;
+    if(stage===ENDLESS_LADDER_STAGE)return 1;
     if(stage===11)return 48000;
     if(stage===10)return 39000;
     if(stage===9)return 32000;
@@ -6708,7 +6714,7 @@
   }
   function stageDifficultyMonsterMultiplier(stage=currentStage){
     if(isInfiniteMode()||isBossChallengeMode()||isEventMode()||isTrainingDummyMode())return 1;
-    if(stage===INFINITE_STAGE||stage===BOSS_CHALLENGE_STAGE||stage===EVENT_STAGE||stage===TRAINING_DUMMY_STAGE)return 1;
+    if(stage===INFINITE_STAGE||stage===BOSS_CHALLENGE_STAGE||stage===EVENT_STAGE||stage===TRAINING_DUMMY_STAGE||stage===ENDLESS_LADDER_STAGE)return 1;
     const info=stageDifficultyInfo(stage);
     if(info.className==="danger")return 1.5;
     if(info.className==="hard")return 1.25;
@@ -6722,6 +6728,7 @@
     if(stage===BOSS_CHALLENGE_STAGE)return `${labelHtml}<span class="stageBadge challenge">測試</span>`;
     if(stage===EVENT_STAGE)return `${labelHtml}<span class="stageBadge easy">今日 ${activityRunsUsed()}/${EVENT_DAILY_LIMIT}</span>`;
     if(stage===TRAINING_DUMMY_STAGE)return `${labelHtml}<span class="stageBadge challenge">訓練</span>`;
+    if(stage===ENDLESS_LADDER_STAGE)return `${labelHtml}<span class="stageBadge challenge">測試</span>`;
     const info=stageDifficultyInfo(stage);
     return `${labelHtml}<span class="stageBadge ${info.className}">${info.label}</span>`;
   }
@@ -6738,6 +6745,12 @@
 
   function isInfiniteMode(){
     return currentStage===INFINITE_STAGE;
+  }
+  function isEndlessLadderMode(){
+    return currentStage===ENDLESS_LADDER_STAGE;
+  }
+  function isStageTransferMode(){
+    return isInfiniteMode()||isEndlessLadderMode();
   }
   function isBossChallengeMode(){
     return currentStage===BOSS_CHALLENGE_STAGE;
@@ -6890,6 +6903,7 @@
     return Math.max(0,infiniteDisplayedTime()%600);
   }
   function monsterScaleTime(){
+    if(isEndlessLadderMode())return endlessLadderZoneElapsed();
     return isInfiniteMode()?infiniteZoneElapsed():time;
   }
 
@@ -6899,13 +6913,19 @@
       if(finalPhase!=="none")return Math.max(0,infiniteBossZone);
       return infiniteZoneAt();
     }
+    if(isEndlessLadderMode()){
+      if(finalPhase!=="none")return Math.max(0,infiniteBossZone);
+      return endlessLadderZoneAt();
+    }
     return Math.max(0,currentStage-1);
   }
 
   function infiniteGrowth(){
-    const zone=isInfiniteMode()?infiniteZoneAt():0;
+    const zone=isEndlessLadderMode()
+      ?(finalPhase!=="none"?infiniteBossZone:endlessLadderZoneAt())
+      :(isInfiniteMode()?(finalPhase!=="none"?infiniteBossZone:infiniteZoneAt()):0);
     if(zone<=10)return {hp:1,damage:1,speed:1,elite:0};
-    const clearBonus=isInfiniteMode()?infiniteClearCount:0;
+    const clearBonus=isStageTransferMode()?infiniteClearCount:0;
     return {
       hp:1+zone*.8+clearBonus*.18,
       damage:1+zone*.18+clearBonus*.08,
@@ -6918,6 +6938,30 @@
     if(!isInfiniteMode())return time;
     if(finalPhase!=="none")return infiniteDisplayFreezeStart-infiniteDisplayOffset;
     return Math.max(0,time-infiniteDisplayOffset);
+  }
+  function endlessLadderDisplayedTime(){
+    if(!isEndlessLadderMode())return time;
+    if(finalPhase!=="none")return infiniteDisplayFreezeStart-infiniteDisplayOffset;
+    return Math.max(0,time-infiniteDisplayOffset);
+  }
+  function endlessLadderZoneAt(value=endlessLadderDisplayedTime()){
+    if(!isEndlessLadderMode())return Math.max(0,currentStage-1);
+    return Math.max(0,Math.floor(value/600));
+  }
+  function endlessLadderStageForZone(zone=endlessLadderZoneAt()){
+    return zone>=0&&zone<=10?zone+1:11;
+  }
+  function endlessLadderZoneElapsed(){
+    return Math.max(0,endlessLadderDisplayedTime()%600);
+  }
+  function endlessLadderZoneName(zone=endlessLadderZoneAt()){
+    return `第 ${zone+1} 關・${infiniteZoneName(Math.min(zone,10))}`;
+  }
+  function activeStageForCombat(){
+    if(isBossChallengeMode())return bossChallengeSourceStage;
+    if(isInfiniteMode())return infiniteStageForZone(finalPhase!=="none"?infiniteBossZone:infiniteZoneAt());
+    if(isEndlessLadderMode())return endlessLadderStageForZone(finalPhase!=="none"?infiniteBossZone:endlessLadderZoneAt());
+    return currentStage;
   }
   function finalBossDisplayName(type){
     if(type==="voiddevourer")return "虛空吞星者";
@@ -6951,6 +6995,13 @@
     if(isBossChallengeMode())return `頭目挑戰 ${finalBossDisplayName(bossChallengeType)}`;
     if(isTrainingDummyMode())return `稻草人 ${formatStageTime(time)} / 8:00:00`;
     if(bossClearPending)return `${Math.ceil(Math.max(0,bossClearPending.timer))} 秒後${bossClearPending.actionLabel}`;
+    if(isEndlessLadderMode()){
+      if(finalPhase!=="none"){
+        const bossType=bossTypeForZone(infiniteBossZone);
+        return `${endlessLadderZoneName(infiniteBossZone)} BOSS ${finalBossDisplayName(bossType)}`;
+      }
+      return `${endlessLadderZoneName()} ${formatStageTime(endlessLadderZoneElapsed())}`;
+    }
     if(isInfiniteMode()){
       if(finalPhase!=="none"){
         const bossType=bossTypeForZone(infiniteBossZone);
@@ -6961,7 +7012,7 @@
     return time>=DURATION?"關卡 BOSS":formatStageTime(Math.max(1,time));
   }
   function stageTimerColor(){
-    if(isInfiniteMode()||isTrainingDummyMode())return "#d8f6ff";
+    if(isInfiniteMode()||isEndlessLadderMode()||isTrainingDummyMode())return "#d8f6ff";
     return time>=480?"#ff6270":"#fff4b2";
   }
 
@@ -8102,6 +8153,15 @@
       stagePower.innerHTML=`建議戰力 ∞｜每 10 分鐘進入擂台<br>目前最高生存時間：${formatStageTime(meta.bestInfiniteSeconds||0)}<br>敵人擊破總數：${meta.infiniteTotalKills||0}`;
       return;
     }
+    if(stage===ENDLESS_LADDER_STAGE){
+      stageArt.className="stageInfinite stageInfiniteCanvas";
+      stageArt.innerHTML='<canvas id="endlessLadderStageArtCanvas" width="190" height="136" aria-hidden="true"></canvas>';
+      const canvas=document.getElementById("endlessLadderStageArtCanvas");
+      if(canvas)drawInfiniteStagePreview(canvas.getContext("2d"),190,136);
+      stageName.textContent="特殊關卡・無盡天梯";
+      stagePower.innerHTML="開發者測試用｜第 1 關開始<br>左右收窄，上方來敵；10 分鐘 BOSS，擊破後接續下一關";
+      return;
+    }
     if(stage>=8&&stage<=11){
       const stageNames={8:"第七關・熔岩工坊",9:"第八關・海底遺跡",10:"第九關・星夜鐘塔",11:"第十關・虛空核心"};
       stageArt.className="stageAdvanced stageAdvancedCanvas";
@@ -8384,24 +8444,32 @@
     }
     renderEquipmentPanel();
     setupMetaMarquees();
+    const secondWorldUnlocked=!!meta.stage11Cleared;
     const bossMode=devModeActive&&bossChallengeMenuOpen;
-    const specialModeSelected=(currentStage===INFINITE_STAGE||currentStage===TRAINING_DUMMY_STAGE)&&!bossMode;
+    const specialModeSelected=(currentStage===INFINITE_STAGE||currentStage===TRAINING_DUMMY_STAGE||currentStage===ENDLESS_LADDER_STAGE)&&!bossMode;
     const eventModeSelected=currentStage===EVENT_STAGE&&!bossMode;
+    const world2Mode=secondWorldUnlocked&&secondWorldMenuOpen&&!bossMode&&!specialModeSelected&&!eventModeSelected;
     stageSelectModal?.classList.toggle("bossMode",bossMode);
     stageSelectModal?.classList.toggle("specialMode",specialModeSelected);
     stageSelectModal?.classList.toggle("eventMode",eventModeSelected);
-    stageModeNormalBtn?.classList.toggle("active",!bossMode&&!specialModeSelected&&!eventModeSelected);
+    stageSelectModal?.classList.toggle("world2Mode",world2Mode);
+    stageModeTabs?.classList.toggle("hasWorld2",secondWorldUnlocked);
+    stageModeNormalBtn?.classList.toggle("active",!bossMode&&!specialModeSelected&&!eventModeSelected&&!world2Mode);
+    stageModeWorld2Btn?.classList.toggle("hidden",!secondWorldUnlocked);
+    stageModeWorld2Btn?.classList.toggle("active",world2Mode);
+    stageModeWorld2Btn?.classList.toggle("locked",!secondWorldUnlocked);
     stageModeBossBtn?.classList.toggle("active",bossMode);
     stageModeSpecialBtn?.classList.toggle("active",specialModeSelected);
     stageModeEventBtn?.classList.toggle("active",eventModeSelected);
     if(stageModeNormalBtn)stageModeNormalBtn.innerHTML="一般<br>關卡";
+    if(stageModeWorld2Btn)stageModeWorld2Btn.innerHTML="第二<br>世界";
     stageModeBossBtn?.classList.toggle("locked",!devModeActive);
     if(stageModeBossBtn)stageModeBossBtn.innerHTML=devModeActive?"頭目<br>挑戰":"頭目<br>挑戰 🔒";
     const eventUnlocked=currentPower>=EVENT_UNLOCK_POWER;
     stageModeEventBtn?.classList.toggle("locked",!eventUnlocked);
     if(stageModeEventBtn)stageModeEventBtn.innerHTML=eventUnlocked?"活動<br>關卡":"活動<br>關卡 🔒";
     if(stageModeSpecialBtn)stageModeSpecialBtn.innerHTML="特殊<br>關卡";
-    devUnlockStagesBtn?.classList.toggle("hidden",!devModeActive||bossMode||specialModeSelected||eventModeSelected);
+    devUnlockStagesBtn?.classList.toggle("hidden",!devModeActive||bossMode||specialModeSelected||eventModeSelected||world2Mode);
     infiniteStage?.classList.toggle("active",specialModeSelected);
     gardenStage.classList.toggle("active",currentStage===1);
     desertStage.classList.toggle("active",currentStage===2);
@@ -8418,6 +8486,8 @@
     eventTrialStage?.classList.toggle("active",eventModeSelected&&isActivityTrialMode());
     infiniteStage.classList.toggle("active",currentStage===INFINITE_STAGE);
     trainingDummyStage?.classList.toggle("active",currentStage===TRAINING_DUMMY_STAGE);
+    endlessLadderStage?.classList.toggle("active",currentStage===ENDLESS_LADDER_STAGE);
+    endlessLadderStage?.classList.toggle("hidden",!devModeActive);
     bossChallengeStage?.classList.add("hidden");
     bossChallengePanel?.classList.toggle("hidden",!bossMode);
     desertStage.disabled=stageAvailability(2)!=="open";
@@ -8430,6 +8500,7 @@
     seaStage.disabled=stageAvailability(9)!=="open";
     clockStage.disabled=stageAvailability(10)!=="open";
     voidStage.disabled=stageAvailability(11)!=="open";
+    if(world2Stage11)world2Stage11.disabled=true;
     desertStage.classList.toggle("locked",stageAvailability(2)!=="open");
     snowStage.classList.toggle("locked",stageAvailability(3)!=="open");
     forestPathStage.classList.toggle("locked",stageAvailability(4)!=="open");
@@ -8440,6 +8511,7 @@
     seaStage.classList.toggle("locked",stageAvailability(9)!=="open");
     clockStage.classList.toggle("locked",stageAvailability(10)!=="open");
     voidStage.classList.toggle("locked",stageAvailability(11)!=="open");
+    world2Stage11?.classList.add("locked");
     gardenStage.innerHTML=stageButtonMarkup("第一關・菜園",1);
     desertStage.innerHTML=stageAvailability(2)==="open"?
       stageButtonMarkup("第二關・沙漠",2):
@@ -8471,6 +8543,9 @@
     voidStage.innerHTML=stageAvailability(11)==="open"?
       stageButtonMarkup("第十關・虛空核心",11):
       stageButtonMarkup("第十關・虛空核心（未解鎖）",11);
+    if(world2Stage11){
+      world2Stage11.innerHTML=`<span class="stageLabel"><span>第十一關・新世界入口</span><small class="stageDesc">第二世界關卡資料準備中。</small></span><span class="stageBadge challenge">準備中</span>`;
+    }
     if(eventStage){
       eventStage.classList.toggle("hidden",!eventUnlocked);
       const activityState=activityStageState();
@@ -8496,6 +8571,7 @@
           stageButtonMarkup("強化試煉（未解鎖）",EVENT_STAGE,"2 萬戰力開放");
     }
     infiniteStage.innerHTML=stageButtonMarkup("無限輪迴",INFINITE_STAGE,"每 10 分鐘進入下一輪擂台");
+    if(endlessLadderStage)endlessLadderStage.innerHTML=stageButtonMarkup("無盡天梯",ENDLESS_LADDER_STAGE,"測試用｜上方來敵，打完 BOSS 接續下一關");
     if(trainingDummyStage){
       trainingDummyStage.innerHTML=stageButtonMarkup(
         "稻草人訓練場",
@@ -8831,6 +8907,7 @@
     if(stage===INFINITE_STAGE)return "open";
     if(stage===EVENT_STAGE)return activityStageState()==="open"?"open":"locked";
     if(stage===TRAINING_DUMMY_STAGE)return "open";
+    if(stage===ENDLESS_LADDER_STAGE)return devModeActive?"open":"locked";
     if(stage>IMPLEMENTED_STAGE_COUNT)return "comingSoon";
     if(stage<=1)return "open";
     if(stage===2)return meta.desertUnlocked?"open":"locked";
@@ -9881,6 +9958,7 @@
       spawnTrainingDummy();
     }
     if(isEventMode()&&isActivityCarrotMode())announce("胡鬧的胡蘿蔔","10 分鐘後挑戰 Boss，擊敗後直接結算種子與獎勵","#ffd45e",4);
+    if(isEndlessLadderMode())announce("無盡天梯","第 1 關開始；左右收窄，上方來敵，10 分鐘後 BOSS。","#8ff4ff",4);
     intro.classList.add("hidden");endScreen.classList.add("hidden");levelScreen.classList.add("hidden");pauseScreen.classList.add("hidden");
     pauseBtn.classList.add("visible");
     positionMonitorTabs();
@@ -10047,10 +10125,17 @@
   }
 
   function spawnEnemy(type,kind="normal",flags={}){
-    const angle=Math.random()*Math.PI*2,range=rand(530,700);
+    let angle=Math.random()*Math.PI*2,range=rand(530,700);
+    if(isEndlessLadderMode()&&kind!=="final"){
+      angle=-Math.PI/2+rand(-.32,.32);
+      range=rand(560,740);
+    }
     const scaleTime=monsterScaleTime(),base=enemyData[type],scale=1+scaleTime/600*.9,growth=infiniteGrowth();
     let hp=base.hp*scale,size=base.r,speed=base.speed*(1+scaleTime/1200),damage=base.damage*scale,xp=base.xp;
-    if(isInfiniteMode()){const zone=infiniteZoneAt();hp*=growth.hp;damage*=growth.damage;speed*=growth.speed;xp*=zone>10?1+zone*.18:1;}
+    if(isStageTransferMode()){
+      const transferZone=isEndlessLadderMode()?endlessLadderZoneAt():infiniteZoneAt();
+      hp*=growth.hp;damage*=growth.damage;speed*=growth.speed;xp*=transferZone>10?1+transferZone*.18:1;
+    }
     if(kind==="elite"){hp*=7;size*=1.45;speed*=1.08;damage*=1.8;xp*=8;}
     if(kind==="elite"&&type==="teddybear"){hp+=2000;damage+=100;}
     if(kind==="boss"){hp*=35;size*=2.25;speed*=.82;damage*=2.8;xp*=35;}
@@ -10105,19 +10190,22 @@
         else if(type==="stoneface"){hp=205000;size=64;speed=30;damage=30;xp=300;defense=45;}
         else if(type==="reaper"){hp=4176900;size=76;speed=30;damage=260;xp=980;defense=399;}
         else{hp=110000;size=62;speed=52;damage=32;xp=250;defense=15;}
-      }else if(currentStage===11){hp=6100000;size=96;speed=20;damage=640;xp=2600;defense=620;}
-      else if(currentStage===10){hp=4650000;size=88;speed=26;damage=500;xp=2100;defense=470;}
-      else if(currentStage===9){hp=3550000;size=90;speed=22;damage=410;xp=1800;defense=390;}
-      else if(currentStage===8){hp=2750000;size=88;speed=24;damage=350;xp=1500;defense=340;}
-      else if(currentStage===7){hp=2900750;size=86;speed=30;damage=300;xp=1250;defense=280;}
-      else if(currentStage===6){hp=2888000;size=84;speed=26;damage=225;xp=980;defense=220;}
-      else if(currentStage===5){hp=2784600;size=82;speed=24;damage=173;xp=760;defense=266;}
-      else if(currentStage===4){hp=1801800;size=74;speed=26;damage=134;xp=560;defense=206;}
-      else if(currentStage===3){hp=600000;size=72;speed=24;damage=68;xp=420;defense=80;}
-      else if(currentStage===2){hp=205000;size=64;speed=30;damage=30;xp=300;defense=45;}
-      else{hp=110000;size=62;speed=52;damage=32;xp=250;defense=15;}
+      }else{
+        const finalStage=isEndlessLadderMode()?endlessLadderStageForZone(infiniteBossZone):currentStage;
+        if(finalStage===11){hp=6100000;size=96;speed=20;damage=640;xp=2600;defense=620;}
+        else if(finalStage===10){hp=4650000;size=88;speed=26;damage=500;xp=2100;defense=470;}
+        else if(finalStage===9){hp=3550000;size=90;speed=22;damage=410;xp=1800;defense=390;}
+        else if(finalStage===8){hp=2750000;size=88;speed=24;damage=350;xp=1500;defense=340;}
+        else if(finalStage===7){hp=2900750;size=86;speed=30;damage=300;xp=1250;defense=280;}
+        else if(finalStage===6){hp=2888000;size=84;speed=26;damage=225;xp=980;defense=220;}
+        else if(finalStage===5){hp=2784600;size=82;speed=24;damage=173;xp=760;defense=266;}
+        else if(finalStage===4){hp=1801800;size=74;speed=26;damage=134;xp=560;defense=206;}
+        else if(finalStage===3){hp=600000;size=72;speed=24;damage=68;xp=420;defense=80;}
+        else if(finalStage===2){hp=205000;size=64;speed=30;damage=30;xp=300;defense=45;}
+        else{hp=110000;size=62;speed=52;damage=32;xp=250;defense=15;}
+      }
     }
-    const normalDifficultyMult=!isInfiniteMode()&&!isBossChallengeMode()&&!isEventMode()?stageDifficultyMonsterMultiplier(currentStage):1;
+    const normalDifficultyMult=isEndlessLadderMode()?stageDifficultyMonsterMultiplier(activeStageForCombat()):(!isInfiniteMode()&&!isBossChallengeMode()&&!isEventMode()?stageDifficultyMonsterMultiplier(currentStage):1);
     if(normalDifficultyMult!==1){
       hp*=normalDifficultyMult;
       damage*=normalDifficultyMult;
@@ -10127,15 +10215,20 @@
     if(kind==="normal"&&kpsPressure>0)hp*=1+kpsPressure*.35;
     if(kind==="elite"&&kpsPressure>0)hp*=1+kpsPressure*.18;
     if(killSurgeActive)hp*=KILL_SURGE_HP_MULTIPLIER;
-    const enemy={id:nextId++,type,kind,defense,x:player.x+Math.cos(angle)*range,y:player.y+Math.sin(angle)*range,r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,cling:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1,kpsSpawned:!!flags.kpsSpawned,spawnAt:time,lastHitAt:time,burnTime:0,burnDps:0,cullTimer:0};
+    let spawnX=player.x+Math.cos(angle)*range,spawnY=player.y+Math.sin(angle)*range;
+    if(isEndlessLadderMode()){
+      const half=Math.max(70,ENDLESS_LADDER_HALF_WIDTH-size-10);
+      spawnX=clamp(spawnX,-half,half);
+    }
+    const enemy={id:nextId++,type,kind,defense,x:spawnX,y:spawnY,r:size,hp,maxHp:hp,speed,damage,xp,hit:0,attack:rand(0,1),shoot:rand(.8,2.2),slow:0,phase:0,cling:0,bars:kind==="final"?3:1,totalBars:kind==="final"?3:1,kpsSpawned:!!flags.kpsSpawned,spawnAt:time,lastHitAt:time,burnTime:0,burnDps:0,cullTimer:0};
     if(kind==="final"){
       const phaseConfig=isBossChallengeMode()&&type==="reaper"
         ?{hp:[900900,1310400,1965600],defense:[399,554,738]}
         :finalBossPhaseConfig(type);
       const challengeBossZone=isBossChallengeMode()&&bossChallengeSourceStage>=6&&type!=="reaper"?3:0;
-      const stageBossDifficultyMult=!isInfiniteMode()&&!isBossChallengeMode()?stageDifficultyMonsterMultiplier(currentStage):1;
-      const hpScale=(isInfiniteMode()?(infiniteBossZone>10?infiniteBossHpMultiplier(Math.max(0,infiniteBossZone)):1):(challengeBossZone?infiniteBossHpMultiplier(challengeBossZone):1))*stageBossDifficultyMult;
-      const defenseScale=isInfiniteMode()?(infiniteBossZone>10?Math.max(0,infiniteBossZone)*4:0):challengeBossZone*4;
+      const stageBossDifficultyMult=isEndlessLadderMode()?stageDifficultyMonsterMultiplier(activeStageForCombat()):(!isInfiniteMode()&&!isBossChallengeMode()?stageDifficultyMonsterMultiplier(currentStage):1);
+      const hpScale=(isStageTransferMode()?(infiniteBossZone>10?infiniteBossHpMultiplier(Math.max(0,infiniteBossZone)):1):(challengeBossZone?infiniteBossHpMultiplier(challengeBossZone):1))*stageBossDifficultyMult;
+      const defenseScale=isStageTransferMode()?(infiniteBossZone>10?Math.max(0,infiniteBossZone)*4:0):challengeBossZone*4;
       enemy.finalPhaseHp=phaseConfig.hp.map(value=>Math.round(value*hpScale));
       enemy.finalPhaseDefense=phaseConfig.defense.map(value=>Math.round((value+defenseScale)*stageBossDifficultyMult));
       applyFinalBossPhase(enemy,0);
@@ -10181,6 +10274,7 @@
 
   function enemyPoolForCurrentTime(){
     if(isEventMode())return activityEnemyPool();
+    if(isEndlessLadderMode())return normalStageEnemyPool(endlessLadderStageForZone(),endlessLadderZoneElapsed());
     if(!isInfiniteMode())return normalStageEnemyPool(currentStage,time);
     const stage=infiniteStageForZone();
     if(stage>=1&&stage<=11)return normalStageEnemyPool(stage,infiniteZoneElapsed());
@@ -10204,6 +10298,7 @@
 
   function normalFinalBossType(){
     if(isBossChallengeMode())return bossChallengeType;
+    if(isEndlessLadderMode())return bossTypeForZone(infiniteBossZone);
     if(currentStage===11)return "voiddevourer";
     if(currentStage===10)return "clockwitch";
     if(currentStage===9)return "abyssoctopus";
@@ -10218,16 +10313,17 @@
   }
 
   function normalMidBossType(slot=0,sec=0){
-    if(currentStage===11)return slot%2?"gravityorb":"starlessknight";
-    if(currentStage===10)return slot%2?"nightclockmage":"clockguard";
-    if(currentStage===9)return slot%2?"ruinguard":"reefcrab";
-    if(currentStage===8)return slot%2?"coalroller":"slagguard";
-    if(currentStage===7)return slot%2?"teddybear":"blockgolem";
-    if(currentStage===6)return slot%2?"creampuff":"gingerchef";
-    if(currentStage===5)return slot%2?"oldwood":"witch";
-    if(currentStage===4)return slot%2?"barkguard":"vine";
-    if(currentStage===3)return sec===360||slot%2?"polarbear":"snowman";
-    if(currentStage===2)return sec===360||slot%2?"scorpion":"vulture";
+    const stage=isEndlessLadderMode()?endlessLadderStageForZone():currentStage;
+    if(stage===11)return slot%2?"gravityorb":"starlessknight";
+    if(stage===10)return slot%2?"nightclockmage":"clockguard";
+    if(stage===9)return slot%2?"ruinguard":"reefcrab";
+    if(stage===8)return slot%2?"coalroller":"slagguard";
+    if(stage===7)return slot%2?"teddybear":"blockgolem";
+    if(stage===6)return slot%2?"creampuff":"gingerchef";
+    if(stage===5)return slot%2?"oldwood":"witch";
+    if(stage===4)return slot%2?"barkguard":"vine";
+    if(stage===3)return sec===360||slot%2?"polarbear":"snowman";
+    if(stage===2)return sec===360||slot%2?"scorpion":"vulture";
     return sec===360||slot%2?"plant":"bombcloud";
   }
 
@@ -10300,6 +10396,22 @@
       }
       return;
     }
+    if(isEndlessLadderMode()){
+      const ladderSec=Math.floor(endlessLadderDisplayedTime());
+      if(ladderSec>0&&ladderSec%600===0&&!timeline.seen.has("ladder-boss-"+ladderSec)){
+        timeline.seen.add("ladder-boss-"+ladderSec);
+        infiniteBossZone=Math.max(0,Math.floor(ladderSec/600)-1);
+        beginFinalBossEntrance();
+        announce(`${endlessLadderZoneName(infiniteBossZone)} BOSS 來襲！`,"擊敗後接續下一階，敵人仍從上方壓下來","#8ff4ff",4);
+        return;
+      }
+      if(finalPhase==="none"){
+        if(ladderSec>0&&ladderSec%60===0&&!timeline.seen.has("ladder-wave"+ladderSec)){timeline.seen.add("ladder-wave"+ladderSec);spawnWave(16+Math.floor(ladderSec/45));}
+        if(ladderSec>0&&ladderSec%150===0&&!timeline.seen.has("ladder-elite"+ladderSec)){timeline.seen.add("ladder-elite"+ladderSec);spawnWave(2+Math.floor(ladderSec/900),"elite");}
+        if(ladderSec>0&&ladderSec%300===0&&!timeline.seen.has("ladder-midboss"+ladderSec)){timeline.seen.add("ladder-midboss"+ladderSec);spawnEnemy(normalMidBossType(Math.floor(ladderSec/300),ladderSec),"boss");announce("天梯強敵逼近！","狹窄通道裡只有正面突破","#8ff4ff");}
+      }
+      return;
+    }
     if(usesTimedMonsterBudget()){
       const minute=Math.floor(sec/60);
       if(minute>=1&&minute<=9&&sec===minute*60&&!timeline.seen.has("timed-minute-"+minute)){
@@ -10355,7 +10467,7 @@
   timeline.seen=new Set();
 
   function bossArenaSourceStage(){
-    return isBossChallengeMode()?bossChallengeSourceStage:currentStage;
+    return isBossChallengeMode()?bossChallengeSourceStage:activeStageForCombat();
   }
 
   function isForestBossArena(){
@@ -10535,9 +10647,9 @@
   function beginFinalBossEntrance(){
     finalPhase="warning";
     finalTimer=4.2;
-    if(isInfiniteMode())infiniteDisplayFreezeStart=(Math.floor(time/600)+1)*600;
-    bossArena.active=true;
-    bossArena.zone=isInfiniteMode()?infiniteBossZone:effectiveZone();
+    if(isStageTransferMode())infiniteDisplayFreezeStart=(Math.floor(time/600)+1)*600;
+    bossArena.active=!isEndlessLadderMode();
+    bossArena.zone=isStageTransferMode()?infiniteBossZone:effectiveZone();
     bossArena.x=player.x;
     bossArena.y=player.y;
     bossObstacles=[];
@@ -10553,10 +10665,16 @@
   }
 
   function spawnFinalBoss(){
-    spawnEnemy(isInfiniteMode()?bossTypeForZone(infiniteBossZone):normalFinalBossType(),"final");
+    spawnEnemy(isStageTransferMode()?bossTypeForZone(infiniteBossZone):normalFinalBossType(),"final");
     const boss=enemies[enemies.length-1];
-    boss.x=bossArena.x+Math.min(210,bossArena.r*.58);
-    boss.y=bossArena.y;
+    if(isEndlessLadderMode()){
+      const half=Math.max(80,ENDLESS_LADDER_HALF_WIDTH-boss.r-12);
+      boss.x=clamp(player.x,-half,half);
+      boss.y=player.y-240;
+    }else{
+      boss.x=bossArena.x+Math.min(210,bossArena.r*.58);
+      boss.y=bossArena.y;
+    }
     finalPhase="fight";
     const bossName=boss.type==="nightmaremaker"?"發條夢魘師！":boss.type==="cookiemonarch"?"奶油餅乾女王！":boss.type==="shadowtree"?"幽影樹王！":boss.type==="rottenwood"?"腐木樹衛！":boss.type==="whale"?"暴雪鯨魚！":boss.type==="reaper"?"惡魔死神！":boss.type==="stoneface"?"遠古石面怪！":"霸王食人花！";
     text(boss.x,boss.y-boss.r-24,bossName,"#ff4f68",28);
@@ -10970,8 +11088,8 @@
   }
 
   function finishInfiniteBoss(){
-    if(isInfiniteMode())infiniteDisplayOffset+=Math.max(0,time-infiniteDisplayFreezeStart);
-    if(isInfiniteMode())infiniteClearCount++;
+    if(isStageTransferMode())infiniteDisplayOffset+=Math.max(0,time-infiniteDisplayFreezeStart);
+    if(isStageTransferMode())infiniteClearCount++;
     kps=0;
     kpsWindowKills=0;
     kpsWindowTime=0;
@@ -10983,8 +11101,13 @@
     bossObstacles=[];
     enemyShots=[];areas=[];
     effects.push({kind:"flash",life:.2});
-    const nextZone=infiniteZoneAt();
-    announce("擂台突破！",`進入 ${infiniteZoneName(nextZone)} 輪迴，敵人繼續變強`,"#ffe16a",4);
+    const nextZone=isEndlessLadderMode()?endlessLadderZoneAt():infiniteZoneAt();
+    announce(
+      isEndlessLadderMode()?"天梯突破！":"擂台突破！",
+      isEndlessLadderMode()?`進入 ${endlessLadderZoneName(nextZone)}，敵人只會從上方逼近`:`進入 ${infiniteZoneName(nextZone)} 輪迴，敵人繼續變強`,
+      isEndlessLadderMode()?"#8ff4ff":"#ffe16a",
+      4
+    );
     beep(660,.35,.045,"triangle");
   }
   function bossClearPointPreview(){
@@ -10992,11 +11115,11 @@
     if(isActivityTrialMode())return 0;
     const normalKills=Math.max(0,kills-eliteKills-bossKills);
     const base=Math.floor(normalKills/25)+eliteKills*3+bossKills*10+25+Math.floor(time/60)*3;
-    return applyPointRewardBonus(isInfiniteMode()?Math.floor(base*.3):base);
+    return applyPointRewardBonus(isStageTransferMode()?Math.floor(base*.3):base);
   }
   function scheduleBossClear(e){
     if(bossClearPending)return;
-    const transfer=isInfiniteMode();
+    const transfer=isStageTransferMode();
     const duration=transfer?3:5;
     const points=isEventMode()?0:bossClearPointPreview();
     finalPhase="clear";
@@ -11354,6 +11477,10 @@
       player.x+=Math.cos(blizzardPushAngle)*blizzardPushSpeed*dt;
       player.y+=Math.sin(blizzardPushAngle)*blizzardPushSpeed*dt;
     }
+    if(isEndlessLadderMode()){
+      const half=Math.max(40,ENDLESS_LADDER_HALF_WIDTH-player.r-8);
+      player.x=clamp(player.x,-half,half);
+    }
     if(bossArena.active){
       const ax=player.x-bossArena.x,ay=player.y-bossArena.y,d=Math.hypot(ax,ay),limit=bossArena.r-player.r-18;
       if(d>limit){player.x=bossArena.x+ax/d*limit;player.y=bossArena.y+ay/d*limit;}
@@ -11483,7 +11610,7 @@
       if(dist(e,player)<e.r+player.r){
         hurt(e.damage);
       }
-      const sourceStage=isBossChallengeMode()?bossChallengeSourceStage:currentStage;
+      const sourceStage=activeStageForCombat();
       const ranged=e.type==="plant"&&sourceStage!==1;
       if(ranged&&e.shoot<=0&&dist(e,player)<650){
         const shotSpeed=e.kind==="normal"?185:e.kind==="elite"?225:250;
@@ -12247,7 +12374,7 @@
     }
     if(!preBattleActive)spawnClock-=dt;
     const intensity=1+time/150;
-    if(!isTrainingDummyMode()&&!preBattleActive&&finalPhase==="none"&&(isInfiniteMode()||time<DURATION)&&spawnClock<=0){
+    if(!isTrainingDummyMode()&&!preBattleActive&&finalPhase==="none"&&(isStageTransferMode()||time<DURATION)&&spawnClock<=0){
       countPerfWork("spawn");
       const livingCount=nearbyLivingEnemyCount();
       const enemyCap=computeEnemyCap();
@@ -12658,7 +12785,7 @@
 
   function drawGround(){
     const zone=effectiveZone();
-    const stageForGround=isInfiniteMode()?infiniteStageForZone(zone):(isBossChallengeMode()?bossChallengeSourceStage:currentStage);
+    const stageForGround=groundStageForZone(zone);
     const forestStage=stageForGround===4||stageForGround===5;
     const cookieStageGround=stageForGround===6;
     const toyStageGround=stageForGround===7;
@@ -12713,9 +12840,34 @@
     ctx.drawImage(groundCache.canvas,Math.round(offsetX),Math.round(offsetY));
   }
 
+  function groundStageForZone(zone=effectiveZone()){
+    if(isInfiniteMode())return infiniteStageForZone(zone);
+    if(isEndlessLadderMode())return endlessLadderStageForZone(zone);
+    if(isBossChallengeMode())return bossChallengeSourceStage;
+    return currentStage;
+  }
+
+  function drawEndlessLadderWalls(){
+    if(!isEndlessLadderMode())return;
+    const camera=cameraPosition();
+    const leftX=Math.round(-ENDLESS_LADDER_HALF_WIDTH-camera.x+W/2);
+    const rightX=Math.round(ENDLESS_LADDER_HALF_WIDTH-camera.x+W/2);
+    ctx.save();
+    ctx.globalAlpha=.88;
+    if(leftX>0)rect(0,0,leftX,H,"#100a1f");
+    if(rightX<W)rect(rightX,0,W-rightX,H,"#100a1f");
+    ctx.globalAlpha=.96;
+    rect(leftX-5,0,5,H,"#6d58a4");
+    rect(rightX,0,5,H,"#6d58a4");
+    ctx.globalAlpha=.18;
+    rect(leftX-11,0,6,H,"#8ff4ff");
+    rect(rightX+5,0,6,H,"#8ff4ff");
+    ctx.restore();
+  }
+
   function drawGroundTile(targetCtx,zone,gx,gy,x,y,grid=64){
     const hash=((gx*928371+gy*1237)%7+7)%7;
-    const stageForGround=isInfiniteMode()?infiniteStageForZone(zone):(isBossChallengeMode()?bossChallengeSourceStage:currentStage);
+    const stageForGround=groundStageForZone(zone);
     const forestStage=stageForGround===4||stageForGround===5;
     if(stageForGround===6){
       targetCtx.fillStyle=hash%2?"#d7b079":"#cfa66e";
@@ -14347,7 +14499,7 @@
     }
     const gap=6,barW=(width-gap*2)/3;
     ctx.textAlign="center";ctx.font="bold 17px sans-serif";ctx.fillStyle="#fff4c7";
-    ctx.fillText(`${isInfiniteMode()?"擂台 BOSS":"關卡 BOSS"}　剩餘 ${boss.bars} / 3 條血`,W/2,y-7);
+      ctx.fillText(`${isEndlessLadderMode()?"天梯 BOSS":isInfiniteMode()?"擂台 BOSS":"關卡 BOSS"}　剩餘 ${boss.bars} / 3 條血`,W/2,y-7);
     for(let i=0;i<3;i++){
       const bx=x+i*(barW+gap);
       rect(bx,y,barW,18,"#321827");
@@ -14425,7 +14577,7 @@
     countPerfWork("projectileDraw",shots.length+petShots.length+enemyShots.length+bananas.length);
     countPerfWork("effectDraw",effects.length);
     countPerfWork("textDraw",texts.length);
-    drawGround();drawBossArena();drawBossObstacles("trunk");drawGroundEffects();drawBeamWarnings();for(const g of gems)drawGem(g);for(const chest of chests)drawChest(chest);for(const pickup of pickups)drawPickup(pickup);drawSkills();
+    drawGround();drawEndlessLadderWalls();drawBossArena();drawBossObstacles("trunk");drawGroundEffects();drawBeamWarnings();for(const g of gems)drawGem(g);for(const chest of chests)drawChest(chest);for(const pickup of pickups)drawPickup(pickup);drawSkills();
     for(const e of enemies)drawEnemy(e);
     for(const s of shots)drawCarrot(s);
     for(const s of petShots){
@@ -14622,11 +14774,11 @@
     const baseEarned=Math.floor(normalKills/25)+eliteKills*3+bossKills*10+(success?25:0)+Math.floor(time/60)*3;
     settleRunCoins();
     settleAutoTrainingAfterRun();
-    if(isInfiniteMode()){
+    if(isStageTransferMode()){
       const earned=applyPointRewardBonus(Math.floor(baseEarned*.3));
       meta.points+=earned;
       meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
-      meta.infiniteTotalKills=(meta.infiniteTotalKills||0)+kills;
+      if(isInfiniteMode())meta.infiniteTotalKills=(meta.infiniteTotalKills||0)+kills;
       saveMeta();
       return earned;
     }
@@ -14783,7 +14935,7 @@
         }else{
           settleRunCoins();
           settleAutoTrainingAfterRun();
-          earned=applyPointRewardBonus(isInfiniteMode()?infiniteStagePointReward():Math.floor(time/60)*3);
+          earned=applyPointRewardBonus(isStageTransferMode()?infiniteStagePointReward():Math.floor(time/60)*3);
           meta.points+=earned;
           meta.totalPlaySeconds=(meta.totalPlaySeconds||0)+Math.floor(time);
           saveMeta();
@@ -14802,8 +14954,8 @@
       ?(isActivityTrialMode()
         ?`中途離開不會獲得活動兌換幣。<br>擊倒 ${kills}・活動 Boss ${bossKills}<br>目前活動兌換幣 ${formatCommaNumber(meta.activityCoins||0)}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
         :activityCarrotEndSummaryHtml("尚未擊敗活動 Boss，不會掉落種子。"))
-      :isInfiniteMode()
-      ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}（已扣除 70%）<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
+      :isStageTransferMode()
+      ?`擊倒 ${kills}・菁英 ${eliteKills}・BOSS ${bossKills}<br>${pointRewardLine(earned)}（已扣除 70%）<br>${isEndlessLadderMode()?"無盡天梯測試中途離開":"無限輪迴中途離開"}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`
       :`中途離開不計完整擊殺點數<br>生存點數 ${earned}${soulPointBonusRate()>0?`（獵魂 +${formatPercentRate(soulPointBonusRate())}）`:""}<br>本局獲得鑽石 💎 ${formatCommaNumber(runCoins)}<br>${rewardTotalLines()}`;
     clearBattleEntities();
     beep(220,.22,.035,"square");
@@ -14853,8 +15005,8 @@
   const leaveConfirm=document.getElementById("leaveConfirm"),cancelLeaveBtn=document.getElementById("cancelLeaveBtn"),confirmLeaveBtn=document.getElementById("confirmLeaveBtn");
   const characterBtn=document.getElementById("characterBtn"),adventureBookBtn=document.getElementById("adventureBookBtn"),shopBtn=document.getElementById("shopBtn"),closeCharacter=document.getElementById("closeCharacter"),closeAdventureBook=document.getElementById("closeAdventureBook"),closeShop=document.getElementById("closeShop");
   const chooseStageBtn=document.getElementById("chooseStageBtn"),closeStage=document.getElementById("closeStage"),closeRewards=document.getElementById("closeRewards");
-  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),cookieStage=document.getElementById("cookieStageModal"),toyStage=document.getElementById("toyStageModal"),lavaStage=document.getElementById("lavaStageModal"),seaStage=document.getElementById("seaStageModal"),clockStage=document.getElementById("clockStageModal"),voidStage=document.getElementById("voidStageModal"),eventStage=document.getElementById("eventStageModal"),eventTrialStage=document.getElementById("eventTrialStageModal"),infiniteStage=document.getElementById("infiniteStageModal"),trainingDummyStage=document.getElementById("trainingDummyStageModal"),bossChallengeStage=document.getElementById("bossChallengeStageModal"),bossChallengePanel=document.getElementById("bossChallengePanel");
-  const stageSelectModal=document.getElementById("stageSelectModal"),stageModeNormalBtn=document.getElementById("stageModeNormalBtn"),stageModeBossBtn=document.getElementById("stageModeBossBtn"),stageModeEventBtn=document.getElementById("stageModeEventBtn"),stageModeSpecialBtn=document.getElementById("stageModeSpecialBtn"),devUnlockStagesBtn=document.getElementById("devUnlockStagesBtn");
+  const gardenStage=document.getElementById("gardenStageModal"),desertStage=document.getElementById("desertStageModal"),snowStage=document.getElementById("snowStageModal"),forestPathStage=document.getElementById("forestPathStageModal"),forestSeaStage=document.getElementById("forestSeaStageModal"),cookieStage=document.getElementById("cookieStageModal"),toyStage=document.getElementById("toyStageModal"),lavaStage=document.getElementById("lavaStageModal"),seaStage=document.getElementById("seaStageModal"),clockStage=document.getElementById("clockStageModal"),voidStage=document.getElementById("voidStageModal"),world2Stage11=document.getElementById("world2Stage11Modal"),eventStage=document.getElementById("eventStageModal"),eventTrialStage=document.getElementById("eventTrialStageModal"),infiniteStage=document.getElementById("infiniteStageModal"),trainingDummyStage=document.getElementById("trainingDummyStageModal"),endlessLadderStage=document.getElementById("endlessLadderStageModal"),bossChallengeStage=document.getElementById("bossChallengeStageModal"),bossChallengePanel=document.getElementById("bossChallengePanel");
+  const stageSelectModal=document.getElementById("stageSelectModal"),stageModeTabs=document.getElementById("stageModeTabs"),stageModeNormalBtn=document.getElementById("stageModeNormalBtn"),stageModeWorld2Btn=document.getElementById("stageModeWorld2Btn"),stageModeBossBtn=document.getElementById("stageModeBossBtn"),stageModeEventBtn=document.getElementById("stageModeEventBtn"),stageModeSpecialBtn=document.getElementById("stageModeSpecialBtn"),devUnlockStagesBtn=document.getElementById("devUnlockStagesBtn");
   const homeGardenStage=document.getElementById("gardenStage"),homeDesertStage=document.getElementById("desertStage"),homeSnowStage=document.getElementById("snowStage"),homeForestPathStage=document.getElementById("forestPathStage"),homeForestSeaStage=document.getElementById("forestSeaStage"),homeCookieStage=document.getElementById("cookieStage"),homeToyStage=document.getElementById("toyStage"),homeInfiniteStage=document.getElementById("infiniteStage");
   function updateMuteButton(){
     muteBtn.classList.toggle("muted",muted);
@@ -14987,8 +15139,8 @@
     reloadConfirmActive=false;
     const leaveConfirmText=leaveConfirm.querySelector(".leaveConfirmText");
     if(leaveConfirmText){
-      leaveConfirmText.innerHTML=isInfiniteMode()
-        ?"您確定要中途離開輪迴嗎？<br>將帶走完整鑽石，擊殺點數會扣除 70%。"
+      leaveConfirmText.innerHTML=isStageTransferMode()
+        ?`您確定要中途離開${isEndlessLadderMode()?"無盡天梯":"輪迴"}嗎？<br>將帶走完整鑽石，擊殺點數會扣除 70%。`
         :"您確定要中途離開關卡嗎？<br>將帶走完整鑽石，但不會帶走完整擊殺點數。";
     }
     cancelLeaveBtn.textContent="否";
@@ -15189,21 +15341,29 @@
   closeRewards.addEventListener("click",()=>{playUiClick();rewardScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
   chooseStageBtn.addEventListener("click",()=>{playUiClick();renderMeta();stageScreen.classList.remove("hidden");});
   closeStage.addEventListener("click",()=>{playUiClick();stageScreen.classList.add("hidden");syncCoinState(true);renderMeta();});
-  gardenStage.addEventListener("click",()=>{playUiClick();currentStage=1;renderMeta();});
-  desertStage.addEventListener("click",()=>{if(meta.desertUnlocked){playUiClick();currentStage=2;renderMeta();}});
-  snowStage.addEventListener("click",()=>{if(meta.snowUnlocked){playUiClick();currentStage=3;renderMeta();}});
-  forestPathStage.addEventListener("click",()=>{if(meta.forestPathUnlocked){playUiClick();currentStage=4;renderMeta();}});
-  forestSeaStage.addEventListener("click",()=>{if(meta.forestSeaUnlocked){playUiClick();currentStage=5;renderMeta();}});
-  cookieStage.addEventListener("click",()=>{if(meta.cookieUnlocked){playUiClick();currentStage=6;renderMeta();}});
-  toyStage.addEventListener("click",()=>{if(meta.toyUnlocked){playUiClick();currentStage=7;renderMeta();}});
-  lavaStage.addEventListener("click",()=>{if(stageAvailability(8)==="open"){playUiClick();currentStage=8;renderMeta();}});
-  seaStage.addEventListener("click",()=>{if(stageAvailability(9)==="open"){playUiClick();currentStage=9;renderMeta();}});
-  clockStage.addEventListener("click",()=>{if(stageAvailability(10)==="open"){playUiClick();currentStage=10;renderMeta();}});
-  voidStage.addEventListener("click",()=>{if(stageAvailability(11)==="open"){playUiClick();currentStage=11;renderMeta();}});
+  function chooseNormalStage(stage){
+    playUiClick();
+    secondWorldMenuOpen=false;
+    currentStage=stage;
+    renderMeta();
+  }
+  gardenStage.addEventListener("click",()=>chooseNormalStage(1));
+  desertStage.addEventListener("click",()=>{if(meta.desertUnlocked)chooseNormalStage(2);});
+  snowStage.addEventListener("click",()=>{if(meta.snowUnlocked)chooseNormalStage(3);});
+  forestPathStage.addEventListener("click",()=>{if(meta.forestPathUnlocked)chooseNormalStage(4);});
+  forestSeaStage.addEventListener("click",()=>{if(meta.forestSeaUnlocked)chooseNormalStage(5);});
+  cookieStage.addEventListener("click",()=>{if(meta.cookieUnlocked)chooseNormalStage(6);});
+  toyStage.addEventListener("click",()=>{if(meta.toyUnlocked)chooseNormalStage(7);});
+  lavaStage.addEventListener("click",()=>{if(stageAvailability(8)==="open")chooseNormalStage(8);});
+  seaStage.addEventListener("click",()=>{if(stageAvailability(9)==="open")chooseNormalStage(9);});
+  clockStage.addEventListener("click",()=>{if(stageAvailability(10)==="open")chooseNormalStage(10);});
+  voidStage.addEventListener("click",()=>{if(stageAvailability(11)==="open")chooseNormalStage(11);});
+  world2Stage11?.addEventListener("click",()=>beep(180,.08,.025,"square"));
   eventStage?.addEventListener("click",()=>{
     if(stageAvailability(EVENT_STAGE)==="open"){
       playUiClick();
       bossChallengeMenuOpen=false;
+      secondWorldMenuOpen=false;
       activityStageMode=ACTIVITY_CARROT_MODE;
       currentStage=EVENT_STAGE;
       renderMeta();
@@ -15215,6 +15375,7 @@
     if(stageAvailability(EVENT_STAGE)==="open"){
       playUiClick();
       bossChallengeMenuOpen=false;
+      secondWorldMenuOpen=false;
       activityStageMode=ACTIVITY_TRIAL_MODE;
       currentStage=EVENT_STAGE;
       renderMeta();
@@ -15222,24 +15383,41 @@
       beep(180,.08,.025,"square");
     }
   });
-  infiniteStage.addEventListener("click",()=>{playUiClick();currentStage=INFINITE_STAGE;renderMeta();});
-  trainingDummyStage?.addEventListener("click",()=>{playUiClick();currentStage=TRAINING_DUMMY_STAGE;renderMeta();});
+  infiniteStage.addEventListener("click",()=>{playUiClick();secondWorldMenuOpen=false;currentStage=INFINITE_STAGE;renderMeta();});
+  trainingDummyStage?.addEventListener("click",()=>{playUiClick();secondWorldMenuOpen=false;currentStage=TRAINING_DUMMY_STAGE;renderMeta();});
+  endlessLadderStage?.addEventListener("click",()=>{
+    if(!devModeActive){beep(180,.08,.025,"square");return;}
+    playUiClick();
+    secondWorldMenuOpen=false;
+    currentStage=ENDLESS_LADDER_STAGE;
+    renderMeta();
+  });
   stageModeNormalBtn?.addEventListener("click",()=>{
     playUiClick();
     bossChallengeMenuOpen=false;
-    if(currentStage===INFINITE_STAGE||currentStage===BOSS_CHALLENGE_STAGE||currentStage===EVENT_STAGE||currentStage===TRAINING_DUMMY_STAGE)currentStage=1;
+    secondWorldMenuOpen=false;
+    if(currentStage===INFINITE_STAGE||currentStage===BOSS_CHALLENGE_STAGE||currentStage===EVENT_STAGE||currentStage===TRAINING_DUMMY_STAGE||currentStage===ENDLESS_LADDER_STAGE)currentStage=1;
+    renderMeta();
+  });
+  stageModeWorld2Btn?.addEventListener("click",()=>{
+    if(!meta.stage11Cleared){beep(180,.08,.025,"square");return;}
+    playUiClick();
+    bossChallengeMenuOpen=false;
+    secondWorldMenuOpen=true;
     renderMeta();
   });
   stageModeBossBtn?.addEventListener("click",()=>{
     if(!devModeActive){beep(180,.08,.025,"square");return;}
     playUiClick();
     bossChallengeMenuOpen=true;
+    secondWorldMenuOpen=false;
     renderMeta();
   });
   stageModeEventBtn?.addEventListener("click",()=>{
     if(combatPower()<EVENT_UNLOCK_POWER){beep(180,.08,.025,"square");return;}
     playUiClick();
     bossChallengeMenuOpen=false;
+    secondWorldMenuOpen=false;
     activityStageMode=ACTIVITY_CARROT_MODE;
     currentStage=EVENT_STAGE;
     renderMeta();
@@ -15247,6 +15425,7 @@
   stageModeSpecialBtn?.addEventListener("click",()=>{
     playUiClick();
     bossChallengeMenuOpen=false;
+    secondWorldMenuOpen=false;
     currentStage=INFINITE_STAGE;
     renderMeta();
   });
@@ -15254,6 +15433,7 @@
     if(!devModeActive)return;
     playUiClick();
     bossChallengeMenuOpen=!bossChallengeMenuOpen;
+    secondWorldMenuOpen=false;
     renderMeta();
   });
   bossChallengePanel?.addEventListener("click",e=>{

@@ -864,9 +864,10 @@
       margin: 0 auto 12px;
       overflow: visible;
       padding: 8px 4px 10px;
-      background: linear-gradient(#211943 0%,#211943 78%,rgba(33,25,67,0) 100%);
-      box-shadow: 0 8px 0 #211943,0 12px 16px #0b092088;
+      background: #211943;
+      box-shadow: 0 14px 0 #211943,0 18px 18px #0b0920aa;
     }
+    .stageModeTabs.hasWorld2 { grid-template-columns: repeat(5, minmax(0,1fr)); }
     .stageModeTabs button {
       min-height: 44px;
       padding: 8px 6px;
@@ -878,6 +879,7 @@
       line-height: 1.18;
       box-shadow: 5px 5px #08051b;
     }
+    .stageModeTabs button.hidden { display: none; }
     .stageModeTabs button.active {
       background: #ffd85a;
       color: #1a1230;
@@ -892,15 +894,21 @@
     }
     .stageModeTabs button.locked:active { transform: none; }
     #stageSelect,#stageSelectModal { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 12px auto 0; width: min(300px,84%); }
+    #stageSelectModal .world2Stage { display: none; }
+    #stageSelectModal.world2Mode > button { display: none; }
+    #stageSelectModal.world2Mode .world2Stage { display: flex; }
     #stageSelectModal.bossMode > button { display: none; }
     #stageSelectModal.bossMode #bossChallengePanel { display: block; }
     #stageSelectModal #infiniteStageModal,
-    #stageSelectModal #trainingDummyStageModal { display: none; }
+    #stageSelectModal #trainingDummyStageModal,
+    #stageSelectModal #endlessLadderStageModal { display: none; }
     #stageSelectModal .eventCaveStage,
     #stageSelectModal .eventTrialStage { display: none; }
     #stageSelectModal.specialMode > button { display: none; }
     #stageSelectModal.specialMode #infiniteStageModal,
-    #stageSelectModal.specialMode #trainingDummyStageModal { display: flex; }
+    #stageSelectModal.specialMode #trainingDummyStageModal,
+    #stageSelectModal.specialMode #endlessLadderStageModal { display: flex; }
+    #stageSelectModal.specialMode #endlessLadderStageModal.hidden { display: none; }
     #stageSelectModal.eventMode > button { display: none; }
     #stageSelectModal.eventMode .eventCaveStage,
     #stageSelectModal.eventMode .eventTrialStage { display: flex; }
