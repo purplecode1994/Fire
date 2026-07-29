@@ -952,8 +952,85 @@ document.querySelectorAll("tbody td").forEach(td=>{
 });
 
 
+// Re-check and center today's date when the user returns to this window or tab.
+let refreshTodayTimer;
+let pageWasActive =
+  document.visibilityState === "visible" && document.hasFocus();
+
+function centerTodayInFrame(month, day){
+  const table = document.getElementById(`schedule${month}`);
+  if (!table) return;
+
+  const frame = table.closest(".frame");
+  const headers = table.querySelectorAll("thead tr:first-child th");
+  const todayHeader = Array.from(headers).find(th => Number(th.textContent) === day);
+  if (!frame || !todayHeader) return;
+
+  const targetLeft =
+    todayHeader.offsetLeft - (frame.clientWidth - todayHeader.offsetWidth) / 2;
+
+  frame.scrollTo({
+    left: Math.max(0, targetLeft),
+    behavior: "smooth"
+  });
+}
+
+function refreshTodayPosition(){
+  clearTimeout(refreshTodayTimer);
+
+  refreshTodayTimer = setTimeout(() => {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const day = now.getDate();
+
+    // Remove the previous marker in case the page stayed open across midnight.
+    document.querySelectorAll(".today-num").forEach(el => {
+      el.classList.remove("today-num");
+    });
+
+    highlightToday(`schedule${month}`);
+
+    // Wait until the restored tab has completed two paint frames.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        centerTodayInFrame(month, day);
+      });
+    });
+  }, 180);
+}
+
+function handlePageReturn(){
+  pageWasActive = true;
+  refreshTodayPosition();
+}
+
+window.addEventListener("blur", () => {
+  pageWasActive = false;
+});
+
+window.addEventListener("focus", handlePageReturn);
+window.addEventListener("pageshow", handlePageReturn);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    pageWasActive = false;
+  } else {
+    handlePageReturn();
+  }
+});
+
+// Fallback for browsers or embedded webviews that miss focus events.
+setInterval(() => {
+  const isActive =
+    document.visibilityState === "visible" && document.hasFocus();
+
+  if (isActive && !pageWasActive) {
+    handlePageReturn();
+  } else if (!isActive) {
+    pageWasActive = false;
+  }
+}, 750);
+
 </script>
 </body>
 </html>
-
-
