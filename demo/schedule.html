@@ -861,7 +861,7 @@ makeWeekRow("weekRow12", 31, 2); // 12/1 星期二
 
 
 // 高亮今天號碼（僅在該月，且自動切到該月面板）
-function highlightToday(tableId){
+function highlightToday(tableId, shouldScroll = true){
   const table = document.getElementById(tableId);
   if (!table) return; // 沒這張表就跳過
 
@@ -875,6 +875,7 @@ function highlightToday(tableId){
   // 自動切到這個月份的面板 & 對應按鈕
   const panel = table.closest('.month');
   if (panel) {
+    const panelWasActive = panel.classList.contains('active');
     document.querySelectorAll('.month').forEach(m => m.classList.remove('active'));
     panel.classList.add('active');
 
@@ -884,7 +885,9 @@ function highlightToday(tableId){
       document.querySelectorAll('.month-switch button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       // 讓當月按鈕進入視野
-      btn.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+      if (shouldScroll && !panelWasActive) {
+        btn.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+      }
     }
   }
 
@@ -895,7 +898,9 @@ function highlightToday(tableId){
     if (!Number.isNaN(n) && n === day) {
       th.classList.add("today-num");
       // 讓今天那一欄水平置中顯示
-      th.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
+      if (shouldScroll) {
+        th.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
+      }
     }
   });
 }
@@ -958,6 +963,7 @@ let refreshTodayGeneration = 0;
 let suppressAutoCenterUntil = 0;
 let pageWasActive =
   document.visibilityState === "visible" && document.hasFocus();
+let pageWasAway = false;
 
 function centerTodayInFrame(month, day){
   const table = document.getElementById(`schedule${month}`);
@@ -996,7 +1002,8 @@ function refreshTodayPosition(){
       el.classList.remove("today-num");
     });
 
-    highlightToday(`schedule${month}`);
+    // Update the active month and today's marker without starting another scroll.
+    highlightToday(`schedule${month}`, false);
 
     // Wait until the restored tab has completed two paint frames.
     requestAnimationFrame(() => {
@@ -1010,19 +1017,31 @@ function refreshTodayPosition(){
 
 function handlePageReturn(){
   pageWasActive = true;
+  if (!pageWasAway) return;
+
+  pageWasAway = false;
   refreshTodayPosition();
 }
 
 window.addEventListener("blur", () => {
   pageWasActive = false;
+  pageWasAway = true;
 });
 
 window.addEventListener("focus", handlePageReturn);
-window.addEventListener("pageshow", handlePageReturn);
+window.addEventListener("pageshow", event => {
+  // A normal navigation from home also fires pageshow; only restore from
+  // the back-forward cache when the page was actually shown before.
+  if (event.persisted) {
+    pageWasAway = true;
+    handlePageReturn();
+  }
+});
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     pageWasActive = false;
+    pageWasAway = true;
   } else {
     handlePageReturn();
   }
@@ -1049,6 +1068,7 @@ setInterval(() => {
     handlePageReturn();
   } else if (!isActive) {
     pageWasActive = false;
+    pageWasAway = true;
   }
 }, 750);
 
