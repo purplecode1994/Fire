@@ -954,6 +954,8 @@ document.querySelectorAll("tbody td").forEach(td=>{
 
 // Re-check and center today's date when the user returns to this window or tab.
 let refreshTodayTimer;
+let refreshTodayGeneration = 0;
+let suppressAutoCenterUntil = 0;
 let pageWasActive =
   document.visibilityState === "visible" && document.hasFocus();
 
@@ -977,8 +979,14 @@ function centerTodayInFrame(month, day){
 
 function refreshTodayPosition(){
   clearTimeout(refreshTodayTimer);
+  const thisGeneration = ++refreshTodayGeneration;
 
   refreshTodayTimer = setTimeout(() => {
+    if (
+      thisGeneration !== refreshTodayGeneration ||
+      Date.now() < suppressAutoCenterUntil
+    ) return;
+
     const now = new Date();
     const month = now.getMonth() + 1;
     const day = now.getDate();
@@ -993,6 +1001,7 @@ function refreshTodayPosition(){
     // Wait until the restored tab has completed two paint frames.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+        if (thisGeneration !== refreshTodayGeneration) return;
         centerTodayInFrame(month, day);
       });
     });
@@ -1018,6 +1027,18 @@ document.addEventListener("visibilitychange", () => {
     handlePageReturn();
   }
 });
+
+// A manual month selection always takes priority over automatic centering.
+const monthSwitcherForFocus = document.querySelector(".month-switch");
+if (monthSwitcherForFocus) {
+  monthSwitcherForFocus.addEventListener("click", event => {
+    if (!event.target.closest("button[data-target]")) return;
+
+    clearTimeout(refreshTodayTimer);
+    refreshTodayGeneration++;
+    suppressAutoCenterUntil = Date.now() + 800;
+  });
+}
 
 // Fallback for browsers or embedded webviews that miss focus events.
 setInterval(() => {
