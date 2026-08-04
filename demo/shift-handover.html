@@ -526,7 +526,7 @@
   useCurrentRecordDate();
 
   function refreshAutomaticRecordDate() {
-    if (!recordDateUsesCustomValue) useCurrentRecordDate();
+    useCurrentRecordDate();
   }
 
   document.addEventListener("visibilitychange", () => {
@@ -642,15 +642,41 @@
     button.copyResetTimer = setTimeout(() => {
       button.classList.remove("is-copied");
       button.setAttribute("aria-label", button.dataset.defaultLabel);
-    }, 1600);
+    }, 2500);
   }
 
   document.querySelectorAll(".copy-action").forEach(button => {
     button.dataset.defaultLabel = button.getAttribute("aria-label");
   });
 
+  async function copyToClipboard(box, button, successMessage) {
+    let copied = false;
+
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(box.value);
+        copied = true;
+      } catch (error) {
+        copied = false;
+      }
+    }
+
+    if (!copied) {
+      box.focus();
+      box.select();
+      copied = document.execCommand("copy");
+    }
+
+    if (copied) {
+      alert(successMessage);
+      showCopySuccess(button);
+    } else {
+      alert("複製失敗，請長按下方文字後手動複製。");
+    }
+  }
+
   /* 複製交接內容 */
-  function copyShift(button) {
+  async function copyShift(button) {
     const shiftButton = document.querySelector('#shiftName .active');
     const typeButton = document.querySelector('#shiftType .active');
     if (!shiftButton || !typeButton) {
@@ -676,13 +702,11 @@
 
     const box = document.getElementById("resultShift");
     box.value = result;
-    box.select();
-    document.execCommand("copy");
-    showCopySuccess(button);
+    await copyToClipboard(box, button, "交接內容已複製！");
   }
 
   /* 複製 LINE 水電紀錄 */
-  function copyBrief(button) {
+  async function copyBrief(button) {
     const dateValue = document.getElementById("recordDate").value;
     const w = document.getElementById("waterStatus").value.trim();
     const p = document.getElementById("powerStatus").value.trim();
@@ -715,13 +739,11 @@
 
     const box = document.getElementById("resultBrief");
     box.value = result.join("\n");
-    box.select();
-    document.execCommand("copy");
-    showCopySuccess(button);
+    await copyToClipboard(box, button, "水電紀錄已複製！");
   }
 
   /* 複製巡檢內容 */
-  function copyWater(button) {
+  async function copyWater(button) {
     const rows = document.querySelectorAll("#form-inspection .form-row");
     let result = [`一品、四季(${dateStr})`, "水電管制巡檢"];
     rows.forEach(row => {
@@ -742,9 +764,7 @@
     const output = result.join('\n').trim();
     const box = document.getElementById("resultWater");
     box.value = output;
-    box.select();
-    document.execCommand("copy");
-    showCopySuccess(button);
+    await copyToClipboard(box, button, "巡檢內容已複製！");
   }
 </script>
 </body>
