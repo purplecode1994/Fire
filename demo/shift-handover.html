@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>上下班 + 水電簡報 + 巡檢</title>
+  <title>上下班 + 水電紀錄 + 巡檢</title>
 
   <style>
   body {
@@ -71,6 +71,8 @@
   textarea.autosize,
   input[type="text"],
   input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
   select {
     width: 100%;
     font-size: 1.08em;
@@ -87,6 +89,51 @@
 
   textarea.autosize {
     line-height: 1.35;
+  }
+
+  .field-hint {
+    margin: 5px 0 0;
+    color: #666;
+    font-size: 0.88em;
+  }
+
+  .date-control-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .record-date-display {
+    flex: 1;
+    min-height: 44px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    padding: 4px 2px;
+    border: none;
+    background: transparent;
+    color: #222;
+    font-size: 1.08em;
+  }
+
+  .date-switch-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 118px;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px 16px;
+    background: #f8fbfe;
+    color: #0056b3;
+    border: 2px solid #b9d7f5;
+  }
+
+  .alternate-date-input {
+    margin-top: 8px;
+  }
+
+  .alternate-date-input[hidden] {
+    display: none;
   }
 
   input[type="checkbox"] {
@@ -110,6 +157,60 @@
 
   button:active {
     transform: scale(0.99);
+  }
+
+  .copy-action {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 54px;
+    box-sizing: border-box;
+    overflow: hidden;
+    transition: height 500ms ease, transform 120ms ease;
+  }
+
+  .copy-action span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    color: inherit;
+    line-height: 1.2;
+    pointer-events: none;
+    transition: transform 500ms ease, opacity 500ms ease;
+  }
+
+  .copy-action .copy-label {
+    transform: translate(-50%, -50%);
+  }
+
+  .copy-action .copy-success {
+    opacity: 0;
+    transform: translate(-50%, 100%);
+  }
+
+  .copy-action.is-copied {
+    height: 62px;
+  }
+
+  .copy-action.is-copied .copy-label {
+    opacity: 0;
+    transform: translate(-50%, -150%);
+  }
+
+  .copy-action.is-copied .copy-success {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+    transition-delay: 200ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .copy-action,
+    .copy-action span {
+      transition-duration: 1ms;
+      transition-delay: 0ms;
+    }
   }
 
   textarea.result {
@@ -221,6 +322,8 @@
     textarea.autosize,
     input[type="text"],
     input[type="number"],
+    input[type="date"],
+    input[type="datetime-local"],
     select {
       font-size: 1.1em;
       min-height: 46px;
@@ -287,26 +390,44 @@
     <textarea class="autosize" id="handoverExtra"></textarea>
   </div>
 
-  <button onclick="copyShift()">複製交接內容</button>
+  <button type="button" class="copy-action" onclick="copyShift(this)" aria-label="複製交接內容">
+    <span class="copy-label" aria-hidden="true">複製交接內容</span>
+    <span class="copy-success" aria-hidden="true">已複製</span>
+  </button>
   <textarea id="resultShift" class="result" readonly></textarea>
 </div>
 
-<!-- 水電簡報 -->
+<!-- LINE 水電紀錄 -->
 <div class="section">
-  <h2>水電簡報</h2>
+  <h2>LINE 水電紀錄</h2>
   <div class="form-row">
-    <label>水</label>
-    <input type="number" inputmode="numeric" id="waterStatus" placeholder="請輸入數值">
+    <label for="recordDate">日期</label>
+    <div class="date-control-row">
+      <div id="recordDateDisplay" class="record-date-display" aria-live="polite"></div>
+      <button type="button" id="otherDateButton" class="date-switch-button" onclick="chooseOtherDate()">其他時間</button>
+    </div>
+    <input type="datetime-local" id="recordDate" class="alternate-date-input" hidden>
   </div>
   <div class="form-row">
-    <label>電</label>
-    <input type="number" inputmode="numeric" id="powerStatus" placeholder="請輸入數值">
+    <label for="waterStatus">水表</label>
+    <input type="number" inputmode="decimal" step="any" id="waterStatus" placeholder="請輸入水表讀數">
   </div>
   <div class="form-row">
-    <label>機房</label>
-    <input type="text" id="roomStatus" value="正常">
+    <label for="powerStatus">電表</label>
+    <input type="number" inputmode="decimal" step="any" id="powerStatus" placeholder="請輸入電表讀數">
   </div>
-  <button onclick="copyBrief()">複製水電簡報</button>
+  <div class="form-row">
+    <label for="chlorineDose">氯錠投藥量</label>
+    <input type="number" inputmode="decimal" step="any" id="chlorineDose" placeholder="輸入投藥量">
+  </div>
+  <div class="form-row">
+    <label for="recordNote">備註</label>
+    <input type="text" id="recordNote" value="正常" placeholder="例如：正常">
+  </div>
+  <button type="button" class="copy-action" onclick="copyBrief(this)" aria-label="複製 LINE 紀錄">
+    <span class="copy-label" aria-hidden="true">複製 LINE 紀錄</span>
+    <span class="copy-success" aria-hidden="true">已複製</span>
+  </button>
   <textarea id="resultBrief" class="result" readonly></textarea>
 </div>
 
@@ -315,7 +436,10 @@
   <h2>水電管制巡檢</h2>
   <p id="date"></p>
   <div id="form-inspection"></div>
-  <button onclick="copyWater()">複製巡檢內容</button>
+  <button type="button" class="copy-action" onclick="copyWater(this)" aria-label="複製巡檢內容">
+    <span class="copy-label" aria-hidden="true">複製巡檢內容</span>
+    <span class="copy-success" aria-hidden="true">已複製</span>
+  </button>
   <textarea id="resultWater" class="result" readonly></textarea>
 </div>
 
@@ -325,6 +449,90 @@
   const dd = String(now.getDate()).padStart(2, "0");
   const dateStr = `${mm}/${dd}`;
   document.getElementById("date").textContent = `日期：${dateStr}`;
+
+  function getTaipeiDateTimeValue(date = new Date()) {
+    const parts = new Intl.DateTimeFormat("en", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23"
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
+  }
+
+  function toRocDate(dateValue) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateValue);
+    if (!match) return "";
+    const rocYear = Number(match[1]) - 1911;
+    if (rocYear < 1) return "";
+    return `${rocYear}/${match[2]}/${match[3]}`;
+  }
+
+  function formatRocDateTime(dateValue) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(dateValue);
+    if (!match) return "";
+    const rocYear = Number(match[1]) - 1911;
+    if (rocYear < 1) return "";
+    return `${rocYear}/${match[2]}/${match[3]} ${match[4]}:${match[5]}`;
+  }
+
+  function updateRecordDateDisplay() {
+    const input = document.getElementById("recordDate");
+    const display = document.getElementById("recordDateDisplay");
+    display.textContent = formatRocDateTime(input.value);
+  }
+
+  let recordDateUsesCustomValue = false;
+
+  function useCurrentRecordDate() {
+    const input = document.getElementById("recordDate");
+    const button = document.getElementById("otherDateButton");
+    recordDateUsesCustomValue = false;
+    input.value = getTaipeiDateTimeValue(new Date());
+    input.hidden = true;
+    button.textContent = "其他時間";
+    button.setAttribute("aria-label", "選擇其他時間");
+    updateRecordDateDisplay();
+  }
+
+  function chooseOtherDate() {
+    const input = document.getElementById("recordDate");
+    if (recordDateUsesCustomValue) {
+      useCurrentRecordDate();
+      return;
+    }
+    input.hidden = false;
+    input.focus();
+    if (typeof input.showPicker === "function") input.showPicker();
+  }
+
+  const recordDateInput = document.getElementById("recordDate");
+  recordDateInput.addEventListener("change", () => {
+    if (!recordDateInput.value) {
+      useCurrentRecordDate();
+      return;
+    }
+    recordDateUsesCustomValue = true;
+    recordDateInput.hidden = true;
+    const button = document.getElementById("otherDateButton");
+    button.textContent = "現在時間";
+    button.setAttribute("aria-label", "改用現在時間");
+    updateRecordDateDisplay();
+  });
+  useCurrentRecordDate();
+
+  function refreshAutomaticRecordDate() {
+    if (!recordDateUsesCustomValue) useCurrentRecordDate();
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshAutomaticRecordDate();
+  });
+  window.addEventListener("pageshow", refreshAutomaticRecordDate);
 
   function setActiveButton(groupId, value) {
     const group = document.getElementById(groupId);
@@ -424,8 +632,25 @@
     });
   });
 
+  function showCopySuccess(button) {
+    clearTimeout(button.copyResetTimer);
+    button.classList.remove("is-copied");
+    void button.offsetWidth;
+    button.classList.add("is-copied");
+    button.setAttribute("aria-label", "已複製");
+
+    button.copyResetTimer = setTimeout(() => {
+      button.classList.remove("is-copied");
+      button.setAttribute("aria-label", button.dataset.defaultLabel);
+    }, 1600);
+  }
+
+  document.querySelectorAll(".copy-action").forEach(button => {
+    button.dataset.defaultLabel = button.getAttribute("aria-label");
+  });
+
   /* 複製交接內容 */
-  function copyShift() {
+  function copyShift(button) {
     const shiftButton = document.querySelector('#shiftName .active');
     const typeButton = document.querySelector('#shiftType .active');
     if (!shiftButton || !typeButton) {
@@ -453,24 +678,50 @@
     box.value = result;
     box.select();
     document.execCommand("copy");
-    alert("交接內容已複製！");
+    showCopySuccess(button);
   }
 
-  /* 複製水電簡報 */
-  function copyBrief() {
+  /* 複製 LINE 水電紀錄 */
+  function copyBrief(button) {
+    const dateValue = document.getElementById("recordDate").value;
     const w = document.getElementById("waterStatus").value.trim();
     const p = document.getElementById("powerStatus").value.trim();
-    const r = document.getElementById("roomStatus").value.trim();
-    const result = `水：${w}\n電：${p}\n機房：${r}`;
+    const chlorineDose = document.getElementById("chlorineDose").value.trim();
+    const note = document.getElementById("recordNote").value.trim();
+
+    if (!w) {
+      alert("請輸入水表讀數。");
+      document.getElementById("waterStatus").focus();
+      return;
+    }
+    if (!p) {
+      alert("請輸入電表讀數。");
+      document.getElementById("powerStatus").focus();
+      return;
+    }
+
+    const result = ["/紀錄"];
+    const rocDate = toRocDate(dateValue);
+    if (dateValue && !rocDate) {
+      alert("日期格式不正確，請重新選擇日期或留空。");
+      document.getElementById("recordDate").focus();
+      return;
+    }
+    if (rocDate) result.push(`日期：${rocDate}`);
+    result.push(`水表：${w}`);
+    result.push(`電表：${p}`);
+    if (chlorineDose) result.push(`氯錠投藥量：${chlorineDose}`);
+    if (note) result.push(`備註：${note}`);
+
     const box = document.getElementById("resultBrief");
-    box.value = result;
+    box.value = result.join("\n");
     box.select();
     document.execCommand("copy");
-    alert("水電簡報已複製！");
+    showCopySuccess(button);
   }
 
   /* 複製巡檢內容 */
-  function copyWater() {
+  function copyWater(button) {
     const rows = document.querySelectorAll("#form-inspection .form-row");
     let result = [`一品、四季(${dateStr})`, "水電管制巡檢"];
     rows.forEach(row => {
@@ -493,7 +744,7 @@
     box.value = output;
     box.select();
     document.execCommand("copy");
-    alert("巡檢內容已複製！");
+    showCopySuccess(button);
   }
 </script>
 </body>
