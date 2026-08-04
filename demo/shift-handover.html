@@ -97,45 +97,6 @@
     font-size: 0.88em;
   }
 
-  .date-control-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .record-date-display {
-    flex: 1;
-    min-height: 44px;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    padding: 4px 2px;
-    border: none;
-    background: transparent;
-    color: #222;
-    font-size: 1.08em;
-  }
-
-  .date-switch-button {
-    flex: 0 0 auto;
-    width: auto;
-    min-width: 118px;
-    min-height: 44px;
-    margin: 0;
-    padding: 10px 16px;
-    background: #f8fbfe;
-    color: #0056b3;
-    border: 2px solid #b9d7f5;
-  }
-
-  .alternate-date-input {
-    margin-top: 8px;
-  }
-
-  .alternate-date-input[hidden] {
-    display: none;
-  }
-
   .zone-toggle-group {
     display: flex;
     gap: 10px;
@@ -447,15 +408,6 @@
 <div class="section">
   <h2>汙水用電紀錄</h2>
   <div class="form-row">
-    <label for="recordDate">日期</label>
-    <div class="date-control-row">
-      <div id="recordDateDisplay" class="record-date-display" aria-live="polite"></div>
-      <button type="button" id="otherDateButton" class="date-switch-button" onclick="chooseOtherDate()">其他時間</button>
-    </div>
-    <input type="datetime-local" id="recordDate" class="alternate-date-input" hidden>
-  </div>
-
-  <div class="form-row">
     <label>記錄區域</label>
     <div class="zone-toggle-group" id="recordZones" aria-label="選擇記錄區域">
       <button type="button" class="zone-toggle active" data-zone="A" aria-pressed="true" onclick="toggleRecordZone(this)">A區</button>
@@ -529,95 +481,11 @@
   const dateStr = `${mm}/${dd}`;
   document.getElementById("date").textContent = `日期：${dateStr}`;
 
-  function getTaipeiDateTimeValue(date = new Date()) {
-    const parts = new Intl.DateTimeFormat("en", {
-      timeZone: "Asia/Taipei",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23"
-    }).formatToParts(date);
-    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
-    return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
-  }
-
-  function toRocDate(dateValue) {
-    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateValue);
-    if (!match) return "";
-    const rocYear = Number(match[1]) - 1911;
-    if (rocYear < 1) return "";
-    return `${rocYear}/${match[2]}/${match[3]}`;
-  }
-
   function toHalfWidthDigits(value) {
     return String(value || "").replace(/[０-９]/g, character =>
       String.fromCharCode(character.charCodeAt(0) - 65248)
     );
   }
-
-  function formatRocDateTime(dateValue) {
-    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(dateValue);
-    if (!match) return "";
-    const rocYear = Number(match[1]) - 1911;
-    if (rocYear < 1) return "";
-    return `${rocYear}/${match[2]}/${match[3]} ${match[4]}:${match[5]}`;
-  }
-
-  function updateRecordDateDisplay() {
-    const input = document.getElementById("recordDate");
-    const display = document.getElementById("recordDateDisplay");
-    display.textContent = formatRocDateTime(input.value);
-  }
-
-  let recordDateUsesCustomValue = false;
-
-  function useCurrentRecordDate() {
-    const input = document.getElementById("recordDate");
-    const button = document.getElementById("otherDateButton");
-    recordDateUsesCustomValue = false;
-    input.value = getTaipeiDateTimeValue(new Date());
-    input.hidden = true;
-    button.textContent = "其他時間";
-    button.setAttribute("aria-label", "選擇其他時間");
-    updateRecordDateDisplay();
-  }
-
-  function chooseOtherDate() {
-    const input = document.getElementById("recordDate");
-    if (recordDateUsesCustomValue) {
-      useCurrentRecordDate();
-      return;
-    }
-    input.hidden = false;
-    input.focus();
-    if (typeof input.showPicker === "function") input.showPicker();
-  }
-
-  const recordDateInput = document.getElementById("recordDate");
-  recordDateInput.addEventListener("change", () => {
-    if (!recordDateInput.value) {
-      useCurrentRecordDate();
-      return;
-    }
-    recordDateUsesCustomValue = true;
-    recordDateInput.hidden = true;
-    const button = document.getElementById("otherDateButton");
-    button.textContent = "現在時間";
-    button.setAttribute("aria-label", "改用現在時間");
-    updateRecordDateDisplay();
-  });
-  useCurrentRecordDate();
-
-  function refreshAutomaticRecordDate() {
-    useCurrentRecordDate();
-  }
-
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") refreshAutomaticRecordDate();
-  });
-  window.addEventListener("pageshow", refreshAutomaticRecordDate);
 
   function getSelectedRecordZones() {
     return Array.from(document.querySelectorAll("#recordZones .zone-toggle.active"))
@@ -816,14 +684,6 @@
 
   /* 複製 LINE 水電紀錄 */
   async function copyBrief(button) {
-    const dateValue = document.getElementById("recordDate").value;
-    const rocDate = toRocDate(dateValue);
-    if (dateValue && !rocDate) {
-      alert("日期格式不正確，請重新選擇日期或留空。");
-      document.getElementById("recordDate").focus();
-      return;
-    }
-
     const selectedZones = getSelectedRecordZones();
     const zoneRecords = [];
 
@@ -871,8 +731,6 @@
     }
 
     const result = [];
-    if (recordDateUsesCustomValue && rocDate) result.push(`日期：${rocDate}`, "");
-
     const zoneBlocks = zoneRecords.map(record => {
       const lines = [
         record.zone,
