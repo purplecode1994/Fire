@@ -136,6 +136,52 @@
     display: none;
   }
 
+  .zone-toggle-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .zone-toggle-group .zone-toggle {
+    flex: 1;
+    margin: 0;
+    padding: 12px 8px;
+    border: 2px solid #dbe5ef;
+    background: #f8fbfe;
+    color: #5b6b7c;
+  }
+
+  .zone-toggle-group .zone-toggle.active {
+    border-color: #007BFF;
+    background: #007BFF;
+    color: #fff;
+    box-shadow: 0 0 6px rgba(0, 123, 255, 0.25);
+  }
+
+  .zone-record-card {
+    margin: 14px 0;
+    padding: 14px;
+    border: 2px solid #e0e6ec;
+    border-radius: 10px;
+    background: #fafcfe;
+  }
+
+  .zone-record-card[hidden] {
+    display: none;
+  }
+
+  .zone-record-card h3 {
+    margin: 0 0 12px;
+    color: #0056b3;
+    font-size: 1.35em;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .zone-record-card .form-row:last-child {
+    margin-bottom: 0;
+  }
+
   input[type="checkbox"] {
     transform: scale(1.3);
     margin-right: 4px;
@@ -408,22 +454,55 @@
     </div>
     <input type="datetime-local" id="recordDate" class="alternate-date-input" hidden>
   </div>
+
   <div class="form-row">
-    <label for="waterStatus">水表</label>
-    <input type="number" inputmode="decimal" step="any" id="waterStatus" placeholder="請輸入水表讀數">
+    <label>記錄區域</label>
+    <div class="zone-toggle-group" id="recordZones" aria-label="選擇記錄區域">
+      <button type="button" class="zone-toggle active" data-zone="A" aria-pressed="true" onclick="toggleRecordZone(this)">A區</button>
+      <button type="button" class="zone-toggle" data-zone="C" aria-pressed="false" onclick="toggleRecordZone(this)">C區</button>
+    </div>
   </div>
-  <div class="form-row">
-    <label for="powerStatus">電表</label>
-    <input type="number" inputmode="decimal" step="any" id="powerStatus" placeholder="請輸入電表讀數">
+
+  <div class="zone-record-card" data-zone-card="A">
+    <h3>A區</h3>
+    <div class="form-row">
+      <label for="waterStatusA">A區水表</label>
+      <input type="number" inputmode="decimal" step="any" id="waterStatusA" placeholder="請輸入水表讀數">
+    </div>
+    <div class="form-row">
+      <label for="powerStatusA">A區電表</label>
+      <input type="number" inputmode="decimal" step="any" id="powerStatusA" placeholder="請輸入電表讀數">
+    </div>
+    <div class="form-row">
+      <label for="chlorineDoseA">A區氯錠投藥量</label>
+      <input type="number" inputmode="decimal" step="any" id="chlorineDoseA" placeholder="輸入投藥量">
+    </div>
+    <div class="form-row">
+      <label for="recordNoteA">A區備註</label>
+      <input type="text" id="recordNoteA" value="正常" placeholder="例如：正常">
+    </div>
   </div>
-  <div class="form-row">
-    <label for="chlorineDose">氯錠投藥量</label>
-    <input type="number" inputmode="decimal" step="any" id="chlorineDose" placeholder="輸入投藥量">
+
+  <div class="zone-record-card" data-zone-card="C" hidden>
+    <h3>C區</h3>
+    <div class="form-row">
+      <label for="waterStatusC">C區水表</label>
+      <input type="number" inputmode="decimal" step="any" id="waterStatusC" placeholder="請輸入水表讀數">
+    </div>
+    <div class="form-row">
+      <label for="powerStatusC">C區電表</label>
+      <input type="number" inputmode="decimal" step="any" id="powerStatusC" placeholder="請輸入電表讀數">
+    </div>
+    <div class="form-row">
+      <label for="chlorineDoseC">C區氯錠投藥量</label>
+      <input type="number" inputmode="decimal" step="any" id="chlorineDoseC" placeholder="輸入投藥量">
+    </div>
+    <div class="form-row">
+      <label for="recordNoteC">C區備註</label>
+      <input type="text" id="recordNoteC" value="正常" placeholder="例如：正常">
+    </div>
   </div>
-  <div class="form-row">
-    <label for="recordNote">備註</label>
-    <input type="text" id="recordNote" value="正常" placeholder="例如：正常">
-  </div>
+
   <button type="button" class="copy-action" onclick="copyBrief(this)" aria-label="複製水電紀錄">
     <span class="copy-label" aria-hidden="true">複製水電紀錄</span>
     <span class="copy-success" aria-hidden="true">已複製</span>
@@ -533,6 +612,30 @@
     if (document.visibilityState === "visible") refreshAutomaticRecordDate();
   });
   window.addEventListener("pageshow", refreshAutomaticRecordDate);
+
+  function getSelectedRecordZones() {
+    return Array.from(document.querySelectorAll("#recordZones .zone-toggle.active"))
+      .map(button => button.dataset.zone);
+  }
+
+  function updateRecordZoneCards() {
+    const selectedZones = getSelectedRecordZones();
+    document.querySelectorAll("[data-zone-card]").forEach(card => {
+      card.hidden = !selectedZones.includes(card.dataset.zoneCard);
+    });
+  }
+
+  function toggleRecordZone(button) {
+    const isActive = button.classList.contains("active");
+    const selectedZones = getSelectedRecordZones();
+    if (isActive && selectedZones.length === 1) return;
+
+    button.classList.toggle("active");
+    button.setAttribute("aria-pressed", String(button.classList.contains("active")));
+    updateRecordZoneCards();
+  }
+
+  updateRecordZoneCards();
 
   function setActiveButton(groupId, value) {
     const group = document.getElementById(groupId);
@@ -708,34 +811,52 @@
   /* 複製 LINE 水電紀錄 */
   async function copyBrief(button) {
     const dateValue = document.getElementById("recordDate").value;
-    const w = document.getElementById("waterStatus").value.trim();
-    const p = document.getElementById("powerStatus").value.trim();
-    const chlorineDose = document.getElementById("chlorineDose").value.trim();
-    const note = document.getElementById("recordNote").value.trim();
-
-    if (!w) {
-      alert("請輸入水表讀數。");
-      document.getElementById("waterStatus").focus();
-      return;
-    }
-    if (!p) {
-      alert("請輸入電表讀數。");
-      document.getElementById("powerStatus").focus();
-      return;
-    }
-
-    const result = ["/紀錄"];
     const rocDate = toRocDate(dateValue);
     if (dateValue && !rocDate) {
       alert("日期格式不正確，請重新選擇日期或留空。");
       document.getElementById("recordDate").focus();
       return;
     }
+
+    const selectedZones = getSelectedRecordZones();
+    const zoneRecords = [];
+
+    for (const zone of selectedZones) {
+      const waterField = document.getElementById(`waterStatus${zone}`);
+      const powerField = document.getElementById(`powerStatus${zone}`);
+      const chlorineField = document.getElementById(`chlorineDose${zone}`);
+      const noteField = document.getElementById(`recordNote${zone}`);
+      const water = waterField.value.trim();
+      const power = powerField.value.trim();
+
+      if (!water) {
+        alert(`請輸入 ${zone}區水表讀數。`);
+        waterField.focus();
+        return;
+      }
+      if (!power) {
+        alert(`請輸入 ${zone}區電表讀數。`);
+        powerField.focus();
+        return;
+      }
+
+      zoneRecords.push({
+        zone,
+        water,
+        power,
+        chlorineDose: chlorineField.value.trim(),
+        note: noteField.value.trim()
+      });
+    }
+
+    const result = ["/紀錄"];
     if (rocDate) result.push(`日期：${rocDate}`);
-    result.push(`水表：${w}`);
-    result.push(`電表：${p}`);
-    if (chlorineDose) result.push(`氯錠投藥量：${chlorineDose}`);
-    if (note) result.push(`備註：${note}`);
+    zoneRecords.forEach(record => {
+      result.push(`${record.zone}區水表：${record.water}`);
+      result.push(`${record.zone}區電表：${record.power}`);
+      if (record.chlorineDose) result.push(`${record.zone}區氯錠投藥量：${record.chlorineDose}`);
+      if (record.note) result.push(`${record.zone}區備註：${record.note}`);
+    });
 
     const box = document.getElementById("resultBrief");
     box.value = result.join("\n");
