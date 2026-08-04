@@ -467,11 +467,11 @@
     <h3>A區</h3>
     <div class="form-row">
       <label for="waterStatusA">A區水表</label>
-      <input type="number" inputmode="decimal" min="0" step="any" id="waterStatusA" placeholder="請輸入水表讀數">
+      <input type="number" inputmode="numeric" min="0" max="99999" step="1" id="waterStatusA" placeholder="請輸入水表讀數">
     </div>
     <div class="form-row">
       <label for="powerStatusA">A區電表</label>
-      <input type="number" inputmode="decimal" min="0" step="any" id="powerStatusA" placeholder="請輸入電表讀數">
+      <input type="number" inputmode="numeric" min="0" max="99999" step="1" id="powerStatusA" placeholder="請輸入電表讀數">
     </div>
     <div class="form-row">
       <label for="chlorineDoseA">A區氯錠投藥量</label>
@@ -487,11 +487,11 @@
     <h3>C區</h3>
     <div class="form-row">
       <label for="waterStatusC">C區水表</label>
-      <input type="number" inputmode="decimal" min="0" step="any" id="waterStatusC" placeholder="請輸入水表讀數">
+      <input type="number" inputmode="numeric" min="0" max="99999" step="1" id="waterStatusC" placeholder="請輸入水表讀數">
     </div>
     <div class="form-row">
       <label for="powerStatusC">C區電表</label>
-      <input type="number" inputmode="decimal" min="0" step="any" id="powerStatusC" placeholder="請輸入電表讀數">
+      <input type="number" inputmode="numeric" min="0" max="99999" step="1" id="powerStatusC" placeholder="請輸入電表讀數">
     </div>
     <div class="form-row">
       <label for="chlorineDoseC">C區氯錠投藥量</label>
@@ -549,6 +549,12 @@
     const rocYear = Number(match[1]) - 1911;
     if (rocYear < 1) return "";
     return `${rocYear}/${match[2]}/${match[3]}`;
+  }
+
+  function toHalfWidthDigits(value) {
+    return String(value || "").replace(/[０-９]/g, character =>
+      String.fromCharCode(character.charCodeAt(0) - 65248)
+    );
   }
 
   function formatRocDateTime(dateValue) {
@@ -826,8 +832,8 @@
       const powerField = document.getElementById(`powerStatus${zone}`);
       const chlorineField = document.getElementById(`chlorineDose${zone}`);
       const noteField = document.getElementById(`recordNote${zone}`);
-      const water = waterField.value.trim();
-      const power = powerField.value.trim();
+      const water = toHalfWidthDigits(waterField.value.trim());
+      const power = toHalfWidthDigits(powerField.value.trim());
 
       if (!water) {
         alert(`請輸入 ${zone}區水表讀數。`);
@@ -835,7 +841,7 @@
         return;
       }
       if (!waterField.checkValidity()) {
-        alert(`${zone}區水表必須是大於或等於 0 的數字。`);
+        alert(`${zone}區水表必須是 0 到 99999 的整數。`);
         waterField.focus();
         return;
       }
@@ -845,7 +851,7 @@
         return;
       }
       if (!powerField.checkValidity()) {
-        alert(`${zone}區電表必須是大於或等於 0 的數字。`);
+        alert(`${zone}區電表必須是 0 到 99999 的整數。`);
         powerField.focus();
         return;
       }
@@ -859,19 +865,25 @@
         zone,
         water,
         power,
-        chlorineDose: chlorineField.value.trim(),
+        chlorineDose: toHalfWidthDigits(chlorineField.value.trim()),
         note: noteField.value.trim()
       });
     }
 
-    const result = ["/紀錄"];
-    if (rocDate) result.push(`日期：${rocDate}`);
-    zoneRecords.forEach(record => {
-      result.push(`${record.zone}區水表：${record.water}`);
-      result.push(`${record.zone}區電表：${record.power}`);
-      if (record.chlorineDose) result.push(`${record.zone}區氯錠投藥量：${record.chlorineDose}`);
-      if (record.note) result.push(`${record.zone}區備註：${record.note}`);
+    const result = [];
+    if (recordDateUsesCustomValue && rocDate) result.push(`日期：${rocDate}`, "");
+
+    const zoneBlocks = zoneRecords.map(record => {
+      const lines = [
+        record.zone,
+        `水：${record.water}`,
+        `電：${record.power}`
+      ];
+      if (record.chlorineDose) lines.push(`氯錠：${record.chlorineDose}`);
+      if (record.note) lines.push(record.note);
+      return lines.join("\n");
     });
+    result.push(zoneBlocks.join("\n\n"));
 
     const box = document.getElementById("resultBrief");
     box.value = result.join("\n");
