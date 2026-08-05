@@ -419,7 +419,7 @@
     <h3>A區</h3>
     <div class="form-row">
       <label for="waterStatusA">A區水表</label>
-      <input type="number" inputmode="numeric" min="0" max="99999" step="1" id="waterStatusA" placeholder="請輸入水表讀數">
+      <input type="number" inputmode="numeric" min="0" max="999999" step="1" id="waterStatusA" placeholder="請輸入水表讀數">
     </div>
     <div class="form-row">
       <label for="powerStatusA">A區電表</label>
@@ -439,7 +439,7 @@
     <h3>C區</h3>
     <div class="form-row">
       <label for="waterStatusC">C區水表</label>
-      <input type="number" inputmode="numeric" min="0" max="99999" step="1" id="waterStatusC" placeholder="請輸入水表讀數">
+      <input type="number" inputmode="numeric" min="0" max="999999" step="1" id="waterStatusC" placeholder="請輸入水表讀數">
     </div>
     <div class="form-row">
       <label for="powerStatusC">C區電表</label>
@@ -700,8 +700,8 @@
         waterField.focus();
         return;
       }
-      if (!waterField.checkValidity()) {
-        alert(`${zone}區水表必須是 0 到 99999 的整數。`);
+      if (!/^\d{1,6}$/.test(water) || !waterField.checkValidity()) {
+        alert(`${zone}區水表必須是 0 到 999999 的整數。`);
         waterField.focus();
         return;
       }
@@ -710,7 +710,7 @@
         powerField.focus();
         return;
       }
-      if (!powerField.checkValidity()) {
+      if (!/^\d{1,5}$/.test(power) || !powerField.checkValidity()) {
         alert(`${zone}區電表必須是 0 到 99999 的整數。`);
         powerField.focus();
         return;
