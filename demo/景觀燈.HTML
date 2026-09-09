@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>景觀燈</title>
+  <style>
+    :root { color-scheme: light; --blue: #1e90ff; --ink: #182c44; --muted: #52647a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f7f7f8; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; line-height: 1.6; }
+    main { max-width: 760px; margin: auto; padding: 24px 18px 48px; }
+    .back { color: #1268b8; text-decoration: none; font-weight: 600; }
+    header { margin: 22px 0; }
+    h1 { margin: 0; font-size: 30px; }
+    h2 { margin: 0 0 16px; font-size: 21px; }
+    h3 { margin: 0; font-size: 18px; }
+    p { margin: 6px 0 0; }
+    .sub { color: var(--muted); }
+    section { background: white; border: 1px solid #e2e8ef; border-radius: 18px; padding: 22px; margin-top: 18px; box-shadow: 0 5px 18px #182c4406; }
+    .garden { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .garden article { background: #eef6ff; border-radius: 12px; padding: 16px; }
+    .code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 21px; font-weight: 700; color: #1268b8; white-space: nowrap; }
+    .nursing { margin-top: 22px; }
+    dl { margin: 10px 0 0; }
+    dl > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e9edf2; }
+    dl > div:last-child { border-bottom: 0; padding-bottom: 0; }
+    dd { margin: 0; }
+    .keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+    button { font: inherit; cursor: pointer; border: 0; border-radius: 12px; padding: 14px 10px; background: var(--blue); color: white; box-shadow: 0 4px 10px #1e90ff22; min-height: 72px; }
+    button strong, button span { display: block; }
+    button strong { font-size: 19px; }
+    button span { font-size: 15px; }
+    button:hover { background: #187bd6; }
+    button:active { transform: scale(.98); }
+    button:focus-visible, a:focus-visible { outline: 3px solid #163f69; outline-offset: 4px; }
+    .mode-button { grid-column: 1 / -1; }
+    .hint { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #f0f4f8; min-height: 50px; }
+    .modes { list-style: none; padding: 0; margin: 16px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .modes li { text-align: center; background: #f0f4f8; border: 2px solid transparent; border-radius: 10px; padding: 10px 3px; }
+    .modes strong, .modes span { display: block; }
+    .modes span { font-size: 13px; }
+    .modes [aria-current="step"] { background: #e8f3ff; color: #105fa8; border-color: var(--blue); }
+    .current { color: #105fa8; font-weight: 700; }
+    @media (max-width: 420px) { section { padding: 18px; } .garden { grid-template-columns: 1fr; } .modes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="二線控.html">← 返回二線控</a>
+    <header>
+      <h1>景觀燈</h1>
+      <p class="sub">燈具代碼與控制器按鍵說明</p>
+    </header>
+    <section aria-labelledby="codes-title">
+      <h2 id="codes-title">燈具代碼</h2>
+      <div class="garden">
+        <article><h3>一品庭園燈</h3><p>代碼 <span class="code">1G 12</span></p></article>
+        <article><h3>四季庭園燈</h3><p>代碼 <span class="code">2G 12</span></p></article>
+      </div>
+      <h3 class="nursing">護理之家</h3>
+      <dl>
+        <div><dt>門口照明</dt><dd>代碼 <span class="code">G1</span></dd></div>
+        <div><dt>格柵燈</dt><dd>代碼 <span class="code">G2</span></dd></div>
+        <div><dt>1F 壁燈</dt><dd>代碼 <span class="code">G3</span></dd></div>
+        <div><dt>外牆燈</dt><dd>代碼 <span class="code">G4</span></dd></div>
+      </dl>
+    </section>
+    <section aria-labelledby="keys-title">
+      <h2 id="keys-title">控制器按鍵</h2>
+      <p class="sub">點按查看說明；MODE 可預覽模式循環。</p>
+      <div class="keys">
+        <button type="button" data-help="LIGHT：背光燈。"><strong>LIGHT</strong><span>背光燈</span></button>
+        <button type="button" data-help="BACK：退後。"><strong>BACK</strong><span>退後</span></button>
+        <button type="button" data-help="−：減量。"><strong>−</strong><span>減量</span></button>
+        <button type="button" data-help="＋：加量。"><strong>＋</strong><span>加量</span></button>
+        <button type="button" data-help="SET：下一步。"><strong>SET</strong><span>下一步</span></button>
+        <button type="button" data-help="CLR：清除最後輸入。"><strong>CLR</strong><span>清除最後輸入</span></button>
+        <button type="button" class="mode-button" id="mode-button" aria-controls="mode-list current-mode"><strong>MODE</strong><span>模式 · 按一下切換下一個模式</span></button>
+      </div>
+      <p class="hint" id="key-help" role="status">請點選上方按鍵查看說明。</p>
+      <h3 style="margin-top: 22px">MODE 模式循環</h3>
+      <p class="sub">NML → PRG → SP-D → 時鐘 → 回到 NML</p>
+      <ol class="modes" id="mode-list">
+        <li aria-current="step"><strong>NML</strong><span>正常</span></li>
+        <li><strong>PRG</strong><span>設定單元</span></li>
+        <li><strong>SP-D</strong><span>特殊日</span></li>
+        <li><strong>時鐘</strong><span>設定時間</span></li>
+      </ol>
+      <p class="current" id="current-mode" role="status">目前預覽：NML 正常</p>
+    </section>
+  </main>
+  <script>
+    const help = document.getElementById('key-help');
+    document.querySelectorAll('[data-help]').forEach(button => {
+      button.addEventListener('click', () => { help.textContent = button.dataset.help; });
+    });
+    const modes = ['NML 正常', 'PRG 設定單元', 'SP-D 特殊日', '時鐘 設定時間'];
+    const modeItems = document.querySelectorAll('#mode-list li');
+    let modeIndex = 0;
+    document.getElementById('mode-button').addEventListener('click', () => {
+      modeItems[modeIndex].removeAttribute('aria-current');
+      modeIndex = (modeIndex + 1) % modes.length;
+      modeItems[modeIndex].setAttribute('aria-current', 'step');
+      document.getElementById('current-mode').textContent = '目前預覽：' + modes[modeIndex];
+      help.textContent = 'MODE：切換至' + modes[modeIndex] + '。';
+    });
+  </script>
+</body>
+</html>
