@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>上下班 + 水電紀錄 + 巡檢</title>
+
+  <style>
+  body {
+    font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    padding: 12px;
+    margin: 0;
+    background-color: #f5f5f5;
+    color: #222;
+    font-size: 18px;
+    line-height: 1.4;
+  }
+
+  .section {
+    background-color: #fff;
+    border: 2px solid #cfcfcf;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    text-align: center;
+    margin: 0 0 12px 0;
+    color: #111;
+    font-size: 1.4em;
+    font-weight: 400;
+    border-bottom: 2px solid #e5e5e5;
+    padding-bottom: 8px;
+  }
+
+  .inspection-group + .inspection-group {
+    margin-top: 14px;
+  }
+
+  .inspection-group h3 {
+    margin: 0 0 8px;
+    padding: 6px 10px;
+    border-left: 4px solid #007BFF;
+    border-radius: 4px;
+    background: #eef6ff;
+    color: #0056b3;
+    font-size: 1.12em;
+    font-weight: 600;
+  }
+
+  #form-inspection .form-row {
+    margin-bottom: 8px;
+  }
+
+  #form-inspection .label-row {
+    margin-bottom: 3px;
+  }
+
+  #form-inspection .label-row label {
+    margin-bottom: 0;
+  }
+
+  #form-inspection textarea.autosize {
+    display: block;
+    min-height: 44px;
+    padding: 7px 10px;
+  }
+
+  .form-row {
+    margin-bottom: 12px;
+  }
+
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .label-row label,
+  .form-row > label {
+    font-weight: 400;
+    font-size: 1.05em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .time-label {
+    font-weight: 400;
+    font-size: 0.95em;
+    color: #444;
+  }
+
+  .time-display {
+    margin-left: 4px;
+    color: #c62828;
+    font-weight: 400;
+  }
+
+  textarea.autosize,
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
+  select {
+    width: 100%;
+    font-size: 1.08em;
+    padding: 10px 12px;
+    resize: none;
+    overflow: hidden;
+    min-height: 44px;
+    box-sizing: border-box;
+    border: 2px solid #bdbdbd;
+    border-radius: 8px;
+    background: #fff;
+    color: #222;
+  }
+
+  textarea.autosize {
+    line-height: 1.35;
+  }
+
+  .field-hint {
+    margin: 5px 0 0;
+    color: #666;
+    font-size: 0.88em;
+  }
+
+  .zone-toggle-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .zone-toggle-group .zone-toggle {
+    flex: 1;
+    margin: 0;
+    padding: 12px 8px;
+    border: 2px solid #dbe5ef;
+    background: #f8fbfe;
+    color: #5b6b7c;
+  }
+
+  .zone-toggle-group .zone-toggle.active {
+    border-color: #007BFF;
+    background: #007BFF;
+    color: #fff;
+    box-shadow: 0 0 6px rgba(0, 123, 255, 0.25);
+  }
+
+  .zone-record-card {
+    margin: 14px 0;
+    padding: 14px;
+    border: 2px solid #e0e6ec;
+    border-radius: 10px;
+    background: #fafcfe;
+  }
+
+  .zone-record-card[hidden] {
+    display: none;
+  }
+
+  .zone-record-card h3 {
+    margin: 0 0 12px;
+    color: #0056b3;
+    font-size: 1.35em;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .zone-record-card .form-row:last-child {
+    margin-bottom: 0;
+  }
+
+  input[type="checkbox"] {
+    transform: scale(1.3);
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  button {
+    margin-top: 4px;
+    width: 100%;
+    padding: 14px 12px;
+    font-size: 1.08em;
+    font-weight: 400;
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  button:active {
+    transform: scale(0.99);
+  }
+
+  .copy-action {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 54px;
+    box-sizing: border-box;
+    overflow: hidden;
+    transition: height 500ms ease, transform 120ms ease;
+  }
+
+  .copy-action span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    color: inherit;
+    line-height: 1.2;
+    pointer-events: none;
+    transition: transform 500ms ease, opacity 500ms ease;
+  }
+
+  .copy-action .copy-label {
+    transform: translate(-50%, -50%);
+  }
+
+  .copy-action .copy-success {
+    opacity: 0;
+    transform: translate(-50%, 100%);
+  }
+
+  .copy-action.is-copied {
+    height: 62px;
+  }
+
+  .copy-action.is-copied .copy-label {
+    opacity: 0;
+    transform: translate(-50%, -150%);
+  }
+
+  .copy-action.is-copied .copy-success {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+    transition-delay: 200ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .copy-action,
+    .copy-action span {
+      transition-duration: 1ms;
+      transition-delay: 0ms;
+    }
+  }
+
+  textarea.result {
+    height: 180px;
+    margin-top: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 1.02em;
+    line-height: 1.4;
+    border: 2px solid #bdbdbd;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #fafafa;
+    resize: none;
+    overflow: auto;
+  }
+
+  #resultWater {
+    height: 420px;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .btn-group .btn {
+  flex: 1;
+  padding: 12px 8px;
+  border-radius: 8px;
+  border: 2px solid #dbe5ef;
+  background: #f8fbfe;
+  color: #5b6b7c;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 1.05em;
+  font-weight: 400;
+}
+
+  .btn-group .btn.active {
+    background: #007BFF;
+    color: #fff;
+    border-color: #007BFF;
+    box-shadow: 0 0 6px rgba(0, 123, 255, 0.25);
+  }
+
+  .btn-group .btn:hover {
+    background: #ececec;
+  }
+
+  .btn-group .btn.active:hover {
+    background: #007BFF;
+    color: #fff;
+    border-color: #007BFF;
+  }
+
+  .person-selection-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 40px;
+  }
+
+  .person-selection-field {
+    flex: 1 1 50%;
+    min-width: 0;
+  }
+
+  .selection-display {
+    min-height: 44px;
+    box-sizing: border-box;
+    border: none;
+    background: transparent;
+    color: #555;
+    padding: 10px 12px;
+    font-size: 1.08em;
+    line-height: 1.35;
+    text-align: center;
+  }
+
+  .selection-display.has-selection {
+    background: transparent;
+    color: #0056b3;
+  }
+
+  #date {
+    text-align: center;
+    font-size: 1.05em;
+    font-weight: 400;
+    margin: 0 0 12px 0;
+    color: #444;
+  }
+
+  @media (max-width: 480px) {
+    body {
+      font-size: 19px;
+      padding: 10px;
+    }
+
+    .section {
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      font-size: 1.3em;
+    }
+
+    textarea.autosize,
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="datetime-local"],
+    select {
+      font-size: 1.1em;
+      min-height: 46px;
+    }
+
+    button,
+    .btn-group .btn {
+      font-size: 1.08em;
+      padding: 14px 10px;
+    }
+
+    #resultWater {
+      height: 380px;
+    }
+  }
+</style>
+
+</head>
+<body>
+
+<!-- 上下班交接 -->
+<div class="section">
+  <h2>上下班交接</h2>
+
+  <div class="form-row">
+    <label>班別</label>
+    <div class="btn-group" id="shiftName">
+      <button type="button" data-value="A班" class="btn active">A班</button>
+      <button type="button" data-value="B班" class="btn">B班</button>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <label>類型</label>
+    <div class="btn-group" id="shiftType">
+      <button type="button" data-value="上班" class="btn active">上班</button>
+      <button type="button" data-value="下班" class="btn">下班</button>
+    </div>
+  </div>
+
+  <div class="form-row person-selection-row">
+    <div class="person-selection-field">
+      <label for="handoverPerson">人員</label>
+      <input type="text" id="handoverPerson" placeholder="請輸入姓名">
+    </div>
+    <div class="person-selection-field">
+      <label>目前選擇</label>
+      <div id="currentShiftSelection" class="selection-display" aria-live="polite">未選擇</div>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <label>交接物品</label>
+    <input type="text" id="handoverItem" value="正常">
+  </div>
+
+  <div class="form-row">
+    <label>交接事項</label>
+    <textarea class="autosize" id="handoverNote">正常</textarea>
+  </div>
+
+  <div class="form-row">
+    <label>補充說明</label>
+    <textarea class="autosize" id="handoverExtra"></textarea>
+  </div>
+
+  <button type="button" class="copy-action" onclick="copyShift(this)" aria-label="複製交接內容">
+    <span class="copy-label" aria-hidden="true">複製交接內容</span>
+    <span class="copy-success" aria-hidden="true">已複製</span>
+  </button>
+  <textarea id="resultShift" class="result" readonly></textarea>
+</div>
+
+<!-- LINE 水電紀錄 -->
+<div class="section">
+  <h2>汙水用電紀錄</h2>
+  <div class="form-row">
+    <label>記錄區域</label>
+    <div class="zone-toggle-group" id="recordZones" aria-label="選擇記錄區域">
+      <button type="button" class="zone-toggle active" data-zone="A" aria-pressed="true" onclick="toggleRecordZone(this)">A區</button>
+      <button type="button" class="zone-toggle" data-zone="C" aria-pressed="false" onclick="toggleRecordZone(this)">C區</button>
+    </div>
+  </div>
+
+  <div class="zone-record-card" data-zone-card="A">
+    <h3>A區</h3>
+    <div class="form-row">
+      <label for="waterStatusA">A區水表</label>
+      <input type="number" inputmode="numeric" min="0" max="999999" step="1" id="waterStatusA" placeholder="請輸入水表讀數">
+    </div>
+    <div class="form-row">
+      <label for="powerStatusA">A區電表</label>
+      <input type="number" inputmode="numeric" min="0" max="99999" step="1" id="powerStatusA" placeholder="請輸入電表讀數">
+    </div>
+    <div class="form-row">
+      <label for="chlorineDoseA">A區氯錠投藥量</label>
+      <input type="number" inputmode="decimal" min="0" step="any" id="chlorineDoseA" placeholder="輸入投藥量">
+    </div>
+    <div class="form-row">
+      <label for="recordNoteA">A區備註</label>
+      <input type="text" id="recordNoteA" value="正常" placeholder="例如：正常">
+    </div>
+  </div>
+
+  <div class="zone-record-card" data-zone-card="C" hidden>
+    <h3>C區</h3>
+    <div class="form-row">
+      <label for="waterStatusC">C區水表</label>
+      <input type="number" inputmode="numeric" min="0" max="999999" step="1" id="waterStatusC" placeholder="請輸入水表讀數">
+    </div>
+    <div class="form-row">
+      <label for="powerStatusC">C區電表</label>
+      <input type="number" inputmode="numeric" min="0" max="99999" step="1" id="powerStatusC" placeholder="請輸入電表讀數">
+    </div>
+    <div class="form-row">
+      <label for="chlorineDoseC">C區氯錠投藥量</label>
+      <input type="number" inputmode="decimal" min="0" step="any" id="chlorineDoseC" placeholder="輸入投藥量">
+    </div>
+    <div class="form-row">
+      <label for="recordNoteC">C區備註</label>
+      <input type="text" id="recordNoteC" value="正常" placeholder="例如：正常">
+    </div>
+  </div>
+
+  <button type="button" class="copy-action" onclick="copyBrief(this)" aria-label="複製水電紀錄">
+    <span class="copy-label" aria-hidden="true">複製水電紀錄</span>
+    <span class="copy-success" aria-hidden="true">已複製</span>
+  </button>
+  <textarea id="resultBrief" class="result" readonly></textarea>
+</div>
+
+<!-- 水電巡檢 -->
+<div id="section-inspection" class="section">
+  <h2>園區水電管制巡檢</h2>
+  <p id="date"></p>
+  <div id="form-inspection"></div>
+  <button type="button" class="copy-action" onclick="copyWater(this)" aria-label="複製巡檢內容">
+    <span class="copy-label" aria-hidden="true">複製巡檢內容</span>
+    <span class="copy-success" aria-hidden="true">已複製</span>
+  </button>
+  <textarea id="resultWater" class="result" readonly></textarea>
+</div>
+
+<script>
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const dateStr = `${mm}/${dd}`;
+  document.getElementById("date").textContent = `日期：${dateStr}`;
+
+  function toHalfWidthDigits(value) {
+    return String(value || "").replace(/[０-９]/g, character =>
+      String.fromCharCode(character.charCodeAt(0) - 65248)
+    );
+  }
+
+  function getSelectedRecordZones() {
+    return Array.from(document.querySelectorAll("#recordZones .zone-toggle.active"))
+      .map(button => button.dataset.zone);
+  }
+
+  function updateRecordZoneCards() {
+    const selectedZones = getSelectedRecordZones();
+    document.querySelectorAll("[data-zone-card]").forEach(card => {
+      card.hidden = !selectedZones.includes(card.dataset.zoneCard);
+    });
+  }
+
+  function toggleRecordZone(button) {
+    const isActive = button.classList.contains("active");
+    const selectedZones = getSelectedRecordZones();
+    if (isActive && selectedZones.length === 1) return;
+
+    button.classList.toggle("active");
+    button.setAttribute("aria-pressed", String(button.classList.contains("active")));
+    updateRecordZoneCards();
+  }
+
+  updateRecordZoneCards();
+
+  function setActiveButton(groupId, value) {
+    const group = document.getElementById(groupId);
+    group.querySelectorAll(".btn").forEach(button => {
+      const isActive = button.dataset.value === value;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
+    });
+  }
+
+  function updateCurrentShiftSelection() {
+    const shiftButton = document.querySelector("#shiftName .active");
+    const typeButton = document.querySelector("#shiftType .active");
+    const display = document.getElementById("currentShiftSelection");
+    const hasSelection = Boolean(shiftButton && typeButton);
+
+    display.textContent = hasSelection
+      ? `${shiftButton.dataset.value} ${typeButton.dataset.value}`
+      : "未選擇";
+    display.classList.toggle("has-selection", hasSelection);
+  }
+
+  function getAutomaticShift(date = new Date()) {
+    const minutes = date.getHours() * 60 + date.getMinutes();
+    const isBetween = (startHour, endHour) =>
+      minutes >= startHour * 60 && minutes <= endHour * 60;
+
+    if (isBetween(7, 9)) return { shift: "A班", type: "上班" };
+    if (isBetween(16, 18)) return { shift: "A班", type: "下班" };
+    if (isBetween(10, 12)) return { shift: "B班", type: "上班" };
+    if (isBetween(19, 22)) return { shift: "B班", type: "下班" };
+    return null;
+  }
+
+  function applyAutomaticShift(date = new Date()) {
+    const selection = getAutomaticShift(date);
+    setActiveButton("shiftName", selection?.shift);
+    setActiveButton("shiftType", selection?.type);
+    updateCurrentShiftSelection();
+  }
+
+  applyAutomaticShift(now);
+
+  const inspectionGroups = [
+    { name: "", labels: ["接待中心"] },
+    { name: "一品官邸", labels: [
+      "北醫中午", "北醫休診", "社區廚房", "溫泉區", "娛樂室", "樣品房",
+      "3F祈禱室", "4F書畫室", "5F宗教室", "7F棋藝室", "一品泳池"
+    ] },
+    { name: "四季官邸", labels: ["四季足湯"] },
+    { name: "長春官邸", labels: ["長春溫泉區", "咖啡吧", "2F閱讀區"] },
+    { name: "鳳凰官邸", labels: ["蒸品餐廳", "2F會議室", "多功能交誼廳"] },
+    { name: "朝陽官邸", labels: ["粥品餐廳", "201～207音樂室"] }
+  ];
+  const form = document.getElementById("form-inspection");
+  inspectionGroups.forEach((group, groupIndex) => {
+    const groupElement = document.createElement("div");
+    groupElement.className = "inspection-group";
+    groupElement.dataset.group = group.name;
+    if (group.name) {
+      const heading = document.createElement("h3");
+      heading.id = `inspection-group-${groupIndex}`;
+      heading.textContent = group.name;
+      groupElement.setAttribute("role", "group");
+      groupElement.setAttribute("aria-labelledby", heading.id);
+      groupElement.appendChild(heading);
+    }
+    group.labels.forEach((label, itemIndex) => {
+      const fieldId = `inspection-${groupIndex}-${itemIndex}`;
+      const html = `
+        <div class="form-row">
+          <div class="label-row">
+            <label for="${fieldId}">${label}</label>
+            <label class="time-label">
+              <input type="checkbox" class="time-toggle">記錄時間
+              <span class="time-display"></span>
+            </label>
+          </div>
+          <textarea id="${fieldId}" class="autosize" rows="1" data-label="${label}">正常</textarea>
+        </div>`;
+      groupElement.insertAdjacentHTML("beforeend", html);
+    });
+    form.appendChild(groupElement);
+  });
+
+  document.addEventListener("input", (e) => {
+    if (e.target.classList.contains("autosize")) {
+      e.target.style.height = "auto";
+      e.target.style.height = e.target.scrollHeight + "px";
+    }
+  });
+
+  document.addEventListener("change", (e) => {
+    if (e.target.classList.contains("time-toggle")) {
+      const row = e.target.closest(".form-row");
+      const timeSpan = row.querySelector(".time-display");
+      if (e.target.checked) {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, "0");
+        const mi = String(now.getMinutes()).padStart(2, "0");
+        timeSpan.textContent = `（${hh}:${mi}）`;
+      } else {
+        timeSpan.textContent = "";
+      }
+    }
+  });
+
+  /* 點選式按鈕切換 */
+  document.querySelectorAll('.btn-group').forEach(group => {
+    group.addEventListener('click', e => {
+      if (e.target.classList.contains('btn')) {
+        group.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        group.querySelectorAll('.btn').forEach(button => {
+          button.setAttribute("aria-pressed", String(button.classList.contains("active")));
+        });
+        updateCurrentShiftSelection();
+      }
+    });
+  });
+
+  function showCopySuccess(button) {
+    clearTimeout(button.copyResetTimer);
+    button.classList.remove("is-copied");
+    void button.offsetWidth;
+    button.classList.add("is-copied");
+    button.setAttribute("aria-label", "已複製");
+
+    button.copyResetTimer = setTimeout(() => {
+      button.classList.remove("is-copied");
+      button.setAttribute("aria-label", button.dataset.defaultLabel);
+    }, 2500);
+  }
+
+  document.querySelectorAll(".copy-action").forEach(button => {
+    button.dataset.defaultLabel = button.getAttribute("aria-label");
+  });
+
+  async function copyToClipboard(box, button, successMessage) {
+    let copied = false;
+
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(box.value);
+        copied = true;
+      } catch (error) {
+        copied = false;
+      }
+    }
+
+    if (!copied) {
+      box.focus();
+      box.select();
+      copied = document.execCommand("copy");
+    }
+
+    if (copied) {
+      alert(successMessage);
+      showCopySuccess(button);
+    } else {
+      alert("複製失敗，請長按下方文字後手動複製。");
+    }
+  }
+
+  /* 複製交接內容 */
+  async function copyShift(button) {
+    const shiftButton = document.querySelector('#shiftName .active');
+    const typeButton = document.querySelector('#shiftType .active');
+    if (!shiftButton || !typeButton) {
+      alert("目前非上下班時段，請先選擇班別與類型。");
+      return;
+    }
+
+    const shift = shiftButton.dataset.value;
+    const type = typeButton.dataset.value;
+    const outputShift = shift.replace("A", "Ａ").replace("B", "Ｂ");
+    const person = document.getElementById("handoverPerson").value.trim();
+    const item = document.getElementById("handoverItem").value.trim();
+    const note = document.getElementById("handoverNote").value.trim();
+    const extra = document.getElementById("handoverExtra").value.trim();
+
+    let result = `${outputShift}${type}`;
+    if (person) result += `：${person}`;
+    else result += `：`;
+
+    result += `\n交接物品：${item}`;
+    result += `\n交接事項：${note}`;
+    if (extra) result += `\n\n${extra}`;
+
+    const box = document.getElementById("resultShift");
+    box.value = result;
+    await copyToClipboard(box, button, "交接內容已複製！");
+  }
+
+  /* 複製 LINE 水電紀錄 */
+  async function copyBrief(button) {
+    const selectedZones = getSelectedRecordZones();
+    const zoneRecords = [];
+
+    for (const zone of selectedZones) {
+      const waterField = document.getElementById(`waterStatus${zone}`);
+      const powerField = document.getElementById(`powerStatus${zone}`);
+      const chlorineField = document.getElementById(`chlorineDose${zone}`);
+      const noteField = document.getElementById(`recordNote${zone}`);
+      const water = toHalfWidthDigits(waterField.value.trim());
+      const power = toHalfWidthDigits(powerField.value.trim());
+
+      if (!water) {
+        alert(`請輸入 ${zone}區水表讀數。`);
+        waterField.focus();
+        return;
+      }
+      if (!/^\d{1,6}$/.test(water) || !waterField.checkValidity()) {
+        alert(`${zone}區水表必須是 0 到 999999 的整數。`);
+        waterField.focus();
+        return;
+      }
+      if (!power) {
+        alert(`請輸入 ${zone}區電表讀數。`);
+        powerField.focus();
+        return;
+      }
+      if (!/^\d{1,5}$/.test(power) || !powerField.checkValidity()) {
+        alert(`${zone}區電表必須是 0 到 99999 的整數。`);
+        powerField.focus();
+        return;
+      }
+      if (chlorineField.value && !chlorineField.checkValidity()) {
+        alert(`${zone}區氯錠投藥量必須是大於或等於 0 的數字。`);
+        chlorineField.focus();
+        return;
+      }
+
+      zoneRecords.push({
+        zone,
+        water,
+        power,
+        chlorineDose: toHalfWidthDigits(chlorineField.value.trim()),
+        note: noteField.value.trim()
+      });
+    }
+
+    const result = [];
+    const zoneBlocks = zoneRecords.map(record => {
+      const lines = [
+        record.zone,
+        `水：${record.water}`,
+        `電：${record.power}`
+      ];
+      if (record.chlorineDose) lines.push(`氯錠：${record.chlorineDose}`);
+      if (record.note) lines.push(record.note);
+      return lines.join("\n");
+    });
+    result.push(zoneBlocks.join("\n\n"));
+
+    const box = document.getElementById("resultBrief");
+    box.value = result.join("\n");
+    await copyToClipboard(box, button, "水電紀錄已複製！");
+  }
+
+  /* 複製巡檢內容 */
+  async function copyWater(button) {
+    const groups = document.querySelectorAll("#form-inspection .inspection-group");
+    const result = [`園區水電管制巡檢(${dateStr})`];
+    groups.forEach(group => {
+      if (group.dataset.group) {
+        result.push("", `【${group.dataset.group}】`);
+      }
+      group.querySelectorAll(".form-row").forEach(row => {
+        const textarea = row.querySelector("textarea");
+        const label = textarea.dataset.label;
+        const time = row.querySelector(".time-display")?.textContent || "";
+        const content = textarea.value.trim().split("\n")
+          .map(line => line.trim()).filter(Boolean).join("，");
+        result.push(`${label}：${content}${time}`);
+      });
+    });
+    const output = result.join('\n').trim();
+    const box = document.getElementById("resultWater");
+    box.value = output;
+    await copyToClipboard(box, button, "巡檢內容已複製！");
+  }
+</script>
+</body>
+</html>
