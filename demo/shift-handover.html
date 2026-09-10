@@ -35,6 +35,21 @@
     padding-bottom: 8px;
   }
 
+  .inspection-group + .inspection-group {
+    margin-top: 22px;
+  }
+
+  .inspection-group h3 {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-left: 4px solid #007BFF;
+    border-radius: 4px;
+    background: #eef6ff;
+    color: #0056b3;
+    font-size: 1.12em;
+    font-weight: 600;
+  }
+
   .form-row {
     margin-bottom: 12px;
   }
@@ -464,7 +479,7 @@
 
 <!-- 水電巡檢 -->
 <div id="section-inspection" class="section">
-  <h2>水電管制巡檢</h2>
+  <h2>園區水電管制巡檢</h2>
   <p id="date"></p>
   <div id="form-inspection"></div>
   <button type="button" class="copy-action" onclick="copyWater(this)" aria-label="複製巡檢內容">
@@ -553,24 +568,46 @@
 
   applyAutomaticShift(now);
 
-  const labels = [
-    "接待中心", "北醫中午", "北醫休診", "社區廚房", "溫泉區", "娛樂室", "樣品房",
-    "3F祈禱室", "4F書畫室", "5F宗教室", "7F棋藝室", "泳池", "足湯"
+  const inspectionGroups = [
+    { name: "", labels: ["接待中心"] },
+    { name: "一品官邸", labels: [
+      "北醫中午", "北醫休診", "社區廚房", "溫泉區", "娛樂室", "樣品房",
+      "3F祈禱室", "4F書畫室", "5F宗教室", "7F棋藝室", "一品泳池"
+    ] },
+    { name: "四季官邸", labels: ["四季足湯"] },
+    { name: "長春官邸", labels: ["長春溫泉區", "咖啡吧", "2F閱讀區"] },
+    { name: "鳳凰官邸", labels: ["蒸品餐廳", "2F會議室", "多功能交誼廳"] },
+    { name: "朝陽官邸", labels: ["粥品餐廳", "201～207音樂室"] }
   ];
   const form = document.getElementById("form-inspection");
-  labels.forEach(label => {
-    const html = `
-      <div class="form-row">
-        <div class="label-row">
-          <label>${label}</label>
-          <label class="time-label">
-            <input type="checkbox" class="time-toggle">記錄時間
-            <span class="time-display"></span>
-          </label>
-        </div>
-        <textarea class="autosize" data-label="${label}">正常</textarea>
-      </div>`;
-    form.insertAdjacentHTML('beforeend', html);
+  inspectionGroups.forEach((group, groupIndex) => {
+    const groupElement = document.createElement("div");
+    groupElement.className = "inspection-group";
+    groupElement.dataset.group = group.name;
+    if (group.name) {
+      const heading = document.createElement("h3");
+      heading.id = `inspection-group-${groupIndex}`;
+      heading.textContent = group.name;
+      groupElement.setAttribute("role", "group");
+      groupElement.setAttribute("aria-labelledby", heading.id);
+      groupElement.appendChild(heading);
+    }
+    group.labels.forEach((label, itemIndex) => {
+      const fieldId = `inspection-${groupIndex}-${itemIndex}`;
+      const html = `
+        <div class="form-row">
+          <div class="label-row">
+            <label for="${fieldId}">${label}</label>
+            <label class="time-label">
+              <input type="checkbox" class="time-toggle">記錄時間
+              <span class="time-display"></span>
+            </label>
+          </div>
+          <textarea id="${fieldId}" class="autosize" data-label="${label}">正常</textarea>
+        </div>`;
+      groupElement.insertAdjacentHTML("beforeend", html);
+    });
+    form.appendChild(groupElement);
   });
 
   document.addEventListener("input", (e) => {
@@ -750,22 +787,20 @@
 
   /* 複製巡檢內容 */
   async function copyWater(button) {
-    const rows = document.querySelectorAll("#form-inspection .form-row");
-    let result = [`一品、四季(${dateStr})`, "水電管制巡檢"];
-    rows.forEach(row => {
-      const textarea = row.querySelector("textarea");
-      const label = textarea.dataset.label;
-      const timeSpan = row.querySelector(".time-display");
-      const time = timeSpan?.textContent || "";
-      let value = textarea.value.trim();
-      if (value === "正常") {
-        result.push(`${label}：正常`);
-      } else {
-        const title = time ? `${label}${time}` : label;
-        const content = value.split('\n').map(line => line.trim()).filter(Boolean).join('，');
-        result.push(title);
-        if (content) result.push(content);
+    const groups = document.querySelectorAll("#form-inspection .inspection-group");
+    const result = [`園區水電管制巡檢(${dateStr})`];
+    groups.forEach(group => {
+      if (group.dataset.group) {
+        result.push("", `【${group.dataset.group}】`);
       }
+      group.querySelectorAll(".form-row").forEach(row => {
+        const textarea = row.querySelector("textarea");
+        const label = textarea.dataset.label;
+        const time = row.querySelector(".time-display")?.textContent || "";
+        const content = textarea.value.trim().split("\n")
+          .map(line => line.trim()).filter(Boolean).join("，");
+        result.push(`${label}：${content}${time}`);
+      });
     });
     const output = result.join('\n').trim();
     const box = document.getElementById("resultWater");
@@ -775,3 +810,4 @@
 </script>
 </body>
 </html>
+
