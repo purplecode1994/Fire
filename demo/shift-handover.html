@@ -430,6 +430,63 @@
 
 #inspection-app{box-sizing:border-box;margin-top:16px;border:1px solid #d1dceb;border-radius:16px;overflow:visible}#inspection-app button{width:auto;margin:0;font-weight:400}#inspection-app h2{text-align:left;font-weight:700}#inspection-app input[type=checkbox]{transform:none;margin:0}#inspection-app .toggle{width:100%}#inspection-app textarea{overflow:auto}#inspection-app main{padding-top:22px;padding-bottom:28px}#inspection-app #inspect-floating-status{display:none}#inspection-app.is-in-view #inspect-floating-status{display:block}#inspection-app .toggle{scroll-margin-top:90px}
 </style>
+
+<style>
+/* Match the surrounding handover and utility sections. */
+#inspection-app {
+  background: #fff;
+  border: 2px solid #cfcfcf;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+#inspection-app main {
+  max-width: none;
+  padding: 14px;
+}
+#inspection-app #inspect-copy {
+  display: block;
+  width: 100%;
+  min-height: 54px;
+  padding: 14px 12px;
+  border-radius: 8px;
+  background: #007bff;
+  font-size: 1.08em;
+  font-weight: 400;
+  color: #fff;
+}
+@media (max-width: 480px) {
+  #inspection-app main { padding: 12px; }
+  #inspection-app #inspect-copy { padding: 14px 10px; }
+}
+</style>
+<style>
+#inspection-app #inspect-copy.copy-action{display:flex;align-items:center;justify-content:center;height:54px;position:relative;overflow:hidden;transition:height 500ms ease,transform 120ms ease}
+#inspection-app #inspect-copy.copy-action.is-copied{height:62px}
+@media(prefers-reduced-motion:reduce){#inspection-app #inspect-copy.copy-action{transition-duration:1ms}}
+</style><style>.required-error{color:#c62828;font-size:.88em;font-weight:500;margin-left:6px}.required-error[hidden]{display:none}input[aria-invalid="true"]{border-color:#c62828}</style><style>
+/* Keep all three copy buttons stable during the success animation. */
+.copy-action,
+.copy-action.is-copied,
+#inspection-app #inspect-copy.copy-action,
+#inspection-app #inspect-copy.copy-action.is-copied {
+  height: 54px;
+  min-height: 54px;
+  max-height: 54px;
+  box-sizing: border-box;
+  transition: transform 120ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .copy-action,
+  #inspection-app #inspect-copy.copy-action { transition: none; }
+}
+</style>
+<style>
+textarea,
+#inspection-app textarea { resize: none; }
+#inspection-app .item textarea { overflow-y: hidden; }
+</style>
 </head>
 <body>
 
@@ -500,11 +557,11 @@
   <div class="zone-record-card" data-zone-card="A">
     <h3>A區</h3>
     <div class="form-row">
-      <label for="waterStatusA">A區水表</label>
+      <label for="waterStatusA">A區水表 <span id="waterStatusA-required" class="required-error" aria-live="polite" hidden>請填上數值*</span></label>
       <input type="number" inputmode="numeric" min="0" max="999999" step="1" id="waterStatusA" placeholder="請輸入水表讀數">
     </div>
     <div class="form-row">
-      <label for="powerStatusA">A區電表</label>
+      <label for="powerStatusA">A區電表 <span id="powerStatusA-required" class="required-error" aria-live="polite" hidden>請填上數值*</span></label>
       <input type="number" inputmode="numeric" min="0" max="99999" step="1" id="powerStatusA" placeholder="請輸入電表讀數">
     </div>
     <div class="form-row">
@@ -520,11 +577,11 @@
   <div class="zone-record-card" data-zone-card="C" hidden>
     <h3>C區</h3>
     <div class="form-row">
-      <label for="waterStatusC">C區水表</label>
+      <label for="waterStatusC">C區水表 <span id="waterStatusC-required" class="required-error" aria-live="polite" hidden>請填上數值*</span></label>
       <input type="number" inputmode="numeric" min="0" max="999999" step="1" id="waterStatusC" placeholder="請輸入水表讀數">
     </div>
     <div class="form-row">
-      <label for="powerStatusC">C區電表</label>
+      <label for="powerStatusC">C區電表 <span id="powerStatusC-required" class="required-error" aria-live="polite" hidden>請填上數值*</span></label>
       <input type="number" inputmode="numeric" min="0" max="99999" step="1" id="powerStatusC" placeholder="請輸入電表讀數">
     </div>
     <div class="form-row">
@@ -545,7 +602,7 @@
 </div>
 
 <!-- 水電巡檢：巡檢路線版 -->
-<section id="inspection-app" aria-label="園區水電管制巡檢"><aside id="inspect-floating-status" aria-label="21 個巡檢項目狀態"><div id="inspect-status-dots"></div><span id="inspect-status-announcement" class="sr-only" role="status"></span></aside><main><header><h1>園區水電管制巡檢</h1><p>未巡檢留白；完成後點選正常。異常內容可展開填寫。</p></header><p id="inspect-date"></p><section class="estate" aria-label="接待中心"><div class="group" data-group=""><article class="item" data-name="接待中心" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">接待中心</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-0" hidden>接待中心巡檢內容</label><textarea id="inspect-note-0" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="一品官邸"><h2>一品官邸</h2><div class="group" data-group="一品官邸"><article class="item" data-name="北醫中午" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">北醫中午</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-1" hidden>北醫中午巡檢內容</label><textarea id="inspect-note-1" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="北醫休診" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">北醫休診</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-2" hidden>北醫休診巡檢內容</label><textarea id="inspect-note-2" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="社區廚房" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">社區廚房</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-3" hidden>社區廚房巡檢內容</label><textarea id="inspect-note-3" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="溫泉區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">溫泉區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-4" hidden>溫泉區巡檢內容</label><textarea id="inspect-note-4" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="娛樂室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">娛樂室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-5" hidden>娛樂室巡檢內容</label><textarea id="inspect-note-5" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="樣品房" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">樣品房</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-6" hidden>樣品房巡檢內容</label><textarea id="inspect-note-6" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="3F祈禱室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">3F祈禱室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-7" hidden>3F祈禱室巡檢內容</label><textarea id="inspect-note-7" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="4F書畫室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">4F書畫室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-8" hidden>4F書畫室巡檢內容</label><textarea id="inspect-note-8" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="5F宗教室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">5F宗教室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-9" hidden>5F宗教室巡檢內容</label><textarea id="inspect-note-9" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="7F棋藝室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">7F棋藝室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-10" hidden>7F棋藝室巡檢內容</label><textarea id="inspect-note-10" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="一品泳池" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">一品泳池</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-11" hidden>一品泳池巡檢內容</label><textarea id="inspect-note-11" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="四季官邸"><h2>四季官邸</h2><div class="group" data-group="四季官邸"><article class="item" data-name="四季足湯" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">四季足湯</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-12" hidden>四季足湯巡檢內容</label><textarea id="inspect-note-12" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="長春官邸"><h2>長春官邸</h2><div class="group" data-group="長春官邸"><article class="item" data-name="長春溫泉區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">長春溫泉區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-13" hidden>長春溫泉區巡檢內容</label><textarea id="inspect-note-13" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="咖啡吧" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">咖啡吧</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-14" hidden>咖啡吧巡檢內容</label><textarea id="inspect-note-14" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="2F閱讀區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">2F閱讀區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-15" hidden>2F閱讀區巡檢內容</label><textarea id="inspect-note-15" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="鳳凰官邸"><h2>鳳凰官邸</h2><div class="group" data-group="鳳凰官邸"><article class="item" data-name="蒸品餐廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">蒸品餐廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-16" hidden>蒸品餐廳巡檢內容</label><textarea id="inspect-note-16" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="2F會議室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">2F會議室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-17" hidden>2F會議室巡檢內容</label><textarea id="inspect-note-17" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="多功能交誼廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">多功能交誼廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-18" hidden>多功能交誼廳巡檢內容</label><textarea id="inspect-note-18" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="朝陽官邸"><h2>朝陽官邸</h2><div class="group" data-group="朝陽官邸"><article class="item" data-name="粥品餐廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">粥品餐廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-19" hidden>粥品餐廳巡檢內容</label><textarea id="inspect-note-19" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="201～207音樂室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">201～207音樂室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-20" hidden>201～207音樂室巡檢內容</label><textarea id="inspect-note-20" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><footer><button class="primary" id="inspect-copy">複製巡檢內容</button><span id="inspect-feedback" role="status"></span><div id="inspect-output-panel" hidden><label for="inspect-output" style="display:block;margin-top:12px">本次複製內容</label><textarea class="output" id="inspect-output" readonly></textarea></div></footer></main></section>
+<section id="inspection-app" aria-label="園區水電管制巡檢"><aside id="inspect-floating-status" aria-label="21 個巡檢項目狀態"><div id="inspect-status-dots"></div><span id="inspect-status-announcement" class="sr-only" role="status"></span></aside><main><header><h1>園區水電管制巡檢</h1><p>未巡檢留白；完成後點選正常。異常內容可展開填寫。</p></header><p id="inspect-date"></p><section class="estate" aria-label="接待中心"><div class="group" data-group=""><article class="item" data-name="接待中心" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">接待中心</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-0" hidden>接待中心巡檢內容</label><textarea id="inspect-note-0" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="一品官邸"><h2>一品官邸</h2><div class="group" data-group="一品官邸"><article class="item" data-name="北醫中午" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">北醫中午</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-1" hidden>北醫中午巡檢內容</label><textarea id="inspect-note-1" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="北醫休診" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">北醫休診</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-2" hidden>北醫休診巡檢內容</label><textarea id="inspect-note-2" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="社區廚房" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">社區廚房</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-3" hidden>社區廚房巡檢內容</label><textarea id="inspect-note-3" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="溫泉區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">溫泉區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-4" hidden>溫泉區巡檢內容</label><textarea id="inspect-note-4" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="娛樂室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">娛樂室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-5" hidden>娛樂室巡檢內容</label><textarea id="inspect-note-5" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="樣品房" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">樣品房</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-6" hidden>樣品房巡檢內容</label><textarea id="inspect-note-6" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="3F祈禱室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">3F祈禱室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-7" hidden>3F祈禱室巡檢內容</label><textarea id="inspect-note-7" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="4F書畫室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">4F書畫室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-8" hidden>4F書畫室巡檢內容</label><textarea id="inspect-note-8" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="5F宗教室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">5F宗教室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-9" hidden>5F宗教室巡檢內容</label><textarea id="inspect-note-9" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="7F棋藝室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">7F棋藝室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-10" hidden>7F棋藝室巡檢內容</label><textarea id="inspect-note-10" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="一品泳池" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">一品泳池</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-11" hidden>一品泳池巡檢內容</label><textarea id="inspect-note-11" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="四季官邸"><h2>四季官邸</h2><div class="group" data-group="四季官邸"><article class="item" data-name="四季足湯" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">四季足湯</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-12" hidden>四季足湯巡檢內容</label><textarea id="inspect-note-12" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="長春官邸"><h2>長春官邸</h2><div class="group" data-group="長春官邸"><article class="item" data-name="長春溫泉區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">長春溫泉區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-13" hidden>長春溫泉區巡檢內容</label><textarea id="inspect-note-13" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="咖啡吧" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">咖啡吧</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-14" hidden>咖啡吧巡檢內容</label><textarea id="inspect-note-14" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="2F閱讀區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">2F閱讀區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-15" hidden>2F閱讀區巡檢內容</label><textarea id="inspect-note-15" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="鳳凰官邸"><h2>鳳凰官邸</h2><div class="group" data-group="鳳凰官邸"><article class="item" data-name="蒸品餐廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">蒸品餐廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-16" hidden>蒸品餐廳巡檢內容</label><textarea id="inspect-note-16" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="2F會議室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">2F會議室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-17" hidden>2F會議室巡檢內容</label><textarea id="inspect-note-17" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="多功能交誼廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">多功能交誼廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-18" hidden>多功能交誼廳巡檢內容</label><textarea id="inspect-note-18" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="朝陽官邸"><h2>朝陽官邸</h2><div class="group" data-group="朝陽官邸"><article class="item" data-name="粥品餐廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">粥品餐廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-19" hidden>粥品餐廳巡檢內容</label><textarea id="inspect-note-19" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="201～207音樂室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">201～207音樂室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-20" hidden>201～207音樂室巡檢內容</label><textarea id="inspect-note-20" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><footer><button type="button" class="primary copy-action" id="inspect-copy" aria-label="複製巡檢內容"><span class="copy-label" aria-hidden="true">複製巡檢內容</span><span class="copy-success" aria-hidden="true">已複製</span></button><span id="inspect-feedback" role="status" hidden></span><div id="inspect-output-panel" hidden><label for="inspect-output" style="display:block;margin-top:12px">本次複製內容</label><textarea class="output" id="inspect-output" readonly></textarea></div></footer></main></section>
 <script>
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -718,9 +775,41 @@
     await copyToClipboard(box, button, "交接內容已複製！");
   }
 
+  function setMeterRequiredError(field, missing) {
+    const error = document.getElementById(field.id + "-required");
+    error.hidden = !missing;
+    if (missing) {
+      field.setAttribute("aria-invalid", "true");
+      field.setAttribute("aria-describedby", error.id);
+    } else {
+      field.removeAttribute("aria-invalid");
+      field.removeAttribute("aria-describedby");
+    }
+  }
+
+  ["waterStatusA", "powerStatusA", "waterStatusC", "powerStatusC"].forEach(id => {
+    const field = document.getElementById(id);
+    field.addEventListener("input", () => {
+      if (field.value.trim()) setMeterRequiredError(field, false);
+    });
+  });
+
   /* 複製 LINE 水電紀錄 */
   async function copyBrief(button) {
     const selectedZones = getSelectedRecordZones();
+    const missingFields = [];
+    ["A", "C"].forEach(zone => {
+      ["waterStatus", "powerStatus"].forEach(prefix => {
+        const field = document.getElementById(prefix + zone);
+        const missing = selectedZones.includes(zone) && !field.value.trim();
+        setMeterRequiredError(field, missing);
+        if (missing) missingFields.push(field);
+      });
+    });
+    if (missingFields.length) {
+      missingFields[0].focus();
+      return;
+    }
     const zoneRecords = [];
 
     for (const zone of selectedZones) {
@@ -731,19 +820,9 @@
       const water = toHalfWidthDigits(waterField.value.trim());
       const power = toHalfWidthDigits(powerField.value.trim());
 
-      if (!water) {
-        alert(`請輸入 ${zone}區水表讀數。`);
-        waterField.focus();
-        return;
-      }
       if (!/^\d{1,6}$/.test(water) || !waterField.checkValidity()) {
         alert(`${zone}區水表必須是 0 到 999999 的整數。`);
         waterField.focus();
-        return;
-      }
-      if (!power) {
-        alert(`請輸入 ${zone}區電表讀數。`);
-        powerField.focus();
         return;
       }
       if (!/^\d{1,5}$/.test(power) || !powerField.checkValidity()) {
@@ -794,6 +873,18 @@ const document={
  execCommand:command=>window.document.execCommand(command)
 };
 const items=[...document.querySelectorAll('.item')];
+function resizeInspectionNote(field){
+  field.style.height='auto';
+  field.style.height=(field.scrollHeight+field.offsetHeight-field.clientHeight)+'px';
+}
+items.forEach(item=>{
+  const field=item.querySelector('textarea');
+  field.addEventListener('input',()=>resizeInspectionNote(field));
+  item.querySelector('details').addEventListener('toggle',event=>{
+    if(event.target.open)resizeInspectionNote(field);
+  });
+});
+
 const dotContainer=document.getElementById('inspect-status-dots');
 const dotTimers=new Map();
 items.forEach((item,index)=>{
@@ -857,7 +948,7 @@ function update(item){document.getElementById('inspect-output-panel').hidden=tru
 function setState(item,state){const area=item.querySelector('textarea');if(state==='abnormal'){item.querySelector('details').open=true;if(area.value==='正常')area.value='';area.focus();}else{area.value=state==='normal'?'正常':'';}update(item);}
 items.forEach(item=>{item.querySelector('.toggle')?.addEventListener('click',()=>setState(item,item.dataset.done==='true'?'blank':'normal'));item.querySelectorAll('[data-state]').forEach(b=>b.addEventListener('click',()=>setState(item,b.dataset.state)));item.querySelector('textarea').addEventListener('input',()=>update(item));item.querySelector('input').addEventListener('change',e=>{document.getElementById('inspect-output-panel').hidden=true;const now=new Date();item.querySelector('.time').textContent=e.target.checked?'（'+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+'）':'';render();});});
 function render(){const lines=['園區水電管制巡檢('+dateText+')'];document.querySelectorAll('.group').forEach(group=>{if(group.dataset.group)lines.push('','【'+group.dataset.group+'】');group.querySelectorAll('.item').forEach(item=>{const text=item.querySelector('textarea').value.trim().split('\n').map(x=>x.trim()).filter(Boolean).join('，');lines.push(item.dataset.name+'：'+text+(text?item.querySelector('.time').textContent:''));});});return lines.join('\n');}
-document.getElementById('inspect-copy').addEventListener('click',async()=>{const box=document.getElementById('inspect-output');box.value=render();document.getElementById('inspect-output-panel').hidden=false;let ok=false;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(box.value);ok=true;}}catch{}if(!ok){box.focus();box.select();try{ok=document.execCommand('copy');}catch{}}document.getElementById('inspect-feedback').textContent=ok?'已複製 ✓':'請選取下方文字手動複製';if(ok){window.alert('已複製');}});
+document.getElementById('inspect-copy').addEventListener('click',async()=>{const box=document.getElementById('inspect-output');box.value=render();document.getElementById('inspect-output-panel').hidden=false;let ok=false;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(box.value);ok=true;}}catch{}if(!ok){box.focus();box.select();try{ok=document.execCommand('copy');}catch{}}const feedback=document.getElementById('inspect-feedback');feedback.hidden=ok;feedback.textContent=ok?'':'請選取下方文字手動複製';if(ok){window.alert('已複製');showCopySuccess(document.getElementById('inspect-copy'));}});
 let visibilityObserver;
 function observeInspectionVisibility(){
   if(visibilityObserver)visibilityObserver.disconnect();
