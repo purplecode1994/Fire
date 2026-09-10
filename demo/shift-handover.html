@@ -36,18 +36,36 @@
   }
 
   .inspection-group + .inspection-group {
-    margin-top: 22px;
+    margin-top: 14px;
   }
 
   .inspection-group h3 {
-    margin: 0 0 14px;
-    padding: 10px 12px;
+    margin: 0 0 8px;
+    padding: 6px 10px;
     border-left: 4px solid #007BFF;
     border-radius: 4px;
     background: #eef6ff;
     color: #0056b3;
     font-size: 1.12em;
     font-weight: 600;
+  }
+
+  #form-inspection .form-row {
+    margin-bottom: 8px;
+  }
+
+  #form-inspection .label-row {
+    margin-bottom: 3px;
+  }
+
+  #form-inspection .label-row label {
+    margin-bottom: 0;
+  }
+
+  #form-inspection textarea.autosize {
+    display: block;
+    min-height: 44px;
+    padding: 7px 10px;
   }
 
   .form-row {
@@ -603,7 +621,7 @@
               <span class="time-display"></span>
             </label>
           </div>
-          <textarea id="${fieldId}" class="autosize" data-label="${label}">正常</textarea>
+          <textarea id="${fieldId}" class="autosize" rows="1" data-label="${label}">正常</textarea>
         </div>`;
       groupElement.insertAdjacentHTML("beforeend", html);
     });
@@ -810,4 +828,3 @@
 </script>
 </body>
 </html>
-
