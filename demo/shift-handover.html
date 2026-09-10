@@ -795,15 +795,39 @@ textarea{resize:none}.design-picker{max-width:1040px;margin:0 auto 18px;padding:
 
   function showCopySuccess(button) {
     clearTimeout(button.copyResetTimer);
+    cancelAnimationFrame(button.copyFrame);
+    (button.copyAnimations || []).forEach(animation => animation.cancel());
     button.classList.remove("is-copied");
-    void button.offsetWidth;
-    button.classList.add("is-copied");
-    button.setAttribute("aria-label", "已複製");
-
-    button.copyResetTimer = setTimeout(() => {
-      button.classList.remove("is-copied");
-      button.setAttribute("aria-label", button.dataset.defaultLabel);
-    }, 2500);
+    const originalLabel = button.dataset.defaultLabel || button.querySelector(".copy-label").textContent;
+    button.setAttribute("aria-label", originalLabel);
+    // Start after the native confirmation has closed and the button can paint.
+    button.copyFrame = requestAnimationFrame(() => {
+      button.copyFrame = requestAnimationFrame(() => {
+        const label = button.querySelector(".copy-label");
+        const success = button.querySelector(".copy-success");
+        button.classList.add("is-copied");
+        button.setAttribute("aria-label", "已複製");
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!reduced && typeof label.animate === "function") {
+          button.copyAnimations = [
+            label.animate([
+              { transform: "translate(-50%, -50%)", opacity: 1 },
+              { transform: "translate(-50%, -150%)", opacity: 0 }
+            ], { duration: 500, easing: "ease", fill: "none" }),
+            success.animate([
+              { transform: "translate(-50%, 100%)", opacity: 0 },
+              { transform: "translate(-50%, -50%)", opacity: 1 }
+            ], { duration: 500, delay: 120, easing: "ease", fill: "backwards" })
+          ];
+        }
+        button.copyResetTimer = setTimeout(() => {
+          (button.copyAnimations || []).forEach(animation => animation.cancel());
+          button.copyAnimations = [];
+          button.classList.remove("is-copied");
+          button.setAttribute("aria-label", originalLabel);
+        }, 3000);
+      });
+    });
   }
 
   document.querySelectorAll(".copy-action").forEach(button => {
