@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>中華電信 MOD｜故障排除</title>
+  <style>
+    :root { color-scheme: light; --blue: #007bff; --ink: #18324f; --muted: #526579; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f7f7f8; color: var(--ink); font: 18px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
+    main { max-width: 980px; margin: auto; padding: 18px 16px 28px; }
+    a { color: #0764bc; text-underline-offset: 4px; }
+    a:focus-visible { outline: 3px solid #173d68; outline-offset: 4px; }
+    .back { display: inline-flex; align-items: center; min-height: 44px; font-size: 16px; }
+    header { margin: 8px 0 16px; }
+    h1 { margin: 0; font-size: clamp(26px, 5vw, 34px); }
+    header p { margin: 3px 0 0; color: var(--muted); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    nav a { background: white; border: 1px solid #c8ddf2; border-radius: 8px; padding: 9px 12px; text-decoration: none; font-size: 16px; }
+    .issue { background: white; border: 1px solid #ccdeee; border-radius: 14px; overflow: hidden; margin-bottom: 18px; scroll-margin-top: 12px; }
+    h2 { display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 16px; background: #eaf4ff; font-size: clamp(20px, 3.5vw, 25px); line-height: 1.35; }
+    .number { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; height: 36px; background: var(--blue); color: white; border-radius: 50%; font-size: 18px; }
+    .content { padding: 14px 16px; }
+    .symptom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 18px; }
+    figure { margin: 0; min-width: 0; }
+    img { display: block; width: 100%; height: auto; }
+    .screen { max-width: 450px; margin: auto; border-radius: 7px; }
+    figcaption { text-align: center; color: var(--muted); font-size: 14px; margin-top: 4px; }
+    h3 { font-size: 21px; margin: 0 0 6px; }
+    p { margin: 0 0 8px; }
+    .solution { color: #075eb3; font-size: 21px; font-weight: 700; }
+    .steps { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 0; margin: 14px 0 0; }
+    .steps li { border-top: 1px solid #dce6ef; padding-top: 12px; min-width: 0; }
+    .step-title { display: flex; align-items: center; gap: 8px; }
+    .step-title .number { flex-basis: 28px; height: 28px; font-size: 16px; }
+    .steps p { font-size: 17px; margin: 4px 0; }
+    .device { width: 100%; max-width: 410px; margin: auto; }
+    .single { grid-template-columns: minmax(0, 1fr); }
+    .single li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+    .note { color: var(--muted); font-size: 14px; text-align: center; margin: 10px 0 0; }
+    @media (max-width: 600px) {
+      main { padding: 12px 12px 20px; }
+      .content { padding: 12px; }
+      h2 { padding: 10px 12px; }
+      .symptom, .steps, .single li { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+      .symptom figure { order: 2; }
+      .screen { max-width: 400px; }
+      .device { max-width: 360px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="equipment.html">← 返回設備操作</a>
+    <header><h1>中華電信 MOD</h1><p>故障排除｜依電視畫面選擇處理方式</p></header>
+    <nav aria-label="選擇故障情況">
+      <a href="#connection">01 連線失敗</a>
+      <a href="#channels">02 首頁能進入，頻道不能看</a>
+    </nav>
+    <section class="issue" id="connection" aria-labelledby="connection-title">
+      <h2 id="connection-title"><span class="number" aria-hidden="true">01</span>MOD 連線失敗</h2>
+      <div class="content">
+        <div class="symptom">
+          <figure><img class="screen" src="icon/mod-connection-error.png" width="275" height="145" alt="MOD 錯誤畫面示意：無法連線，檢查伺服器失敗"><figcaption>連線失敗畫面示意</figcaption></figure>
+          <div><h3>畫面狀況</h3><p>電視顯示 MOD 無法連線、檢查伺服器失敗。</p><p class="solution">排除方式：重開 MOD ＋ 重開數據機</p></div>
+        </div>
+        <ol class="steps">
+          <li><h3 class="step-title"><span class="number" aria-hidden="true">1</span>重開 MOD</h3><p>將 MOD 電源關閉，再重新開啟。</p><figure><img class="device" src="icon/mod-power.png" width="1536" height="1024" alt="MOD 主機背面示意，最右側電源開關以紅圈標示"><figcaption>MOD 主機｜紅圈為電源開關</figcaption></figure></li>
+          <li><h3 class="step-title"><span class="number" aria-hidden="true">2</span>重開數據機</h3><p>將數據機電源關閉，再重新開啟。</p><figure><img class="device" src="icon/modem-power.png" width="1536" height="1024" alt="數據機背面示意，最右側電源開關以紅圈標示"><figcaption>數據機｜紅圈為電源開關</figcaption></figure></li>
+        </ol>
+      </div>
+    </section>
+    <section class="issue" id="channels" aria-labelledby="channels-title">
+      <h2 id="channels-title"><span class="number" aria-hidden="true">02</span>首頁能進入，頻道不能看</h2>
+      <div class="content">
+        <div class="symptom">
+          <figure><img class="screen" src="icon/mod-home-no-channel.png" width="335" height="168" alt="MOD 首頁示意：首頁可以顯示，但頻道畫面呈現黑畫面" loading="lazy"><figcaption>MOD 首頁畫面示意</figcaption></figure>
+          <div><h3>畫面狀況</h3><p>已進入 MOD 首頁，但頻道無法觀看。</p><p class="solution">排除方式：重開數據機</p></div>
+        </div>
+        <ol class="steps single">
+          <li><div><h3 class="step-title"><span class="number" aria-hidden="true">1</span>重開數據機</h3><p>將數據機電源關閉，再重新開啟。</p></div><figure><img class="device" src="icon/modem-power.png" width="1536" height="1024" alt="數據機背面示意，紅圈標示電源開關" loading="lazy"><figcaption>數據機｜紅圈為電源開關</figcaption></figure></li>
+        </ol>
+      </div>
+    </section>
+    <p class="note">設備圖片為示意圖，請對照現場設備的電源開關。</p>
+  </main>
+</body>
+</html>
