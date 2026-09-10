@@ -68,6 +68,49 @@
     padding: 7px 10px;
   }
 
+  .inspection-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .inspection-entry textarea { flex: 1; min-width: 0; }
+
+  button.inspection-toggle {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 44px;
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid #b9cbdc;
+    background: #f0f4f8;
+    color: #526579;
+    font-size: 16px;
+    white-space: nowrap;
+    transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
+  }
+
+  button.inspection-toggle[aria-pressed="true"] {
+    background: #007bff;
+    border-color: #007bff;
+    color: white;
+    box-shadow: 0 2px 8px #007bff33;
+  }
+
+  button.inspection-toggle:active { transform: scale(.94); }
+  button.inspection-toggle:focus-visible { outline: 3px solid #174875; outline-offset: 3px; }
+  button.inspection-toggle.is-animating { animation: inspection-pop 240ms ease-out; }
+  @keyframes inspection-pop {
+    0% { transform: scale(.94); }
+    65% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button.inspection-toggle { transition: none; }
+    button.inspection-toggle.is-animating { animation: none; }
+    button.inspection-toggle:active { transform: none; }
+  }
+
   .form-row {
     margin-bottom: 12px;
   }
@@ -381,6 +424,12 @@
   }
 </style>
 
+<style>
+#inspection-app{box-sizing:border-box;margin-top:16px;border:1px solid #d1dceb;border-radius:16px;overflow:visible}#inspection-app button{width:auto;margin:0;font-weight:400}#inspection-app h2{text-align:left;font-weight:700}#inspection-app input[type=checkbox]{transform:none;margin:0}#inspection-app .toggle{width:100%}#inspection-app textarea{overflow:auto}#inspection-app main{padding-top:22px;padding-bottom:28px}#inspection-app #inspect-floating-status{display:none}#inspection-app.is-in-view #inspect-floating-status{display:block}#inspection-app .toggle{scroll-margin-top:90px}
+#inspection-app{--accent:#1664db}#inspection-app *{box-sizing:border-box}#inspection-app{margin:0;background:#f3f5f8;color:#203044;font:16px/1.5 'Microsoft JhengHei',sans-serif}#inspection-app main{max-width:920px;margin:auto;padding:24px 18px 90px}#inspection-app a{color:var(--accent)}#inspection-app nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:22px}#inspection-app nav a{text-decoration:none;padding:7px 12px;background:white;border:1px solid #dce2ea;border-radius:8px}#inspection-app nav a[aria-current=page]{background:var(--accent);color:white;border-color:var(--accent)}#inspection-app .eyebrow{color:var(--accent);font-size:13px;font-weight:bold;letter-spacing:.12em}#inspection-app h1{font-size:28px;margin:5px 0}#inspection-app header p{color:#627185;margin:4px 0 16px}#inspection-app .summary{display:flex;justify-content:space-between;gap:12px;margin:18px 0 6px;font-size:14px}#inspection-app .track{height:5px;background:#dfe5ed;border-radius:8px;overflow:hidden}#inspection-app .track i{display:block;background:var(--accent);height:100%;width:0;transition:width .25s}#inspection-app h2{display:flex;align-items:center;gap:12px;font-size:18px;margin:24px 0 9px}#inspection-app h2:after{content:'';height:1px;background:#d9e0e9;flex:1}#inspection-app .group{display:grid;gap:7px}#inspection-app .item{background:white;border:1px solid #dce2e9;border-radius:10px;overflow:hidden;transition:background .2s,border-color .2s,box-shadow .2s}#inspection-app .item[data-done=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 5%,white)}#inspection-app .head{display:flex;align-items:center;gap:10px;min-height:57px;padding:8px 13px}#inspection-app .name{font-weight:600;flex:1;min-width:0}#inspection-app .value{font-size:13px;color:#617186}#inspection-app .item[data-done=true] .value{color:var(--accent)}#inspection-app button,#inspection-app input,#inspection-app textarea{font:inherit}#inspection-app button{cursor:pointer}#inspection-app button:focus-visible,#inspection-app a:focus-visible,#inspection-app input:focus-visible,#inspection-app textarea:focus-visible,#inspection-app summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}#inspection-app button{border:0}#inspection-app .toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;background:transparent;color:inherit;padding:0;min-height:40px}#inspection-app .mark{width:25px;height:25px;border:1.5px solid #b9c6d6;border-radius:50%;display:grid;place-items:center;color:transparent;transition:background .2s,transform .2s}#inspection-app .toggle[aria-pressed=true] .mark{background:var(--accent);border-color:var(--accent);color:white;animation:inspect-pop .25s ease-out}#inspection-app .toggle:active{transform:scale(.98)}#inspection-app .tools{display:flex;align-items:center;gap:14px;padding:0 13px 9px;color:#607184;font-size:13px}#inspection-app .tools label{display:flex;align-items:center;gap:4px;min-height:30px}#inspection-app .tools input{accent-color:var(--accent);width:16px;height:16px}#inspection-app .time{color:var(--accent)}#inspection-app details{border-top:1px solid #e7ebf1;padding:0 13px}#inspection-app summary{padding:7px 0;cursor:pointer;color:#627185;font-size:13px;width:fit-content}#inspection-app textarea{display:block;width:100%;padding:9px 10px;min-height:44px;border:1px solid #ccd7e3;border-radius:7px;background:white;color:#203044;resize:vertical;margin:0 0 10px}#inspection-app footer{margin-top:25px}#inspection-app .primary{border-radius:9px;padding:12px 20px;background:var(--accent);color:white;font-weight:600}#inspection-app .output{height:230px;margin-top:12px;font-size:15px;white-space:pre-wrap}#inspection-app #inspect-feedback{font-size:14px;margin-left:10px}#inspection-app .head{padding:0}#inspection-app .toggle{width:100%;padding:12px 14px;text-align:left;border-left:4px solid transparent}#inspection-app .toggle[aria-pressed=true]{border-left-color:var(--accent)}#inspection-app .toggle .name{order:0}#inspection-app .toggle .mark{order:2}#inspection-app .d2 .mark{width:48px;height:28px;border:0;background:#c9d3df;position:relative;border-radius:20px;font-size:0}#inspection-app .d2 .mark:after{content:'';position:absolute;left:3px;top:3px;width:22px;height:22px;background:white;border-radius:50%;box-shadow:0 1px 4px #0002;transition:transform .22s}#inspection-app .d2 .toggle[aria-pressed=true] .mark:after{transform:translateX(20px)}#inspection-app .d2 .toggle[aria-pressed=true] .mark{animation:none}#inspection-app .d3{background:#faf9f5}#inspection-app .d3 .item{border:0;border-bottom:1px solid #e1e0d8;border-radius:0}#inspection-app .d3 .group{gap:0;border:1px solid #e1e0d8;border-radius:8px;overflow:hidden}#inspection-app .d3 .mark{border-radius:5px}#inspection-app .d3 .head .toggle{flex-direction:row-reverse}#inspection-app .d3 .head .name{order:2}#inspection-app .d3 .item[data-done=true]{background:#f0f6ef}#inspection-app .segments{display:flex;background:#edeaf4;border-radius:24px;padding:3px;gap:2px}#inspection-app .segments button{border-radius:20px;padding:7px 11px;background:transparent;color:#695f7f;font-size:13px;transition:background .2s,box-shadow .2s,transform .2s}#inspection-app .segments button[aria-pressed=true]{background:white;color:var(--accent);box-shadow:0 2px 5px #43325420}#inspection-app .segments button:active{transform:scale(.93)}#inspection-app .d5 .group{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}#inspection-app .d5 .head{align-items:flex-start;flex-direction:column;gap:5px}#inspection-app .d5 .toggle{width:100%;border-radius:7px;background:#eef3f7;padding:6px 9px}#inspection-app .d5 .toggle[aria-pressed=true]{background:var(--accent);color:white}#inspection-app .d5 .toggle[aria-pressed=true] .value{color:white}#inspection-app .d5 .item[data-done=true]{box-shadow:0 4px 12px #096e9215}#inspection-app .d5 .tools{flex-wrap:wrap;gap:5px}#inspection-app .d5 .item{transition:transform .2s,border-color .2s}#inspection-app .d5 .item:has(.toggle:active){transform:scale(.97)}@keyframes inspect-pop{0%{transform:scale(.65)}70%{transform:scale(1.18)}100%{transform:scale(1)}}@media(max-width:620px){#inspection-app main{padding:16px 12px 50px}#inspection-app h1{font-size:24px}#inspection-app .d5 .group{grid-template-columns:repeat(2,minmax(0,1fr))}#inspection-app .d4 .head{flex-wrap:wrap}#inspection-app .d4 .name{flex-basis:100%}#inspection-app .tools{gap:9px}}@media(max-width:360px){#inspection-app .d5 .group{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){#inspection-app *,#inspection-app *:after{transition:none!important;animation:none!important}}#inspection-app main{padding-top:108px}#inspection-app #inspect-date{font-size:14px;color:#627185;margin:10px 0}#inspection-app #inspect-floating-status{position:fixed;z-index:50;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:860px;padding:14px 16px;border:1px solid #dce4ee;border-radius:22px;background:rgba(255,255,255,.96);box-shadow:0 6px 28px #20304418;backdrop-filter:blur(12px)}#inspection-app #inspect-status-dots{display:flex;align-items:center;justify-content:flex-start;flex-wrap:nowrap;gap:6px;height:26px;overflow:hidden;scroll-behavior:auto;max-width:100%;width:max-content;margin-inline:auto}#inspection-app .status-dot{position:relative;flex:0 0 auto;width:22px;height:22px;border-radius:20px;overflow:hidden;background:#d6dce5;color:white;transition:width 350ms cubic-bezier(.22,1,.36,1),background 180ms ease}#inspection-app .status-dot.done{background:var(--accent)}#inspection-app .status-dot.expanded{width:var(--expanded-width);height:26px}#inspection-app .status-name{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;white-space:nowrap;font-size:13px;opacity:0;transition:opacity 140ms ease}#inspection-app .status-dot.expanded .status-name{opacity:1}#inspection-app .status-check{position:absolute;inset:0;display:grid;place-items:center;font-size:14px;opacity:0;transform:scale(.5);transition:opacity 180ms ease 180ms,transform 180ms ease 180ms}#inspection-app .status-dot.done:not(.expanded) .status-check{opacity:1;transform:scale(1)}#inspection-app .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}#inspection-app .group{gap:12px}#inspection-app .item{border:1px solid #d8e2ee;border-radius:16px;background:white;box-shadow:0 3px 9px #233a5610}#inspection-app .head{padding:7px}#inspection-app .toggle{min-height:76px;border:1px solid #bdd0e7;border-bottom-width:4px;border-radius:12px;background:linear-gradient(180deg,#f4f8fe,#e6eef9);padding:16px 18px;color:#213f63;box-shadow:0 2px 3px #24476b0a;transition:background .2s,box-shadow .15s,transform .15s}#inspection-app .toggle:hover{background:#dfebfc}#inspection-app .toggle:active{transform:translateY(2px) scale(.992);box-shadow:none}#inspection-app .toggle .name{font-size:20px;font-weight:700}#inspection-app .toggle .mark{width:30px;height:30px;border:2px solid #9bb2ce;flex-shrink:0;background:#ffffffb3}#inspection-app .toggle[aria-pressed=true]{background:linear-gradient(180deg,#2678ee,#1664db);color:white;border-color:#1551ac;box-shadow:0 3px 10px #1664db22}#inspection-app .toggle[aria-pressed=true] .value{color:#fff}#inspection-app .toggle[aria-pressed=true] .mark{color:#1664db;background:white;border-color:white}#inspection-app .tools{padding:0 18px 7px}#inspection-app details{padding:0 18px}@media(max-width:620px){#inspection-app main{padding-top:108px}#inspection-app #inspect-floating-status{padding:12px 9px;border-radius:17px}#inspection-app #inspect-status-dots{gap:4px}#inspection-app .status-dot{width:10px;height:16px}#inspection-app .status-check{font-size:10px}#inspection-app .status-dot.expanded{width:var(--expanded-width);height:24px}#inspection-app .toggle{padding:14px 12px;min-height:72px}#inspection-app .toggle .name{font-size:18px}}@media(prefers-reduced-motion:reduce){#inspection-app .status-dot,#inspection-app .status-name,#inspection-app .status-check{transition:none}#inspection-app .toggle:active{transform:none}}#inspection-app [hidden]{display:none!important}#inspection-app main{counter-reset:route}#inspection-app .group{position:relative;margin-left:14px;padding-left:28px;border-left:2px solid #ccd8e9;gap:18px}#inspection-app .item{position:relative;overflow:visible;border:1px solid #c8d8ed;border-radius:14px;box-shadow:0 3px 8px #183d7310;counter-increment:route}#inspection-app .item:before{content:counter(route,decimal-leading-zero);position:absolute;left:-44px;top:27px;width:28px;height:28px;border:2px solid #bfcee4;border-radius:50%;background:#f3f5f8;color:#6480a2;display:grid;place-items:center;font-size:11px;font-weight:bold;transition:background .2s,transform .2s}#inspection-app .item[data-done=true]:before{content:'✓';background:#1d64d5;border-color:#1d64d5;color:white;transform:scale(1.08)}#inspection-app .head{padding:0}#inspection-app .toggle{min-height:86px;padding:17px 19px;border:0;border-bottom:3px solid #d0deef;border-radius:13px 13px 0 0;background:#e9f1ff;box-shadow:none}#inspection-app .toggle .name{font-size:21px}#inspection-app .toggle .mark{border-radius:8px}#inspection-app .tools{padding-top:6px}#inspection-app .toggle[aria-pressed=true]{background:#1d64d5}#inspection-app h2{margin-left:0}@media(max-width:620px){#inspection-app .group{padding-left:24px}#inspection-app .item:before{left:-40px}#inspection-app .toggle{padding:14px 12px}#inspection-app .toggle .name{font-size:18px}}#inspection-app .estate{border:1px solid #bdcde3;border-radius:18px;background:#f9fbff;padding:16px;margin:18px 0;box-shadow:0 3px 12px #163f7410}#inspection-app .estate h2{margin:0 0 13px;padding:0 0 10px;border-bottom:1px solid #d6e1f0;border-radius:0;background:transparent;color:#23466f;font-size:19px}#inspection-app .estate h2:after{display:none}#inspection-app .estate>.group{margin-top:0}#inspection-app .estate[aria-label="接待中心"]{padding:12px}@media(max-width:620px){#inspection-app .estate{padding:11px;border-radius:14px;margin:14px 0}#inspection-app .estate h2{font-size:18px;margin-bottom:11px}}#inspection-app #inspect-status-dots{height:26px;flex-wrap:nowrap;overflow:hidden}#inspection-app #inspect-status-dots .status-dot{width:22px;height:22px;min-width:22px;flex:0 0 auto;border-radius:999px}#inspection-app #inspect-status-dots .status-dot.expanded{width:var(--expanded-width);height:22px}#inspection-app #inspect-status-dots .status-check{font-size:14px}@media(max-width:620px){#inspection-app #inspect-status-dots{gap:4px}}#inspection-app #inspect-status-dots{width:100%;gap:var(--dot-gap,4px);--dot-size:14px}#inspection-app #inspect-status-dots .status-dot{width:var(--dot-size);min-width:var(--dot-size);height:var(--dot-size)}#inspection-app #inspect-status-dots .status-dot.expanded{width:var(--expanded-width);height:26px}#inspection-app #inspect-status-dots .status-check{font-size:calc(var(--dot-size) * .68)}#inspection-app #inspect-status-dots .status-dot{transition:width 700ms cubic-bezier(.22,1,.36,1),background 180ms ease}#inspection-app #inspect-status-dots .status-dot.expanded{transition:width 350ms cubic-bezier(.22,1,.36,1),background 180ms ease}#inspection-app #inspect-status-dots .status-dot.done:not(.expanded) .status-check{transition-delay:480ms}@media(prefers-reduced-motion:reduce){#inspection-app #inspect-status-dots .status-dot,#inspection-app #inspect-status-dots .status-check{transition:none}}
+
+#inspection-app{box-sizing:border-box;margin-top:16px;border:1px solid #d1dceb;border-radius:16px;overflow:visible}#inspection-app button{width:auto;margin:0;font-weight:400}#inspection-app h2{text-align:left;font-weight:700}#inspection-app input[type=checkbox]{transform:none;margin:0}#inspection-app .toggle{width:100%}#inspection-app textarea{overflow:auto}#inspection-app main{padding-top:22px;padding-bottom:28px}#inspection-app #inspect-floating-status{display:none}#inspection-app.is-in-view #inspect-floating-status{display:block}#inspection-app .toggle{scroll-margin-top:90px}
+</style>
 </head>
 <body>
 
@@ -495,24 +544,14 @@
   <textarea id="resultBrief" class="result" readonly></textarea>
 </div>
 
-<!-- 水電巡檢 -->
-<div id="section-inspection" class="section">
-  <h2>園區水電管制巡檢</h2>
-  <p id="date"></p>
-  <div id="form-inspection"></div>
-  <button type="button" class="copy-action" onclick="copyWater(this)" aria-label="複製巡檢內容">
-    <span class="copy-label" aria-hidden="true">複製巡檢內容</span>
-    <span class="copy-success" aria-hidden="true">已複製</span>
-  </button>
-  <textarea id="resultWater" class="result" readonly></textarea>
-</div>
-
+<!-- 水電巡檢：巡檢路線版 -->
+<section id="inspection-app" aria-label="園區水電管制巡檢"><aside id="inspect-floating-status" aria-label="21 個巡檢項目狀態"><div id="inspect-status-dots"></div><span id="inspect-status-announcement" class="sr-only" role="status"></span></aside><main><header><h1>園區水電管制巡檢</h1><p>未巡檢留白；完成後點選正常。異常內容可展開填寫。</p></header><p id="inspect-date"></p><section class="estate" aria-label="接待中心"><div class="group" data-group=""><article class="item" data-name="接待中心" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">接待中心</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-0" hidden>接待中心巡檢內容</label><textarea id="inspect-note-0" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="一品官邸"><h2>一品官邸</h2><div class="group" data-group="一品官邸"><article class="item" data-name="北醫中午" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">北醫中午</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-1" hidden>北醫中午巡檢內容</label><textarea id="inspect-note-1" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="北醫休診" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">北醫休診</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-2" hidden>北醫休診巡檢內容</label><textarea id="inspect-note-2" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="社區廚房" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">社區廚房</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-3" hidden>社區廚房巡檢內容</label><textarea id="inspect-note-3" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="溫泉區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">溫泉區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-4" hidden>溫泉區巡檢內容</label><textarea id="inspect-note-4" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="娛樂室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">娛樂室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-5" hidden>娛樂室巡檢內容</label><textarea id="inspect-note-5" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="樣品房" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">樣品房</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-6" hidden>樣品房巡檢內容</label><textarea id="inspect-note-6" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="3F祈禱室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">3F祈禱室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-7" hidden>3F祈禱室巡檢內容</label><textarea id="inspect-note-7" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="4F書畫室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">4F書畫室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-8" hidden>4F書畫室巡檢內容</label><textarea id="inspect-note-8" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="5F宗教室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">5F宗教室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-9" hidden>5F宗教室巡檢內容</label><textarea id="inspect-note-9" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="7F棋藝室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">7F棋藝室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-10" hidden>7F棋藝室巡檢內容</label><textarea id="inspect-note-10" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="一品泳池" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">一品泳池</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-11" hidden>一品泳池巡檢內容</label><textarea id="inspect-note-11" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="四季官邸"><h2>四季官邸</h2><div class="group" data-group="四季官邸"><article class="item" data-name="四季足湯" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">四季足湯</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-12" hidden>四季足湯巡檢內容</label><textarea id="inspect-note-12" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="長春官邸"><h2>長春官邸</h2><div class="group" data-group="長春官邸"><article class="item" data-name="長春溫泉區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">長春溫泉區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-13" hidden>長春溫泉區巡檢內容</label><textarea id="inspect-note-13" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="咖啡吧" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">咖啡吧</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-14" hidden>咖啡吧巡檢內容</label><textarea id="inspect-note-14" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="2F閱讀區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">2F閱讀區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-15" hidden>2F閱讀區巡檢內容</label><textarea id="inspect-note-15" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="鳳凰官邸"><h2>鳳凰官邸</h2><div class="group" data-group="鳳凰官邸"><article class="item" data-name="蒸品餐廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">蒸品餐廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-16" hidden>蒸品餐廳巡檢內容</label><textarea id="inspect-note-16" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="2F會議室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">2F會議室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-17" hidden>2F會議室巡檢內容</label><textarea id="inspect-note-17" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="多功能交誼廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">多功能交誼廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-18" hidden>多功能交誼廳巡檢內容</label><textarea id="inspect-note-18" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="朝陽官邸"><h2>朝陽官邸</h2><div class="group" data-group="朝陽官邸"><article class="item" data-name="粥品餐廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">粥品餐廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-19" hidden>粥品餐廳巡檢內容</label><textarea id="inspect-note-19" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="201～207音樂室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">201～207音樂室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-20" hidden>201～207音樂室巡檢內容</label><textarea id="inspect-note-20" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><footer><button class="primary" id="inspect-copy">複製巡檢內容</button><span id="inspect-feedback" role="status"></span><div id="inspect-output-panel" hidden><label for="inspect-output" style="display:block;margin-top:12px">本次複製內容</label><textarea class="output" id="inspect-output" readonly></textarea></div></footer></main></section>
 <script>
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
   const dateStr = `${mm}/${dd}`;
-  document.getElementById("date").textContent = `日期：${dateStr}`;
+
 
   function toHalfWidthDigits(value) {
     return String(value || "").replace(/[０-９]/g, character =>
@@ -586,70 +625,12 @@
 
   applyAutomaticShift(now);
 
-  const inspectionGroups = [
-    { name: "", labels: ["接待中心"] },
-    { name: "一品官邸", labels: [
-      "北醫中午", "北醫休診", "社區廚房", "溫泉區", "娛樂室", "樣品房",
-      "3F祈禱室", "4F書畫室", "5F宗教室", "7F棋藝室", "一品泳池"
-    ] },
-    { name: "四季官邸", labels: ["四季足湯"] },
-    { name: "長春官邸", labels: ["長春溫泉區", "咖啡吧", "2F閱讀區"] },
-    { name: "鳳凰官邸", labels: ["蒸品餐廳", "2F會議室", "多功能交誼廳"] },
-    { name: "朝陽官邸", labels: ["粥品餐廳", "201～207音樂室"] }
-  ];
-  const form = document.getElementById("form-inspection");
-  inspectionGroups.forEach((group, groupIndex) => {
-    const groupElement = document.createElement("div");
-    groupElement.className = "inspection-group";
-    groupElement.dataset.group = group.name;
-    if (group.name) {
-      const heading = document.createElement("h3");
-      heading.id = `inspection-group-${groupIndex}`;
-      heading.textContent = group.name;
-      groupElement.setAttribute("role", "group");
-      groupElement.setAttribute("aria-labelledby", heading.id);
-      groupElement.appendChild(heading);
-    }
-    group.labels.forEach((label, itemIndex) => {
-      const fieldId = `inspection-${groupIndex}-${itemIndex}`;
-      const html = `
-        <div class="form-row">
-          <div class="label-row">
-            <label for="${fieldId}">${label}</label>
-            <label class="time-label">
-              <input type="checkbox" class="time-toggle">記錄時間
-              <span class="time-display"></span>
-            </label>
-          </div>
-          <textarea id="${fieldId}" class="autosize" rows="1" data-label="${label}">正常</textarea>
-        </div>`;
-      groupElement.insertAdjacentHTML("beforeend", html);
-    });
-    form.appendChild(groupElement);
-  });
-
-  document.addEventListener("input", (e) => {
-    if (e.target.classList.contains("autosize")) {
-      e.target.style.height = "auto";
-      e.target.style.height = e.target.scrollHeight + "px";
+  document.addEventListener("input", e => {
+    if(e.target.classList.contains("autosize")) {
+      e.target.style.height="auto";
+      e.target.style.height=e.target.scrollHeight+"px";
     }
   });
-
-  document.addEventListener("change", (e) => {
-    if (e.target.classList.contains("time-toggle")) {
-      const row = e.target.closest(".form-row");
-      const timeSpan = row.querySelector(".time-display");
-      if (e.target.checked) {
-        const now = new Date();
-        const hh = String(now.getHours()).padStart(2, "0");
-        const mi = String(now.getMinutes()).padStart(2, "0");
-        timeSpan.textContent = `（${hh}:${mi}）`;
-      } else {
-        timeSpan.textContent = "";
-      }
-    }
-  });
-
   /* 點選式按鈕切換 */
   document.querySelectorAll('.btn-group').forEach(group => {
     group.addEventListener('click', e => {
@@ -803,28 +784,93 @@
     await copyToClipboard(box, button, "水電紀錄已複製！");
   }
 
-  /* 複製巡檢內容 */
-  async function copyWater(button) {
-    const groups = document.querySelectorAll("#form-inspection .inspection-group");
-    const result = [`園區水電管制巡檢(${dateStr})`];
-    groups.forEach(group => {
-      if (group.dataset.group) {
-        result.push("", `【${group.dataset.group}】`);
-      }
-      group.querySelectorAll(".form-row").forEach(row => {
-        const textarea = row.querySelector("textarea");
-        const label = textarea.dataset.label;
-        const time = row.querySelector(".time-display")?.textContent || "";
-        const content = textarea.value.trim().split("\n")
-          .map(line => line.trim()).filter(Boolean).join("，");
-        result.push(`${label}：${content}${time}`);
-      });
-    });
-    const output = result.join('\n').trim();
-    const box = document.getElementById("resultWater");
-    box.value = output;
-    await copyToClipboard(box, button, "巡檢內容已複製！");
-  }
 </script>
+<script>(function(){
+const app=window.document.getElementById('inspection-app');
+const document={
+ getElementById:id=>app.querySelector('[id="'+id+'"]'),
+ querySelectorAll:selector=>app.querySelectorAll(selector),
+ createElement:tag=>window.document.createElement(tag),
+ execCommand:command=>window.document.execCommand(command)
+};
+const items=[...document.querySelectorAll('.item')];
+const dotContainer=document.getElementById('inspect-status-dots');
+const dotTimers=new Map();
+items.forEach((item,index)=>{
+  const dot=document.createElement('span');
+  dot.className='status-dot';
+  dot.setAttribute('role','img');
+  dot.setAttribute('aria-label',(index+1)+' '+item.dataset.name+'：未巡檢');
+  dot.title=(index+1)+' '+item.dataset.name+'：未巡檢';
+  dot.style.setProperty('--expanded-width',Math.min(190,Math.max(100,item.dataset.name.length*15+28))+'px');
+  const name=document.createElement('span');name.className='status-name';name.textContent=item.dataset.name;name.setAttribute('aria-hidden','true');
+  const check=document.createElement('span');check.className='status-check';check.textContent='✓';check.setAttribute('aria-hidden','true');
+  dot.append(name,check);dotContainer.appendChild(dot);item.statusDot=dot;
+});
+
+let indicatorFrame=0;
+function keepIndicatorVisible(dot){
+  cancelAnimationFrame(indicatorFrame);
+  const start=performance.now();
+  function follow(){
+    const viewport=dotContainer.getBoundingClientRect();
+    const bounds=dot.getBoundingClientRect();
+    if(bounds.right>viewport.right){dotContainer.scrollLeft+=bounds.right-viewport.right;}
+    else if(bounds.left<viewport.left){dotContainer.scrollLeft-=viewport.left-bounds.left;}
+    if(performance.now()-start<800){indicatorFrame=requestAnimationFrame(follow);}
+  }
+  follow();
+}
+
+
+function fitStatusDots(){
+  const width=dotContainer.clientWidth;
+  if(!width)return;
+  const gap=width<400?4:6;
+  const size=Math.min(22,Math.max(1,(width-gap*(items.length-1))/items.length));
+  dotContainer.style.setProperty('--dot-size',size+'px');
+  dotContainer.style.setProperty('--dot-gap',gap+'px');
+}
+fitStatusDots();
+const statusResizeObserver=new ResizeObserver(fitStatusDots);
+statusResizeObserver.observe(dotContainer);
+
+function updateIndicator(item,wasDone){
+  const done=item.dataset.done==='true';const dot=item.statusDot;
+  dot.classList.toggle('done',done);
+  const state=done?'已巡檢':'未巡檢';
+  const label=(items.indexOf(item)+1)+' '+item.dataset.name+'：'+state;
+  dot.title=label;dot.setAttribute('aria-label',label);
+  if(done===wasDone)return;
+  clearTimeout(dotTimers.get(item));
+  dot.classList.remove('expanded');
+  document.getElementById('inspect-status-announcement').textContent=item.dataset.name+'：'+state;
+  if(done){
+    items.forEach(other=>{if(other!==item){other.statusDot.classList.remove('expanded');clearTimeout(dotTimers.get(other));dotTimers.delete(other);}});
+    void dot.offsetWidth;dot.classList.add('expanded');keepIndicatorVisible(dot);
+    dotTimers.set(item,setTimeout(()=>{dot.classList.remove('expanded');keepIndicatorVisible(dot);dotTimers.delete(item);},1300));
+  }else{dotTimers.delete(item);keepIndicatorVisible(dot);}
+}
+
+const date=new Date();const dateText=String(date.getMonth()+1).padStart(2,'0')+'/'+String(date.getDate()).padStart(2,'0');document.getElementById('inspect-date').textContent=dateText;
+function update(item){document.getElementById('inspect-output-panel').hidden=true;const wasDone=item.dataset.done==='true';const text=item.querySelector('textarea').value.trim();const done=!!text;item.dataset.done=String(done);const state=!done?'blank':text==='正常'?'normal':'abnormal';item.querySelectorAll('[data-state]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.state===state)));const toggle=item.querySelector('.toggle');if(toggle)toggle.setAttribute('aria-pressed',String(done));item.querySelector('.value').textContent=!done?'未巡檢':text==='正常'?'正常':'異常已記錄';if(!done){item.querySelector('input').checked=false;item.querySelector('.time').textContent='';}updateIndicator(item,wasDone);render();}
+function setState(item,state){const area=item.querySelector('textarea');if(state==='abnormal'){item.querySelector('details').open=true;if(area.value==='正常')area.value='';area.focus();}else{area.value=state==='normal'?'正常':'';}update(item);}
+items.forEach(item=>{item.querySelector('.toggle')?.addEventListener('click',()=>setState(item,item.dataset.done==='true'?'blank':'normal'));item.querySelectorAll('[data-state]').forEach(b=>b.addEventListener('click',()=>setState(item,b.dataset.state)));item.querySelector('textarea').addEventListener('input',()=>update(item));item.querySelector('input').addEventListener('change',e=>{document.getElementById('inspect-output-panel').hidden=true;const now=new Date();item.querySelector('.time').textContent=e.target.checked?'（'+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+'）':'';render();});});
+function render(){const lines=['園區水電管制巡檢('+dateText+')'];document.querySelectorAll('.group').forEach(group=>{if(group.dataset.group)lines.push('','【'+group.dataset.group+'】');group.querySelectorAll('.item').forEach(item=>{const text=item.querySelector('textarea').value.trim().split('\n').map(x=>x.trim()).filter(Boolean).join('，');lines.push(item.dataset.name+'：'+text+(text?item.querySelector('.time').textContent:''));});});return lines.join('\n');}
+document.getElementById('inspect-copy').addEventListener('click',async()=>{const box=document.getElementById('inspect-output');box.value=render();document.getElementById('inspect-output-panel').hidden=false;let ok=false;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(box.value);ok=true;}}catch{}if(!ok){box.focus();box.select();try{ok=document.execCommand('copy');}catch{}}document.getElementById('inspect-feedback').textContent=ok?'已複製 ✓':'請選取下方文字手動複製';});
+let visibilityObserver;
+function observeInspectionVisibility(){
+  if(visibilityObserver)visibilityObserver.disconnect();
+  // Observe only the upper half of the viewport; pixel margins use viewport height.
+  visibilityObserver=new IntersectionObserver(entries=>{
+    const visible=entries[0].isIntersecting;
+    app.classList.toggle('is-in-view',visible);
+    if(visible)fitStatusDots();
+  },{rootMargin:`0px 0px -${window.innerHeight / 2}px 0px`,threshold:0});
+  visibilityObserver.observe(app);
+}
+observeInspectionVisibility();
+window.addEventListener('resize',observeInspectionVisibility);
+})();</script>
 </body>
 </html>
