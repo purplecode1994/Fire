@@ -42,7 +42,7 @@
     .modes [aria-current="step"] { background: #e8f3ff; color: #105fa8; border-color: var(--blue); }
     .current { color: #105fa8; font-weight: 700; }
     @media (max-width: 420px) { section { padding: 18px; } .garden { grid-template-columns: 1fr; } .modes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .remote-panel{max-width:480px;margin:18px auto 0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden}.remote-panel iframe{display:block;width:100%;aspect-ratio:853 / 1843;border:0;background:transparent}@media(max-width:420px){.remote-panel{padding:0}} .remote-title{margin:0;padding:0 0 14px;font-size:21px;color:var(--ink)} </style>
+  .remote-panel{max-width:480px;margin:18px auto 0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden}.remote-panel iframe{display:block;width:100%;aspect-ratio:853 / 1843;border:0;background:transparent}@media(max-width:420px){.remote-panel{padding:0}} .remote-title{margin:0;padding:0 0 14px;font-size:21px;color:var(--ink)} .guide-choices{max-width:480px;margin:20px auto}.look-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.look{color:#193653;background:#fff;box-shadow:none;border:3px solid rgba(var(--c),.7);animation:softLook 2.2s ease-in-out infinite}.look-0{--c:0,174,239}.look-1{--c:27,190,147}.look-2{--c:168,116,239;animation-name:lineLook}.look-3{--c:255,185,65;animation:softLook 1.8s ease-in-out infinite alternate}.look-4{--c:248,133,165;animation:none;background:rgba(var(--c),.15)}.look[aria-pressed="true"]{outline:2px solid #234;outline-offset:4px}@keyframes softLook{0%,100%{background:rgba(var(--c),.07);border-color:rgba(var(--c),.5)}50%{background:rgba(var(--c),.3);border-color:rgba(var(--c),.95)}}@keyframes lineLook{0%,100%{border-color:rgba(var(--c),.4)}50%{border-color:rgba(var(--c),1)}} .look-0{animation:softLook 2.8s ease-in-out infinite}.look-1{animation:quickLook .65s step-end infinite}.look-2{animation:doubleLook 1.8s step-end infinite}.look-3{animation:rippleLook 1.6s linear infinite}.look-4{border-style:dashed;animation:flowLook 1.4s linear infinite}@keyframes quickLook{0%,100%{background:rgba(var(--c),.4);border-color:rgba(var(--c),1)}40%{background:white;border-color:transparent}}@keyframes doubleLook{0%,20%{background:rgba(var(--c),.35);border-color:rgba(var(--c),1)}10%,30%,100%{background:white;border-color:rgba(var(--c),.1)}}@keyframes rippleLook{0%{box-shadow:0 0 0 0 rgba(var(--c),.7)}100%{box-shadow:0 0 0 14px rgba(var(--c),0)}}@keyframes flowLook{0%,100%{border-top-color:rgba(var(--c),1);border-right-color:rgba(var(--c),.25);border-bottom-color:rgba(var(--c),.1);border-left-color:rgba(var(--c),.25)}25%{border-right-color:rgba(var(--c),1)}50%{border-bottom-color:rgba(var(--c),1)}75%{border-left-color:rgba(var(--c),1)}} .color-choice{display:flex;align-items:center;gap:12px;margin-bottom:18px}.color-choice input{width:46px;height:36px;padding:2px;border:1px solid #bed4ed;border-radius:8px}.color-choice span{font-size:13px}.look-grid{gap:10px}.guide-choices .look{position:relative;padding:0;min-height:94px;background:transparent!important;border:0!important;animation:none!important;box-shadow:none!important;overflow:visible}.look span{position:relative;z-index:1;font-size:14px;pointer-events:none}.effect-sample{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.look[aria-pressed="true"]{outline:2px solid #234;outline-offset:0} </style>
 </head>
 <body>
   <main>
@@ -82,7 +82,17 @@ main{display:block;width:100%;max-width:480px;margin:0 auto;padding:0}
 .device{position:relative;top:0;width:100%;display:block}
 .device&gt;svg{width:100%;height:auto;max-height:none;display:block;aspect-ratio:853/1843}
 .key-area{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-&lt;/style&gt;&lt;style&gt;.controls{display:flex;gap:7px;margin-top:18px}.controls button{flex:1;padding:10px 8px}.set{margin-top:10px}.key-area:hover{fill:white;fill-opacity:.15}.summary{border-top:1px solid #dfebf8;padding-top:14px}&lt;/style&gt;&lt;style&gt;
+
+/* One foreground clock controls all blinking, including newly rendered LCD digits. */
+#device .flash,#device .ctl-left,#device .ctl-right,#device .guide-key{animation:none!important}
+#device .flash{opacity:1}
+#device.pulse-off:not(.no-flash) .flash{opacity:0}
+#device .ctl-left,#device .ctl-right{opacity:0}
+#device.left-on .ctl-left,#device.right-on .ctl-right{opacity:1}
+#device rect.key-area.guide-key{fill:transparent;stroke:transparent}
+#device.guide-on rect.key-area.guide-key{fill:rgba(255,255,255,.5);stroke:#00b7ff;stroke-width:9}
+#device rect.key-area.guide-key,#device.guide-on rect.key-area.guide-key{fill:rgba(var(--guide-rgb,0,174,239),var(--guide-alpha,.1));stroke:rgba(var(--guide-rgb,0,174,239),var(--guide-stroke,.7));stroke-width:7;cursor:pointer}#device .key-area[aria-disabled=&quot;true&quot;]{cursor:default}
+#device rect.key-area.guide-key,#device.guide-on rect.key-area.guide-key{stroke-width:var(--guide-width,7);stroke-dasharray:var(--guide-dash,none);stroke-dashoffset:var(--guide-offset,0)} .date-digits polygon{stroke:#111b13;stroke-width:2.5;stroke-linejoin:round} .lcd-digit-bold polygon{stroke:#111b13;stroke-width:1.8;stroke-linejoin:round} &lt;/style&gt;&lt;style&gt;.controls{display:flex;gap:7px;margin-top:18px}.controls button{flex:1;padding:10px 8px}.set{margin-top:10px}.key-area:hover{fill:white;fill-opacity:.15}.summary{border-top:1px solid #dfebf8;padding-top:14px}&lt;/style&gt;&lt;style&gt;
 @keyframes ctl-left-blink{0%,16.666%,33.333%{opacity:1}8.333%,25%,41.666%,50%,100%{opacity:0}}
 @keyframes ctl-right-blink{0%,49.999%{opacity:0}50%,66.666%,83.333%{opacity:1}58.333%,75%,91.666%,100%{opacity:0}}
 .ctl-left{animation:ctl-left-blink 4.8s step-end infinite}
@@ -94,7 +104,7 @@ const steps=[{&quot;title&quot;:&quot;進入日光調節設定&quot;,&quot;mode&
 const NS='http://www.w3.org/2000/svg';
 function node(tag,attrs,parent){const n=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=&gt;n.setAttribute(k,v));parent.appendChild(n);return n;}
 const patterns={'0':'ab cdef'.replaceAll(' ',''),'1':'bc','2':'abdeg','3':'abcdg','4':'bcfg','5':'acdfg','6':'acdefg','7':'abc','8':'abcdefg','9':'abcdfg'};
-function digits(value,x,y,height,parent){const scale=height/100,group=node('g',{transform:'translate('+x+' '+y+') scale('+scale+')',class:'segments'},parent);let offset=0;const segs={a:'10,0 48,0 43,7 15,7',b:'50,3 50,45 43,40 43,11',c:'50,52 50,94 43,87 43,58',d:'10,100 48,100 43,93 15,93',e:'2,52 9,58 9,87 2,94',f:'2,3 9,11 9,40 2,45',g:'11,47 42,47 47,50 42,54 11,54 6,50'};for(const char of value){const g=node('g',{transform:'translate('+offset+' 0)'},group);if(patterns[char]){for(const seg of patterns[char])node('polygon',{points:segs[seg]},g);offset+=65;}else if(char==='-'){node('polygon',{points:segs.g},g);offset+=65;}else if(char===':'){node('circle',{cx:7,cy:32,r:5},g);node('circle',{cx:7,cy:73,r:5},g);offset+=25;}else{const t=node('text',{x:0,y:80,'font-size':75},g);t.textContent=char;offset+=55;}}}
+function digits(value,x,y,height,parent){const region=y===232&amp;&amp;x===190?7:y===232&amp;&amp;x===475?14:y===526?44:y===560?46:null;const scale=height/100,group=node('g',{transform:'translate('+x+' '+y+') scale('+scale+')',class:'segments'+(region?' lcd-digit-bold':''),...(region?{'data-lcd-region':String(region)}:{})},parent);let offset=0;const segs={a:'10,0 48,0 43,7 15,7',b:'50,3 50,45 43,40 43,11',c:'50,52 50,94 43,87 43,58',d:'10,100 48,100 43,93 15,93',e:'2,52 9,58 9,87 2,94',f:'2,3 9,11 9,40 2,45',g:'11,47 42,47 47,50 42,54 11,54 6,50'};for(const char of value){const g=node('g',{transform:'translate('+offset+' 0)'},group);if(patterns[char]){for(const seg of patterns[char])node('polygon',{points:segs[seg]},g);offset+=65;}else if(char==='-'){node('polygon',{points:segs.g},g);offset+=65;}else if(char==='/'){node('polygon',{points:'40,0 48,0 12,100 4,100'},g);offset+=55;}else if(char===':'){node('circle',{cx:7,cy:32,r:5},g);node('circle',{cx:7,cy:73,r:5},g);offset+=25;}else{const t=node('text',{x:0,y:80,'font-size':75},g);t.textContent=char;offset+=55;}}}
 let page=0;let ctlBlinkStart=Date.now();let ctlBlinkElapsed=0;
 const state={mode:0,prgOff:false,phase:'root',special:0,program:0,onType:0,ctlChoice:0,ctlDaysTimed:false,ctlCorrection:0,ctlMinute:1,ctlDayIndex:0,ctlDays:[true,true,true,true,true,true,true,false,false],offType:0,direction:0,lat:24,lon:120,gmt:7,offset:0,hour:21,minute:0,dayIndex:0,days:[true,true,true,true,true,true,true]};
 const modes=['NML','PRG','SP-D','時鐘','SPECIAL'];
@@ -173,10 +183,10 @@ function programHeader(){
 }
 function normalScreen(){
  const now=new Date();showRegion('TIME 標題框');
- digits(String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),268,526,100,document.getElementById('values'));
- digits(String(now.getSeconds()).padStart(2,'0'),624,560,64,document.getElementById('values'));
+ digits(String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),288,526,100,document.getElementById('values'));
+ digits(String(now.getSeconds()).padStart(2,'0'),644,560,64,document.getElementById('values'));
  dayRow(weekdays.map((_,i)=&gt;i===(now.getDay()+6)%7));
- write((now.getMonth()+1)+'/'+now.getDate()+'/'+now.getFullYear(),568,839,35);
+ const dateValue=(now.getMonth()+1)+'/'+now.getDate()+'/'+now.getFullYear();const dateHeight=35;const dateWidth=([...dateValue].reduce((sum,ch)=&gt;sum+(ch==='/'?55:65),0)-15)*dateHeight/100;const dateGroup=node('g',{class:'date-digits'},document.getElementById('values'));digits(dateValue,738-dateWidth,804,dateHeight,dateGroup);
 }
 function render(){
  ctlBlinkElapsed=(Date.now()-ctlBlinkStart)%4800;
@@ -248,33 +258,13 @@ function render(){
  if(p==='days'){showRegion('CTL DAY 框');dayRow(state.days);write('▲',316+state.dayIndex*66.5,795,20);}
  if(state.mode===0)normalScreen();
  values.classList.toggle('flash',['lat','lon','gmt','offset','hour','minute'].includes(p));
- document.getElementById('page').textContent=(page+1)+' / 9 · '+modes[state.mode];document.getElementById('title').textContent=state.mode===4&amp;&amp;state.special===4&amp;&amp;p==='root'?'LOCAL 進入確認':titles[page];
- const help={root:state.mode===4?'用 ＋／－ 找到 LOCAL，再按 SET。':state.mode===1?'用 ＋／－ 選擇 2G12，再按 SET。':'按 MODE 切換模式。',lat:'用 ＋／－ 設為 25，按 SET。',lon:'用 ＋／－ 設為 121，按 SET。',gmt:'用 ＋／－ 設為 +8，按 SET 後回到 LOCAL。',typeConfirm:'確認代號後，NML（18）閃爍。用 ＋／－ 選 ASTRO（20），再按 SET 顯示 CTL MODE（21）。',ctlCorrection:'用＋／－切換 50（±0）、51（EARLIER）、52（LATER）。50 不往下；51、52 按 SET 進入 1M。',ctlMinute:'46 號分鐘數字閃爍。＋／－調整，SET 進入關燈時間。',ctlOffHour:'25、26、31 閃爍。先設定小時 22，SET 確認。',ctlOffMinute:'設定分鐘 00，再按 SET 進入星期。',ctlDays:'目前：'+ctlDayLabels[state.ctlDayIndex]+'。＋切換圓點顯示／隱藏，SET 下一項；SP-D2 確認後完成。',onType:'目前組合：'+(state.ctlChoice?'日落開＋定時關':'日落開＋日落關')+'。按＋／－切換組合；定時關可按 SET 繼續。',direction:'用 ＋／－ 選 EARLIER，再按 SET 進入分鐘。',offset:'用 ＋／－ 設為 1 分鐘，按 SET 儲存。',offType:'OFF 的 ASTRO 日出圖示會閃爍。用 ＋／－ 改為固定時間，再按 SET。',hour:'OFF 固定時間：先用 ＋／－ 設定小時 22，再按 SET。',minute:'用 ＋／－ 設定分鐘 00，按 SET 儲存 22:00，接著確認星期。',days:'逐日確認：＋啟用、－停用，按 SET 確認下一天。每天執行時七個圓點都要亮。'};
 
- const startup=document.getElementById('startup-guide');
- startup.hidden=!(p==='root'&amp;&amp;!saved.program&amp;&amp;page!==8);
- startup.textContent=[
- '所在地設定｜逐次按鍵',
- '① 從 NML 開始，按 MODE 第 1 下 → PRG。',
- '② 再按 MODE 第 2 下 → SP-D。',
- '③ 再按 MODE 第 3 下 → 時鐘圖示。',
- '④ 再按 MODE 第 4 下 → SPECIAL；上方箭頭指向 SPECIAL，下方箭頭先在 SP-D1。',
- '⑤ 按 ＋ 第 1 下 → SP-D2。',
- '⑥ 再按 ＋ 第 2 下 → STBY。',
- '⑦ 再按 ＋ 第 3 下 → AUTO OFF。',
- '⑧ 再按 ＋ 第 4 下 → LOCAL。',
- '⑨ 下方箭頭指向 LOCAL，LCD 出現 ADDRESS NO. 和 ----，按 SET 才進入 LAT。',
- 'SP-D1 到 AUTO OFF 的 LCD 中央保持空白，請看下方箭頭。按過頭可用 － 往回移。',
- '目前：'+modes[state.mode]+(state.mode===4?'／'+specials[state.special]:'')+'。'+(state.mode===4?(state.special===4?'下一個按鍵：SET，進入 LAT。':'下一個按鍵：＋，移到 '+specials[state.special+1]+'。'):'下一個按鍵：MODE，切到 '+modes[(state.mode+1)%5]+'。'),
- '請按 MODE、＋ 和 SET 練習實際操作；「下一步」是章節預覽。'
- ].join('\n');
- document.getElementById('instructions').textContent=page===8?'最後按 MODE 回到 NML；下方可核對已儲存的示範資料。':help[p];
- document.getElementById('status').textContent=message;const set=document.getElementById('set');const blockedSet=(p==='onType'&amp;&amp;state.ctlChoice===0)||(p==='ctlCorrection'&amp;&amp;state.ctlCorrection===0);set.disabled=blockedSet;set.textContent='SET';document.getElementById('device-set').setAttribute('aria-disabled',String(blockedSet));
- document.getElementById('previous').disabled=page===0&amp;&amp;!(state.mode===4&amp;&amp;state.special===4&amp;&amp;p==='root');document.getElementById('next').disabled=page===8||(page&gt;=5&amp;&amp;state.ctlChoice!==1);
- const nav=document.getElementById('pages');nav.replaceChildren();titles.forEach((title,i)=&gt;{const b=document.createElement('button');b.textContent=i+1;b.title=title;b.className=i===page?'current':'';b.disabled=i&gt;5&amp;&amp;state.ctlChoice!==1;b.onclick=()=&gt;jump(i);nav.appendChild(b);});
- const visible=document.getElementById('visible');visible.replaceChildren();visibleNames.forEach(name=&gt;{const li=document.createElement('li');li.textContent=name;visible.appendChild(li);});
- const review=document.getElementById('review');review.replaceChildren();const list=document.createElement('ul');list.className='summary';const on=saved.on?((saved.on.sunset?'日落':'日出')+(saved.on.earlier?'前':'後')+saved.on.minutes+' 分鐘'):'未儲存';for(const text of ['LAT：'+(saved.lat??'未儲存'),'LON：'+(saved.lon??'未儲存'),'GMT：'+(saved.gmt===undefined?'未儲存':(saved.gmt&gt;=0?'+':'')+saved.gmt),'程序：'+(saved.program??'未選取'),'ON：'+on,'OFF：'+(saved.off??'未儲存'),'星期：'+(saved.days?saved.days.map((v,i)=&gt;v?weekdays[i]:'').filter(Boolean).join('、')||'全部停用':'未儲存')]){const li=document.createElement('li');li.textContent=text;list.appendChild(li);}review.appendChild(list);updateGuideKeys();
+ const blockedSet=(p==='onType'&amp;&amp;state.ctlChoice===0)||(p==='ctlCorrection'&amp;&amp;state.ctlCorrection===0);
+ document.getElementById('set').disabled=blockedSet;
+ document.getElementById('device-set').setAttribute('aria-disabled',String(blockedSet));
+ updateGuideKeys();
 }
+
 function nextGuideKey(){
  const p=state.phase;
  if(p==='root'){
@@ -291,24 +281,59 @@ function nextGuideKey(){
  if(p==='ctlDays')return state.ctlDayIndex&lt;7&amp;&amp;!state.ctlDays[state.ctlDayIndex]?'plus':'set';
  return 'set';
 }
-function updateGuideKeys(){const active=nextGuideKey();for(const key of ['mode','plus','minus','back','set']){for(const id of [key,key==='set'?'device-set':'panel-'+key])document.getElementById(id).classList.toggle('guide-key',key===active);}}
-function bind(id,fn){const n=document.getElementById(id);n.onclick=fn;n.onkeydown=e=&gt;{if((e.key==='Enter'||e.key===' ')&amp;&amp;n.tagName!=='BUTTON'){e.preventDefault();fn();}};}
+function updateGuideKeys(){const active=nextGuideKey();for(const key of ['mode','plus','minus','back','set']){for(const id of [key,key==='set'?'device-set':'panel-'+key]){const n=document.getElementById(id);n.classList.toggle('guide-key',key===active);n.setAttribute('aria-disabled',String(key!==active));n.setAttribute('tabindex',key===active?'0':'-1');}}}
+function bind(id,fn){const n=document.getElementById(id);const key=id==='device-set'?'set':id.replace('panel-','');const allowed=()=&gt;key===nextGuideKey();n.onclick=()=&gt;{if(allowed())fn();};n.onkeydown=e=&gt;{if((e.key==='Enter'||e.key===' ')&amp;&amp;n.tagName!=='BUTTON'){e.preventDefault();if(allowed())fn();}};}
 bind('set',save);bind('device-set',save);bind('mode',mode);bind('plus',()=&gt;adjust(1));bind('minus',()=&gt;adjust(-1));bind('back',back);
 for(const [id,x,y,w,h,fn] of [['panel-mode',262,1365,146,99,mode],['panel-minus',450,1365,150,99,()=&gt;adjust(-1)],['panel-plus',644,1365,150,99,()=&gt;adjust(1)],['panel-back',450,1494,150,99,back]]){node('rect',{id,x,y,width:w,height:h,rx:10,class:'key-area',role:'button',tabindex:0,'aria-label':id.replace('panel-','')},document.getElementById('device'));bind(id,fn);}
 document.getElementById('previous').onclick=()=&gt;page===1?showLocalConfirmation():jump(Math.max(0,page-1));document.getElementById('next').onclick=()=&gt;page===0&amp;&amp;!(state.mode===4&amp;&amp;state.special===4&amp;&amp;state.phase==='root')?showLocalConfirmation():jump(Math.min(8,page+1));document.getElementById('blink').onchange=e=&gt;document.getElementById('device').classList.toggle('no-flash',!e.target.checked);render();
 
-setInterval(()=&gt;{if(state.mode===0&amp;&amp;state.phase==='root')render();},1000);
+function guideFrame(i,t){let a=0,o=1,w=7,d='none',x=0;const wave=period=&gt;(1-Math.cos(t/period*Math.PI*2))/2;
+ switch(i){
+ case 0:a=.04+.28*wave(2800);o=.25+.75*wave(2800);w=5+3*wave(2800);break;
+ case 1:o=t%650&lt;260?1:0;a=.4*o;w=8;break;
+ case 2:{const p=t%1800;o=p&lt;180||(p&gt;=360&amp;&amp;p&lt;540)?1:.08;a=o&gt;.5?.32:0;w=8;break;}
+ case 3:{const p=t%1600/1600;a=.22*(1-p);o=1-p;w=5+24*p;break;}
+ case 4:a=.06;d='24 16';x=-(t%1400)/1400*80;break;
+ case 5:a=.02;o=.2+.8*wave(3400);w=2+10*wave(3400);break;
+ case 6:{const p=t%2200;o=p&lt;600&amp;&amp;Math.floor(p/200)%2===0?1:.1;a=o&gt;.5?.38:0;break;}
+ case 7:{const p=t%2200/2200;a=.45*p;o=.2+.8*p;w=3+7*p;break;}
+ case 8:a=.03;o=1;d='5 110';x=-(t%2000)/2000*230;w=9;break;
+ case 9:a=.12+.18*wave(1500);o=.9;w=4+3*wave(1500);d='35 20';x=Math.sin(t/2400*Math.PI*2)*70;break;
+ }return{a,o,w,d,x};}
+let guideLook=1,guideColor='0,191,255';
+window.addEventListener('message',e=&gt;{if(e.source!==parent||e.data?.type!=='guide-look')return;const data=e.data;if(Number.isInteger(data.index)&amp;&amp;data.index&gt;=0&amp;&amp;data.index&lt;10)guideLook=data.index;if(/^#[0-9a-f]{6}$/i.test(data.color||''))guideColor=[1,3,5].map(n=&gt;parseInt(data.color.slice(n,n+2),16)).join(',');});
+function paintGuide(t){const f=guideFrame(guideLook,t),d=document.getElementById('device');for(const [k,v] of Object.entries({'rgb':guideColor,'alpha':f.a,'stroke':f.o,'width':f.w,'dash':f.d,'offset':f.x}))d.style.setProperty('--guide-'+k,String(v));}
 
-function alternatePrg(){if(state.mode===1&amp;&amp;state.phase==='root'){state.prgOff=!state.prgOff;render();}}
-function schedulePrgRotation(){setTimeout(()=&gt;{alternatePrg();schedulePrgRotation();},state.mode===1&amp;&amp;state.phase==='root'&amp;&amp;state.prgOff?4000:2000);}
-schedulePrgRotation();
-
-function syncCtlCycle(){
- if(state.mode!==1||state.phase!=='onType')return;
- const off=((Date.now()-ctlBlinkStart)%4800)&gt;=2400;
- if(off!==state.prgOff)render();
+const pulseClasses=new Map();
+function setPulseClass(device,name,value){if(pulseClasses.get(name)!==value){pulseClasses.set(name,value);device.classList.toggle(name,value);}}
+let frameId=null, running=false, lastFrame=0, pulseTime=0, rootTime=0, lastSecond=-1, lastContext='';
+function frame(now){
+ if(!running)return;
+ const delta=lastFrame?Math.min(now-lastFrame,100):0;lastFrame=now;pulseTime+=delta;paintGuide(pulseTime);
+ const context=state.mode+':'+state.phase;
+ if(context!==lastContext){lastContext=context;rootTime=0;pulseTime=0;}
+ const device=document.getElementById('device');
+ setPulseClass(device,'pulse-off',pulseTime%1200&gt;=600);
+ setPulseClass(device,'guide-on',pulseTime%1000&lt;500);
+ const ctl=(Date.now()-ctlBlinkStart)%4800;
+ setPulseClass(device,'left-on',ctl&lt;2400&amp;&amp;ctl%800&lt;400);
+ setPulseClass(device,'right-on',ctl&gt;=2400&amp;&amp;ctl%800&lt;400);
+ if(state.mode===1&amp;&amp;state.phase==='onType'){
+  if(state.prgOff!==(ctl&gt;=2400))render();
+ }else if(state.mode===1&amp;&amp;state.phase==='root'){
+  rootTime+=delta;if(rootTime&gt;=(state.prgOff?4000:2000)){rootTime=0;state.prgOff=!state.prgOff;render();}
+ }else if(state.mode===0&amp;&amp;state.phase==='root'){
+  const second=Math.floor(Date.now()/1000);if(second!==lastSecond){lastSecond=second;render();}
+ }
+ frameId=requestAnimationFrame(frame);
 }
-setInterval(syncCtlCycle,40);
+function stopAnimation(){running=false;if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;lastFrame=0;}
+function resumeAnimation(){if(document.hidden||running)return;running=true;lastFrame=0;pulseTime=0;rootTime=0;ctlBlinkStart=Date.now();render();frameId=requestAnimationFrame(frame);}
+document.addEventListener('visibilitychange',()=&gt;document.hidden?stopAnimation():resumeAnimation());
+window.addEventListener('pagehide',stopAnimation);window.addEventListener('pageshow',resumeAnimation);
+// Iframe focus may move to the surrounding page while still visible.
+// Pause on document visibility and page lifecycle only.
+resumeAnimation();
 &lt;/script&gt;&lt;/body&gt;&lt;/html&gt;"></iframe></section>
   </main>
 
