@@ -92,7 +92,7 @@ main{display:block;width:100%;max-width:480px;margin:0 auto;padding:0}
 #device rect.key-area.guide-key{fill:transparent;stroke:transparent}
 #device.guide-on rect.key-area.guide-key{fill:rgba(255,255,255,.5);stroke:#00b7ff;stroke-width:9}
 #device rect.key-area.guide-key,#device.guide-on rect.key-area.guide-key{fill:rgba(var(--guide-rgb,0,174,239),var(--guide-alpha,.1));stroke:rgba(var(--guide-rgb,0,174,239),var(--guide-stroke,.7));stroke-width:7;cursor:pointer}#device .key-area[aria-disabled=&quot;true&quot;]{cursor:default}
-#device rect.key-area.guide-key,#device.guide-on rect.key-area.guide-key{stroke-width:var(--guide-width,7);stroke-dasharray:var(--guide-dash,none);stroke-dashoffset:var(--guide-offset,0)} .date-digits polygon{stroke:#111b13;stroke-width:2.5;stroke-linejoin:round} .lcd-digit-bold polygon{stroke:#111b13;stroke-width:1.8;stroke-linejoin:round} &lt;/style&gt;&lt;style&gt;.controls{display:flex;gap:7px;margin-top:18px}.controls button{flex:1;padding:10px 8px}.set{margin-top:10px}.key-area:hover{fill:white;fill-opacity:.15}.summary{border-top:1px solid #dfebf8;padding-top:14px}&lt;/style&gt;&lt;style&gt;
+#device rect.key-area.guide-key,#device.guide-on rect.key-area.guide-key{stroke-width:var(--guide-width,7);stroke-dasharray:var(--guide-dash,none);stroke-dashoffset:var(--guide-offset,0)} .date-digits polygon{stroke:#111b13;stroke-width:2.5;stroke-linejoin:round} .lcd-digit-bold polygon{stroke:#111b13;stroke-width:1.8;stroke-linejoin:round} #device rect.key-area.guide-key,#device.guide-on rect.key-area.guide-key{fill:transparent!important;stroke:none!important}#device .native-hint{display:none}#device.native-dark .native-hint.active-hint{display:inline} #device .native-hint,#device.native-dark .native-hint.active-hint{display:none}#device .native-hint.active-hint{display:inline;opacity:var(--native-alpha,0)} #device .native-hint.active-hint,#device.native-dark .native-hint.active-hint{display:none!important} &lt;/style&gt;&lt;style&gt;.controls{display:flex;gap:7px;margin-top:18px}.controls button{flex:1;padding:10px 8px}.set{margin-top:10px}.key-area:hover{fill:white;fill-opacity:.15}.summary{border-top:1px solid #dfebf8;padding-top:14px}&lt;/style&gt;&lt;style&gt;
 @keyframes ctl-left-blink{0%,16.666%,33.333%{opacity:1}8.333%,25%,41.666%,50%,100%{opacity:0}}
 @keyframes ctl-right-blink{0%,49.999%{opacity:0}50%,66.666%,83.333%{opacity:1}58.333%,75%,91.666%,100%{opacity:0}}
 .ctl-left{animation:ctl-left-blink 4.8s step-end infinite}
@@ -106,7 +106,7 @@ function node(tag,attrs,parent){const n=document.createElementNS(NS,tag);Object.
 const patterns={'0':'ab cdef'.replaceAll(' ',''),'1':'bc','2':'abdeg','3':'abcdg','4':'bcfg','5':'acdfg','6':'acdefg','7':'abc','8':'abcdefg','9':'abcdfg'};
 function digits(value,x,y,height,parent){const region=y===232&amp;&amp;x===190?7:y===232&amp;&amp;x===475?14:y===526?44:y===560?46:null;const scale=height/100,group=node('g',{transform:'translate('+x+' '+y+') scale('+scale+')',class:'segments'+(region?' lcd-digit-bold':''),...(region?{'data-lcd-region':String(region)}:{})},parent);let offset=0;const segs={a:'10,0 48,0 43,7 15,7',b:'50,3 50,45 43,40 43,11',c:'50,52 50,94 43,87 43,58',d:'10,100 48,100 43,93 15,93',e:'2,52 9,58 9,87 2,94',f:'2,3 9,11 9,40 2,45',g:'11,47 42,47 47,50 42,54 11,54 6,50'};for(const char of value){const g=node('g',{transform:'translate('+offset+' 0)'},group);if(patterns[char]){for(const seg of patterns[char])node('polygon',{points:segs[seg]},g);offset+=65;}else if(char==='-'){node('polygon',{points:segs.g},g);offset+=65;}else if(char==='/'){node('polygon',{points:'40,0 48,0 12,100 4,100'},g);offset+=55;}else if(char===':'){node('circle',{cx:7,cy:32,r:5},g);node('circle',{cx:7,cy:73,r:5},g);offset+=25;}else{const t=node('text',{x:0,y:80,'font-size':75},g);t.textContent=char;offset+=55;}}}
 let page=0;let ctlBlinkStart=Date.now();let ctlBlinkElapsed=0;
-const state={mode:0,prgOff:false,phase:'root',special:0,program:0,onType:0,ctlChoice:0,ctlDaysTimed:false,ctlCorrection:0,ctlMinute:1,ctlDayIndex:0,ctlDays:[true,true,true,true,true,true,true,false,false],offType:0,direction:0,lat:24,lon:120,gmt:7,offset:0,hour:21,minute:0,dayIndex:0,days:[true,true,true,true,true,true,true]};
+const state={mode:0,prgOff:false,phase:'root',special:0,program:0,onType:0,ctlChoice:0,ctlDaysTimed:false,ctlCorrection:0,ctlMinute:1,ctlDayIndex:0,ctlDays:[false,false,true,true,true,true,true,false,false],offType:0,direction:0,lat:24,lon:120,gmt:7,offset:0,hour:21,minute:0,dayIndex:0,days:[true,true,true,true,true,true,true]};
 const modes=['NML','PRG','SP-D','時鐘','SPECIAL'];
 const specials=['SP-D1','SP-D2','STBY','AUTO OFF','LOCAL'];
 const programs=['1G12','2G12','3G1'];
@@ -151,7 +151,7 @@ function save(){
  else if(p==='lon'){saved.lon=state.lon;state.phase='gmt';message='LON '+saved.lon+' 已按 SET。接著設定 GMT。';}
  else if(p==='gmt'){saved.gmt=state.gmt;state.phase='root';state.mode=4;state.special=4;page=4;message='所在地資料已儲存，回到 LOCAL。按 MODE 切到 PRG。';}
  else if(p==='typeConfirm'){if(state.onType===1){state.phase='onType';ctlBlinkStart=Date.now();state.prgOff=false;state.ctlChoice=0;message='日落開＋日落關；按＋選擇日落開＋定時關。';}else{message='目前選的是 NML；這次日光調節請先用 ＋／－ 選 ASTRO。';}}
- else if(p==='onType'){if(state.ctlChoice===1){if(state.prgOff){state.phase='ctlOffHour';state.hour=22;state.minute=0;state.ctlDaysTimed=true;message='定時關：先設定小時 22，SET 確認分鐘。';}else{state.phase='ctlCorrection';state.ctlDaysTimed=false;state.ctlCorrection=0;message='日落 ON：選擇 50、51、52；51 或 52 可按 SET 繼續。';}}else message='日落／日出組合停在此處；按＋選定時關，才可繼續 SET。';}
+ else if(p==='onType'){if(state.ctlChoice===1){state.phase='ctlCorrection';state.prgOff=false;state.ctlDaysTimed=false;state.ctlCorrection=0;message='日落 ON：選擇 50、51、52；51 或 52 可按 SET 繼續。';}else message='日落／日出組合停在此處；按＋選定時關，才可繼續 SET。';}
  else if(p==='ctlCorrection'){if(state.ctlCorrection&gt;0){state.phase='ctlMinute';state.ctlMinute=1;message='顯示 1M；＋／－調整，SET 進入星期。';}else message='50（±0）不往下；請選 51 或 52。';}
  else if(p==='ctlMinute'){state.phase='ctlOffHour';state.hour=22;state.minute=0;state.ctlDaysTimed=true;message='1M 已確認；25、26、31 閃爍，先設定小時 22。';}
  else if(p==='ctlOffHour'){state.phase='ctlOffMinute';message='小時已確認；設定分鐘 00，按 SET 進入星期。';}
@@ -168,7 +168,7 @@ function save(){
 function showLocalConfirmation(){page=0;state.mode=4;state.special=4;state.phase='root';state.prgOff=false;message='LOCAL：顯示 ADDRESS NO. 與 ----，按 SET 或下一步進入 LAT。';render();}
 function jump(index){if(index&gt;5&amp;&amp;state.ctlChoice!==1)return;page=index;if(index===5)state.onType=0;const mapping=[['root',0],['lat',4],['lon',4],['gmt',4],['root',1],['typeConfirm',1],['ctlCorrection',1],['ctlDays',1],['root',0]];state.phase=mapping[index][0];state.mode=mapping[index][1];state.prgOff=false;if([1,2,3].includes(index))state.special=4;message='正在查看第 '+(index+1)+' 章；翻頁不會儲存數值。';render();}
 function back(){const prev={lon:'lat',gmt:'lon',ctlCorrection:'onType',ctlMinute:'ctlCorrection',ctlOffHour:'ctlMinute',ctlOffMinute:'ctlOffHour',ctlDays:'ctlOffMinute',typeConfirm:'root',onType:'typeConfirm',direction:'onType',offset:'direction',offType:'offset',hour:'offType',minute:'hour',days:'minute',lat:'root'};state.phase=prev[state.phase]||'root';message='返回上一個設定欄位。';render();}
-function showRegion(name){const p=parts.find(p=&gt;p.name===name&amp;&amp;(!['ON','OFF'].includes(name)||p.group==='時間與位置'));if(!p||visibleNames.includes(name))return;const alternating=state.phase==='onType'?([22,23,30].includes(p.id)?'ctl-left':(state.ctlChoice?[25,26,31]:[28,29,32]).includes(p.id)?'ctl-right':''):'';const g=node('g',{'clip-path':'url(#r'+p.id+')',class:alternating||(flashingRegions.has(p.id)?'flash':'')},document.getElementById('symbols'));if(alternating)g.setAttribute('style','animation-delay:-'+ctlBlinkElapsed+'ms');node('use',{href:'#original'},g);visibleNames.push(name);}
+function showRegion(name){const p=parts.find(p=&gt;p.name===name&amp;&amp;(!['ON','OFF'].includes(name)||p.group==='時間與位置'));if(!p||visibleNames.includes(name))return;if(state.phase==='ctlDays'&amp;&amp;((state.prgOff&amp;&amp;[22,23,30].includes(p.id))||(!state.prgOff&amp;&amp;[25,26,31,28,29,32].includes(p.id))))return;const alternating=state.phase==='onType'?([22,23,30].includes(p.id)?'ctl-left':(state.ctlChoice?[25,26,31]:[28,29,32]).includes(p.id)?'ctl-right':''):'';const g=node('g',{'clip-path':'url(#r'+p.id+')',class:alternating||(flashingRegions.has(p.id)?'flash':'')},document.getElementById('symbols'));if(alternating)g.setAttribute('style','animation-delay:-'+ctlBlinkElapsed+'ms');node('use',{href:'#original'},g);visibleNames.push(name);}
 let visibleNames=[];let flashingRegions=new Set();
 function write(value,x,y,size=54){const n=node('text',{x,y,'text-anchor':'middle','font-size':size,fill:'#121c14','font-family':'monospace'},document.getElementById('values'));n.textContent=value;}
 function dayRow(selected){
@@ -191,6 +191,7 @@ function normalScreen(){
 function render(){
  ctlBlinkElapsed=(Date.now()-ctlBlinkStart)%4800;
  if(state.mode===1&amp;&amp;state.phase==='onType')state.prgOff=ctlBlinkElapsed&gt;=2400;
+ if(state.mode===1&amp;&amp;state.phase==='ctlDays')state.prgOff=(Date.now()-ctlBlinkStart)%10000&gt;=5000;
  let c=chapter();if(state.phase==='root'&amp;&amp;page===8)c=8;page=c;visibleNames=[];
  flashingRegions=new Set();
  if(state.mode===1){const onAstro=(state.phase==='root'&amp;&amp;state.onType!==0&amp;&amp;!state.prgOff)||(['onType','direction','offset'].includes(state.phase)&amp;&amp;state.onType===1);const offAstro=(state.phase==='root'&amp;&amp;state.onType!==0&amp;&amp;state.prgOff&amp;&amp;!saved.off)||(state.phase==='offType'&amp;&amp;state.offType===0);if(onAstro)flashingRegions=new Set([22,23,30]);if(offAstro)flashingRegions=new Set([28,29,32]);}
@@ -209,7 +210,7 @@ function render(){
   if(p==='root'&amp;&amp;state.onType===0){
    ['TYPE 標題框','NML','CTL 標題框','TIME 標題框','CTL DAY 框',state.prgOff?'OFF':'ON'].forEach(showRegion);
    digits(state.prgOff?'20:00':'18:00',268,526,100,values);
-   dayRow(saved.days||[true,true,true,true,true,true,true]);
+   dayRow(saved.days||state.ctlDays.slice(0,7));
   }
   else if(p==='root'){
    ['TYPE 標題框','CTL MODE 標題框','CTL 標題框','TIME 標題框','CTL DAY 框'].forEach(showRegion);
@@ -221,14 +222,14 @@ function render(){
     if(saved.off){digits(saved.off,268,526,100,values);}
     else{['ASTRO','右太陽','向上箭頭','控制點 3'].forEach(showRegion);digits('5:40',333,526,100,values);}
    }
-   dayRow(saved.days||[true,true,true,true,true,true,true]);
+   dayRow(saved.days||state.ctlDays.slice(0,7));
   }
   else if(p==='typeConfirm'){
    ['TYPE 標題框',state.onType===1?'ASTRO':'NML','CTL 標題框','TIME 標題框','CTL DAY 框','ON'].forEach(showRegion);
-   digits('18:00',268,526,100,values);dayRow([true,true,true,true,true,true,true]);
+   digits('18:00',268,526,100,values);dayRow(state.ctlDays.slice(0,7));
   }
   else if(['onType','ctlCorrection','ctlMinute','ctlOffHour','ctlOffMinute','ctlDays'].includes(p)){
-   const ctlOff=(p==='onType'&amp;&amp;state.prgOff)||(['ctlOffHour','ctlOffMinute','ctlDays'].includes(p)&amp;&amp;state.ctlDaysTimed);
+   const ctlOff=(['onType','ctlDays'].includes(p)&amp;&amp;state.prgOff)||(['ctlOffHour','ctlOffMinute'].includes(p)&amp;&amp;state.ctlDaysTimed);
    const timedOff=ctlOff&amp;&amp;state.ctlChoice===1;
    ['TYPE 標題框','ASTRO','CTL MODE 標題框','CTL 標題框','TIME 標題框',ctlOff?'OFF':'ON','左太陽','向下箭頭','控制點 1'].forEach(showRegion);
    if(!timedOff)showRegion(p==='onType'?(ctlOff?'LATER 框':'EARLIER 框'):['± 0','EARLIER 框','LATER 框'][state.ctlCorrection]);
@@ -240,14 +241,14 @@ function render(){
    }else digits(timedOff?(saved.off||'22:00'):ctlOff?'5:40':'18:04',ctlOff&amp;&amp;!timedOff?333:268,526,100,values);
    const minuteGroup=node('g',{class:p==='ctlMinute'?'flash':'','data-lcd-region':'46'},values);if(p!=='ctlCorrection'&amp;&amp;!timedOff)digits(String(state.ctlMinute),638,560,65,minuteGroup);
    if(p==='ctlDays'){showRegion('CTL DAY 框');['SP-D1','SP-D2',...weekdays.map(d=&gt;d+' 星期文字')].forEach(showRegion);ctlDayLabels.forEach((d,i)=&gt;{if(state.ctlDays[i])showRegion(d+' 選取圓點');});}
-   else dayRow([true,true,true,true,true,true,true]);
+   else dayRow(state.ctlDays.slice(0,7));
    if(state.ctlChoice===1){['ST','時鐘圖示','控制點 2'].forEach(showRegion);}
    else{showRegion('右太陽');showRegion('向上箭頭');showRegion('控制點 3');}
   }
   else if(p==='onType'&amp;&amp;state.onType===0){
    ['TYPE 標題框','NML','CTL 標題框','TIME 標題框','CTL DAY 框',state.prgOff?'OFF':'ON'].forEach(showRegion);
    digits(state.prgOff?'20:00':'18:00',268,526,100,values);
-   dayRow([true,true,true,true,true,true,true]);
+   dayRow(state.ctlDays.slice(0,7));
   }
   else if(['onType','direction','offset'].includes(p)){showRegion('ON');showRegion('TYPE 標題框');showRegion('CTL MODE 標題框');
    if(state.onType||p!=='onType'){['ASTRO',state.onType===2?'右太陽':'左太陽',state.onType===2?'向上箭頭':'向下箭頭',state.onType===2?'控制點 3':'控制點 1'].forEach(showRegion);}else{showRegion('NML');showRegion('TIME 標題框');}
@@ -281,10 +282,12 @@ function nextGuideKey(){
  if(p==='ctlDays')return state.ctlDayIndex&lt;7&amp;&amp;!state.ctlDays[state.ctlDayIndex]?'plus':'set';
  return 'set';
 }
-function updateGuideKeys(){const active=nextGuideKey();for(const key of ['mode','plus','minus','back','set']){for(const id of [key,key==='set'?'device-set':'panel-'+key]){const n=document.getElementById(id);n.classList.toggle('guide-key',key===active);n.setAttribute('aria-disabled',String(key!==active));n.setAttribute('tabindex',key===active?'0':'-1');}}}
+function updateGuideKeys(){const active=nextGuideKey();for(const key of ['mode','plus','minus','back','set']){document.getElementById('hint-'+key).classList.toggle('active-hint',key===active);for(const id of [key,key==='set'?'device-set':'panel-'+key]){const n=document.getElementById(id);n.classList.toggle('guide-key',key===active);n.setAttribute('aria-disabled',String(key!==active));n.setAttribute('tabindex',key===active?'0':'-1');}}}
 function bind(id,fn){const n=document.getElementById(id);const key=id==='device-set'?'set':id.replace('panel-','');const allowed=()=&gt;key===nextGuideKey();n.onclick=()=&gt;{if(allowed())fn();};n.onkeydown=e=&gt;{if((e.key==='Enter'||e.key===' ')&amp;&amp;n.tagName!=='BUTTON'){e.preventDefault();if(allowed())fn();}};}
 bind('set',save);bind('device-set',save);bind('mode',mode);bind('plus',()=&gt;adjust(1));bind('minus',()=&gt;adjust(-1));bind('back',back);
 for(const [id,x,y,w,h,fn] of [['panel-mode',262,1365,146,99,mode],['panel-minus',450,1365,150,99,()=&gt;adjust(-1)],['panel-plus',644,1365,150,99,()=&gt;adjust(1)],['panel-back',450,1494,150,99,back]]){node('rect',{id,x,y,width:w,height:h,rx:10,class:'key-area',role:'button',tabindex:0,'aria-label':id.replace('panel-','')},document.getElementById('device'));bind(id,fn);}
+for(const [key,x,y,w,h,label,color,size] of [['mode',262,1365,146,99,'MODE','#d88a00',40],['minus',450,1365,150,99,'−','#b95310',68],['plus',644,1365,150,99,'＋','#b95310',64],['back',450,1494,150,99,'BACK','#399b08',44],['set',644,1493,151,233,'SET','#b95310',60]]){const g=node('g',{id:'hint-'+key,class:'native-hint','pointer-events':'none','aria-hidden':'true'},document.getElementById('device'));node('rect',{x:x+3,y:y+3,width:w-6,height:h-6,rx:7,fill:color},g);const labelNode=node('text',{x:x+w/2,y:y+h/2,'text-anchor':'middle','dominant-baseline':'central',fill:'#fff','font-family':'Arial Narrow,Arial,sans-serif','font-size':size,'font-weight':500},g);if(key==='mode'){labelNode.setAttribute('textLength','108');labelNode.setAttribute('lengthAdjust','spacingAndGlyphs');}labelNode.textContent=label;}
+const radarRoot=node('g',{'pointer-events':'none','aria-hidden':'true'},document.getElementById('device'));const radarRings=Array.from({length:4},()=&gt;node('rect',{fill:'none',stroke:'#00BFFF','stroke-width':18},radarRoot));const radarPositions={mode:[262,1365,146,99],minus:[450,1365,150,99],plus:[644,1365,150,99],back:[450,1494,150,99],set:[644,1493,151,233]};
 document.getElementById('previous').onclick=()=&gt;page===1?showLocalConfirmation():jump(Math.max(0,page-1));document.getElementById('next').onclick=()=&gt;page===0&amp;&amp;!(state.mode===4&amp;&amp;state.special===4&amp;&amp;state.phase==='root')?showLocalConfirmation():jump(Math.min(8,page+1));document.getElementById('blink').onchange=e=&gt;document.getElementById('device').classList.toggle('no-flash',!e.target.checked);render();
 
 function guideFrame(i,t){let a=0,o=1,w=7,d='none',x=0;const wave=period=&gt;(1-Math.cos(t/period*Math.PI*2))/2;
@@ -302,7 +305,9 @@ function guideFrame(i,t){let a=0,o=1,w=7,d='none',x=0;const wave=period=&gt;(1-M
  }return{a,o,w,d,x};}
 let guideLook=1,guideColor='0,191,255';
 window.addEventListener('message',e=&gt;{if(e.source!==parent||e.data?.type!=='guide-look')return;const data=e.data;if(Number.isInteger(data.index)&amp;&amp;data.index&gt;=0&amp;&amp;data.index&lt;10)guideLook=data.index;if(/^#[0-9a-f]{6}$/i.test(data.color||''))guideColor=[1,3,5].map(n=&gt;parseInt(data.color.slice(n,n+2),16)).join(',');});
-function paintGuide(t){const f=guideFrame(guideLook,t),d=document.getElementById('device');for(const [k,v] of Object.entries({'rgb':guideColor,'alpha':f.a,'stroke':f.o,'width':f.w,'dash':f.d,'offset':f.x}))d.style.setProperty('--guide-'+k,String(v));}
+// Inspired by the 400ms color transition supplied from Uiverse.io by kamehame-ha.
+// The foreground clock drives the blend so mobile background pauses stay synchronized.
+function paintGuide(t){const box=radarPositions[nextGuideKey()];radarRoot.setAttribute('display',box?'inline':'none');if(!box)return;const [x,y,w,h]=box;radarRings.forEach((ring,i)=&gt;{const p=((t+i*800)%3200)/3200;const spread=10+80*p;ring.setAttribute('x',String(x-spread));ring.setAttribute('y',String(y-spread));ring.setAttribute('width',String(w+2*spread));ring.setAttribute('height',String(h+2*spread));ring.setAttribute('rx',String(10+spread));ring.setAttribute('opacity',String(.95*Math.min(1,p/.18)*Math.pow(1-p,1.5)));});}
 
 const pulseClasses=new Map();
 function setPulseClass(device,name,value){if(pulseClasses.get(name)!==value){pulseClasses.set(name,value);device.classList.toggle(name,value);}}
@@ -320,6 +325,8 @@ function frame(now){
  setPulseClass(device,'right-on',ctl&gt;=2400&amp;&amp;ctl%800&lt;400);
  if(state.mode===1&amp;&amp;state.phase==='onType'){
   if(state.prgOff!==(ctl&gt;=2400))render();
+ }else if(state.mode===1&amp;&amp;state.phase==='ctlDays'){
+  if(state.prgOff!==((Date.now()-ctlBlinkStart)%10000&gt;=5000))render();
  }else if(state.mode===1&amp;&amp;state.phase==='root'){
   rootTime+=delta;if(rootTime&gt;=(state.prgOff?4000:2000)){rootTime=0;state.prgOff=!state.prgOff;render();}
  }else if(state.mode===0&amp;&amp;state.phase==='root'){
