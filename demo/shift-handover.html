@@ -577,8 +577,92 @@ textarea{resize:none}.design-picker{max-width:1040px;margin:0 auto 18px;padding:
   border-radius: calc(var(--group-radius) - 1px) calc(var(--group-radius) - 1px) 0 0;
 }
 </style>
-</head>
+<style>
+#inspection-app #inspect-floating-status{padding:13px 18px 10px;border-radius:20px}
+#inspection-app .liquid-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#20518f;font-size:14px;font-weight:600;min-height:23px}
+#inspection-app #liquid-label{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#inspection-app #liquid-count{white-space:nowrap;font-variant-numeric:tabular-nums}
+#inspection-app .liquid-stage{position:relative;height:64px}
+#inspection-app .liquid-rail{position:absolute;left:0;right:0;top:39px;height:18px;border-radius:999px;background:#e2eaf5;box-shadow:inset 0 1px 3px #17386215}
+#inspection-app .liquid-goo{position:absolute;inset:0;filter:url(#liquid-merge);pointer-events:none}
+#inspection-app #liquid-fill{position:absolute;left:0;top:39px;height:18px;width:0;border-radius:999px;background:#216ee5;transition:width 720ms cubic-bezier(.22,1,.36,1)}
+#inspection-app .liquid-drop{position:absolute;left:clamp(10px,var(--landing),calc(100% - 10px));top:0;width:18px;height:18px;background:#216ee5;border-radius:50% 50% 50% 12%;animation:liquid-fall 1100ms both cubic-bezier(.4,0,.6,1);transform-origin:center}
+#inspection-app .liquid-filter{position:absolute;pointer-events:none}
+@keyframes liquid-fall{0%{transform:translate(-50%,-12px) rotate(-45deg) scale(.3);opacity:0}18%{transform:translate(-50%,0) rotate(-45deg) scale(.85);opacity:1}48%{transform:translate(-50%,28px) rotate(-45deg) scale(.85,1.15);opacity:1}63%{transform:translate(-50%,39px) rotate(0) scale(1.65,.55);opacity:1}82%{transform:translate(-50%,40px) rotate(0) scale(2,.3);opacity:.7}100%{transform:translate(-50%,40px) scale(2.4,.05);opacity:0}}
+@media(max-width:600px){#inspection-app #inspect-floating-status{padding:10px 13px 8px}#inspection-app .liquid-heading{font-size:13px}}
+@media(prefers-reduced-motion:reduce){#inspection-app #liquid-fill{transition:none}#inspection-app .liquid-drop{animation:none}}
+</style><style>
+#inspection-app .liquid-stage{height:98px}
+#inspection-app .liquid-rail,#inspection-app #liquid-fill{top:72px}
+#inspection-app .liquid-goo{filter:none}
+#inspection-app #liquid-fill{transition:width 800ms cubic-bezier(.22,1,.36,1)}
+#inspection-app .liquid-drop{left:50%;top:7px;width:var(--capsule-width);height:30px;border-radius:18px;background:#216ee5;display:flex;align-items:center;justify-content:center;overflow:hidden;animation:liquid-word-merge 2300ms both cubic-bezier(.22,1,.36,1),liquid-to-edge 2300ms both ease-in-out;transform:translateX(-50%)}
+#inspection-app .liquid-drop-text{font-size:14px;font-weight:600;line-height:1;white-space:nowrap;color:white;animation:liquid-word-fade 2300ms both;position:relative;z-index:1}
+#inspection-app .liquid-drop:before{content:'';position:absolute;inset:0;background:#dceaff;transform-origin:center;animation:liquid-blue-wrap 2300ms both}
+@keyframes liquid-to-edge{0%,43%{left:50%}65%,100%{left:clamp(10px,var(--target-x),calc(100% - 10px))}}
+@keyframes liquid-blue-wrap{0%{transform:scaleX(1)}20%,100%{transform:scaleX(0)}}
+@keyframes liquid-word-fade{0%{color:#216ee5;opacity:0;transform:translateY(4px)}12%{opacity:1;transform:translateY(0)}22%,43%{color:white;opacity:1;transform:translateY(0)}54%,100%{opacity:0;transform:translateY(0)}}
+@keyframes liquid-word-merge{0%{width:var(--capsule-width);height:30px;border-radius:18px;transform:translate(-50%,0) scale(.9);opacity:0}12%{width:var(--capsule-width);height:30px;border-radius:18px;transform:translate(-50%,0) scale(1.03);opacity:1}24%,43%{width:var(--capsule-width);height:30px;border-radius:18px;transform:translate(-50%,0) scale(1);opacity:1}59%{width:22px;height:27px;border-radius:50% 50% 50% 12%;transform:translate(-50%,6px) rotate(-45deg);opacity:1}70%{width:20px;height:27px;border-radius:50% 50% 50% 12%;transform:translate(-50%,51px) rotate(-45deg);opacity:1}79%{width:46px;height:15px;border-radius:50%;transform:translate(-50%,66px);opacity:1}90%{width:74px;height:9px;border-radius:50%;transform:translate(-50%,68px);opacity:.8}100%{width:90px;height:2px;border-radius:50%;transform:translate(-50%,70px);opacity:0}}
+@media(prefers-reduced-motion:reduce){#inspection-app .liquid-drop,#inspection-app .liquid-drop-text,#inspection-app .liquid-drop:before{animation:none}}
+</style><style>
+#inspection-app .liquid-drop{animation:liquid-vertical-crawl 3800ms both linear,liquid-crawl-position 3800ms both linear}
+#inspection-app .liquid-drop-text{animation:liquid-word-fade 2100ms both}
+#inspection-app .liquid-drop:before{animation:liquid-blue-wrap 2100ms both}
+@keyframes liquid-crawl-position{
+  0%,44%{left:50%}
+  48%{left:50%}
+  78%,100%{left:clamp(10px,var(--target-x),calc(100% - 10px))}
+}
+@keyframes liquid-vertical-crawl{
+  0%{width:var(--capsule-width);height:30px;border-radius:18px;transform:translate(-50%,0) scale(.9);opacity:0}
+  7%{width:var(--capsule-width);height:30px;border-radius:18px;transform:translate(-50%,0) scale(1.03);opacity:1}
+  14%,24%{width:var(--capsule-width);height:30px;border-radius:18px;transform:translate(-50%,0) scale(1);opacity:1}
+  32%{width:22px;height:27px;border-radius:50% 50% 50% 12%;transform:translate(-50%,0) rotate(-45deg);opacity:1}
+  36%{width:20px;height:28px;border-radius:50% 50% 50% 12%;transform:translate(-50%,16px) rotate(-45deg);opacity:1}
+  41%{width:20px;height:28px;border-radius:50% 50% 50% 12%;transform:translate(-50%,45px) rotate(-45deg);opacity:1}
+  44%{width:34px;height:13px;border-radius:50%;transform:translate(-50%,67px);opacity:1}
+  48%{width:25px;height:18px;border-radius:50%;transform:translate(-50%,65px);opacity:1}
+  57%{width:34px;height:14px;border-radius:55% 45% 45% 55%;transform:translate(-50%,67px);opacity:1}
+  66%{width:28px;height:18px;border-radius:45% 55% 55% 45%;transform:translate(-50%,65px);opacity:1}
+  78%{width:32px;height:16px;border-radius:50%;transform:translate(-50%,66px);opacity:1}
+  86%{width:48px;height:14px;border-radius:50%;transform:translate(-50%,67px);opacity:1}
+  94%{width:64px;height:10px;border-radius:50%;transform:translate(-50%,69px);opacity:.7}
+  100%{width:72px;height:2px;border-radius:50%;transform:translate(-50%,72px);opacity:0}
+}
+@media(prefers-reduced-motion:reduce){#inspection-app .liquid-drop,#inspection-app .liquid-drop-text,#inspection-app .liquid-drop:before{animation:none}}
+</style><style>
+#inspection-app #inspect-floating-status{padding:12px 16px 0;border-radius:20px}
+#inspection-app .liquid-controls{display:flex;align-items:center;gap:8px}
+#inspection-app .liquid-controls label{font-size:13px;white-space:nowrap;color:#47668a}
+#inspection-app #liquid-choice{width:auto;flex:1;min-width:0;min-height:36px;padding:5px 9px;font-size:14px;border:1px solid #c9d9ee;border-radius:8px;background:#f4f8ff}
+#inspection-app #liquid-replay{width:auto;min-height:36px;padding:6px 14px;font-size:14px;border-radius:8px;background:#216ee5;color:white;flex-shrink:0}
+#inspection-app #liquid-description{font-size:12px;color:#66809c;margin:7px 0 8px}
+#inspection-app .liquid-stage{height:116px;position:relative}
+#inspection-app #liquid-svg{display:block;width:100%;height:116px;overflow:visible}
+#inspection-app .liquid-heading{font-size:13px}
+#inspection-app #liquid-svg-fill{transition:none}
+@media(max-width:500px){#inspection-app #inspect-floating-status{padding:10px 12px 0}.liquid-controls label{display:none}}
+</style><style>
+#inspection-app .liquid-pending{display:flex;gap:6px;overflow-x:auto;flex-wrap:nowrap;max-height:42px;scrollbar-width:thin;align-items:center}
+#inspection-app .liquid-pending:empty{display:none}
+#inspection-app .liquid-pending-pill{display:inline-block;flex:0 0 auto;border-radius:999px;background:#216ee5;color:#fff;padding:6px 14px;font-size:13px;white-space:nowrap;animation:queued-pill-in .3s ease-out}
+@keyframes queued-pill-in{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+</style><style>
+#inspection-app .liquid-pending{position:absolute;top:8px;right:0;height:30px;max-height:30px;margin:0;display:flex;gap:10px;overflow:hidden;align-items:center;pointer-events:none;z-index:1}
+#inspection-app .liquid-pending:empty{display:none}
+#inspection-app .liquid-pending-pill{height:30px;line-height:30px;padding:0 16px;font-size:14px;font-weight:600;box-sizing:border-box;flex-shrink:0}
+</style><style>
+#inspection-app #inspect-floating-status{padding:8px 12px 0}
+#inspection-app .liquid-stage{position:relative;height:116px}
+#inspection-app #liquid-count{position:absolute;left:min(calc(100% - 72px),184px);top:8px;height:30px;line-height:30px;min-width:60px;text-align:left;color:#2764ad;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;z-index:2}
+</style><style>
+#inspection-app #inspect-floating-status{padding:10px 12px;overflow:visible}
+#inspection-app .liquid-stage{position:relative;height:34px;overflow:visible}
+#inspection-app #liquid-svg{position:absolute;left:0;top:-72px;width:calc(100% - 72px);height:116px;overflow:visible;pointer-events:none}
+#inspection-app #liquid-count{left:auto;right:0;top:2px;height:30px;line-height:30px;min-width:60px;text-align:right}
+</style></head>
 <body>
+
 
 
 <!-- 上下班交接 -->
@@ -693,7 +777,16 @@ textarea{resize:none}.design-picker{max-width:1040px;margin:0 auto 18px;padding:
 </div>
 
 <!-- 水電巡檢：巡檢路線版 -->
-<section id="inspection-app" aria-label="園區水電管制巡檢"><aside id="inspect-floating-status" aria-label="21 個巡檢項目狀態"><div id="inspect-status-dots"></div><span id="inspect-status-announcement" class="sr-only" role="status"></span></aside><main><header><h1>園區水電管制巡檢</h1></header><p id="inspect-date"></p><section class="estate" aria-label="接待中心"><div class="group" data-group=""><article class="item" data-name="接待中心" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">接待中心</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-0" hidden>接待中心巡檢內容</label><textarea id="inspect-note-0" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="一品官邸"><h2>一品官邸</h2><div class="group" data-group="一品官邸"><article class="item" data-name="北醫中午" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">北醫中午</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-1" hidden>北醫中午巡檢內容</label><textarea id="inspect-note-1" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="北醫休診" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">北醫休診</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-2" hidden>北醫休診巡檢內容</label><textarea id="inspect-note-2" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="社區廚房" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">社區廚房</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-3" hidden>社區廚房巡檢內容</label><textarea id="inspect-note-3" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="溫泉區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">溫泉區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-4" hidden>溫泉區巡檢內容</label><textarea id="inspect-note-4" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="娛樂室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">娛樂室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-5" hidden>娛樂室巡檢內容</label><textarea id="inspect-note-5" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="樣品房" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">樣品房</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-6" hidden>樣品房巡檢內容</label><textarea id="inspect-note-6" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="3F祈禱室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">3F祈禱室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-7" hidden>3F祈禱室巡檢內容</label><textarea id="inspect-note-7" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="4F書畫室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">4F書畫室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-8" hidden>4F書畫室巡檢內容</label><textarea id="inspect-note-8" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="5F宗教室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">5F宗教室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-9" hidden>5F宗教室巡檢內容</label><textarea id="inspect-note-9" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="7F棋藝室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">7F棋藝室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-10" hidden>7F棋藝室巡檢內容</label><textarea id="inspect-note-10" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="一品泳池" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">一品泳池</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-11" hidden>一品泳池巡檢內容</label><textarea id="inspect-note-11" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="四季官邸"><h2>四季官邸</h2><div class="group" data-group="四季官邸"><article class="item" data-name="四季足湯" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">四季足湯</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-12" hidden>四季足湯巡檢內容</label><textarea id="inspect-note-12" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="長春官邸"><h2>長春官邸</h2><div class="group" data-group="長春官邸"><article class="item" data-name="長春溫泉區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">長春溫泉區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-13" hidden>長春溫泉區巡檢內容</label><textarea id="inspect-note-13" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="咖啡吧" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">咖啡吧</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-14" hidden>咖啡吧巡檢內容</label><textarea id="inspect-note-14" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="2F閱讀區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">2F閱讀區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-15" hidden>2F閱讀區巡檢內容</label><textarea id="inspect-note-15" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="鳳凰官邸"><h2>鳳凰官邸</h2><div class="group" data-group="鳳凰官邸"><article class="item" data-name="蒸品餐廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">蒸品餐廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-16" hidden>蒸品餐廳巡檢內容</label><textarea id="inspect-note-16" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="2F會議室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">2F會議室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-17" hidden>2F會議室巡檢內容</label><textarea id="inspect-note-17" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="多功能交誼廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">多功能交誼廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-18" hidden>多功能交誼廳巡檢內容</label><textarea id="inspect-note-18" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="朝陽官邸"><h2>朝陽官邸</h2><div class="group" data-group="朝陽官邸"><article class="item" data-name="粥品餐廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">粥品餐廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-19" hidden>粥品餐廳巡檢內容</label><textarea id="inspect-note-19" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="201～207音樂室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">201～207音樂室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-20" hidden>201～207音樂室巡檢內容</label><textarea id="inspect-note-20" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><footer><button type="button" class="primary copy-action" id="inspect-copy" aria-label="複製巡檢內容"><span class="copy-label" aria-hidden="true">複製巡檢內容</span><span class="copy-success" aria-hidden="true">已複製</span></button><span id="inspect-feedback" role="status" hidden></span><div id="inspect-output-panel" hidden><label for="inspect-output" style="display:block;margin-top:12px">本次複製內容</label><textarea class="output" id="inspect-output" readonly></textarea></div></footer></main></section>
+<section id="inspection-app" aria-label="園區水電管制巡檢"><aside id="inspect-floating-status" aria-label="25 項液態巡檢進度">
+<span id="liquid-label" hidden></span>
+<div class="liquid-stage" id="liquid-stage" role="progressbar" aria-label="巡檢完成進度" aria-valuemin="0" aria-valuemax="25" aria-valuenow="0"><span id="liquid-count">0 / 25</span>
+<svg id="liquid-svg" width="100%" height="116" viewBox="0 0 800 116" aria-hidden="true" focusable="false">
+<defs><filter id="liquid-goo-ten" x="-10%" y="-30%" width="120%" height="170%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="soft"/><feColorMatrix in="soft" mode="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -8"/></filter></defs>
+<rect id="liquid-svg-rail" x="2" y="80" width="796" height="18" rx="9" fill="#e1eaf7"/>
+<g fill="#216ee5" filter="url(#liquid-goo-ten)"><rect id="liquid-svg-fill" x="2" y="80" width="0" height="18" rx="9"/><rect id="liquid-capsule" x="0" y="8" width="0" height="0" rx="15"/><g id="liquid-pool"></g></g>
+<ellipse id="liquid-ring" cx="400" cy="88" rx="0" ry="0" opacity="0" fill="none" stroke="#3e8aee" stroke-width="1.5"/>
+<text id="liquid-caption" x="400" y="28" text-anchor="middle" fill="white" font-family="Microsoft JhengHei, sans-serif" font-size="14" font-weight="600"></text>
+</svg></div><span id="inspect-status-announcement" class="sr-only" role="status"></span></aside><main><header><h1>園區水電管制巡檢</h1></header><p id="inspect-date"></p><section class="estate" aria-label="接待中心"><div class="group" data-group=""><article class="item" data-name="接待中心" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">接待中心</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-0" hidden>接待中心巡檢內容</label><textarea id="inspect-note-0" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="一品官邸"><h2>一品官邸</h2><div class="group" data-group="一品官邸"><article class="item" data-name="北醫中午" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">北醫中午</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-1" hidden>北醫中午巡檢內容</label><textarea id="inspect-note-1" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="北醫休診" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">北醫休診</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-2" hidden>北醫休診巡檢內容</label><textarea id="inspect-note-2" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="社區廚房" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">社區廚房</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-3" hidden>社區廚房巡檢內容</label><textarea id="inspect-note-3" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="溫泉區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">溫泉區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-4" hidden>溫泉區巡檢內容</label><textarea id="inspect-note-4" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="娛樂室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">娛樂室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-5" hidden>娛樂室巡檢內容</label><textarea id="inspect-note-5" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="樣品房" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">樣品房</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-6" hidden>樣品房巡檢內容</label><textarea id="inspect-note-6" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="3F祈禱室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">3F祈禱室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-7" hidden>3F祈禱室巡檢內容</label><textarea id="inspect-note-7" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="4F書畫室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">4F書畫室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-8" hidden>4F書畫室巡檢內容</label><textarea id="inspect-note-8" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="5F宗教室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">5F宗教室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-9" hidden>5F宗教室巡檢內容</label><textarea id="inspect-note-9" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="7F棋藝室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">7F棋藝室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-10" hidden>7F棋藝室巡檢內容</label><textarea id="inspect-note-10" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="一品泳池" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">一品泳池</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-11" hidden>一品泳池巡檢內容</label><textarea id="inspect-note-11" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="四季官邸"><h2>四季官邸</h2><div class="group" data-group="四季官邸"><article class="item" data-name="四季大廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">四季大廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-lobby-season" hidden>四季大廳巡檢內容</label><textarea id="inspect-lobby-season" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="四季足湯" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">四季足湯</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-12" hidden>四季足湯巡檢內容</label><textarea id="inspect-note-12" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="長春官邸"><h2>長春官邸</h2><div class="group" data-group="長春官邸"><article class="item" data-name="長春大廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">長春大廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-lobby-spring" hidden>長春大廳巡檢內容</label><textarea id="inspect-lobby-spring" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="長春溫泉區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">長春溫泉區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-13" hidden>長春溫泉區巡檢內容</label><textarea id="inspect-note-13" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="咖啡吧" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">咖啡吧</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-14" hidden>咖啡吧巡檢內容</label><textarea id="inspect-note-14" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="2F閱讀區" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">2F閱讀區</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-15" hidden>2F閱讀區巡檢內容</label><textarea id="inspect-note-15" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="鳳凰官邸"><h2>鳳凰官邸</h2><div class="group" data-group="鳳凰官邸"><article class="item" data-name="鳳凰大廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">鳳凰大廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-lobby-phoenix" hidden>鳳凰大廳巡檢內容</label><textarea id="inspect-lobby-phoenix" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="蒸品餐廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">蒸品餐廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-16" hidden>蒸品餐廳巡檢內容</label><textarea id="inspect-note-16" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="2F會議室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">2F會議室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-17" hidden>2F會議室巡檢內容</label><textarea id="inspect-note-17" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="多功能交誼廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">多功能交誼廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-18" hidden>多功能交誼廳巡檢內容</label><textarea id="inspect-note-18" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><section class="estate" aria-label="朝陽官邸"><h2>朝陽官邸</h2><div class="group" data-group="朝陽官邸"><article class="item" data-name="朝陽大廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">朝陽大廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-lobby-sunrise" hidden>朝陽大廳巡檢內容</label><textarea id="inspect-lobby-sunrise" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="粥品餐廳" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">粥品餐廳</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-19" hidden>粥品餐廳巡檢內容</label><textarea id="inspect-note-19" rows="1" placeholder="可填寫異常狀況"></textarea></details></article><article class="item" data-name="201～207音樂室" data-done="false"><div class="head"><button class="toggle" type="button" aria-pressed="false"><span class="name">201～207音樂室</span><span class="value">未巡檢</span><span class="mark" aria-hidden="true">✓</span></button></div><div class="tools"><label><input type="checkbox">記錄時間</label><span class="time"></span></div><details><summary>填寫／修改內容</summary><label for="inspect-note-20" hidden>201～207音樂室巡檢內容</label><textarea id="inspect-note-20" rows="1" placeholder="可填寫異常狀況"></textarea></details></article></div></section><footer><button type="button" class="primary copy-action" id="inspect-copy" aria-label="複製巡檢內容"><span class="copy-label" aria-hidden="true">複製巡檢內容</span><span class="copy-success" aria-hidden="true">已複製</span></button><span id="inspect-feedback" role="status" hidden></span><div id="inspect-output-panel" hidden><label for="inspect-output" style="display:block;margin-top:12px">本次複製內容</label><textarea class="output" id="inspect-output" readonly></textarea></div></footer></main></section>
 <script>
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -1000,63 +1093,142 @@ items.forEach(item=>{
   });
 });
 
-const dotContainer=document.getElementById('inspect-status-dots');
-const dotTimers=new Map();
-items.forEach((item,index)=>{
-  const dot=document.createElement('span');
-  dot.className='status-dot';
-  dot.setAttribute('role','img');
-  dot.setAttribute('aria-label',(index+1)+' '+item.dataset.name+'：未巡檢');
-  dot.title=(index+1)+' '+item.dataset.name+'：未巡檢';
-  dot.style.setProperty('--expanded-width',Math.min(190,Math.max(100,item.dataset.name.length*15+28))+'px');
-  const name=document.createElement('span');name.className='status-name';name.textContent=item.dataset.name;name.setAttribute('aria-hidden','true');
-  const check=document.createElement('span');check.className='status-check';check.textContent='✓';check.setAttribute('aria-hidden','true');
-  dot.append(name,check);dotContainer.appendChild(dot);item.statusDot=dot;
-});
-
-let indicatorFrame=0;
-function keepIndicatorVisible(dot){
-  cancelAnimationFrame(indicatorFrame);
-  const start=performance.now();
-  function follow(){
-    const viewport=dotContainer.getBoundingClientRect();
-    const bounds=dot.getBoundingClientRect();
-    if(bounds.right>viewport.right){dotContainer.scrollLeft+=bounds.right-viewport.right;}
-    else if(bounds.left<viewport.left){dotContainer.scrollLeft-=viewport.left-bounds.left;}
-    if(performance.now()-start<800){indicatorFrame=requestAnimationFrame(follow);}
-  }
-  follow();
+const stage=document.getElementById('liquid-stage');
+const svg=document.getElementById('liquid-svg');
+const label=document.getElementById('liquid-label');
+const countNode=document.getElementById('liquid-count');
+const NS='http://www.w3.org/2000/svg';
+const clamp=x=>Math.max(0,Math.min(1,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x);};
+const mix=(a,b,p)=>a+(b-a)*p;
+function attr(node,values){for(const [key,value] of Object.entries(values))node.setAttribute(key,String(value));}
+function make(tag,values={},parent=svg){const n=window.document.createElementNS(NS,tag);attr(n,values);parent.appendChild(n);return n;}
+svg.replaceChildren();
+const defs=make('defs');
+const filter=make('filter',{id:'layered-liquid-goo',x:'-15%',y:'-50%',width:'130%',height:'200%','color-interpolation-filters':'sRGB'},defs);
+make('feGaussianBlur',{in:'SourceGraphic',stdDeviation:3,result:'blur'},filter);
+make('feColorMatrix',{in:'blur',type:'matrix',values:'1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -8'},filter);
+const floorClip=make('clipPath',{id:'layered-liquid-floor'},defs);
+const floorRect=make('rect',{x:0,y:-2000,width:800,height:2098},floorClip);
+const outerClip=make('clipPath',{id:'layered-liquid-band'},defs);
+const outerRect=make('rect',{x:2,y:80,width:0,height:18,rx:9},outerClip);
+const rail=make('rect',{x:2,y:80,width:0,height:18,rx:9,fill:'#e1eaf7'});
+const clipped=make('g',{'clip-path':'url(#layered-liquid-floor)'});
+const liquid=make('g',{filter:'url(#layered-liquid-goo)',fill:'#216ee5'},clipped);
+const band=make('rect',{x:2,y:80,width:0,height:18,rx:9},liquid);
+// Opaque capsule cores and their text are ordered together: newer layers cover
+// older text naturally, while the shared filtered silhouettes form liquid necks.
+const layers=make('g');
+const dark=make('rect',{x:2,y:80,width:0,height:18,fill:'#104397','clip-path':'url(#layered-liquid-band)'});
+svg.insertBefore(dark,layers);
+const credited=new Set(items.filter(i=>i.dataset.done==='true').map(i=>i.dataset.name));
+let batches=[],raf=0,last=0,visual=credited.size/items.length,goal=visual,ink=0,cancelAt=0;
+const existingDropSizes=[7,8,9];
+const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function dimensions(){const w=Math.max(128,stage.clientWidth-72);attr(svg,{viewBox:'0 0 '+w+' 116'});attr(rail,{width:w-4});attr(floorRect,{width:w});return w;}
+function actualCount(){return items.filter(i=>i.dataset.done==='true').length;}
+function updateCount(){countNode.textContent=actualCount()+' / '+items.length;stage.setAttribute('aria-valuenow',actualCount());}
+function wake(){if(!raf){last=performance.now();raf=requestAnimationFrame(tick);}}
+function newLayer(name,batch,now){
+ const shape=make('rect',{rx:15},batch.shapes);
+ const group=make('g',{},batch.cores);
+ const core=make('rect',{rx:14,fill:'#fff'},group);
+ const text=make('text',{'text-anchor':'middle',fill:'#182333','font-size':14,'font-weight':600,'font-family':'Microsoft JhengHei, sans-serif'},group);
+ text.textContent=name;batch.entries.push({name,shape,core,text,at:now});
 }
-
-
-function fitStatusDots(){
-  const width=dotContainer.clientWidth;
-  if(!width)return;
-  const gap=width<400?4:6;
-  const size=Math.min(22,Math.max(1,(width-gap*(items.length-1))/items.length));
-  dotContainer.style.setProperty('--dot-size',size+'px');
-  dotContainer.style.setProperty('--dot-gap',gap+'px');
+function animateLiquid(name,demo=false){
+ const now=performance.now();
+ if(reduced){if(!demo){credited.clear();items.filter(i=>i.dataset.done==='true').forEach(i=>credited.add(i.dataset.name));goal=credited.size/items.length;visual=goal;}updateCount();wake();return;}
+ let batch=null; // Every click owns its own independent animation.
+ if(!batch){batch={phase:'gather',demo,entries:[],shapes:make('g',{},liquid),cores:make('g',{},layers),drop:null,until:0,start:0,contact:false};batch.neck=make('ellipse',{rx:0,ry:0},batch.shapes);batch.drop=make('ellipse',{rx:0,ry:0},batch.shapes);batches.push(batch);}
+ newLayer(name,batch,now);batch.until=now+1100;
+ label.textContent=demo?'試播 · 不計入查驗':name+' · 查驗完成';updateCount();wake();
 }
-fitStatusDots();
-const statusResizeObserver=new ResizeObserver(fitStatusDots);
-statusResizeObserver.observe(dotContainer);
-
+function creditBatch(batch){
+ if(batch.contact)return;batch.contact=true;
+ if(batch.demo){goal=Math.min(1,goal+.12);return;}
+ for(const entry of batch.entries){if(items.some(i=>i.dataset.name===entry.name&&i.dataset.done==='true'))credited.add(entry.name);}
+ goal=credited.size/items.length;
+}
+function drawBatch(b,now,w){
+ if(b.phase==='gather'&&now>=b.until){b.phase='merge';b.start=now;}
+ let merging=b.phase==='merge'?smooth((now-b.start)/700):0;
+ if(b.phase==='merge'&&now-b.start>=700){b.phase='fall';b.start=now;b.firstDrop=credited.size===0&&goal<.0002&&visual<.002;b.sizeVariant=Math.floor(Math.random()*existingDropSizes.length);merging=1;}
+ const falling=b.phase==='fall';
+ const elapsed=falling?now-b.start:0;
+ const first=b.firstDrop!==false;
+ const radius=first?9:existingDropSizes[b.sizeVariant??1];
+ if(falling&&b.landX===undefined){
+  const safeLeft=radius+5;
+  const blueFront=2+(w-4)*visual;
+  const safeRight=Math.max(safeLeft,Math.min(safeLeft+12,blueFront-radius));
+  b.landX=first?14:mix(safeLeft,safeRight,Math.random());
+ }
+ const head=b.landX??14,dropX=head;
+ const entryDuration=first?300:450;
+ const approach=smooth((elapsed-entryDuration)/(first?450:520));
+ let y=elapsed<entryDuration?mix(-Math.max(240,window.innerHeight||800),42,smooth(elapsed/entryDuration)):mix(42,81-radius,approach);
+ if(falling&&!b.contact&&y+radius>=80){
+  b.firstDrop=credited.size===0&&goal<.0002&&visual<.002;
+  creditBatch(b);b.touch=now;
+ }
+ const touching=falling&&b.contact;
+ const contactAge=touching?now-b.touch:0;
+ const settle=smooth(contactAge/(first?1600:900));
+ const absorption=touching?smooth((contactAge-(first?200:80))/(first?2200:1500)):0;
+ if(touching)y=mix(80-radius,89,settle);
+ const fall=approach;
+ const hidden=falling;
+ b.entries.forEach((entry,index)=>{
+  const depth=b.entries.length-1-index;
+  const width=Math.min(w-24,160);
+  const initialX=w/2;
+  const initialY=89;
+  const pop=smooth((now-entry.at)/180);
+  const cx=initialX,cy=initialY;
+  const cw=width,ch=30;
+  const textFade=1-merging;
+  attr(entry.shape,{x:cx-cw/2,y:cy-ch/2,width:0,height:0,rx:ch/2,opacity:0});
+  attr(entry.core,{x:cx-cw/2+1,y:cy-ch/2+1,width:hidden?0:Math.max(0,cw-2),height:hidden?0:Math.max(0,ch-2),rx:Math.max(0,ch/2-1),opacity:pop*textFade});
+  attr(entry.text,{x:cx,y:cy+5,opacity:hidden?0:pop*textFade});
+ });
+ const squash=touching?Math.sin(Math.PI*settle):0;
+ attr(b.drop,{cx:dropX,cy:y,rx:falling?(radius+(first?2:3)*squash)*(1-absorption):0,ry:falling?(radius-(first?3:4)*squash)*(1-absorption):0});
+ attr(b.neck,{cx:head,cy:(y+83)/2,rx:touching?((first?3:5)+5*settle)*(1-absorption):0,ry:touching?Math.max(3,(83-y)/2+3)*(1-absorption):0});
+ return falling&&absorption>=1;
+}
+function tick(now){
+ raf=0;const dt=Math.min(50,Math.max(1,now-last));last=now;const w=dimensions();
+ batches=batches.filter(b=>{if(drawBatch(b,now,w)){b.shapes.remove();b.cores.remove();return false;}return true;});
+ const gap=goal-visual,hold=ink>0&&now-cancelAt<350&&gap<0;
+ if(!hold){const step=gap*(1-Math.exp(-dt/(gap<0?420:430)));visual+=step;if(step<0)ink=Math.max(0,ink+step);}
+ if(Math.abs(goal-visual)<.0002&&!hold)visual=goal;
+ if(Math.abs(goal-visual)<.0002&&now-cancelAt>500)ink*=Math.exp(-dt/320);
+ const extent=(w-4)*visual,tail=Math.min(visual,ink);
+ const emptyEnd=goal===0&&extent<1;
+ const bandHeight=goal===0?Math.min(18,extent):18;
+ const bandY=89-bandHeight/2;
+ attr(band,{width:emptyEnd?0:extent,height:bandHeight,y:bandY,rx:bandHeight/2,display:emptyEnd?'none':'inline'});
+ attr(outerRect,{width:emptyEnd?0:extent,height:bandHeight,y:bandY,rx:bandHeight/2});
+ attr(dark,{x:2+(w-4)*(visual-tail),width:emptyEnd?0:(w-4)*tail,opacity:1,display:emptyEnd?'none':'inline'});
+ if(batches.length||Math.abs(goal-visual)>.0001||ink>.0001||hold)raf=requestAnimationFrame(tick);
+ else attr(dark,{width:0});
+}
 function updateIndicator(item,wasDone){
-  const done=item.dataset.done==='true';const dot=item.statusDot;
-  dot.classList.toggle('done',done);
-  const state=done?'已巡檢':'未巡檢';
-  const label=(items.indexOf(item)+1)+' '+item.dataset.name+'：'+state;
-  dot.title=label;dot.setAttribute('aria-label',label);
-  if(done===wasDone)return;
-  clearTimeout(dotTimers.get(item));
-  dot.classList.remove('expanded');
-  document.getElementById('inspect-status-announcement').textContent=item.dataset.name+'：'+state;
-  if(done){
-    items.forEach(other=>{if(other!==item){other.statusDot.classList.remove('expanded');clearTimeout(dotTimers.get(other));dotTimers.delete(other);}});
-    void dot.offsetWidth;dot.classList.add('expanded');keepIndicatorVisible(dot);
-    dotTimers.set(item,setTimeout(()=>{dot.classList.remove('expanded');keepIndicatorVisible(dot);dotTimers.delete(item);},1300));
-  }else{dotTimers.delete(item);keepIndicatorVisible(dot);}
+ const done=item.dataset.done==='true';if(done===wasDone)return;
+ document.getElementById('inspect-status-announcement').textContent=item.dataset.name+'：'+(done?'已巡檢':'未巡檢');
+ if(done)animateLiquid(item.dataset.name);
+ else{
+  if(credited.delete(item.dataset.name)){ink=Math.min(visual,ink+1/items.length);cancelAt=performance.now();goal=credited.size/items.length;}
+  label.textContent=item.dataset.name+' · 已取消';updateCount();wake();
+ }
 }
+function fitStatusDots(){dimensions();wake();}
+function paintLiquid(){updateCount();wake();}
+
+new ResizeObserver(()=>fitStatusDots()).observe(stage);
+paintLiquid();
+
 
 const date=new Date();const dateText=String(date.getMonth()+1).padStart(2,'0')+'/'+String(date.getDate()).padStart(2,'0');document.getElementById('inspect-date').textContent=dateText;
 function update(item){document.getElementById('inspect-output-panel').hidden=true;const wasDone=item.dataset.done==='true';const text=item.querySelector('textarea').value.trim();const done=!!text;item.dataset.done=String(done);const state=!done?'blank':text==='正常'?'normal':'abnormal';item.querySelectorAll('[data-state]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.state===state)));const toggle=item.querySelector('.toggle');if(toggle)toggle.setAttribute('aria-pressed',String(done));item.querySelector('.value').textContent=!done?'未巡檢':text==='正常'?'正常':'異常已記錄';if(!done){item.querySelector('input').checked=false;item.querySelector('.time').textContent='';}updateIndicator(item,wasDone);render();}
