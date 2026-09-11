@@ -1121,6 +1121,8 @@ const band=make('rect',{x:2,y:80,width:0,height:18,rx:9},liquid);
 const layers=make('g');
 const dark=make('rect',{x:2,y:80,width:0,height:18,fill:'#104397','clip-path':'url(#layered-liquid-band)'});
 svg.insertBefore(dark,layers);
+const blueBoundary=make('circle',{cx:2,cy:89,r:0,fill:'#216ee5','clip-path':'url(#layered-liquid-band)'});
+svg.insertBefore(blueBoundary,layers);
 const credited=new Set(items.filter(i=>i.dataset.done==='true').map(i=>i.dataset.name));
 let batches=[],raf=0,last=0,visual=credited.size/items.length,goal=visual,ink=0,cancelAt=0;
 const existingDropSizes=[7,8,9];
@@ -1211,6 +1213,8 @@ function tick(now){
  attr(band,{width:emptyEnd?0:extent,height:bandHeight,y:bandY,rx:bandHeight/2,display:emptyEnd?'none':'inline'});
  attr(outerRect,{width:emptyEnd?0:extent,height:bandHeight,y:bandY,rx:bandHeight/2});
  attr(dark,{x:2+(w-4)*(visual-tail),width:emptyEnd?0:(w-4)*tail,opacity:1,display:emptyEnd?'none':'inline'});
+ const boundaryX=2+(w-4)*(visual-tail);
+ attr(blueBoundary,{cx:boundaryX,cy:89,r:!emptyEnd&&tail>.0001&&boundaryX>2.01?bandHeight/2:0});
  if(batches.length||Math.abs(goal-visual)>.0001||ink>.0001||hold)raf=requestAnimationFrame(tick);
  else attr(dark,{width:0});
 }
