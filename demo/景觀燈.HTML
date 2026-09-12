@@ -43,6 +43,11 @@
     .current { color: #105fa8; font-weight: 700; }
     @media (max-width: 420px) { section { padding: 18px; } .garden { grid-template-columns: 1fr; } .modes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .remote-panel{max-width:480px;margin:18px auto 0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden}.remote-panel iframe{display:block;width:100%;aspect-ratio:853 / 1843;border:0;background:transparent}@media(max-width:420px){.remote-panel{padding:0}} .remote-title{margin:0;padding:0 0 14px;font-size:21px;color:var(--ink)} .guide-choices{max-width:480px;margin:20px auto}.look-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.look{color:#193653;background:#fff;box-shadow:none;border:3px solid rgba(var(--c),.7);animation:softLook 2.2s ease-in-out infinite}.look-0{--c:0,174,239}.look-1{--c:27,190,147}.look-2{--c:168,116,239;animation-name:lineLook}.look-3{--c:255,185,65;animation:softLook 1.8s ease-in-out infinite alternate}.look-4{--c:248,133,165;animation:none;background:rgba(var(--c),.15)}.look[aria-pressed="true"]{outline:2px solid #234;outline-offset:4px}@keyframes softLook{0%,100%{background:rgba(var(--c),.07);border-color:rgba(var(--c),.5)}50%{background:rgba(var(--c),.3);border-color:rgba(var(--c),.95)}}@keyframes lineLook{0%,100%{border-color:rgba(var(--c),.4)}50%{border-color:rgba(var(--c),1)}} .look-0{animation:softLook 2.8s ease-in-out infinite}.look-1{animation:quickLook .65s step-end infinite}.look-2{animation:doubleLook 1.8s step-end infinite}.look-3{animation:rippleLook 1.6s linear infinite}.look-4{border-style:dashed;animation:flowLook 1.4s linear infinite}@keyframes quickLook{0%,100%{background:rgba(var(--c),.4);border-color:rgba(var(--c),1)}40%{background:white;border-color:transparent}}@keyframes doubleLook{0%,20%{background:rgba(var(--c),.35);border-color:rgba(var(--c),1)}10%,30%,100%{background:white;border-color:rgba(var(--c),.1)}}@keyframes rippleLook{0%{box-shadow:0 0 0 0 rgba(var(--c),.7)}100%{box-shadow:0 0 0 14px rgba(var(--c),0)}}@keyframes flowLook{0%,100%{border-top-color:rgba(var(--c),1);border-right-color:rgba(var(--c),.25);border-bottom-color:rgba(var(--c),.1);border-left-color:rgba(var(--c),.25)}25%{border-right-color:rgba(var(--c),1)}50%{border-bottom-color:rgba(var(--c),1)}75%{border-left-color:rgba(var(--c),1)}} .color-choice{display:flex;align-items:center;gap:12px;margin-bottom:18px}.color-choice input{width:46px;height:36px;padding:2px;border:1px solid #bed4ed;border-radius:8px}.color-choice span{font-size:13px}.look-grid{gap:10px}.guide-choices .look{position:relative;padding:0;min-height:94px;background:transparent!important;border:0!important;animation:none!important;box-shadow:none!important;overflow:visible}.look span{position:relative;z-index:1;font-size:14px;pointer-events:none}.effect-sample{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.look[aria-pressed="true"]{outline:2px solid #234;outline-offset:0} </style>
+  <style>
+    .step-counter { max-width: 480px; margin: 14px auto 0; padding: 14px 18px; border: 2px solid #b9d8fb; border-radius: 14px; background: #eef6ff; color: #174f86; text-align: center; font-size: 18px; font-weight: 700; }
+    .step-counter input { width: 3.2ch; margin-left: 8px; padding: 2px 4px; border: 1px solid #86bdf5; border-radius: 8px; background: #fff; color: #056bd8; font: inherit; font-size: 32px; line-height: 1; text-align: center; vertical-align: -3px; font-variant-numeric: tabular-nums; appearance: textfield; }
+    .step-counter input::-webkit-inner-spin-button, .step-counter input::-webkit-outer-spin-button { margin: 0; appearance: none; }
+  </style>
 </head>
 <body>
   <main>
@@ -104,9 +109,9 @@ const steps=[{&quot;title&quot;:&quot;進入日光調節設定&quot;,&quot;mode&
 const NS='http://www.w3.org/2000/svg';
 function node(tag,attrs,parent){const n=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=&gt;n.setAttribute(k,v));parent.appendChild(n);return n;}
 const patterns={'0':'ab cdef'.replaceAll(' ',''),'1':'bc','2':'abdeg','3':'abcdg','4':'bcfg','5':'acdfg','6':'acdefg','7':'abc','8':'abcdefg','9':'abcdfg'};
-function digits(value,x,y,height,parent){const region=y===232&amp;&amp;x===190?7:y===232&amp;&amp;x===475?14:y===526?44:y===560?46:null;const scale=height/100,group=node('g',{transform:'translate('+x+' '+y+') scale('+scale+')',class:'segments'+(region?' lcd-digit-bold':''),...(region?{'data-lcd-region':String(region)}:{})},parent);let offset=0;const segs={a:'10,0 48,0 43,7 15,7',b:'50,3 50,45 43,40 43,11',c:'50,52 50,94 43,87 43,58',d:'10,100 48,100 43,93 15,93',e:'2,52 9,58 9,87 2,94',f:'2,3 9,11 9,40 2,45',g:'11,47 42,47 47,50 42,54 11,54 6,50'};for(const char of value){const g=node('g',{transform:'translate('+offset+' 0)'},group);if(patterns[char]){for(const seg of patterns[char])node('polygon',{points:segs[seg]},g);offset+=65;}else if(char==='-'){node('polygon',{points:segs.g},g);offset+=65;}else if(char==='/'){node('polygon',{points:'40,0 48,0 12,100 4,100'},g);offset+=55;}else if(char===':'){node('circle',{cx:7,cy:32,r:5},g);node('circle',{cx:7,cy:73,r:5},g);offset+=25;}else{const t=node('text',{x:0,y:80,'font-size':75},g);t.textContent=char;offset+=55;}}}
+function digits(value,x,y,height,parent){const region=y===232&amp;&amp;x===190?7:y===232&amp;&amp;x===475?14:y===526?44:y===560?46:null;const scale=height/100,group=node('g',{transform:'translate('+x+' '+y+') scale('+scale+')',class:'segments'+(region?' lcd-digit-bold':''),...(region?{'data-lcd-region':String(region)}:{})},parent);let offset=0;const segs={a:'10,0 48,0 43,7 15,7',b:'50,3 50,45 43,40 43,11',c:'50,52 50,94 43,87 43,58',d:'10,100 48,100 43,93 15,93',e:'2,52 9,58 9,87 2,94',f:'2,3 9,11 9,40 2,45',g:'11,47 42,47 47,50 42,54 11,54 6,50'};for(const char of value){const g=node('g',{transform:'translate('+offset+' 0)'},group);if(patterns[char]){for(const seg of patterns[char])node('polygon',{points:segs[seg]},g);offset+=65;}else if(char==='-'){node('polygon',{points:segs.g},g);offset+=65;}else if(char==='/'){node('polygon',{points:'40,0 48,0 12,100 4,100'},g);offset+=55;}else if(char==='~'){offset+=25;}else if(char===':'){node('circle',{cx:7,cy:32,r:5},g);node('circle',{cx:7,cy:73,r:5},g);offset+=25;}else{const t=node('text',{x:0,y:80,'font-size':75},g);t.textContent=char;offset+=55;}}}
 let page=0;let ctlBlinkStart=Date.now();let ctlBlinkElapsed=0;
-const state={mode:0,prgOff:false,phase:'root',special:0,program:0,onType:0,ctlChoice:0,ctlDaysTimed:false,ctlCorrection:0,ctlMinute:1,ctlDayIndex:0,ctlDays:[false,false,true,true,true,true,true,false,false],offType:0,direction:0,lat:24,lon:120,gmt:7,offset:0,hour:21,minute:0,dayIndex:0,days:[true,true,true,true,true,true,true]};
+const state={mode:0,prgOff:false,phase:'root',special:0,program:0,onType:0,ctlChoice:0,ctlPreviewDone:false,ctlDaysTimed:false,ctlCorrection:0,ctlMinute:1,ctlDayIndex:0,ctlDays:[false,false,true,true,true,true,true,false,false],offType:0,direction:0,lat:24,lon:120,gmt:7,offset:0,hour:21,minute:0,dayIndex:0,days:[true,true,true,true,true,true,true]};
 const modes=['NML','PRG','SP-D','時鐘','SPECIAL'];
 const specials=['SP-D1','SP-D2','STBY','AUTO OFF','LOCAL'];
 const programs=['1G12','2G12','3G1'];
@@ -132,7 +137,7 @@ function adjust(delta){
  else if(p==='ctlOffMinute'){state.minute=wrap(state.minute+delta,60);message='關燈分鐘 '+state.minute+'；SET 進入星期。';}
  else if(p==='ctlMinute'){state.ctlMinute=Math.max(0,Math.min(120,state.ctlMinute+delta));message='分鐘 '+state.ctlMinute+'；SET 設定關燈時間。';}
  else if(p==='ctlDays'){state.ctlDays[state.ctlDayIndex]=!state.ctlDays[state.ctlDayIndex];message=ctlDayLabels[state.ctlDayIndex]+(state.ctlDays[state.ctlDayIndex]?' 已選取':' 已取消')+'；SET 下一項。';}
- else if(p==='onType'){state.ctlChoice=wrap(state.ctlChoice+delta,2);message=state.ctlChoice?'已選擇：日落開＋定時關。按 SET 設定 50／51／52。':'目前：日落開＋日落關。按＋切換日落開＋定時關。';}
+ else if(p==='onType'){state.ctlChoice=wrap(state.ctlChoice+delta,2);state.ctlPreviewDone=false;message=state.ctlChoice?'已選擇：日落開＋定時關。按 SET 查看原本的切換畫面。':'目前：日落開＋日落關。按＋切換日落開＋定時關。';}
  else if(p==='direction'){state.direction=wrap(state.direction+delta,3);message='已選擇 '+directions[state.direction]+'。';}
  else if(p==='offset'){state.offset=Math.max(0,Math.min(120,state.offset+delta));message='偏移 '+state.offset+' 分鐘，尚未按 SET。';}
  else if(p==='days'){state.days[state.dayIndex]=delta&gt;0;message=weekdays[state.dayIndex]+(delta&gt;0?' 已啟用':' 已停用')+'；SET 確認下一天。';}
@@ -145,13 +150,15 @@ function save(){
  const p=state.phase;
  if(p==='root'){
   if(state.mode===4&amp;&amp;specials[state.special]==='LOCAL'){state.phase='lat';message='已進入 LAT。用 ＋／－ 設為 25，再按 SET。';}
-  else if(state.mode===1){saved.program=programs[state.program];state.phase='typeConfirm';state.onType=0;state.prgOff=false;message='已選取 '+saved.program+'，18 號 NML 組件閃爍。用 ＋／－ 選 ASTRO，再按 SET。';}
+  else if(state.mode===1){saved.program=programs[state.program];state.phase='loadConfirm';state.onType=0;state.prgOff=false;message='已選取 '+saved.program+'，先確認 LOAD。';}
   else message='請先選擇 SPECIAL → LOCAL，或 PRG 程序。';
  }else if(p==='lat'){saved.lat=state.lat;state.phase='lon';message='LAT '+saved.lat+' 已按 SET。接著設定 LON。';}
  else if(p==='lon'){saved.lon=state.lon;state.phase='gmt';message='LON '+saved.lon+' 已按 SET。接著設定 GMT。';}
  else if(p==='gmt'){saved.gmt=state.gmt;state.phase='root';state.mode=4;state.special=4;page=4;message='所在地資料已儲存，回到 LOCAL。按 MODE 切到 PRG。';}
+ else if(p==='loadConfirm'){state.phase='addressConfirm';message='LOAD 已確認，接著確認 ADDRESS NO.';}
+ else if(p==='addressConfirm'){state.phase='typeConfirm';message='ADDRESS NO. 已確認，18 號 NML 組件閃爍。用 ＋／－ 選 ASTRO，再按 SET。';}
  else if(p==='typeConfirm'){if(state.onType===1){state.phase='onType';ctlBlinkStart=Date.now();state.prgOff=false;state.ctlChoice=0;message='日落開＋日落關；按＋選擇日落開＋定時關。';}else{message='目前選的是 NML；這次日光調節請先用 ＋／－ 選 ASTRO。';}}
- else if(p==='onType'){if(state.ctlChoice===1){state.phase='ctlCorrection';state.prgOff=false;state.ctlDaysTimed=false;state.ctlCorrection=0;message='日落 ON：選擇 50、51、52；51 或 52 可按 SET 繼續。';}else message='日落／日出組合停在此處；按＋選定時關，才可繼續 SET。';}
+ else if(p==='onType'){if(state.ctlChoice===1){if(!state.ctlPreviewDone){state.ctlPreviewDone=true;state.prgOff=false;ctlBlinkStart=Date.now();message='保留原本步驟 24 的切換畫面；再按 SET 進入 50／51／52。';}else{state.phase='ctlCorrection';state.prgOff=false;state.ctlDaysTimed=false;state.ctlCorrection=0;message='日落 ON：選擇 50、51、52；51 或 52 可按 SET 繼續。';}}else message='日落／日出組合停在此處；按＋選定時關，才可繼續 SET。';}
  else if(p==='ctlCorrection'){if(state.ctlCorrection&gt;0){state.phase='ctlMinute';state.ctlMinute=1;message='顯示 1M；＋／－調整，SET 進入星期。';}else message='50（±0）不往下；請選 51 或 52。';}
  else if(p==='ctlMinute'){state.phase='ctlOffHour';state.hour=22;state.minute=0;state.ctlDaysTimed=true;message='1M 已確認；25、26、31 閃爍，先設定小時 22。';}
  else if(p==='ctlOffHour'){state.phase='ctlOffMinute';message='小時已確認；設定分鐘 00，按 SET 進入星期。';}
@@ -167,10 +174,13 @@ function save(){
 }
 function showLocalConfirmation(){page=0;state.mode=4;state.special=4;state.phase='root';state.prgOff=false;message='LOCAL：顯示 ADDRESS NO. 與 ----，按 SET 或下一步進入 LAT。';render();}
 function jump(index){if(index&gt;5&amp;&amp;state.ctlChoice!==1)return;page=index;if(index===5)state.onType=0;const mapping=[['root',0],['lat',4],['lon',4],['gmt',4],['root',1],['typeConfirm',1],['ctlCorrection',1],['ctlDays',1],['root',0]];state.phase=mapping[index][0];state.mode=mapping[index][1];state.prgOff=false;if([1,2,3].includes(index))state.special=4;message='正在查看第 '+(index+1)+' 章；翻頁不會儲存數值。';render();}
-function back(){const prev={lon:'lat',gmt:'lon',ctlCorrection:'onType',ctlMinute:'ctlCorrection',ctlOffHour:'ctlMinute',ctlOffMinute:'ctlOffHour',ctlDays:'ctlOffMinute',typeConfirm:'root',onType:'typeConfirm',direction:'onType',offset:'direction',offType:'offset',hour:'offType',minute:'hour',days:'minute',lat:'root'};state.phase=prev[state.phase]||'root';message='返回上一個設定欄位。';render();}
-function showRegion(name){const p=parts.find(p=&gt;p.name===name&amp;&amp;(!['ON','OFF'].includes(name)||p.group==='時間與位置'));if(!p||visibleNames.includes(name))return;if(state.phase==='ctlDays'&amp;&amp;((state.prgOff&amp;&amp;[22,23,30].includes(p.id))||(!state.prgOff&amp;&amp;[25,26,31,28,29,32].includes(p.id))))return;const alternating=state.phase==='onType'?([22,23,30].includes(p.id)?'ctl-left':(state.ctlChoice?[25,26,31]:[28,29,32]).includes(p.id)?'ctl-right':''):'';const g=node('g',{'clip-path':'url(#r'+p.id+')',class:alternating||(flashingRegions.has(p.id)?'flash':'')},document.getElementById('symbols'));if(alternating)g.setAttribute('style','animation-delay:-'+ctlBlinkElapsed+'ms');node('use',{href:'#original'},g);visibleNames.push(name);}
+function back(){const prev={lon:'lat',gmt:'lon',ctlCorrection:'onType',ctlMinute:'ctlCorrection',ctlOffHour:'ctlMinute',ctlOffMinute:'ctlOffHour',ctlDays:'ctlOffMinute',loadConfirm:'root',addressConfirm:'loadConfirm',typeConfirm:'addressConfirm',onType:'typeConfirm',direction:'onType',offset:'direction',offType:'offset',hour:'offType',minute:'hour',days:'minute',lat:'root'};state.phase=prev[state.phase]||'root';message='返回上一個設定欄位。';render();}
+function showRegion(name){const p=parts.find(p=&gt;p.name===name&amp;&amp;(!['ON','OFF'].includes(name)||p.group==='時間與位置'));if(!p||visibleNames.includes(name))return;const timedBlinkIds=actionStep===23?[30,33,34,32]:actionStep===24?[30,33,31]:[];if(!stepBlinkSymbolsVisible&amp;&amp;timedBlinkIds.includes(p.id))return;if(actionStep===42&amp;&amp;!step42BlinkVisible&amp;&amp;((!state.prgOff&amp;&amp;[22,23].includes(p.id))||(state.prgOff&amp;&amp;[25,26].includes(p.id))))return;if(state.phase==='ctlDays'&amp;&amp;((state.prgOff&amp;&amp;[22,23,30].includes(p.id))||(!state.prgOff&amp;&amp;[25,26,31,28,29,32].includes(p.id))))return;const leftAlternating=(actionStep===25?[22,23,51]:[22,23,30]).includes(p.id),alternating=state.phase==='onType'&amp;&amp;![23,24].includes(actionStep)?(leftAlternating?'ctl-left':(state.ctlChoice?[25,26,31]:[28,29,32]).includes(p.id)?'ctl-right':''):'';const isFlashing=flashingRegions.has(p.id),timedFlashing=[23,24].includes(actionStep)&amp;&amp;isFlashing,g=node('g',{'clip-path':'url(#r'+p.id+')',class:alternating||(isFlashing&amp;&amp;!timedFlashing?'flash':'')},document.getElementById('symbols'));if(alternating)g.setAttribute('style','animation-delay:-'+ctlBlinkElapsed+'ms');node('use',{href:'#original'},g);visibleNames.push(name);}
+function showRegionId(id){const p=parts.find(p=&gt;p.id===id);if(!p)return;const g=node('g',{'clip-path':'url(#r'+p.id+')'},document.getElementById('symbols'));node('use',{href:'#original'},g);visibleNames.push(p.name+'（'+id+'）');}
 let visibleNames=[];let flashingRegions=new Set();
 function write(value,x,y,size=54){const n=node('text',{x,y,'text-anchor':'middle','font-size':size,fill:'#121c14','font-family':'monospace'},document.getElementById('values'));n.textContent=value;}
+function rightDigits(value,right,y,height,parent){value=String(value);const units=[...value].reduce((sum,char)=&gt;sum+([':','~'].includes(char)?25:char==='/'?55:65),0)-15;digits(value,right-units*height/100,y,height,parent);}
+function stepClockScreen(){const now=new Date(),values=document.getElementById('values');showRegion('TIME 標題框');rightDigits(String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),590,526,100,values);const date=now.getFullYear()+'/'+(now.getMonth()+1)+'/'+now.getDate();rightDigits(date,738,804,35,values);}
 function dayRow(selected){
  if(state.mode!==0)showRegion('CTL DAY 框');
  ['SP-D1','SP-D2',...weekdays.map(d=&gt;d+' 星期文字')].forEach(showRegion);
@@ -179,7 +189,9 @@ function dayRow(selected){
 function programHeader(){
  ['PRG NO. 標題框','LOAD 標題框','ADDRESS NO. 標題框'].forEach(showRegion);
  const match=programs[state.program].match(/^(\d+)G(\d+)$/);
- const programNumber=node('g',{class:state.phase==='root'?'flash':'','data-lcd-region':'7'},document.getElementById('values'));digits(match[1],190,232,76,programNumber);write('G',382,306,42);digits(match[2],475,232,76,document.getElementById('values'));
+ const programNumber=node('g',{class:state.phase==='root'?'flash':'','data-lcd-region':'7'},document.getElementById('values'));digits(match[1],190,232,76,programNumber);
+ if(state.phase==='loadConfirm')showRegion('G');else write('G',382,306,42);
+ const addressNumber=node('g',{class:state.phase==='addressConfirm'?'flash':'','data-lcd-region':'14'},document.getElementById('values'));digits(match[2],475,232,76,addressNumber);
 }
 function normalScreen(){
  const now=new Date();showRegion('TIME 標題框');
@@ -190,24 +202,32 @@ function normalScreen(){
 }
 function render(){
  ctlBlinkElapsed=(Date.now()-ctlBlinkStart)%4800;
- if(state.mode===1&amp;&amp;state.phase==='onType')state.prgOff=ctlBlinkElapsed&gt;=2400;
+ if(state.mode===1&amp;&amp;state.phase==='onType')state.prgOff=[23,24].includes(actionStep)?false:ctlBlinkElapsed&gt;=2400;
  if(state.mode===1&amp;&amp;state.phase==='ctlDays')state.prgOff=(Date.now()-ctlBlinkStart)%10000&gt;=5000;
  let c=chapter();if(state.phase==='root'&amp;&amp;page===8)c=8;page=c;visibleNames=[];
  flashingRegions=new Set();
  if(state.mode===1){const onAstro=(state.phase==='root'&amp;&amp;state.onType!==0&amp;&amp;!state.prgOff)||(['onType','direction','offset'].includes(state.phase)&amp;&amp;state.onType===1);const offAstro=(state.phase==='root'&amp;&amp;state.onType!==0&amp;&amp;state.prgOff&amp;&amp;!saved.off)||(state.phase==='offType'&amp;&amp;state.offType===0);if(onAstro)flashingRegions=new Set([22,23,30]);if(offAstro)flashingRegions=new Set([28,29,32]);}
  if(state.mode===1&amp;&amp;state.phase==='typeConfirm')flashingRegions=new Set([state.onType===1?20:18]);
+ if(state.mode===1&amp;&amp;state.phase==='loadConfirm')flashingRegions=new Set([12]);
+ if(state.mode===1&amp;&amp;state.phase==='addressConfirm')flashingRegions=new Set([14]);
  if(['onType','ctlCorrection','ctlMinute','ctlOffHour','ctlOffMinute','ctlDays'].includes(state.phase))flashingRegions=new Set(state.phase==='ctlDays'?[ctlLabelIds[state.ctlDayIndex]]:state.phase==='ctlCorrection'?[50+state.ctlCorrection]:['ctlOffHour','ctlOffMinute'].includes(state.phase)?[25,26,31]:[]);
+ if(state.mode===1&amp;&amp;state.phase==='onType'&amp;&amp;actionStep===23)flashingRegions=new Set([30,33,34,32]);
+ if(state.mode===1&amp;&amp;state.phase==='onType'&amp;&amp;actionStep===24)flashingRegions=new Set([30,33,31]);
+ if(state.mode===1&amp;&amp;state.phase==='ctlOffMinute'&amp;&amp;actionStep===30)flashingRegions.delete(31);
+ if(state.mode===1&amp;&amp;state.phase==='root'&amp;&amp;actionStep===42)flashingRegions=new Set();
  const symbols=document.getElementById('symbols'),values=document.getElementById('values');symbols.replaceChildren();values.replaceChildren();showRegion(modes[state.mode]+' 上方箭頭');
  const p=state.phase;
- if(state.mode===4){showRegion(specials[state.special]+' 下方箭頭');if(p==='root'){if(state.special===4){showRegion('ADDRESS NO. 標題框');write('----',550,303,65);}}}
- if(['lat','lon','gmt'].includes(p)){showRegion(({lat:'LAT.',lon:'LON',gmt:'GMT'})[p]+' 標題框');digits((p==='gmt'&amp;&amp;state[p]&gt;=0?'+':'')+state[p],280,524,100,values);}
+ if(state.mode===2&amp;&amp;[2,43].includes(actionStep)){showRegion('SP-D SET 框');showRegion('SP-D1');}
+ if(state.mode===3&amp;&amp;[3,44].includes(actionStep))stepClockScreen();
+ if(state.mode===4){showRegion(specials[state.special]+' 下方箭頭');if(p==='root'){if([4,45].includes(actionStep)){showRegion('ADDRESS NO. 標題框');const dashes=node('g',{'data-lcd-region':'14'},values);rightDigits('----',590,232,76,dashes);}else if(actionStep===7){showRegionId(16);}else if(actionStep===8||actionStep===15){const cycle=Math.floor((Date.now()-step8Start)/2000)%3,items=actionStep===15?[['LAT. 標題框',String(state.lat)],['LON 標題框','1~'+String(state.lon).slice(1)],['GMT 標題框',state.gmt+':00']]:[['LAT. 標題框','24'],['LON 標題框','1~20'],['GMT 標題框','8:00']],item=items[cycle];lastStep8Phase=cycle;showRegion(item[0]);rightDigits(item[1],590,526,100,values);}}}
+ if(['lat','lon','gmt'].includes(p)){showRegion(({lat:'LAT.',lon:'LON',gmt:'GMT'})[p]+' 標題框');const locationValue=actionStep===11&amp;&amp;p==='lon'?'1~20':p==='gmt'?state[p]+':00':String(state[p]);if([9,10,11,12,13,14].includes(actionStep))rightDigits(locationValue,590,526,100,values);else digits(locationValue,280,524,100,values);}
  if(state.mode===1){
-  if(p!=='typeConfirm'&amp;&amp;!(['root','onType'].includes(p)&amp;&amp;state.onType===0)){
+  if(actionStep!==42&amp;&amp;!['typeConfirm','loadConfirm','addressConfirm'].includes(p)&amp;&amp;!(['root','onType'].includes(p)&amp;&amp;state.onType===0)){
    ['左向右三角','左橫條'].forEach(showRegion);
    if(!(['onType','ctlCorrection','ctlMinute','ctlOffHour','ctlOffMinute','ctlDays'].includes(p)&amp;&amp;state.ctlChoice===1))['右向右三角','右橫條'].forEach(showRegion);
   }
   programHeader();
-  if(p==='root'&amp;&amp;state.onType===0){
+  if(['root','loadConfirm','addressConfirm'].includes(p)&amp;&amp;state.onType===0){
    ['TYPE 標題框','NML','CTL 標題框','TIME 標題框','CTL DAY 框',state.prgOff?'OFF':'ON'].forEach(showRegion);
    digits(state.prgOff?'20:00':'18:00',268,526,100,values);
    dayRow(saved.days||state.ctlDays.slice(0,7));
@@ -215,11 +235,12 @@ function render(){
   else if(p==='root'){
    ['TYPE 標題框','CTL MODE 標題框','CTL 標題框','TIME 標題框','CTL DAY 框'].forEach(showRegion);
    if(!state.prgOff){
-    ['ASTRO','ON','左太陽','向下箭頭','控制點 1','EARLIER 框','m 單位'].forEach(showRegion);
+   ['ASTRO','ON','左太陽','向下箭頭','控制點 1','EARLIER 框','m 單位'].forEach(showRegion);
+    if(actionStep===42)['左向右三角','左橫條'].forEach(showRegion);
     digits('18:04',268,526,100,values);digits('1',638,560,65,values);
    }else{
     showRegion('OFF');
-    if(saved.off){digits(saved.off,268,526,100,values);}
+    if(saved.off){if(actionStep===42)['左向右三角','左橫條','ASTRO','ST','時鐘圖示','控制點 2'].forEach(showRegion);digits(saved.off,268,526,100,values);}
     else{['ASTRO','右太陽','向上箭頭','控制點 3'].forEach(showRegion);digits('5:40',333,526,100,values);}
    }
    dayRow(saved.days||state.ctlDays.slice(0,7));
@@ -282,10 +303,17 @@ function nextGuideKey(){
  if(p==='ctlDays')return state.ctlDayIndex&lt;7&amp;&amp;!state.ctlDays[state.ctlDayIndex]?'plus':'set';
  return 'set';
 }
-function updateGuideKeys(){const active=nextGuideKey();for(const key of ['mode','plus','minus','back','set']){document.getElementById('hint-'+key).classList.toggle('active-hint',key===active);for(const id of [key,key==='set'?'device-set':'panel-'+key]){const n=document.getElementById(id);n.classList.toggle('guide-key',key===active);n.setAttribute('aria-disabled',String(key!==active));n.setAttribute('tabindex',key===active?'0':'-1');}}}
-function bind(id,fn){const n=document.getElementById(id);const key=id==='device-set'?'set':id.replace('panel-','');const allowed=()=&gt;key===nextGuideKey();n.onclick=()=&gt;{if(allowed())fn();};n.onkeydown=e=&gt;{if((e.key==='Enter'||e.key===' ')&amp;&amp;n.tagName!=='BUTTON'){e.preventDefault();if(allowed())fn();}};}
-bind('set',save);bind('device-set',save);bind('mode',mode);bind('plus',()=&gt;adjust(1));bind('minus',()=&gt;adjust(-1));bind('back',back);
-for(const [id,x,y,w,h,fn] of [['panel-mode',262,1365,146,99,mode],['panel-minus',450,1365,150,99,()=&gt;adjust(-1)],['panel-plus',644,1365,150,99,()=&gt;adjust(1)],['panel-back',450,1494,150,99,back]]){node('rect',{id,x,y,width:w,height:h,rx:10,class:'key-area',role:'button',tabindex:0,'aria-label':id.replace('panel-','')},document.getElementById('device'));bind(id,fn);}
+function updateGuideKeys(){const active=nextGuideKey();for(const key of ['mode','plus','minus','back','set']){const enabled=key==='back'?history.length&gt;0:key===active;document.getElementById('hint-'+key).classList.toggle('active-hint',key===active);for(const id of [key,key==='set'?'device-set':'panel-'+key]){const n=document.getElementById(id);n.classList.toggle('guide-key',key===active);n.setAttribute('aria-disabled',String(!enabled));n.setAttribute('tabindex',enabled?'0':'-1');}}}
+let actionStep=0,step8Start=0,lastStep8Phase=-1,stepBlinkSymbolsVisible=true,step42BlinkVisible=true,history=[];
+function reportStep(){parent.postMessage({type:'controller-step',step:actionStep},'*');}
+function snapshot(){return {state:JSON.parse(JSON.stringify(state)),saved:JSON.parse(JSON.stringify(saved)),page,actionStep,message};}
+const initialControllerSnapshot=snapshot();
+function restoreObject(target,source){for(const key of Object.keys(target))delete target[key];Object.assign(target,source);}
+function undoAction(){const previous=history.pop();if(!previous)return;restoreObject(state,previous.state);restoreObject(saved,previous.saved);page=previous.page;actionStep=previous.actionStep;message=previous.message;step8Start=Date.now();lastStep8Phase=-1;stepBlinkSymbolsVisible=true;step42BlinkVisible=true;ctlBlinkStart=Date.now();reportStep();render();}
+function jumpToStep(requestedStep){const target=Math.max(0,Math.min(99,Math.trunc(Number(requestedStep)||0)));restoreObject(state,JSON.parse(JSON.stringify(initialControllerSnapshot.state)));restoreObject(saved,JSON.parse(JSON.stringify(initialControllerSnapshot.saved)));page=initialControllerSnapshot.page;actionStep=0;message=initialControllerSnapshot.message;history=[];step8Start=Date.now();lastStep8Phase=-1;stepBlinkSymbolsVisible=true;step42BlinkVisible=true;ctlBlinkStart=Date.now();let guard=0;while(actionStep&lt;target&amp;&amp;guard++&lt;100){const key=nextGuideKey();if(!key)break;history.push(snapshot());actionStep++;if(actionStep===8||actionStep===15){step8Start=Date.now();lastStep8Phase=-1;}if([23,24,42].includes(actionStep)){stepBlinkSymbolsVisible=true;step42BlinkVisible=true;ctlBlinkStart=Date.now();}if(key==='mode')mode();else if(key==='plus')adjust(1);else if(key==='minus')adjust(-1);else if(key==='set')save();}ctlBlinkStart=Date.now();stepBlinkSymbolsVisible=true;step42BlinkVisible=true;reportStep();render();}
+function bind(id,fn){const n=document.getElementById(id);const key=id==='device-set'?'set':id.replace('panel-','');const allowed=()=&gt;key==='back'?history.length&gt;0:key===nextGuideKey();const run=()=&gt;{if(!allowed())return;if(key==='back'){fn();return;}history.push(snapshot());actionStep++;if(actionStep===8||actionStep===15){step8Start=Date.now();lastStep8Phase=-1;}if([23,24,42].includes(actionStep)){stepBlinkSymbolsVisible=true;step42BlinkVisible=true;ctlBlinkStart=Date.now();}fn();reportStep();};n.onclick=run;n.onkeydown=e=&gt;{if((e.key==='Enter'||e.key===' ')&amp;&amp;n.tagName!=='BUTTON'){e.preventDefault();run();}};}
+bind('set',save);bind('device-set',save);bind('mode',mode);bind('plus',()=&gt;adjust(1));bind('minus',()=&gt;adjust(-1));bind('back',undoAction);
+for(const [id,x,y,w,h,fn] of [['panel-mode',262,1365,146,99,mode],['panel-minus',450,1365,150,99,()=&gt;adjust(-1)],['panel-plus',644,1365,150,99,()=&gt;adjust(1)],['panel-back',450,1494,150,99,undoAction]]){node('rect',{id,x,y,width:w,height:h,rx:10,class:'key-area',role:'button',tabindex:0,'aria-label':id.replace('panel-','')},document.getElementById('device'));bind(id,fn);}
 for(const [key,x,y,w,h,label,color,size] of [['mode',262,1365,146,99,'MODE','#d88a00',40],['minus',450,1365,150,99,'−','#b95310',68],['plus',644,1365,150,99,'＋','#b95310',64],['back',450,1494,150,99,'BACK','#399b08',44],['set',644,1493,151,233,'SET','#b95310',60]]){const g=node('g',{id:'hint-'+key,class:'native-hint','pointer-events':'none','aria-hidden':'true'},document.getElementById('device'));node('rect',{x:x+3,y:y+3,width:w-6,height:h-6,rx:7,fill:color},g);const labelNode=node('text',{x:x+w/2,y:y+h/2,'text-anchor':'middle','dominant-baseline':'central',fill:'#fff','font-family':'Arial Narrow,Arial,sans-serif','font-size':size,'font-weight':500},g);if(key==='mode'){labelNode.setAttribute('textLength','108');labelNode.setAttribute('lengthAdjust','spacingAndGlyphs');}labelNode.textContent=label;}
 const radarRoot=node('g',{'pointer-events':'none','aria-hidden':'true',display:'none'},document.getElementById('device'));
 const radarRings=Array.from({length:4},()=&gt;node('rect',{fill:'none',stroke:'#00BFFF','stroke-width':18,'vector-effect':'non-scaling-stroke',opacity:0},radarRoot));
@@ -306,7 +334,7 @@ function guideFrame(i,t){let a=0,o=1,w=7,d='none',x=0;const wave=period=&gt;(1-M
  case 9:a=.12+.18*wave(1500);o=.9;w=4+3*wave(1500);d='35 20';x=Math.sin(t/2400*Math.PI*2)*70;break;
  }return{a,o,w,d,x};}
 let guideLook=1,guideColor='0,191,255';
-window.addEventListener('message',e=&gt;{if(e.source!==parent||e.data?.type!=='guide-look')return;const data=e.data;if(Number.isInteger(data.index)&amp;&amp;data.index&gt;=0&amp;&amp;data.index&lt;10)guideLook=data.index;if(/^#[0-9a-f]{6}$/i.test(data.color||''))guideColor=[1,3,5].map(n=&gt;parseInt(data.color.slice(n,n+2),16)).join(',');});
+window.addEventListener('message',e=&gt;{if(e.source!==parent)return;const data=e.data;if(data?.type==='controller-jump'){jumpToStep(data.step);return;}if(data?.type!=='guide-look')return;if(Number.isInteger(data.index)&amp;&amp;data.index&gt;=0&amp;&amp;data.index&lt;10)guideLook=data.index;if(/^#[0-9a-f]{6}$/i.test(data.color||''))guideColor=[1,3,5].map(n=&gt;parseInt(data.color.slice(n,n+2),16)).join(',');});
 // Inspired by the 400ms color transition supplied from Uiverse.io by kamehame-ha.
 // The foreground clock drives the blend so mobile background pauses stay synchronized.
 function paintGuide(){}
@@ -322,13 +350,24 @@ function frame(now){
  const device=document.getElementById('device');
  setPulseClass(device,'pulse-off',pulseTime%1200&gt;=600);
  setPulseClass(device,'guide-on',pulseTime%1000&lt;500);
+ const step23Visible=(Date.now()-ctlBlinkStart)%2200&lt;1500;
+ if([23,24].includes(actionStep)&amp;&amp;stepBlinkSymbolsVisible!==step23Visible){stepBlinkSymbolsVisible=step23Visible;render();}
+ else if(![23,24].includes(actionStep))stepBlinkSymbolsVisible=true;
  const ctl=(Date.now()-ctlBlinkStart)%4800;
  setPulseClass(device,'left-on',ctl&lt;2400&amp;&amp;ctl%800&lt;400);
  setPulseClass(device,'right-on',ctl&gt;=2400&amp;&amp;ctl%800&lt;400);
  if(state.mode===1&amp;&amp;state.phase==='onType'){
-  if(state.prgOff!==(ctl&gt;=2400))render();
+  if([23,24].includes(actionStep)){state.prgOff=false;}
+  else if(state.prgOff!==(ctl&gt;=2400))render();
  }else if(state.mode===1&amp;&amp;state.phase==='ctlDays'){
   if(state.prgOff!==((Date.now()-ctlBlinkStart)%10000&gt;=5000))render();
+ }else if(state.mode===1&amp;&amp;state.phase==='root'&amp;&amp;actionStep===42){
+  const step42Time=(Date.now()-ctlBlinkStart)%6000,step42Off=step42Time&gt;=3000,withinGroup=step42Time%3000,step42Visible=withinGroup&gt;=2000||withinGroup%1000&lt;500;
+  if(state.prgOff!==step42Off||step42BlinkVisible!==step42Visible){state.prgOff=step42Off;step42BlinkVisible=step42Visible;render();}
+ }else if((actionStep===8||actionStep===15)&amp;&amp;state.mode===4&amp;&amp;state.phase==='root'){
+  const phase=Math.floor((Date.now()-step8Start)/2000)%3;if(phase!==lastStep8Phase)render();
+ }else if([3,44].includes(actionStep)&amp;&amp;state.mode===3&amp;&amp;state.phase==='root'){
+  const second=Math.floor(Date.now()/1000);if(second!==lastSecond){lastSecond=second;render();}
  }else if(state.mode===1&amp;&amp;state.phase==='root'){
   rootTime+=delta;if(rootTime&gt;=(state.prgOff?4000:2000)){rootTime=0;state.prgOff=!state.prgOff;render();}
  }else if(state.mode===0&amp;&amp;state.phase==='root'){
@@ -337,15 +376,33 @@ function frame(now){
  frameId=requestAnimationFrame(frame);
 }
 function stopAnimation(){running=false;if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;lastFrame=0;}
-function resumeAnimation(){if(document.hidden||running)return;running=true;lastFrame=0;pulseTime=0;rootTime=0;radarKey='';lastRadarPaint=-Infinity;ctlBlinkStart=Date.now();render();frameId=requestAnimationFrame(frame);}
+function resumeAnimation(){if(document.hidden||running)return;running=true;lastFrame=0;pulseTime=0;rootTime=0;radarKey='';lastRadarPaint=-Infinity;stepBlinkSymbolsVisible=true;step42BlinkVisible=true;ctlBlinkStart=Date.now();render();frameId=requestAnimationFrame(frame);}
 document.addEventListener('visibilitychange',()=&gt;document.hidden?stopAnimation():resumeAnimation());
 window.addEventListener('pagehide',stopAnimation);window.addEventListener('pageshow',resumeAnimation);
 // Iframe focus may move to the surrounding page while still visible.
 // Pause on document visibility and page lifecycle only.
-resumeAnimation();
+resumeAnimation();reportStep();
 &lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
 "></iframe></section>
+    <div class="step-counter">目前步驟 <input id="controller-step" type="number" min="0" max="99" step="1" inputmode="numeric" value="0" aria-label="直接跳到步驟"></div>
   </main>
 
+  <script>
+    const controllerFrame = document.querySelector('.remote-panel iframe');
+    const controllerStep = document.getElementById('controller-step');
+    window.addEventListener('message', event => {
+      if (event.source !== controllerFrame.contentWindow || event.data?.type !== 'controller-step') return;
+      controllerStep.value = String(event.data.step);
+    });
+    function jumpControllerStep() {
+      const step = Math.max(0, Math.min(99, Math.trunc(Number(controllerStep.value) || 0)));
+      controllerStep.value = String(step);
+      controllerFrame.contentWindow.postMessage({ type: 'controller-jump', step }, '*');
+    }
+    controllerStep.addEventListener('change', jumpControllerStep);
+    controllerStep.addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); jumpControllerStep(); controllerStep.blur(); }
+    });
+  </script>
 </body>
 </html>
