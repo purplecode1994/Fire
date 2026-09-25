@@ -134,8 +134,8 @@ function save(){
  else if(p==='addressConfirm'){state.phase='typeConfirm';message='ADDRESS NO. 已確認，18 號 NML 組件閃爍。用 ＋／－ 選 ASTRO，再按 SET。';}
  else if(p==='typeConfirm'){if(state.onType===1){state.phase='onType';ctlBlinkStart=performance.now();state.prgOff=false;state.ctlChoice=0;message='日落開＋日落關；按＋選擇日落開＋定時關。';}else{message='目前選的是 NML；這次日光調節請先用 ＋／－ 選 ASTRO。';}}
  else if(p==='onType'){if(state.ctlChoice===1){if(!state.ctlPreviewDone){state.ctlPreviewDone=true;state.prgOff=false;ctlBlinkStart=performance.now();message='保留原本步驟 24 的切換畫面；再按 SET 進入 50／51／52。';}else{state.phase='ctlCorrection';state.prgOff=false;state.ctlDaysTimed=false;state.ctlCorrection=0;message='日落 ON：選擇 50、51、52；51 或 52 可按 SET 繼續。';}}else message='日落／日出組合停在此處；按＋選定時關，才可繼續 SET。';}
- else if(p==='ctlCorrection'){if(state.ctlCorrection&gt;0){state.phase='ctlMinute';state.ctlMinute=1;message='顯示 1M；＋／－調整，SET 進入星期。';}else message='50（±0）不往下；請選 51 或 52。';}
- else if(p==='ctlMinute'){state.phase='ctlOffHour';state.hour=22;state.minute=0;state.ctlDaysTimed=true;message='1M 已確認；25、26、31 閃爍，先設定小時 22。';}
+ else if(p==='ctlCorrection'){if(state.ctlCorrection&gt;0){state.phase='ctlMinute';state.ctlMinute=1;message='顯示 1M；按＋調整至 5M（日落後 5 分鐘），再按 SET 設定關燈時間。';}else message='50（±0）不往下；請選 51 或 52。';}
+ else if(p==='ctlMinute'){state.phase='ctlOffHour';state.hour=22;state.minute=0;state.ctlDaysTimed=true;message='日落後 '+state.ctlMinute+'M 已確認；25、26、31 閃爍，先設定小時 22。';}
  else if(p==='ctlOffHour'){state.phase='ctlOffMinute';message='小時已確認；設定分鐘 00，按 SET 進入星期。';}
  else if(p==='ctlOffMinute'){saved.off=String(state.hour).padStart(2,'0')+':'+String(state.minute).padStart(2,'0');state.phase='ctlDays';state.ctlDayIndex=0;state.ctlDaysTimed=true;message='關燈 '+saved.off+' 已確認，進入星期設定。';}
  else if(p==='ctlDays'){if(state.ctlDayIndex&lt;8){state.ctlDayIndex++;message='設定 '+ctlDayLabels[state.ctlDayIndex]+'；＋切換圓點，SET 下一項。';}else{saved.ctl={choice:state.ctlChoice,correction:state.ctlCorrection,minutes:state.ctlMinute,days:[...state.ctlDays]};saved.days=state.ctlDays.slice(0,7);state.phase='root';state.prgOff=false;state.onType=1;page=8;message='已完成設定，程序編號（7）閃爍；按 MODE 回 NML。';}}
@@ -182,16 +182,16 @@ function render(){
  if(['onType','ctlCorrection','ctlMinute','ctlOffHour','ctlOffMinute','ctlDays'].includes(state.phase))flashingRegions=new Set(state.phase==='ctlDays'?[ctlLabelIds[state.ctlDayIndex]]:state.phase==='ctlCorrection'?[50+state.ctlCorrection]:['ctlOffHour','ctlOffMinute'].includes(state.phase)?[25,26,31]:[]);
  if(state.mode===1&amp;&amp;state.phase==='onType'&amp;&amp;actionStep===23)flashingRegions=new Set([30,33,34,32]);
  if(state.mode===1&amp;&amp;state.phase==='onType'&amp;&amp;actionStep===24)flashingRegions=new Set([30,33,31]);
- if(state.mode===1&amp;&amp;[29,30].includes(actionStep))flashingRegions.delete(31);
- if(state.mode===1&amp;&amp;state.phase==='root'&amp;&amp;actionStep===42)flashingRegions=new Set(state.prgOff?[25,26]:[22,23]);
+ if(state.mode===1&amp;&amp;[34,35].includes(actionStep))flashingRegions.delete(31);
+ if(state.mode===1&amp;&amp;state.phase==='root'&amp;&amp;actionStep===47)flashingRegions=new Set(state.prgOff?[25,26]:[22,23]);
  const symbols=document.getElementById('symbols'),values=document.getElementById('values');symbols.replaceChildren();values.replaceChildren();showRegion(modes[state.mode]+' 上方箭頭');
  const p=state.phase;
- if(state.mode===2&amp;&amp;[2,43].includes(actionStep)){showRegion('SP-D SET 框');showRegion('SP-D1');}
- if(state.mode===3&amp;&amp;[3,44].includes(actionStep))stepClockScreen();
- if(state.mode===4){showRegion(specials[state.special]+' 下方箭頭');if(p==='root'){if([4,45].includes(actionStep)){showRegion('ADDRESS NO. 標題框');const dashes=node('g',{'data-lcd-region':'14'},values);rightDigits('----',590,232,76,dashes);}else if(actionStep===7){showRegionId(16);}else if(actionStep===8||actionStep===15){const cycle=Math.floor((Date.now()-step8Start)/2000)%3,items=actionStep===15?[['LAT. 標題框',String(state.lat)],['LON 標題框','1~'+String(state.lon).slice(1)],['GMT 標題框',state.gmt+':00']]:[['LAT. 標題框','24'],['LON 標題框','1~20'],['GMT 標題框','8:00']],item=items[cycle];lastStep8Phase=cycle;showRegion(item[0]);rightDigits(item[1],590,526,100,values);}}}
+ if(state.mode===2&amp;&amp;[2,48].includes(actionStep)){showRegion('SP-D SET 框');showRegion('SP-D1');}
+ if(state.mode===3&amp;&amp;[3,49].includes(actionStep))stepClockScreen();
+ if(state.mode===4){showRegion(specials[state.special]+' 下方箭頭');if(p==='root'){if([4,50].includes(actionStep)){showRegion('ADDRESS NO. 標題框');const dashes=node('g',{'data-lcd-region':'14'},values);rightDigits('----',590,232,76,dashes);}else if(actionStep===7){showRegionId(16);}else if(actionStep===8||actionStep===15){const cycle=Math.floor((Date.now()-step8Start)/2000)%3,items=actionStep===15?[['LAT. 標題框',String(state.lat)],['LON 標題框','1~'+String(state.lon).slice(1)],['GMT 標題框',state.gmt+':00']]:[['LAT. 標題框','24'],['LON 標題框','1~20'],['GMT 標題框','8:00']],item=items[cycle];lastStep8Phase=cycle;showRegion(item[0]);rightDigits(item[1],590,526,100,values);}}}
  if(['lat','lon','gmt'].includes(p)){showRegion(({lat:'LAT.',lon:'LON',gmt:'GMT'})[p]+' 標題框');const locationValue=[11,12].includes(actionStep)&amp;&amp;p==='lon'?'1~'+String(state[p]).slice(1):p==='gmt'?state[p]+':00':String(state[p]);if([9,10,11,12,13,14].includes(actionStep))rightDigits(locationValue,590,526,100,values);else digits(locationValue,280,524,100,values);}
  if(state.mode===1){
-  if(actionStep!==42&amp;&amp;!['typeConfirm','loadConfirm','addressConfirm'].includes(p)&amp;&amp;!(['root','onType'].includes(p)&amp;&amp;state.onType===0)){
+  if(actionStep!==47&amp;&amp;!['typeConfirm','loadConfirm','addressConfirm'].includes(p)&amp;&amp;!(['root','onType'].includes(p)&amp;&amp;state.onType===0)){
    ['左向右三角','左橫條'].forEach(showRegion);
    if(!(['onType','ctlCorrection','ctlMinute','ctlOffHour','ctlOffMinute','ctlDays'].includes(p)&amp;&amp;state.ctlChoice===1))['右向右三角','右橫條'].forEach(showRegion);
   }
@@ -205,11 +205,11 @@ function render(){
    ['TYPE 標題框','CTL MODE 標題框','CTL 標題框','TIME 標題框','CTL DAY 框'].forEach(showRegion);
    if(!state.prgOff){
    ['ASTRO','ON','左太陽','向下箭頭','控制點 1','EARLIER 框','m 單位'].forEach(showRegion);
-    if(actionStep===42)['左向右三角','左橫條'].forEach(showRegion);
+    if(actionStep===47)['左向右三角','左橫條'].forEach(showRegion);
     digits('18:04',268,526,100,values);digits('1',638,560,65,values);
    }else{
     showRegion('OFF');
-    if(saved.off){if(actionStep===42)['左向右三角','左橫條','ASTRO','ST','時鐘圖示','控制點 2'].forEach(showRegion);digits(saved.off,268,526,100,values);}
+    if(saved.off){if(actionStep===47)['左向右三角','左橫條','ASTRO','ST','時鐘圖示','控制點 2'].forEach(showRegion);digits(saved.off,268,526,100,values);}
     else{['ASTRO','右太陽','向上箭頭','控制點 3'].forEach(showRegion);digits('5:40',333,526,100,values);}
    }
    dayRow(saved.days||state.ctlDays.slice(0,7));
@@ -260,12 +260,12 @@ function nextGuideKey(){
   if(saved.gmt===undefined){if(state.mode!==4)return 'mode';return state.special===4?'set':'plus';}
   if(state.mode!==1)return 'mode';return state.program===1?'set':'plus';
  }
- const target={lat:25,lon:121,gmt:8,ctlMinute:1,ctlOffHour:22,ctlOffMinute:0,hour:22,minute:0};
+ const target={lat:25,lon:121,gmt:8,ctlMinute:5,ctlOffHour:22,ctlOffMinute:0,hour:22,minute:0};
  const key={ctlMinute:'ctlMinute',ctlOffHour:'hour',ctlOffMinute:'minute'}[p]||p;
  if(p in target)return state[key]===target[p]?'set':state[key]&lt;target[p]?'plus':'minus';
  if(p==='typeConfirm')return state.onType===1?'set':'plus';
  if(p==='onType')return state.ctlChoice===1?'set':'plus';
- if(p==='ctlCorrection')return state.ctlCorrection===1?'set':'plus';
+ if(p==='ctlCorrection')return state.ctlCorrection===2?'set':'plus';
  if(p==='ctlDays')return state.ctlDayIndex&lt;7&amp;&amp;!state.ctlDays[state.ctlDayIndex]?'plus':'set';
  return 'set';
 }
@@ -276,8 +276,8 @@ function snapshot(){return {state:JSON.parse(JSON.stringify(state)),saved:JSON.p
 const initialControllerSnapshot=snapshot();
 function restoreObject(target,source){for(const key of Object.keys(target))delete target[key];Object.assign(target,source);}
 function undoAction(){const previous=history.pop();if(!previous)return;restoreObject(state,previous.state);restoreObject(saved,previous.saved);page=previous.page;actionStep=previous.actionStep;message=previous.message;step8Start=Date.now();lastStep8Phase=-1;ctlBlinkStart=performance.now();restartSharedPulse();reportStep();render();}
-function jumpToStep(requestedStep){const target=Math.max(0,Math.min(99,Math.trunc(Number(requestedStep)||0)));restoreObject(state,JSON.parse(JSON.stringify(initialControllerSnapshot.state)));restoreObject(saved,JSON.parse(JSON.stringify(initialControllerSnapshot.saved)));page=initialControllerSnapshot.page;actionStep=0;message=initialControllerSnapshot.message;history=[];step8Start=Date.now();lastStep8Phase=-1;ctlBlinkStart=performance.now();let guard=0;while(actionStep&lt;target&amp;&amp;guard++&lt;100){const key=nextGuideKey();if(!key)break;history.push(snapshot());actionStep++;if(actionStep===8||actionStep===15){step8Start=Date.now();lastStep8Phase=-1;}if([23,24,42].includes(actionStep))ctlBlinkStart=performance.now();if(key==='mode')mode();else if(key==='plus')adjust(1);else if(key==='minus')adjust(-1);else if(key==='set')save();}ctlBlinkStart=performance.now();restartSharedPulse();reportStep();render();}
-function bind(id,fn){const n=document.getElementById(id);const key=id==='device-set'?'set':id.replace('panel-','');const allowed=()=&gt;key==='back'?history.length&gt;0:key===nextGuideKey();const run=()=&gt;{if(!allowed())return;if(key==='back'){fn();return;}history.push(snapshot());actionStep++;if(actionStep===8||actionStep===15){step8Start=Date.now();lastStep8Phase=-1;}if([23,24,42].includes(actionStep))ctlBlinkStart=performance.now();restartSharedPulse();fn();reportStep();};n.onclick=run;n.onkeydown=e=&gt;{if((e.key==='Enter'||e.key===' ')&amp;&amp;n.tagName!=='BUTTON'){e.preventDefault();run();}};}
+function jumpToStep(requestedStep){const target=Math.max(0,Math.min(99,Math.trunc(Number(requestedStep)||0)));restoreObject(state,JSON.parse(JSON.stringify(initialControllerSnapshot.state)));restoreObject(saved,JSON.parse(JSON.stringify(initialControllerSnapshot.saved)));page=initialControllerSnapshot.page;actionStep=0;message=initialControllerSnapshot.message;history=[];step8Start=Date.now();lastStep8Phase=-1;ctlBlinkStart=performance.now();let guard=0;while(actionStep&lt;target&amp;&amp;guard++&lt;100){const key=nextGuideKey();if(!key)break;history.push(snapshot());actionStep++;if(actionStep===8||actionStep===15){step8Start=Date.now();lastStep8Phase=-1;}if([23,24,47].includes(actionStep))ctlBlinkStart=performance.now();if(key==='mode')mode();else if(key==='plus')adjust(1);else if(key==='minus')adjust(-1);else if(key==='set')save();}ctlBlinkStart=performance.now();restartSharedPulse();reportStep();render();}
+function bind(id,fn){const n=document.getElementById(id);const key=id==='device-set'?'set':id.replace('panel-','');const allowed=()=&gt;key==='back'?history.length&gt;0:key===nextGuideKey();const run=()=&gt;{if(!allowed())return;if(key==='back'){fn();return;}history.push(snapshot());actionStep++;if(actionStep===8||actionStep===15){step8Start=Date.now();lastStep8Phase=-1;}if([23,24,47].includes(actionStep))ctlBlinkStart=performance.now();restartSharedPulse();fn();reportStep();};n.onclick=run;n.onkeydown=e=&gt;{if((e.key==='Enter'||e.key===' ')&amp;&amp;n.tagName!=='BUTTON'){e.preventDefault();run();}};}
 bind('device-set',save);
 for(const [id,x,y,w,h,fn] of [['panel-mode',262,1365,146,99,mode],['panel-minus',450,1365,150,99,()=&gt;adjust(-1)],['panel-plus',644,1365,150,99,()=&gt;adjust(1)],['panel-back',450,1494,150,99,undoAction]]){node('rect',{id,x,y,width:w,height:h,rx:10,class:'key-area',role:'button',tabindex:0,'aria-label':id.replace('panel-','')},document.getElementById('device'));bind(id,fn);}
 
@@ -303,12 +303,12 @@ function frame(now){
    else{const desiredOff=ctl&gt;=3000;if(state.prgOff!==desiredOff&amp;&amp;!sharedOn){state.prgOff=desiredOff;render();}}
  }else if(state.mode===1&amp;&amp;state.phase==='ctlDays'){
   const desiredOff=(now-ctlBlinkStart)%10000&gt;=5000;if(state.prgOff!==desiredOff&amp;&amp;!sharedOn){state.prgOff=desiredOff;render();}
- }else if(state.mode===1&amp;&amp;state.phase==='root'&amp;&amp;actionStep===42){
+ }else if(state.mode===1&amp;&amp;state.phase==='root'&amp;&amp;actionStep===47){
   const step42Off=(now-sharedPulseStart)%6000&gt;=3000;
   if(state.prgOff!==step42Off&amp;&amp;!sharedOn){state.prgOff=step42Off;render();}
  }else if((actionStep===8||actionStep===15)&amp;&amp;state.mode===4&amp;&amp;state.phase==='root'){
   const phase=Math.floor((Date.now()-step8Start)/2000)%3;if(phase!==lastStep8Phase)render();
- }else if([3,44].includes(actionStep)&amp;&amp;state.mode===3&amp;&amp;state.phase==='root'){
+ }else if([3,49].includes(actionStep)&amp;&amp;state.mode===3&amp;&amp;state.phase==='root'){
   const second=Math.floor(Date.now()/1000);if(second!==lastSecond){lastSecond=second;render();}
  }else if(state.mode===1&amp;&amp;state.phase==='root'){
   const hold=state.prgOff?4000:2000;if(now-rootSwitchStart&gt;=hold&amp;&amp;!sharedOn){rootSwitchStart=now;state.prgOff=!state.prgOff;render();}
